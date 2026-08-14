@@ -11,8 +11,9 @@ SignalLab is an interactive, client-side web application for practicing Analog S
 
 ## Universal Rules
 
-1. **Zero Unicode Math in UI Text**: Do not use raw Unicode math characters ($\sum, \int, \omega, \pi, \sigma, \le, \ge$) in HTML text, buttons, labels, or headings.
-2. **KaTeX Enforcement**: All mathematical expressions and variables MUST be rendered strictly using KaTeX wrappers (`<MathInline>` or `<MathBlock>`).
+1. **Zero Unicode Math in UI Text**: Do not use raw Unicode math characters ($\sum, \int, \omega, \pi, \sigma, \le, \ge$) in HTML text, buttons, labels, or headings. The only acceptable exceptions are native plain-text contexts where LaTeX compilers cannot render (HTML input/textarea `placeholder` attributes, native `<option>` elements, and native `title` tooltips) until custom components replace them.
+2. **LaTeX Enforcement**: All mathematical expressions and variables MUST be rendered strictly using LaTeX wrappers (`<MathInline>` or `<MathBlock>`).
+	- Currently using KaTeX for LaTeX rendering.
 3. **Mandatory JSDoc Comments**: Write JSDoc comments (`/** ... */`) for all functions, methods, parameters, and type definitions.
 4. **Defensive Switch Control**: Always include a dedicated `default` case in `switch` statements to handle unknown/unhandled cases explicitly (e.g. throwing an explicit `Error` or providing a defensive fallback). Do not stack a valid `case` clause onto `default:` without its own branch logic.
 5. **No Direct Git Commits**: Do not commit changes to Git unless explicitly requested by the user.

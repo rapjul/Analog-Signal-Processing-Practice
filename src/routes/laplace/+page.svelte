@@ -148,9 +148,11 @@
 						class="stability-status"
 						class:stable={stability.isBiboStable}
 					>
-						{stability.isBiboStable
-							? "✅ BIBO Stable (ROC contains jω axis)"
-							: "❌ Unstable"}
+						{#if stability.isBiboStable}
+							✅ BIBO Stable (ROC contains <MathInline math={"j\\omega"} /> axis)
+						{:else}
+							❌ Unstable
+						{/if}
 					</p>
 				</div>
 			</div>

@@ -8,6 +8,8 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import MathInline from "$lib/components/math/MathInline.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	import {
 		type CircuitTopology,
@@ -93,7 +95,10 @@
 			<div class="slider-panel">
 				<h3 class="panel-title">Interactive Component Values</h3>
 				<div class="slider-row">
-					<label for="r-slider">R: {R} Ω</label>
+					<label for="r-slider">
+						<MathInline math={"R"} />: {R}
+						<MathInline math={"\\Omega"} />
+					</label>
 					<input
 						id="r-slider"
 						type="range"
@@ -103,7 +108,10 @@
 					/>
 				</div>
 				<div class="slider-row">
-					<label for="l-slider">L: {L} H</label>
+					<label for="l-slider">
+						<MathInline math={"L"} />: {L}
+						<MathInline math={"\\text{H}"} />
+					</label>
 					<input
 						id="l-slider"
 						type="range"
@@ -114,7 +122,10 @@
 					/>
 				</div>
 				<div class="slider-row">
-					<label for="c-slider">C: {C} F</label>
+					<label for="c-slider">
+						<MathInline math={"C"} />: {C}
+						<MathInline math={"\\text{F}"} />
+					</label>
 					<input
 						id="c-slider"
 						type="range"
@@ -147,7 +158,11 @@
 			<div class="reference-card">
 				<h3 class="ref-title">⚡ Bode Response Info</h3>
 				<div class="ref-section">
-					<h4>Frequency Sample: ω = 10 rad/s</h4>
+					<h4>
+						Frequency Sample: <MathInline
+							math={"\\omega = 10\\text{ rad/s}"}
+						/>
+					</h4>
 					<p>
 						Magnitude: <strong
 							>{cornerBode.magnitudeDb.toFixed(2)} dB</strong

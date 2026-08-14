@@ -96,7 +96,7 @@
 
 			<div class="input-section">
 				<label for="ctft-input" class="input-label">
-					Enter X(ω) in LaTeX:
+					Enter <MathInline math={"X(\\omega)"} /> in LaTeX:
 				</label>
 				<input
 					id="ctft-input"
