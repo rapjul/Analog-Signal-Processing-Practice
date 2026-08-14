@@ -1,0 +1,53 @@
+# EditorConfig is awesome: https://EditorConfig.org
+# editorconfig.org
+
+# top-most EditorConfig file
+root = true
+
+
+[*]
+indent_style = space
+indent_size = 2
+tab_width = 2
+# To allow compiling code on CI.
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+
+[*.{html,sh}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+[*.{js,ts,svelte}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = false
+
+[*.{py,md}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = false
+
+# JSON and SVG files benefit from 2 spaces for better readability and do not require a final newline.
+[*.{json,svg}]
+indent_style = space
+indent_size = 2
+tab_width = 2
+insert_final_newline = false
+
+# YAML files
+[*.{yaml,yml}]
+indent_style = space
+indent_size = 2
+tab_width = 2
+insert_final_newline = true
+
+# Minified JavaScript files shouldn't be changed and often have no newlines, so we ignore indentation and final newline rules.
+[**.min.js]
+indent_style = space
+insert_final_newline = false

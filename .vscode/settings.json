@@ -1,0 +1,28 @@
+{
+  "commentTranslate.hover.enabled": false,
+  "languageToolLinter.languageTool.ignoredWordsInWorkspace": [
+    "ansatz",
+    "bibo",
+    "ece",
+    "katex",
+    "kudeki",
+    "lhp",
+    "lti",
+    "monic",
+    "parseval",
+    "phasor",
+    "pwa",
+    "rhp",
+    "roc",
+    "s-plane",
+    "uiuc"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always"
+  },
+  "editor.formatOnSave": true,
+  "languageToolLinter.languageTool.disabledRules": "ARROWS,WHITESPACE_RULE",
+  "[css]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
+}
