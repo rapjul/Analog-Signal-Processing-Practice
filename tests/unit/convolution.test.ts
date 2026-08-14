@@ -113,7 +113,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(result.eval(3.0)).toBeCloseTo(Math.exp(-1) - Math.exp(-3), 4);
 			expect(result.evalX).toBeDefined();
 			expect(result.evalH).toBeDefined();
-			expect(result.evalH!(1)).toBeCloseTo(Math.exp(-1), 4);
+			expect(result.evalH(1)).toBeCloseTo(Math.exp(-1), 4);
 		});
 
 		it("solves Exponential(a=1) * Exponential(b=2) convolution", () => {
