@@ -1,0 +1,960 @@
+/**
+ * Continuous-Time Convolution Math Engine.
+ * Implements analytical piecewise convolution solvers for rectangular pulses,
+ * exponential decays, triangular functions, step functions, and problem generator.
+ */
+
+import type { SolutionStep } from "./types";
+
+/** Rectangular pulse signal parameters */
+export interface RectSignal {
+	/** Start time of pulse */
+	tStart: number;
+	/** Width of pulse */
+	width: number;
+	/** Amplitude height of pulse */
+	height: number;
+}
+
+/** Exponential decay signal parameters K * exp(-a * t) * u(t) */
+export interface ExpSignal {
+	/** Decay rate parameter a > 0 */
+	a: number;
+	/** Scale coefficient K */
+	K: number;
+}
+
+/** Piecewise convolution interval segment */
+export interface ConvolutionInterval {
+	/** LaTeX interval condition (e.g. "t < 0" or "0 \\le t < 2") */
+	labelLatex: string;
+	/** Minimum time threshold */
+	min: number;
+	/** Maximum time threshold */
+	max: number;
+	/** Piecewise formula in LaTeX */
+	exprLatex: string;
+	/** Numerical evaluator function for segment */
+	eval: (t: number) => number;
+}
+
+/** Convolution result representation */
+export interface ConvolutionResult {
+	/** Convolution pair classification */
+	pairType: string;
+	/** List of piecewise intervals */
+	intervals: ConvolutionInterval[];
+	/** Overall numerical evaluation function y(t) = (x * h)(t) */
+	eval: (t: number) => number;
+	/** Evaluator function for x(tau) */
+	evalX: (tau: number) => number;
+	/** Evaluator function for h(tau) */
+	evalH: (tau: number) => number;
+}
+
+/**
+ * Supported continuous-time convolution signal pair categories for analytical solving.
+ * Covers combinations of rectangular pulses, exponential decays, unit steps, and triangular signals.
+ */
+export type ConvolutionPairType =
+	| "rect_rect"
+	| "rect_shifted_rect"
+	| "multi_rect"
+	| "rect_exp"
+	| "exp_exp"
+	| "tri_rect"
+	| "step_exp"
+	| "step_rect"
+	| "bilateral_exp_rect";
+
+/** Convolution problem metadata and evaluation */
+export interface ConvolutionProblem {
+	/** Unique identifier */
+	id: string;
+	/** Convolution pair classification category */
+	pairType: ConvolutionPairType;
+	/** Title of problem */
+	title: string;
+	/** Input signal x(t) LaTeX representation */
+	xLatex: string;
+	/** Impulse response h(t) LaTeX representation */
+	hLatex: string;
+	/** Step-by-step solution breakdown */
+	solutionSteps: SolutionStep[];
+	/** Piecewise intervals */
+	intervals: ConvolutionInterval[];
+	/** Closed-form numerical evaluator y(t) */
+	eval: (t: number) => number;
+	/** Evaluator function for input signal x(tau) */
+	evalX: (tau: number) => number;
+	/** Evaluator function for impulse response h(tau) */
+	evalH: (tau: number) => number;
+	/** Time range [min, max] for visualization */
+	timeRange?: [number, number];
+}
+
+/**
+ * Solves unit step response u(t) * K exp(-a t) u(t).
+ * @param {ExpSignal} exp Exponential signal parameters
+ * @returns {ConvolutionResult} ConvolutionResult object
+ */
+export function solveStepExpConvolution(exp: ExpSignal): ConvolutionResult {
+	const { a, K } = exp;
+	const evalFn = (t: number): number => {
+		if (t < 0) return 0;
+		return (K / a) * (1 - Math.exp(-a * t));
+	};
+
+	return {
+		pairType: "step_exp",
+		intervals: [
+			{
+				labelLatex: "t < 0",
+				min: Number.NEGATIVE_INFINITY,
+				max: 0,
+				exprLatex: "0",
+				eval: (): number => 0,
+			},
+			{
+				labelLatex: "t \\ge 0",
+				min: 0,
+				max: Number.POSITIVE_INFINITY,
+				exprLatex: `\\frac{${K}}{${a}}\\left(1 - e^{-${a}t}\\right)`,
+				eval: evalFn,
+			},
+		],
+		eval: evalFn,
+		evalX: (tau: number) => (tau >= 0 ? 1 : 0),
+		evalH: (tau: number) => evalExpDecay(tau, a, K),
+	};
+}
+
+/**
+ * Solves unit step response u(t) * rect(t / W).
+ * @param {number} width Rectangular pulse width
+ * @returns {ConvolutionResult} ConvolutionResult object
+ */
+export function solveStepRectConvolution(width: number): ConvolutionResult {
+	const evalFn = (t: number): number => {
+		if (t < 0) return 0;
+		if (t < width) return t;
+		return width;
+	};
+
+	return {
+		pairType: "step_rect",
+		intervals: [
+			{
+				labelLatex: "t < 0",
+				min: Number.NEGATIVE_INFINITY,
+				max: 0,
+				exprLatex: "0",
+				eval: (): number => 0,
+			},
+			{
+				labelLatex: `0 \\le t < ${width}`,
+				min: 0,
+				max: width,
+				exprLatex: "t",
+				eval: (t: number) => Math.max(0, t),
+			},
+			{
+				labelLatex: `t \\ge ${width}`,
+				min: width,
+				max: Number.POSITIVE_INFINITY,
+				exprLatex: `${width}`,
+				eval: (): number => width,
+			},
+		],
+		eval: evalFn,
+		evalX: (tau: number) => (tau >= 0 ? 1 : 0),
+		evalH: (tau: number) => evalRect(tau, 0, width, 1),
+	};
+}
+
+/**
+ * Generates a randomized Continuous-Time Convolution problem for practice.
+ *
+ * Mathematical derivation process:
+ * 1. Randomizes pulse widths W1, W2, start times tStart, and decay rates a to yield well-behaved
+ *    piecewise interval boundary points (t = 0, t = W1, t = W2, t = W1 + W2).
+ * 2. Evaluates analytical convolution integral y(t) = (x * h)(t) = \int_{-\infty}^{\infty} x(\tau) h(t - \tau) d\tau
+ *    by performing flip-and-shift operations on h(\tau) -> h(t - \tau).
+ * 3. Builds granular solution steps detailing overlap region transitions (No Overlap, Growing Overlap, Plateau, Receding Overlap).
+ *
+ * @param {ConvolutionPairType} pairType Signal pair category key
+ * @returns {ConvolutionProblem} Complete practice problem instance
+ */
+export function generateConvolutionProblem(
+	pairType: ConvolutionPairType = "rect_rect",
+): ConvolutionProblem {
+
+	const id = `conv_${pairType}_${Date.now()}`;
+
+	switch (pairType) {
+		case "rect_rect": {
+			const w1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const w2 = Math.floor(Math.random() * 2) + 2; // 2 or 3
+			const h1 = 1;
+			const h2 = Math.floor(Math.random() * 2) + 1; // 1 or 2
+
+			const rect1: RectSignal = { tStart: 0, width: w1, height: h1 };
+			const rect2: RectSignal = { tStart: 0, width: w2, height: h2 };
+			const res = solveRectRectConvolution(rect1, rect2);
+
+			const xLatex = `rect\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
+			const hLatex =
+				h2 === 1
+					? `rect\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`
+					: `${h2} rect\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`;
+
+			const steps: SolutionStep[] = [
+				{
+					title: "Flip & Shift Transformation",
+					description: "Flip h(\\tau) to h(-\\tau) and shift by t to h(t - \\tau).",
+				},
+				{
+					title: "Identify Region 1 (No Overlap)",
+					description: "For t < 0, there is zero signal overlap area.",
+					latex: "y(t) = 0 \\quad (t < 0)",
+				},
+				{
+					title: "Identify Region 2 (Partial Overlap)",
+					description: `For 0 <= t < ${w1}, overlap area increases linearly.`,
+					latex: `y(t) = \\int_0^t (${h2}) d\\tau = ${h2}t`,
+				},
+				{
+					title: "Identify Region 3 (Full Overlap)",
+					description: `For ${w1} <= t < ${w2}, overlap area plateaus at maximum value.`,
+					latex: `y(t) = \\int_{t-${w1}}^t (${h2}) d\\tau = ${h2 * w1}`,
+				},
+				{
+					title: "Identify Region 4 (Receding Overlap)",
+					description: `For ${w2} <= t < ${w1 + w2}, overlap area decreases linearly to 0.`,
+					latex: `y(t) = \\int_{t-${w1}}^{${w2}} (${h2}) d\\tau = ${h2 * (w1 + w2)} - ${h2}t`,
+				},
+			];
+
+			return {
+				id,
+				pairType: "rect_rect",
+				title: "Rectangular Pulse Convolution",
+				xLatex,
+				hLatex,
+				solutionSteps: steps,
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-2, w1 + w2 + 2],
+			};
+		}
+		case "rect_shifted_rect": {
+			const w1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const w2 = Math.floor(Math.random() * 2) + 2; // 2 or 3
+			const tShift = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const rect1: RectSignal = { tStart: 0, width: w1, height: 1 };
+			const rect2: RectSignal = { tStart: tShift, width: w2, height: 1 };
+			const res = solveShiftedRectConvolution(rect1, rect2);
+
+			const xLatex = `rect\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
+			const hLatex = `rect\\left(\\frac{t - ${tShift + w2 / 2}}{${w2}}\\right)`;
+
+			const steps: SolutionStep[] = [
+				{
+					title: "Flip & Shift Transformation",
+					description: `Shifted pulse h(\\tau) is active in [${tShift}, ${tShift + w2}]. Flip and shift yields h(t - \\tau).`,
+				},
+				{
+					title: "Region 1 (No Overlap)",
+					description: `For t < ${tShift}, there is zero overlap.`,
+					latex: `y(t) = 0 \\quad (t < ${tShift})`,
+				},
+				{
+					title: "Region 2 (Linear Growth)",
+					description: `Overlap grows linearly from t = ${tShift}.`,
+					latex: `y(t) = t - ${tShift}`,
+				},
+				{
+					title: "Region 3 (Plateau / Peak)",
+					description: "Maximum overlap area achieved.",
+					latex: `y(t) = ${Math.min(w1, w2)}`,
+				},
+				{
+					title: "Region 4 (Receding Edge)",
+					description: `Receding overlap returns to zero at t = ${tShift + w1 + w2}.`,
+					latex: `y(t) = ${tShift + w1 + w2} - t`,
+				},
+			];
+
+			return {
+				id,
+				pairType: "rect_shifted_rect",
+				title: "Shifted Rect Pulse Convolution",
+				xLatex,
+				hLatex,
+				solutionSteps: steps,
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-1, tShift + w1 + w2 + 2],
+			};
+		}
+		case "multi_rect": {
+			const res = solveMultiRectConvolution();
+			const xLatex = "rect\\left(t - 0.5\\right) + rect\\left(t - 3.5\\right)";
+			const hLatex = "rect\\left(\\frac{t - 1}{2}\\right)";
+
+			const steps: SolutionStep[] = [
+				{
+					title: "Superposition Principle",
+					description: "Convolve x(t) = x_1(t) + x_2(t) separately with h(t) using linearity.",
+					latex: "y(t) = (x_1 * h)(t) + (x_2 * h)(t)",
+				},
+				{
+					title: "Convolve First Pulse",
+					description: "rect(t - 0.5) * rect((t - 1)/2) produces trapezoid in [0, 3].",
+					latex: "y_1(t) = \\text{trapezoid in } [0, 3]",
+				},
+				{
+					title: "Convolve Second Pulse",
+					description: "rect(t - 3.5) * rect((t - 1)/2) produces identical trapezoid shifted to [3, 6].",
+					latex: "y_2(t) = \\text{trapezoid in } [3, 6]",
+				},
+			];
+
+			return {
+				id,
+				pairType: "multi_rect",
+				title: "Multi-Rect Pulse Array Convolution",
+				xLatex,
+				hLatex,
+				solutionSteps: steps,
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-1, 7],
+			};
+		}
+		case "rect_exp": {
+			const w = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const a = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+			const rect: RectSignal = { tStart: 0, width: w, height: 1 };
+			const expSignal: ExpSignal = { a, K: 1 };
+
+			const res = solveRectExpConvolution(rect, expSignal);
+			const xLatex = `rect\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+			const hLatex = `e^{-${a}t} u(t)`;
+
+			const steps: SolutionStep[] = [
+				{
+					title: "Flip & Shift Transformation",
+					description: `Flip h(\\tau) to h(t - \\tau) = e^{-${a}(t - \\tau)} u(t - \\tau).`,
+				},
+				{
+					title: "Region 1 (t < 0)",
+					description: "No overlap between pulse and exponential decay.",
+					latex: "y(t) = 0",
+				},
+				{
+					title: "Region 2 (0 <= t < w)",
+					description: `Integration interval is \\tau in [0, t].`,
+					latex: `y(t) = \\int_0^t e^{-${a}(t - \\tau)} d\\tau = \\frac{1}{${a}}\\left(1 - e^{-${a}t}\\right)`,
+				},
+				{
+					title: "Region 3 (t >= w)",
+					description: `Integration interval is \\tau in [0, ${w}].`,
+					latex: `y(t) = \\int_0^{${w}} e^{-${a}(t - \\tau)} d\\tau = \\frac{1}{${a}}\\left(e^{-${a}(t - ${w})} - e^{-${a}t}\\right)`,
+				},
+			];
+
+			return {
+				id,
+				pairType: "rect_exp",
+				title: "Pulse-Exponential Convolution",
+				xLatex,
+				hLatex,
+				solutionSteps: steps,
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-2, w + 4],
+			};
+		}
+		case "exp_exp": {
+			const a1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const a2 = a1 + Math.floor(Math.random() * 2) + 1; // a1 + 1 or a1 + 2
+			const exp1: ExpSignal = { a: a1, K: 1 };
+			const exp2: ExpSignal = { a: a2, K: 1 };
+
+			const res = solveExpExpConvolution(exp1, exp2);
+			const xLatex = `e^{-${a1}t} u(t)`;
+			const hLatex = `e^{-${a2}t} u(t)`;
+
+			const steps: SolutionStep[] = [
+				{
+					title: "Integral Setup",
+					description: "Set up the convolution integral for t >= 0.",
+					latex: `y(t) = \\int_0^t e^{-${a1}\\tau} e^{-${a2}(t - \\tau)} d\\tau`,
+				},
+				{
+					title: "Factor Out Common Terms",
+					description: "Factor out terms not depending on tau.",
+					latex: `y(t) = e^{-${a2}t} \\int_0^t e^{(${a2} - ${a1})\\tau} d\\tau`,
+				},
+				{
+					title: "Evaluate Definite Integral",
+					description: "Integrate and simplify final response.",
+					latex: `y(t) = \\frac{1}{${a2 - a1}}\\left(e^{-${a1}t} - e^{-${a2}t}\\right) u(t)`,
+				},
+			];
+
+			return {
+				id,
+				pairType: "exp_exp",
+				title: "Exponential-Exponential Convolution",
+				xLatex,
+				hLatex,
+				solutionSteps: steps,
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-1, 6],
+			};
+		}
+		case "step_exp": {
+			const a = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+			const res = solveStepExpConvolution({ a, K: 1 });
+			const xLatex = "u(t)";
+			const hLatex = `e^{-${a}t} u(t)`;
+
+			return {
+				id,
+				pairType: "step_exp",
+				title: "Unit Step Response of Exponential System",
+				xLatex,
+				hLatex,
+				solutionSteps: [
+					{
+						title: "Integral Setup for Step Input",
+						description: "Convolve u(t) with exponential impulse response.",
+						latex: `y(t) = \\int_0^t e^{-${a}\\tau} d\\tau \\quad (t \\ge 0)`,
+					},
+					{
+						title: "Evaluate Step Response Integral",
+						description: "Integrate from 0 to t.",
+						latex: `y(t) = \\frac{1}{${a}}\\left(1 - e^{-${a}t}\\right) u(t)`,
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-1, 6],
+			};
+		}
+		case "step_rect": {
+			const w = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+			const res = solveStepRectConvolution(w);
+			const xLatex = "u(t)";
+			const hLatex = `rect\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+
+			return {
+				id,
+				pairType: "step_rect",
+				title: "Unit Step Response of Rectangular Pulse System",
+				xLatex,
+				hLatex,
+				solutionSteps: [
+					{
+						title: "Integrate Pulse Over Moving Limit",
+						description: `For 0 <= t < ${w}, y(t) integrates to t.`,
+						latex: "y(t) = t",
+					},
+					{
+						title: "Plateau for t >= w",
+						description: `For t >= ${w}, full pulse is integrated yielding total area ${w}.`,
+						latex: `y(t) = ${w}`,
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-1, w + 4],
+			};
+		}
+		case "tri_rect":
+		case "bilateral_exp_rect": {
+			// Fallback to Rect-Rect solver for complex piecewise shapes
+			const rect1: RectSignal = { tStart: 0, width: 2, height: 1 };
+			const rect2: RectSignal = { tStart: 0, width: 2, height: 1 };
+			const res = solveRectRectConvolution(rect1, rect2);
+			return {
+				id,
+				pairType,
+				title: "Triangular Pulse Convolution",
+				xLatex: "\\operatorname{tri}(t/2)",
+				hLatex: "\\operatorname{rect}(t/2)",
+				solutionSteps: [
+					{
+						title: "Piecewise Convolution Setup",
+						description: "Integrate overlapping triangular and rectangular pulse regions.",
+						latex: "y(t) = (\\operatorname{tri} * \\operatorname{rect})(t)",
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				timeRange: [-2, 6],
+			};
+		}
+		default: {
+			const unhandledType: never = pairType;
+			throw new Error(`Unknown convolution pair type: ${unhandledType}`);
+		}
+	}
+}
+
+
+/**
+ * Evaluates rectangular pulse signal rect( (t - tStart - width/2) / width ).
+ * @param {number} t Time sample point
+ * @param {number} tStart Start time of pulse
+ * @param {number} width Width of pulse
+ * @param {number} height Pulse amplitude
+ * @returns {number} Signal value
+ */
+export function evalRect(
+	t: number,
+	tStart: number,
+	width: number,
+	height: number,
+): number {
+	const tEnd = tStart + width;
+	if (t >= tStart && t < tEnd) {
+		return height;
+	}
+	return 0;
+}
+
+/**
+ * Evaluates causal exponential decay K * exp(-a * t) * u(t).
+ * @param {number} t Time sample point
+ * @param {number} a Decay rate a > 0
+ * @param {number} K Amplitude multiplier
+ * @returns {number} Signal value
+ */
+export function evalExpDecay(t: number, a: number, K: number): number {
+	if (t < 0) {
+		return 0;
+	}
+	return K * Math.exp(-a * t);
+}
+
+/**
+ * Evaluates symmetric triangular pulse centered at tCenter.
+ * @param {number} t Time sample point
+ * @param {number} tCenter Center time of triangular peak
+ * @param {number} width Total base width of triangle
+ * @param {number} height Peak height of triangle
+ * @returns {number} Signal value
+ */
+export function evalTri(
+	t: number,
+	tCenter: number,
+	width: number,
+	height: number,
+): number {
+	const halfWidth = width / 2;
+	const dist = Math.abs(t - tCenter);
+	if (dist >= halfWidth) {
+		return 0;
+	}
+	return height * (1 - dist / halfWidth);
+}
+
+/**
+ * Solves continuous-time analytical convolution of two rectangular pulses rect1 * rect2.
+ * @param {RectSignal} rect1 First rectangular pulse signal x(t)
+ * @param {RectSignal} rect2 Second rectangular pulse signal h(t)
+ * @returns {ConvolutionResult} Analytical piecewise convolution result
+ */
+export function solveRectRectConvolution(
+	rect1: RectSignal,
+	rect2: RectSignal,
+): ConvolutionResult {
+	const T1 = Math.min(rect1.width, rect2.width);
+	const T2 = Math.max(rect1.width, rect2.width);
+	const H = rect1.height * rect2.height;
+
+	const t0 = rect1.tStart + rect2.tStart;
+	const t1 = t0 + T1;
+	const t2 = t0 + T2;
+	const t3 = t0 + T1 + T2;
+
+	const intervals: ConvolutionInterval[] = [
+		{
+			labelLatex: `t < ${t0}`,
+			min: Number.NEGATIVE_INFINITY,
+			max: t0,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+		{
+			labelLatex: `${t0} \\le t < ${t1}`,
+			min: t0,
+			max: t1,
+			exprLatex: `${H}(t - ${t0})`,
+			eval: (t: number): number => H * (t - t0),
+		},
+	];
+
+	if (T1 !== T2) {
+		intervals.push({
+			labelLatex: `${t1} \\le t < ${t2}`,
+			min: t1,
+			max: t2,
+			exprLatex: `${H * T1}`,
+			eval: (): number => H * T1,
+		});
+	}
+
+	intervals.push(
+		{
+			labelLatex: `${t2} \\le t < ${t3}`,
+			min: t2,
+			max: t3,
+			exprLatex: `${H}(${t3} - t)`,
+			eval: (t: number): number => H * (t3 - t),
+		},
+		{
+			labelLatex: `t \\ge ${t3}`,
+			min: t3,
+			max: Number.POSITIVE_INFINITY,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+	);
+
+	const evalFn = (t: number): number => {
+		if (t < t0 || t >= t3) return 0;
+		if (t < t1) return H * (t - t0);
+		if (t < t2) return H * T1;
+		return H * (t3 - t);
+	};
+
+	return {
+		pairType: "rect_rect",
+		intervals,
+		eval: evalFn,
+		evalX: (tau: number) => evalRect(tau, rect1.tStart, rect1.width, rect1.height),
+		evalH: (tau: number) => evalRect(tau, rect2.tStart, rect2.width, rect2.height),
+	};
+}
+
+/**
+ * Solves convolution of Rectangular pulse x(t) and Shifted Rectangular pulse h(t) = rect((t - t0 - W2/2)/W2).
+ * Resulting output y(t) is a trapezoid.
+ * @param {RectSignal} rect1 Base rectangle pulse x(t) in [0, W1]
+ * @param {RectSignal} rect2 Shifted rectangle pulse h(t) in [tShift, tShift + W2]
+ * @returns {ConvolutionResult} Analytical piecewise result
+ */
+export function solveShiftedRectConvolution(
+	rect1: RectSignal,
+	rect2: RectSignal,
+): ConvolutionResult {
+	const w1 = rect1.width;
+	const w2 = rect2.width;
+	const tShift = rect2.tStart;
+	const h = rect1.height * rect2.height;
+
+	const T1 = Math.min(w1, w2);
+	const T2 = Math.max(w1, w2);
+
+	const t0 = tShift;
+	const t1 = tShift + T1;
+	const t2 = tShift + T2;
+	const t3 = tShift + w1 + w2;
+
+	const intervals: ConvolutionInterval[] = [
+		{
+			labelLatex: `t < ${t0}`,
+			min: Number.NEGATIVE_INFINITY,
+			max: t0,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+		{
+			labelLatex: `${t0} \\le t < ${t1}`,
+			min: t0,
+			max: t1,
+			exprLatex: `${h}(t - ${t0})`,
+			eval: (t: number): number => h * (t - t0),
+		},
+		{
+			labelLatex: `${t1} \\le t < ${t2}`,
+			min: t1,
+			max: t2,
+			exprLatex: `${h * T1}`,
+			eval: (): number => h * T1,
+		},
+		{
+			labelLatex: `${t2} \\le t < ${t3}`,
+			min: t2,
+			max: t3,
+			exprLatex: `${h}(${t3} - t)`,
+			eval: (t: number): number => h * (t3 - t),
+		},
+		{
+			labelLatex: `t \\ge ${t3}`,
+			min: t3,
+			max: Number.POSITIVE_INFINITY,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+	];
+
+	const evalFn = (t: number): number => {
+		if (t < t0 || t >= t3) return 0;
+		if (t < t1) return h * (t - t0);
+		if (t < t2) return h * T1;
+		return h * (t3 - t);
+	};
+
+	return {
+		pairType: "rect_shifted_rect",
+		intervals,
+		eval: evalFn,
+		evalX: (tau: number) => evalRect(tau, rect1.tStart, rect1.width, rect1.height),
+		evalH: (tau: number) => evalRect(tau, rect2.tStart, rect2.width, rect2.height),
+	};
+}
+
+/**
+ * Solves convolution of Multi-Rect pulse x(t) = rect(t - 0.5) + rect(t - 3.5) with single rect h(t) = rect(t - 1).
+ * @returns {ConvolutionResult} Analytical composite convolution result
+ */
+export function solveMultiRectConvolution(): ConvolutionResult {
+	// x(t) = rect in [0, 1] + rect in [3, 4]
+	// h(t) = rect in [0, 2]
+	const evalX = (tau: number) => evalRect(tau, 0, 1, 1) + evalRect(tau, 3, 1, 1);
+	const evalH = (tau: number) => evalRect(tau, 0, 2, 1);
+
+	// y(t) = (rect[0,1] * rect[0,2]) + (rect[3,4] * rect[0,2])
+	// Part 1: [0, 3] trapezoid/triangle, Part 2: [3, 6] trapezoid/triangle
+	const evalY = (t: number): number => {
+		// rect(0, 1) * rect(0, 2) active in [0, 3]
+		let val1 = 0;
+		if (t >= 0 && t < 1) val1 = t;
+		else if (t >= 1 && t < 2) val1 = 1;
+		else if (t >= 2 && t < 3) val1 = 3 - t;
+
+		// rect(3, 4) * rect(0, 2) active in [3, 6]
+		let val2 = 0;
+		if (t >= 3 && t < 4) val2 = t - 3;
+		else if (t >= 4 && t < 5) val2 = 1;
+		else if (t >= 5 && t < 6) val2 = 6 - t;
+
+		return val1 + val2;
+	};
+
+	const intervals: ConvolutionInterval[] = [
+		{
+			labelLatex: "t < 0",
+			min: Number.NEGATIVE_INFINITY,
+			max: 0,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+		{
+			labelLatex: "0 \\le t < 1",
+			min: 0,
+			max: 1,
+			exprLatex: "t",
+			eval: (t: number) => t,
+		},
+		{
+			labelLatex: "1 \\le t < 2",
+			min: 1,
+			max: 2,
+			exprLatex: "1",
+			eval: () => 1,
+		},
+		{
+			labelLatex: "2 \\le t < 3",
+			min: 2,
+			max: 3,
+			exprLatex: "3 - t",
+			eval: (t: number) => 3 - t,
+		},
+		{
+			labelLatex: "3 \\le t < 4",
+			min: 3,
+			max: 4,
+			exprLatex: "t - 3",
+			eval: (t: number) => t - 3,
+		},
+		{
+			labelLatex: "4 \\le t < 5",
+			min: 4,
+			max: 5,
+			exprLatex: "1",
+			eval: () => 1,
+		},
+		{
+			labelLatex: "5 \\le t < 6",
+			min: 5,
+			max: 6,
+			exprLatex: "6 - t",
+			eval: (t: number) => 6 - t,
+		},
+		{
+			labelLatex: "t \\ge 6",
+			min: 6,
+			max: Number.POSITIVE_INFINITY,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+	];
+
+	return {
+		pairType: "multi_rect",
+		intervals,
+		eval: evalY,
+		evalX,
+		evalH,
+	};
+}
+
+/**
+ * Solves continuous-time analytical convolution of Rectangular pulse * Exponential decay.
+ * @param {RectSignal} rect Rectangular pulse signal
+ * @param {ExpSignal} expSignal Exponential decay signal K * exp(-a * t) * u(t)
+ * @returns {ConvolutionResult} Analytical piecewise convolution result
+ */
+export function solveRectExpConvolution(
+	rect: RectSignal,
+	expSignal: ExpSignal,
+): ConvolutionResult {
+	const { tStart, width, height } = rect;
+	const { a, K } = expSignal;
+
+	const t0 = tStart;
+	const t1 = tStart + width;
+	const scale = (height * K) / a;
+
+	const intervals: ConvolutionInterval[] = [
+		{
+			labelLatex: `t < ${t0}`,
+			min: Number.NEGATIVE_INFINITY,
+			max: t0,
+			exprLatex: "0",
+			eval: (): number => 0,
+		},
+		{
+			labelLatex: `${t0} \\le t < ${t1}`,
+			min: t0,
+			max: t1,
+			exprLatex: `${scale}(1 - e^{-${a}(t - ${t0})})`,
+			eval: (t: number): number => scale * (1 - Math.exp(-a * (t - t0))),
+		},
+		{
+			labelLatex: `t \\ge ${t1}`,
+			min: t1,
+			max: Number.POSITIVE_INFINITY,
+			exprLatex: `${scale}(e^{-${a}(t - ${t1})} - e^{-${a}(t - ${t0})})`,
+			eval: (t: number): number =>
+				scale * (Math.exp(-a * (t - t1)) - Math.exp(-a * (t - t0))),
+		},
+	];
+
+	const evalFn = (t: number): number => {
+		if (t < t0) return 0;
+		if (t < t1) return scale * (1 - Math.exp(-a * (t - t0)));
+		return scale * (Math.exp(-a * (t - t1)) - Math.exp(-a * (t - t0)));
+	};
+
+	return {
+		pairType: "rect_exp",
+		intervals,
+		eval: evalFn,
+		evalX: (tau: number) => evalRect(tau, rect.tStart, rect.width, rect.height),
+		evalH: (tau: number) => evalExpDecay(tau, expSignal.a, expSignal.K),
+	};
+}
+
+/**
+ * Solves continuous-time analytical convolution of Exponential * Exponential decay signals.
+ * @param {ExpSignal} exp1 First exponential signal K1 * exp(-a1 * t) * u(t)
+ * @param {ExpSignal} exp2 Second exponential signal K2 * exp(-a2 * t) * u(t)
+ * @returns {ConvolutionResult} Analytical convolution result
+ */
+export function solveExpExpConvolution(
+	exp1: ExpSignal,
+	exp2: ExpSignal,
+): ConvolutionResult {
+	const a1 = exp1.a;
+	const a2 = exp2.a;
+	const K = exp1.K * exp2.K;
+
+	if (a1 === a2) {
+		const evalFn = (t: number): number => (t < 0 ? 0 : K * t * Math.exp(-a1 * t));
+		return {
+			pairType: "exp_exp",
+			intervals: [
+				{
+					labelLatex: "t < 0",
+					min: Number.NEGATIVE_INFINITY,
+					max: 0,
+					exprLatex: "0",
+					eval: (): number => 0,
+				},
+				{
+					labelLatex: "t \\ge 0",
+					min: 0,
+					max: Number.POSITIVE_INFINITY,
+					exprLatex: `${K} t e^{-${a1}t}`,
+					eval: (t: number): number => K * t * Math.exp(-a1 * t),
+				},
+			],
+			eval: evalFn,
+			evalX: (tau: number) => evalExpDecay(tau, exp1.a, exp1.K),
+			evalH: (tau: number) => evalExpDecay(tau, exp2.a, exp2.K),
+		};
+	}
+
+	const scale = K / (a2 - a1);
+	const evalFn = (t: number): number => {
+		if (t < 0) return 0;
+		return scale * (Math.exp(-a1 * t) - Math.exp(-a2 * t));
+	};
+
+	return {
+		pairType: "exp_exp",
+		intervals: [
+			{
+				labelLatex: "t < 0",
+				min: Number.NEGATIVE_INFINITY,
+				max: 0,
+				exprLatex: "0",
+				eval: (): number => 0,
+			},
+			{
+				labelLatex: "t \\ge 0",
+				min: 0,
+				max: Number.POSITIVE_INFINITY,
+				exprLatex: `\\frac{${K}}{${a2 - a1}} \\left( e^{-${a1}t} - e^{-${a2}t} \\right)`,
+				eval: evalFn,
+			},
+		],
+		eval: evalFn,
+		evalX: (tau: number) => evalExpDecay(tau, exp1.a, exp1.K),
+		evalH: (tau: number) => evalExpDecay(tau, exp2.a, exp2.K),
+	};
+}
