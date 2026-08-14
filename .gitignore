@@ -268,3 +268,14 @@ _artifacts/
 # KaTeX legacy fonts (only .woff2 is used for modern browsers & PWAs)
 static/katex/fonts/*.woff
 static/katex/fonts/*.ttf
+
+# Playwright Test artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# E2E visual testing screenshots (created by Playwright)
+tests/e2e/screenshots/
+tests/**/screenshots/
+*.png.tmp
