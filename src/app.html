@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SignalLab — Analog Signal Processing Practice Workbench</title>
+    <meta name="description"
+        content="Offline-first Progressive Web App for practicing Analog Signal Processing math, ODEs, Fourier series, CTFT, Laplace, and circuits." />
+    <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+    <link rel="stylesheet" href="%sveltekit.assets%/katex/katex.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <script>
+        (() => {
+            var savedTheme = localStorage.getItem('theme');
+            var theme = savedTheme || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    %sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+    <div class="app-contents">%sveltekit.body%</div>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+# Standard search engines allowed
+User-agent: *
+Disallow:
+
+# OpenAI ChatGPT Training
+User-agent: GPTBot
+Disallow: /
+User-agent: ChatGPT-User
+Disallow: /
+
+# Anthropic AI
+User-agent: CCBot
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+User-agent: Claude-Web
+Disallow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Disallow: /
+
+# ByteDance AI
+User-agent: Bytespider
+Disallow: /
+
+# Amazon AI Training
+User-agent: Amazonbot
+Disallow: /
+
+# Google AI Training
+User-agent: Google-Extended
+Disallow: /
+
+# Meta/Facebook AI Training
+User-agent: FacebookBot
+Disallow: /
+
+# Apple AI Training
+User-agent: Applebot-Extended
+Disallow: /
