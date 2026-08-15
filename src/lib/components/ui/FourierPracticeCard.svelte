@@ -15,8 +15,6 @@
 	import MathInline from "../math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
-	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */
@@ -101,14 +99,6 @@
 					harmonicCount={5}
 					title="Verified Harmonic Spectrum & Partial Sum Reconstruction"
 				/>
-			</div>
-
-			<!-- Zero-Guesswork Full Analytical Walkthrough -->
-			<div class="step-reveal-wrapper">
-				<h3 class="breakdown-heading">
-					Full Analytical Solution Breakdown
-				</h3>
-				<StepReveal steps={problem.solutionSteps} />
 			</div>
 		</div>
 	{/if}
@@ -283,18 +273,5 @@
 
 	.visualizer-wrapper {
 		width: 100%;
-	}
-
-	.step-reveal-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.breakdown-heading {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
 	}
 </style>

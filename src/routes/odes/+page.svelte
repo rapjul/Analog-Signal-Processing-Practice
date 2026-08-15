@@ -11,7 +11,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import PracticeCard from "$lib/components/ui/PracticeCard.svelte";
+	import OdePracticeCard from "$lib/components/ui/OdePracticeCard.svelte";
 	import {
 		type ForcingType,
 		generateOdeProblem,
@@ -88,7 +88,7 @@
 
 		<div class="control-group">
 			<label for="forcing-type-select" class="control-label">
-				Forcing Function x(t):
+				Forcing Function <MathInline math={"x(t)"} />:
 			</label>
 			<select
 				id="forcing-type-select"
@@ -111,7 +111,7 @@
 
 	<!-- Main Practice Workspace (Full Width) -->
 	<div class="workspace-container">
-		<PracticeCard
+		<OdePracticeCard
 			problem={currentProblem}
 			onNextProblem={handleGenerateNext}
 		/>

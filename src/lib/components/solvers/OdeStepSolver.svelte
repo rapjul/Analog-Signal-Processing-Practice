@@ -677,7 +677,11 @@
 							class:selected={s3Selected === opt.id}
 							onclick={() => checkStage3(opt)}
 						>
-							<MathBlock math={opt.latex} compact={true} />
+							<MathBlock
+								math={opt.latex}
+								compact={true}
+								hideHeader={true}
+							/>
 						</button>
 					{/each}
 				</div>
@@ -1159,6 +1163,20 @@
 		align-items: center;
 		justify-content: center;
 		transition: all 0.15s ease;
+		color: var(--text-primary);
+		width: 100%;
+	}
+
+	.mcq-card :global(.math-block) {
+		margin: 0;
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		width: 100%;
+	}
+
+	.mcq-card :global(.math-block-content) {
+		padding: 0.25rem 0.5rem;
 	}
 
 	.mcq-card:hover {

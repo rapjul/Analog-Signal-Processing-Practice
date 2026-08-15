@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * PracticeCard Svelte 5 Component.
+	 * OdePracticeCard Svelte 5 Component.
 	 * Houses the ODE practice prompt, 6-stage Intelligent Tutoring System (ITS)
-	 * stepped solver, and deferred post-solve completion visualizers (WaveformCanvas & StepReveal).
+	 * stepped solver, and deferred post-solve completion visualizer (WaveformCanvas).
 	 */
 
 	import type { OdeProblem } from "$lib/math-engine/odes";
@@ -14,8 +14,6 @@
 	import MathInline from "../math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import OdeStepSolver from "../solvers/OdeStepSolver.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
-	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
 		/** Active ODE problem instance */
@@ -72,7 +70,7 @@
 	const tGe0Math = "t \\ge 0";
 </script>
 
-<div class="practice-card">
+<div class="practice-card ode-practice-card">
 	<div class="card-header">
 		<div class="problem-meta">
 			<span class="badge difficulty-{problem.difficulty}"
@@ -129,14 +127,6 @@
 					tRange={[0, 5]}
 					curves={plotCurves}
 				/>
-			</div>
-
-			<!-- Zero-Guesswork Full 9-Step Analytical Walkthrough -->
-			<div class="step-reveal-wrapper">
-				<h3 class="breakdown-heading">
-					Full 9-Step Analytical Solution Breakdown
-				</h3>
-				<StepReveal steps={problem.steps} />
 			</div>
 		</div>
 	{/if}
@@ -322,18 +312,5 @@
 
 	.visualizer-wrapper {
 		width: 100%;
-	}
-
-	.step-reveal-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.breakdown-heading {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
 	}
 </style>
