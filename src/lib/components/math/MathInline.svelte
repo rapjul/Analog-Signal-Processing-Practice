@@ -107,10 +107,9 @@
 
 <style>
 	.math-inline {
-		display: inline-flex;
-		align-items: center;
-		vertical-align: middle;
-		font-size: 1.1em;
+		display: inline-block;
+		vertical-align: baseline;
+		font-size: inherit;
 		background: transparent;
 		border: none;
 		padding: 0 0.15rem;
