@@ -8,15 +8,17 @@
 
 	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
 	import { validateConvolutionResponse } from "$lib/math-engine/evaluator";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import ConvolutionCanvas from "../canvas/ConvolutionCanvas.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathInputBar from "../math/MathInputBar.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import ProblemHeader from "./ProblemHeader.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
@@ -101,15 +103,12 @@
 </script>
 
 <div class="convolution-practice-card">
-	<div class="card-header">
-		<div class="header-left">
-			<span class="badge">Continuous-Time Problem</span>
-			<h2 class="problem-title">{problem.title}</h2>
-		</div>
-		<button type="button" class="btn btn-next" onclick={onNextProblem}>
-			🎲 Generate Next Problem
-		</button>
-	</div>
+	<!-- Problem Header (category + next-problem button) -->
+	<ProblemHeader
+		title={problem.title}
+		category="Continuous-Time Problem"
+		{onNextProblem}
+	/>
 
 	<!-- Problem Statement -->
 	<div class="problem-statement">
@@ -157,7 +156,7 @@
 		/>
 
 		<div class="action-bar">
-			<button type="button" class="btn btn-submit" onclick={handleSubmit}>
+			<button type="button" class="btn-submit" onclick={handleSubmit}>
 				✓ Submit & Validate Convolution
 			</button>
 		</div>
@@ -202,58 +201,7 @@
 		width: 100%;
 		max-width: 100%;
 		min-width: 0;
-	}
-
-	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.header-left {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.badge {
-		background: rgba(6, 182, 212, 0.12);
-		color: var(--accent-primary);
-		font-size: 0.75rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		padding: 0.25rem 0.6rem;
-		border-radius: 999px;
-		border: 1px solid rgba(6, 182, 212, 0.3);
-		width: fit-content;
-	}
-
-	.problem-title {
-		font-size: 1.35rem;
-		font-weight: 800;
-		color: var(--text-primary);
-	}
-
-	.btn-next {
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		font-weight: 600;
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		font-size: 0.85rem;
-		transition: all 0.2s ease;
-	}
-
-	.btn-next:hover,
-	.btn-next:focus-visible {
-		border-color: var(--accent-primary);
-		background: var(--bg-card-hover);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
+		container-type: inline-size;
 	}
 
 	.problem-statement {

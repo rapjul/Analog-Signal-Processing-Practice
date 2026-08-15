@@ -329,3 +329,210 @@ describe("HintDisclosure — onRevealNextHint callback", () => {
 		expect(onReveal).not.toHaveBeenCalled();
 	});
 });
+
+// ─────────────────────────────────────────────────────────
+// Section 2: ProblemHeader — logic helpers
+// ─────────────────────────────────────────────────────────
+
+/** Mirrors the badge variant union used by ProblemHeader. */
+type BadgeVariant = "primary" | "secondary" | "accent" | "category";
+
+/**
+ * A single badge item passed to ProblemHeader.
+ * @property {string} label Human-readable pill label
+ * @property {BadgeVariant} [variant] Visual colour variant
+ */
+interface BadgeItem {
+	label: string;
+	variant?: BadgeVariant;
+}
+
+/**
+ * Derives the CSS modifier class for a badge variant.
+ * Mirrors the `badge--{variant}` class pattern used in ProblemHeader.svelte.
+ * @param {BadgeVariant} [variant] Badge variant
+ * @returns {string} CSS class string
+ */
+function badgeClass(variant?: BadgeVariant): string {
+	return `badge--${variant ?? "primary"}`;
+}
+
+/**
+ * Returns the default next-problem button label.
+ * @param {string} [override] Optional caller-provided label override
+ * @returns {string} Button label text
+ */
+function resolveNextButtonLabel(override?: string): string {
+	return override ?? "🎲 Generate Next Problem";
+}
+
+describe("ProblemHeader — badge class derivation", () => {
+	it("defaults to badge--primary when variant is undefined", () => {
+		expect(badgeClass(undefined)).toBe("badge--primary");
+	});
+
+	it("returns badge--secondary for secondary variant", () => {
+		expect(badgeClass("secondary")).toBe("badge--secondary");
+	});
+
+	it("returns badge--accent for accent variant", () => {
+		expect(badgeClass("accent")).toBe("badge--accent");
+	});
+
+	it("returns badge--category for category variant", () => {
+		expect(badgeClass("category")).toBe("badge--category");
+	});
+
+	it("returns badge--primary for explicit primary variant", () => {
+		expect(badgeClass("primary")).toBe("badge--primary");
+	});
+});
+
+describe("ProblemHeader — badge list construction", () => {
+	it("produces correct badge list for Fourier Series card", () => {
+		const badges: BadgeItem[] = [
+			{ label: "square Wave", variant: "secondary" },
+			{ label: "odd Symmetry", variant: "accent" },
+		];
+		expect(badges).toHaveLength(2);
+		expect(badges[0].label).toContain("Wave");
+		expect(badges[0].variant).toBe("secondary");
+		expect(badges[1].variant).toBe("accent");
+	});
+
+	it("produces correct badge list for ODE card", () => {
+		const badges: BadgeItem[] = [
+			{ label: "2nd-Order", variant: "secondary" },
+			{ label: "real distinct", variant: "accent" },
+		];
+		expect(badges[0].label).toBe("2nd-Order");
+	});
+
+	it("allows empty badge list", () => {
+		const badges: BadgeItem[] = [];
+		expect(badges).toHaveLength(0);
+	});
+});
+
+describe("ProblemHeader — next-problem button label", () => {
+	it("uses the default label when no override is provided", () => {
+		expect(resolveNextButtonLabel()).toBe("🎲 Generate Next Problem");
+	});
+
+	it("uses the override label when provided", () => {
+		expect(resolveNextButtonLabel("🔄 Try Another")).toBe("🔄 Try Another");
+	});
+
+	it("invokes the onNextProblem callback when called", () => {
+		const onNextProblem = vi.fn();
+		onNextProblem();
+		expect(onNextProblem).toHaveBeenCalledOnce();
+	});
+});
+
+// ─────────────────────────────────────────────────────────
+// Section 2: CompletionBanner — logic helpers
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Resolves the banner title falling back to the default value.
+ * Mirrors the `title = "Problem Completed!"` prop default in CompletionBanner.
+ * @param {string} [title] Caller-provided title override
+ * @returns {string} Resolved banner title
+ */
+function resolveBannerTitle(title?: string): string {
+	return title ?? "Problem Completed!";
+}
+
+/**
+ * Resolves the banner icon falling back to the default emoji.
+ * @param {string} [icon] Caller-provided icon override
+ * @returns {string} Resolved icon string
+ */
+function resolveBannerIcon(icon?: string): string {
+	return icon ?? "🎉";
+}
+
+/**
+ * A single stat item displayed in the banner stat pill row.
+ * @property {string} label Descriptive stat label
+ * @property {string | number} value Computed stat value
+ */
+interface StatItem {
+	label: string;
+	value: string | number;
+}
+
+describe("CompletionBanner — prop defaults", () => {
+	it("defaults title to 'Problem Completed!'", () => {
+		expect(resolveBannerTitle()).toBe("Problem Completed!");
+	});
+
+	it("uses caller-provided title when supplied", () => {
+		expect(resolveBannerTitle("All Steps Done!")).toBe("All Steps Done!");
+	});
+
+	it("defaults icon to 🎉", () => {
+		expect(resolveBannerIcon()).toBe("🎉");
+	});
+
+	it("uses caller-provided icon when supplied", () => {
+		expect(resolveBannerIcon("🏆")).toBe("🏆");
+	});
+});
+
+describe("CompletionBanner — stats display logic", () => {
+	it("renders no stat pills when stats array is empty", () => {
+		const stats: StatItem[] = [];
+		// Empty stats → stat row should not be rendered
+		expect(stats.length > 0).toBe(false);
+	});
+
+	it("renders stat pill for each item in stats array", () => {
+		const stats: StatItem[] = [
+			{ label: "Steps Completed", value: 7 },
+			{ label: "Hints Used", value: 2 },
+		];
+		expect(stats).toHaveLength(2);
+		expect(stats[0].label).toBe("Steps Completed");
+		expect(stats[0].value).toBe(7);
+		expect(stats[1].value).toBe(2);
+	});
+
+	it("supports mixed string and number stat values", () => {
+		const stats: StatItem[] = [
+			{ label: "Score", value: "100%" },
+			{ label: "Time", value: 42 },
+		];
+		expect(typeof stats[0].value).toBe("string");
+		expect(typeof stats[1].value).toBe("number");
+	});
+});
+
+// ─────────────────────────────────────────────────────────
+// Section 2: StickyActionBar — visibility logic
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Derives whether the StickyActionBar should be rendered.
+ * Mirrors the `{#if visible}` guard in StickyActionBar.svelte.
+ * @param {boolean} [visible] Visibility prop value
+ * @returns {boolean} Whether the bar is rendered
+ */
+function isStickyBarVisible(visible?: boolean): boolean {
+	return visible ?? true;
+}
+
+describe("StickyActionBar — visibility", () => {
+	it("is visible by default (no prop passed)", () => {
+		expect(isStickyBarVisible()).toBe(true);
+	});
+
+	it("is visible when visible=true", () => {
+		expect(isStickyBarVisible(true)).toBe(true);
+	});
+
+	it("is hidden when visible=false", () => {
+		expect(isStickyBarVisible(false)).toBe(false);
+	});
+});

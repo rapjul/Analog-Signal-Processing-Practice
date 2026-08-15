@@ -15,6 +15,10 @@
 	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import CompletionBanner from "./CompletionBanner.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import ProblemHeader from "./ProblemHeader.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */
@@ -43,26 +47,32 @@
 	function handleProblemCompleted() {
 		isCompleted = true;
 	}
+
+	/**
+	 * Derives the badge list to pass to ProblemHeader from the active problem.
+	 * @returns {Array<{label: string; variant: "primary" | "secondary" | "accent"}>} Badge items
+	 */
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	const headerBadges = $derived([
+		{
+			label: `${problem.waveformType.replace("_", " ")} Wave`,
+			variant: "secondary" as const,
+		},
+		{
+			label: `${problem.coeffs.symmetry} Symmetry`,
+			variant: "accent" as const,
+		},
+	]);
 </script>
 
 <div class="fourier-practice-card">
-	<div class="card-header">
-		<div class="header-left">
-			<div class="badges-row">
-				<span class="badge">Fourier Series Problem</span>
-				<span class="badge badge-secondary capitalize">
-					{problem.waveformType.replace("_", " ")} Wave
-				</span>
-				<span class="badge badge-accent capitalize">
-					{problem.coeffs.symmetry} Symmetry
-				</span>
-			</div>
-			<h2 class="problem-title">{problem.title}</h2>
-		</div>
-		<button type="button" class="btn btn-next" onclick={onNextProblem}>
-			🎲 Generate Next Problem
-		</button>
-	</div>
+	<!-- Problem Header (category + badges + next-problem button) -->
+	<ProblemHeader
+		title={problem.title}
+		category="Fourier Series Problem"
+		badges={headerBadges}
+		{onNextProblem}
+	/>
 
 	<!-- Clean Anti-Spoiler Problem Statement -->
 	<div class="problem-statement">
@@ -90,17 +100,10 @@
 	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all steps) -->
 	{#if isCompleted}
 		<div class="completion-section">
-			<div class="completion-banner">
-				<span class="banner-icon">🎉</span>
-				<div class="banner-text">
-					<h3 class="banner-title">Problem Completed!</h3>
-					<p class="banner-sub">
-						You have derived the complete Fourier series
-						representation. Explore the reconstructed partial sum
-						and harmonic power spectrum below.
-					</p>
-				</div>
-			</div>
+			<CompletionBanner
+				title="Problem Completed!"
+				description="You have derived the complete Fourier series representation. Explore the reconstructed partial sum and harmonic power spectrum below."
+			/>
 
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">
@@ -126,93 +129,7 @@
 		width: 100%;
 		max-width: 100%;
 		min-width: 0;
-	}
-
-	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.header-left {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.badges-row {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.badge {
-		font-size: 0.75rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		padding: 0.25rem 0.6rem;
-		border-radius: 999px;
-		background: rgba(6, 182, 212, 0.12);
-		color: var(--accent-primary);
-		border: 1px solid rgba(6, 182, 212, 0.3);
-		width: fit-content;
-	}
-
-	.badge-secondary {
-		background: rgba(245, 158, 11, 0.12);
-		color: #f59e0b;
-		border: 1px solid rgba(245, 158, 11, 0.3);
-	}
-
-	.badge-accent {
-		background: rgba(16, 185, 129, 0.12);
-		color: #10b981;
-		border: 1px solid rgba(16, 185, 129, 0.3);
-	}
-
-	.problem-title {
-		font-size: 1.35rem;
-		font-weight: 800;
-		color: var(--text-primary);
-		margin: 0;
-	}
-
-	.btn-next {
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.btn-next:hover {
-		background: var(--bg-card-hover);
-		border-color: var(--accent-primary);
-	}
-
-	@media (max-width: 480px) {
-		.fourier-practice-card {
-			padding: 1rem 0.85rem;
-			gap: 1rem;
-		}
-
-		.btn-next {
-			width: 100%;
-			text-align: center;
-		}
-	}
-
-	.btn-next:focus-visible {
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
+		container-type: inline-size;
 	}
 
 	.problem-statement {
@@ -273,35 +190,14 @@
 		}
 	}
 
-	.completion-banner {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		background: rgba(16, 185, 129, 0.12);
-		border: 1px solid rgba(16, 185, 129, 0.35);
-		border-radius: var(--radius-md);
-		padding: 1rem 1.25rem;
-	}
-
-	.banner-icon {
-		font-size: 2rem;
-	}
-
-	.banner-title {
-		font-size: 1.15rem;
-		font-weight: 800;
-		color: #10b981;
-		margin: 0 0 0.25rem 0;
-	}
-
-	.banner-sub {
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-		margin: 0;
-		line-height: 1.4;
-	}
-
 	.visualizer-wrapper {
 		width: 100%;
+	}
+
+	@media (max-width: 480px) {
+		.fourier-practice-card {
+			padding: 1rem 0.85rem;
+			gap: 1rem;
+		}
 	}
 </style>
