@@ -12,7 +12,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
-	import MathInline from "../math/MathInline.svelte";
+	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
 
@@ -29,9 +29,11 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCompleted = $state(false);
 
-	// Reset state when problem changes
+	// Reset state when new problem loads
 	$effect(() => {
-		isCompleted = false;
+		if (problem) {
+			isCompleted = false;
+		}
 	});
 
 	/**
@@ -45,8 +47,16 @@
 
 <div class="fourier-practice-card">
 	<div class="card-header">
-		<div class="problem-meta">
-			<span class="badge category">Fourier Series</span>
+		<div class="header-left">
+			<div class="badges-row">
+				<span class="badge">Fourier Series Problem</span>
+				<span class="badge badge-secondary capitalize">
+					{problem.waveformType.replace("_", " ")} Wave
+				</span>
+				<span class="badge badge-accent capitalize">
+					{problem.coeffs.symmetry} Symmetry
+				</span>
+			</div>
 			<h2 class="problem-title">{problem.title}</h2>
 		</div>
 		<button type="button" class="btn btn-next" onclick={onNextProblem}>
@@ -64,8 +74,8 @@
 		{#if isCompleted}
 			<div class="period-info">
 				<span class="info-tag">
-					Fundamental Period: <MathInline
-						math={problem.periodLatex}
+					<MathText
+						text={`Fundamental Period: $${problem.periodLatex}$`}
 					/>
 				</span>
 			</div>
@@ -126,22 +136,42 @@
 		gap: 1rem;
 	}
 
-	.problem-meta {
+	.header-left {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 	}
 
-	.badge.category {
-		background: rgba(245, 158, 11, 0.12);
-		color: #f59e0b;
+	.badges-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.badge {
 		font-size: 0.75rem;
 		font-weight: 700;
 		text-transform: uppercase;
 		padding: 0.25rem 0.6rem;
 		border-radius: 999px;
-		border: 1px solid rgba(245, 158, 11, 0.3);
+		background: rgba(6, 182, 212, 0.12);
+		color: var(--accent-primary);
+		border: 1px solid rgba(6, 182, 212, 0.3);
 		width: fit-content;
+	}
+
+	.badge-secondary {
+		background: rgba(245, 158, 11, 0.12);
+		color: #f59e0b;
+		border: 1px solid rgba(245, 158, 11, 0.3);
+	}
+
+	.badge-accent {
+		background: rgba(16, 185, 129, 0.12);
+		color: #10b981;
+		border: 1px solid rgba(16, 185, 129, 0.3);
 	}
 
 	.problem-title {

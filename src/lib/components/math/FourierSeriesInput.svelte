@@ -8,6 +8,8 @@
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathInline from "./MathInline.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
+	import MathText from "./MathText.svelte";
 
 	export type FourierFormMode = "trigonometric" | "exponential";
 	export type CoeffInputMode = "zero" | "fraction" | "direct";
@@ -244,12 +246,8 @@
 </script>
 
 <div class="fourier-builder">
-	<div class="builder-header">
-		<span class="builder-title">Fourier Series Coefficient Builder</span>
-	</div>
-
-	<!-- Mode Selector Tabs -->
-	<div class="mode-selector">
+	<!-- Mode Switcher Tabs -->
+	<div class="mode-tabs">
 		<button
 			type="button"
 			class="mode-btn"
@@ -259,7 +257,7 @@
 				updateValue();
 			}}
 		>
-			Trigonometric Series (<MathInline math={"a_0, a_n, b_n"} />)
+			<MathText text={"Trigonometric Series ($a_0, a_n, b_n$)"} />
 		</button>
 		<button
 			type="button"
@@ -270,7 +268,7 @@
 				updateValue();
 			}}
 		>
-			Complex Exponential Series (<MathInline math={"c_n"} />)
+			<MathText text={"Complex Exponential Series ($c_n$)"} />
 		</button>
 	</div>
 
@@ -278,7 +276,7 @@
 	<div class="global-params-card">
 		<div class="param-item">
 			<label for="w0-input">
-				Fundamental Frequency <MathInline math={"\\omega_0"} />:
+				<MathText text={String.raw`Fundamental Frequency $\omega_0$:`} />
 			</label>
 			<input
 				id="w0-input"
@@ -293,7 +291,7 @@
 		{#if mode === "trigonometric"}
 			<div class="param-item">
 				<label for="a0-input">
-					DC Offset <MathInline math={"a_0"} />:
+					<MathText text={"DC Offset $a_0$:"} />
 				</label>
 				<input
 					id="a0-input"
@@ -307,7 +305,7 @@
 		{:else}
 			<div class="param-item">
 				<label for="c0-input">
-					DC Offset <MathInline math={"c_0"} />:
+					<MathText text={"DC Offset $c_0$:"} />
 				</label>
 				<input
 					id="c0-input"
@@ -328,7 +326,7 @@
 			<div class="coeff-card">
 				<div class="coeff-header">
 					<span class="coeff-label">
-						Cosine Coefficient <MathInline math={"a_n"} />
+						<MathText text={"Cosine Coefficient $a_n$"} />
 					</span>
 					<div class="input-mode-toggle">
 						<button
@@ -453,7 +451,7 @@
 			<div class="coeff-card">
 				<div class="coeff-header">
 					<span class="coeff-label">
-						Sine Coefficient <MathInline math={"b_n"} />
+						<MathText text={"Sine Coefficient $b_n$"} />
 					</span>
 					<div class="input-mode-toggle">
 						<button
@@ -578,9 +576,7 @@
 			<div class="coeff-card">
 				<div class="coeff-header">
 					<span class="coeff-label">
-						Complex Exponential Coefficient <MathInline
-							math={"c_n"}
-						/>
+						<MathText text={"Complex Exponential Coefficient $c_n$"} />
 					</span>
 					<div class="input-mode-toggle">
 						<button
@@ -715,25 +711,10 @@
 		padding: 1rem;
 	}
 
-	.builder-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-bottom: 0.4rem;
-		border-bottom: 1px solid var(--border-color);
-	}
-
-	.builder-title {
-		font-weight: 600;
-		font-size: 0.9rem;
-		color: var(--accent-primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.mode-selector {
+	.mode-tabs {
 		display: flex;
 		gap: 0.4rem;
+		flex-wrap: wrap;
 	}
 
 	.mode-btn {

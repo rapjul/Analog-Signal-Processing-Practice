@@ -1,67 +1,109 @@
 <script lang="ts">
 	/**
 	 * ConvolutionPracticeCard Svelte 5 Component.
+	 *
 	 * Displays Continuous-Time Convolution practice statement, embedded flip-and-shift canvas animator,
 	 * multi-step piecewise LaTeX inputs (via MathInputBar), validation feedback, and step reveal breakdown.
 	 */
 
 	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
-	import {
-		type ValidationResult,
-		validateLatexAnswer,
-	} from "$lib/math-engine/evaluator";
+	import { validateConvolutionResponse } from "$lib/math-engine/evaluator";
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import ConvolutionCanvas from "../canvas/ConvolutionCanvas.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
-	import MathInline from "../math/MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathInputBar from "../math/MathInputBar.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
+	import MathText from "../math/MathText.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
 		/** Active convolution problem instance */
 		problem: ConvolutionProblem;
-		/** Handler for generating next problem */
+		/** Callback triggered when user requests next randomized problem */
 		onNextProblem: () => void;
 	}
 
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { problem, onNextProblem }: Props = $props();
 
-	// Interactive state
+	// Student LaTeX response binding
 	let studentLatex = $state("");
+	// Diagnostic feedback state
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let validationResult = $state<ValidationResult | null>(null);
+	let feedback = $state<{
+		isCorrect: boolean;
+		message: string;
+		details?: string;
+	} | null>(null);
 
-	// Reset state when problem changes
+	// Formula drawer visibility state
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	let showFormulaDrawer = $state(false);
+
+	// Reset response and feedback when problem instance changes
 	$effect(() => {
-		studentLatex = "";
-		validationResult = null;
+		if (problem) {
+			studentLatex = "";
+			feedback = null;
+		}
 	});
 
 	/**
-	 * Validates student solution against convolution evaluator function.
+	 * Submits and validates student response against computed piecewise solution.
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleSubmit() {
-		validationResult = validateLatexAnswer(studentLatex, problem.eval);
+		if (!studentLatex.trim()) {
+			feedback = {
+				isCorrect: false,
+				message:
+					"Please enter your solution expression before submitting.",
+			};
+			return;
+		}
+
+		const isAccurate = validateConvolutionResponse(
+			studentLatex,
+			problem.eval,
+			problem.timeRange ?? [-2, 6],
+		);
+
+		if (isAccurate) {
+			feedback = {
+				isCorrect: true,
+				message:
+					"Correct! Your convolution solution is numerically verified.",
+			};
+		} else {
+			feedback = {
+				isCorrect: false,
+				message:
+					"Not quite equivalent yet. Check your integration bounds and piecewise intervals.",
+			};
+		}
 	}
 
-	// Constants for UI KaTeX markup
+	// Dynamic placeholder text
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	let placeholderText = $derived(
+		problem.pairType.includes("rect")
+			? String.raw`e.g. \begin{cases} t & 0 \le t < 1 \\ 2-t & 1 \le t \le 2 \end{cases}`
+			: String.raw`e.g. \frac{1}{2}(1 - e^{-2t}) u(t)`,
+	);
+
+	// Formula constant for statement text
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const convExprMath =
 		"y(t) = (x * h)(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau";
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	const placeholderText = "e.g. t for 0 ≤ t < 2, 4 - t for 2 ≤ t < 4";
 </script>
 
 <div class="convolution-practice-card">
 	<div class="card-header">
-		<div class="problem-meta">
-			<span class="badge category">Continuous-Time Convolution</span>
+		<div class="header-left">
+			<span class="badge">Continuous-Time Problem</span>
 			<h2 class="problem-title">{problem.title}</h2>
 		</div>
 		<button type="button" class="btn btn-next" onclick={onNextProblem}>
@@ -72,20 +114,20 @@
 	<!-- Problem Statement -->
 	<div class="problem-statement">
 		<p class="statement-text">
-			Calculate the analytical continuous-time convolution integral <MathInline
-				math={"y(t) = (x * h)(t)"}
-			/> for the given signals:
+			<MathText
+				text={String.raw`Calculate the analytical continuous-time convolution integral $y(t) = (x * h)(t)$ for the given signals:`}
+			/>
 		</p>
 		<div class="signals-grid">
 			<div class="signal-box">
 				<span class="signal-label">
-					Input Signal <MathInline math={"x(t)"} />:
+					<MathText text={String.raw`Input Signal $x(t)$:`} />
 				</span>
 				<MathBlock math={`x(t) = ${problem.xLatex}`} />
 			</div>
 			<div class="signal-box">
 				<span class="signal-label">
-					Impulse Response <MathInline math={"h(t)"} />:
+					<MathText text={String.raw`Impulse Response $h(t)$:`} />
 				</span>
 				<MathBlock math={`h(t) = ${problem.hLatex}`} />
 			</div>
@@ -105,7 +147,7 @@
 	<!-- Guided Input Section -->
 	<div class="input-section">
 		<h3 class="section-subtitle">
-			Enter Solution Expression <MathInline math={"y(t)"} />:
+			<MathText text={String.raw`Enter Solution Expression $y(t)$:`} />
 		</h3>
 		<MathInputBar
 			bind:value={studentLatex}
@@ -121,23 +163,23 @@
 		</div>
 
 		<!-- Validation Alert -->
-		{#if validationResult}
+		{#if feedback}
 			<div
 				class="validation-alert"
-				class:correct={validationResult.isCorrect}
-				class:incorrect={!validationResult.isCorrect}
+				class:correct={feedback.isCorrect}
+				class:incorrect={!feedback.isCorrect}
 			>
 				<span class="alert-icon">
-					{validationResult.isCorrect ? "🎉" : "❌"}
+					{feedback.isCorrect ? "🎉" : "❌"}
 				</span>
 				<div class="alert-content">
 					<span class="alert-title">
-						{validationResult.isCorrect
+						{feedback.isCorrect
 							? "Correct Solution!"
 							: "Incorrect Solution"}
 					</span>
-					{#if validationResult.message}
-						<p class="alert-message">{validationResult.message}</p>
+					{#if feedback.message}
+						<p class="alert-message">{feedback.message}</p>
 					{/if}
 				</div>
 			</div>
@@ -170,13 +212,13 @@
 		gap: 1rem;
 	}
 
-	.problem-meta {
+	.header-left {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 	}
 
-	.badge.category {
+	.badge {
 		background: rgba(6, 182, 212, 0.12);
 		color: var(--accent-primary);
 		font-size: 0.75rem;

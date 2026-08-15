@@ -5,7 +5,7 @@
 	 * Formatted with KaTeX for all mathematical symbols and expressions.
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathInline from "./MathInline.svelte";
+	import MathText from "./MathText.svelte";
 
 	export type PhasorFormMode = "polar" | "time_domain" | "rectangular";
 
@@ -36,7 +36,7 @@
 	let realPart = $state("7.07");
 	let imagPart = $state("7.07");
 
-	// MathInline formula constants for UI labels
+	// MathText formula constants for UI labels
 	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	const polarMath = "|V| \\angle \\theta^\\circ";
 	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
@@ -45,95 +45,59 @@
 	const rectangularMath = "X + jY";
 
 	/**
-	 * Synthesizes LaTeX for Polar Phasor form.
-	 * @returns {string} Polar phasor LaTeX
+	 * Computes polar notation string based on user inputs.
+	 * @returns {string} Formatted LaTeX polar expression
 	 */
-	function synthesizePolar(): string {
-		const m = mag.trim() || "1";
-		const a = angleDeg.trim() || "0";
-
-		if (polarNotation === "angle_symbol") {
-			return `${m} \\angle ${a}^\\circ`;
+	function getPolarLatex(): string {
+		const m = mag || "1";
+		const a = angleDeg || "0";
+		if (polarNotation === "exp_j") {
+			return `${m} e^{j ${a}^\\circ}`;
 		}
-		return `${m} e^{j ${a}^\\circ}`;
+		return `${m} \\angle ${a}^\\circ`;
 	}
 
 	/**
-	 * Synthesizes LaTeX for Time Domain Sinusoid form.
-	 * @returns {string} Sinusoid LaTeX
+	 * Computes time domain cosine expression based on user inputs.
+	 * @returns {string} Formatted LaTeX time-domain expression
 	 */
-	function synthesizeTimeDomain(): string {
-		const a = amp.trim() || "1";
-		const w = omega.trim() || "\\omega";
-		const phi = phaseStr.trim();
-
-		let phasePart = "";
-		if (phi && phi !== "0" && phi !== "0^\\circ") {
-			if (phi.startsWith("-")) {
-				phasePart = ` - ${phi.substring(1)}`;
-			} else {
-				phasePart = ` + ${phi}`;
-			}
-		}
-
-		if (a === "1") {
-			return `\\cos(${w}t${phasePart})`;
-		}
-		return `${a} \\cos(${w}t${phasePart})`;
+	function getTimeDomainLatex(): string {
+		const a = amp || "1";
+		const w = omega || "\\omega";
+		const p = phaseStr.trim();
+		const pFormatted =
+			p.startsWith("+") || p.startsWith("-") ? p : `+ ${p}`;
+		return `${a} \\cos(${w} t ${p ? pFormatted : ""})`;
 	}
 
 	/**
-	 * Synthesizes LaTeX for Rectangular Complex form.
-	 * @returns {string} Rectangular complex LaTeX
+	 * Computes rectangular complex form based on user inputs.
+	 * @returns {string} Formatted LaTeX rectangular complex expression
 	 */
-	function synthesizeRectangular(): string {
-		const re = realPart.trim() || "0";
-		const im = imagPart.trim() || "0";
-
-		if (im === "0") return re;
-		if (re === "0") {
-			if (im === "1") return "j";
-			if (im === "-1") return "-j";
-			if (im.startsWith("-")) return `-j${im.substring(1)}`;
-			return `j${im}`;
-		}
-
-		if (im === "1") return `${re} + j`;
-		if (im === "-1") return `${re} - j`;
-		if (im.startsWith("-")) return `${re} - j${im.substring(1)}`;
-		return `${re} + j${im}`;
+	function getRectangularLatex(): string {
+		const re = realPart || "0";
+		const im = imagPart.trim();
+		if (!im || im === "0") return re;
+		const sign = im.startsWith("-") ? "- " : "+ ";
+		const absIm = im.startsWith("-") ? im.slice(1).trim() : im;
+		return `${re} ${sign} j${absIm}`;
 	}
 
-	/**
-	 * Synthesizes full LaTeX output based on active mode tab.
-	 * @returns {string} Synthesized LaTeX
-	 */
-	function synthesizeLatex(): string {
-		switch (mode) {
-			case "polar":
-				return synthesizePolar();
-			case "time_domain":
-				return synthesizeTimeDomain();
-			case "rectangular":
-				return synthesizeRectangular();
-			default:
-				throw new Error(`Unknown phasor mode: ${mode}`);
-		}
-	}
-
-	/**
-	 * Triggers parent update callback.
-	 */
-	function updateValue() {
-		const latex = synthesizeLatex();
-		if (onChange) {
-			onChange(latex);
-		}
-	}
-
-	$effect(() => {
-		updateValue();
+	// Derived current synthesized LaTeX expression
+	let synthesizedLatex = $derived.by(() => {
+		if (mode === "polar") return getPolarLatex();
+		if (mode === "time_domain") return getTimeDomainLatex();
+		return getRectangularLatex();
 	});
+
+	/**
+	 * Notifies parent of updated LaTeX expression whenever inputs change.
+	 */
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	function updateValue(): void {
+		const res = synthesizedLatex;
+		if (onChange) onChange(res);
+	}
 </script>
 
 <div class="phasor-builder">
@@ -152,7 +116,9 @@
 				updateValue();
 			}}
 		>
-			Polar Form (<MathInline math={polarMath} />)
+			<MathText
+				text={String.raw`Polar Form ($|V| \angle \theta^\circ$)`}
+			/>
 		</button>
 		<button
 			type="button"
@@ -163,7 +129,9 @@
 				updateValue();
 			}}
 		>
-			Time Domain <MathInline math={timeDomainMath} />
+			<MathText
+				text={String.raw`Time Domain $A \cos(\omega t + \phi)$`}
+			/>
 		</button>
 		<button
 			type="button"
@@ -174,7 +142,7 @@
 				updateValue();
 			}}
 		>
-			Rectangular Form (<MathInline math={rectangularMath} />)
+			<MathText text={"Rectangular Form ($X + jY$)"} />
 		</button>
 	</div>
 
@@ -186,7 +154,7 @@
 				<div class="fields-grid">
 					<div class="field">
 						<label for="mag-input">
-							Magnitude <MathInline math={"|V|"} />:
+							<MathText text={"Magnitude $|V|$:"} />
 						</label>
 						<input
 							id="mag-input"
@@ -200,7 +168,9 @@
 
 					<div class="field">
 						<label for="angle-input">
-							Phase Angle <MathInline math={"\\theta^\\circ"} />:
+							<MathText
+								text={String.raw`Phase Angle $\theta^\circ$:`}
+							/>
 						</label>
 						<input
 							id="angle-input"
@@ -236,7 +206,7 @@
 				<div class="fields-grid">
 					<div class="field">
 						<label for="amp-input">
-							Amplitude <MathInline math={"A"} />:
+							<MathText text={"Amplitude $A$:"} />
 						</label>
 						<input
 							id="amp-input"
@@ -250,8 +220,8 @@
 
 					<div class="field">
 						<label for="omega-input">
-							Freq <MathInline math={"\\omega"} />:</label
-						>
+							<MathText text={String.raw`Freq $\omega$:`} />
+						</label>
 						<input
 							id="omega-input"
 							type="text"
@@ -264,7 +234,7 @@
 
 					<div class="field">
 						<label for="phase-input">
-							Phase Shift <MathInline math={"\\phi"} />:
+							<MathText text={String.raw`Phase Shift $\phi$:`} />
 						</label>
 						<input
 							id="phase-input"
@@ -283,7 +253,7 @@
 				<div class="fields-grid">
 					<div class="field">
 						<label for="re-input">
-							Real Part <MathInline math={"X"} />:
+							<MathText text={"Real Part $X$:"} />
 						</label>
 						<input
 							id="re-input"
@@ -297,9 +267,7 @@
 
 					<div class="field">
 						<label for="im-input">
-							Imag Part <MathInline math={"Y"} /> (<MathInline
-								math={"j"}
-							/>):
+							<MathText text={"Imag Part $Y$ ($j$):"} />
 						</label>
 						<input
 							id="im-input"

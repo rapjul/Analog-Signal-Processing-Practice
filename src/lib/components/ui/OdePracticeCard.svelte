@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * OdePracticeCard Svelte 5 Component.
+	 *
 	 * Houses the ODE practice prompt, 7-step Intelligent Tutoring System (ITS)
 	 * stepped solver, and deferred post-solve completion visualizer (WaveformCanvas).
 	 */
@@ -11,7 +12,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
-	import MathInline from "../math/MathInline.svelte";
+	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import OdeStepSolver from "../solvers/OdeStepSolver.svelte";
 
@@ -28,9 +29,11 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCompleted = $state(false);
 
-	// Reset state when problem changes
+	// Reset state when new problem loads
 	$effect(() => {
-		isCompleted = false;
+		if (problem) {
+			isCompleted = false;
+		}
 	});
 
 	/**
@@ -47,35 +50,36 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let plotCurves = $derived([
 		{
-			label: "Total Solution",
+			label: "Total y(t)",
 			math: "y(t)",
 			color: "#06b6d4",
 			eval: problem.evalComplete,
 		},
 		{
-			label: "Zero-Input",
+			label: "Zero-Input y_ZI(t)",
 			math: "y_{\\text{ZI}}(t)",
-			color: "#f59e0b",
+			color: "#10b981",
 			eval: problem.evalZI,
 		},
 		{
-			label: "Zero-State",
+			label: "Zero-State y_ZS(t)",
 			math: "y_{\\text{ZS}}(t)",
-			color: "#10b981",
+			color: "#f59e0b",
 			eval: problem.evalZS,
 		},
 	]);
-
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	const tGe0Math = "t \\ge 0";
 </script>
 
-<div class="practice-card ode-practice-card">
+<div class="ode-practice-card">
 	<div class="card-header">
-		<div class="problem-meta">
-			<div class="badge-group">
-				<span class="badge difficulty-{problem.difficulty}">
-					{problem.difficulty.toUpperCase()}
+		<div class="header-left">
+			<div class="badges-row">
+				<span class="badge">LCC ODE Problem</span>
+				<span class="badge badge-secondary">
+					{problem.params.order === 1 ? "1st-Order" : "2nd-Order"}
+				</span>
+				<span class="badge badge-accent capitalize">
+					{problem.params.rootType.replace("_", " ")}
 				</span>
 			</div>
 			<h2 class="problem-title">{problem.title}</h2>
@@ -88,14 +92,14 @@
 	<!-- Clean Anti-Spoiler Problem Statement -->
 	<div class="problem-statement">
 		<p class="statement-text">
-			Solve the following linear constant-coefficient ordinary
-			differential equation for <MathInline math={tGe0Math} />:
+			<MathText
+				text={String.raw`Solve the following linear constant-coefficient ordinary differential equation for $t \ge 0$:`}
+			/>
 		</p>
 		<MathBlock math={problem.odeLatex} compact={true} />
 		<div class="initial-conditions">
-			<span class="ic-label">Initial Conditions:</span>
-			<MathInline
-				math={`y(0^-) = ${problem.initialConditions.y0}, \\quad y'(0^-) = ${problem.initialConditions.dy0}`}
+			<MathText
+				text={String.raw`<strong>Initial Conditions:</strong> $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$`}
 			/>
 		</div>
 	</div>
@@ -113,10 +117,9 @@
 				<div class="banner-text">
 					<h3 class="banner-title">Problem Completed!</h3>
 					<p class="banner-sub">
-						You have derived the total response <MathInline
-							math={"y(t)"}
-						/> and separated it into Zero-Input and Zero-State components.
-						Explore the response waveform below.
+						<MathText
+							text={String.raw`You have derived the total response $y(t)$ and separated it into Zero-Input and Zero-State components. Explore the response waveform below.`}
+						/>
 					</p>
 				</div>
 			</div>
@@ -134,7 +137,7 @@
 </div>
 
 <style>
-	.practice-card {
+	.ode-practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-lg);
@@ -155,13 +158,13 @@
 		gap: 1rem;
 	}
 
-	.problem-meta {
+	.header-left {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 	}
 
-	.badge-group {
+	.badges-row {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
@@ -175,31 +178,22 @@
 		text-transform: uppercase;
 		padding: 0.25rem 0.6rem;
 		border-radius: 999px;
-		width: fit-content;
-	}
-
-	.badge.category {
 		background: rgba(6, 182, 212, 0.12);
 		color: var(--accent-primary);
 		border: 1px solid rgba(6, 182, 212, 0.3);
+		width: fit-content;
 	}
 
-	.badge.difficulty-easy {
-		background: rgba(16, 185, 129, 0.12);
-		color: #10b981;
-		border: 1px solid rgba(16, 185, 129, 0.3);
-	}
-
-	.badge.difficulty-medium {
+	.badge-secondary {
 		background: rgba(245, 158, 11, 0.12);
 		color: #f59e0b;
 		border: 1px solid rgba(245, 158, 11, 0.3);
 	}
 
-	.badge.difficulty-hard {
-		background: rgba(239, 68, 68, 0.12);
-		color: #ef4444;
-		border: 1px solid rgba(239, 68, 68, 0.3);
+	.badge-accent {
+		background: rgba(16, 185, 129, 0.12);
+		color: #10b981;
+		border: 1px solid rgba(16, 185, 129, 0.3);
 	}
 
 	.problem-title {
@@ -257,12 +251,6 @@
 		padding: 0.5rem 1rem;
 		border-radius: var(--radius-sm);
 		flex-wrap: wrap;
-	}
-
-	.ic-label {
-		font-weight: 600;
-		color: var(--text-secondary);
-		font-size: 0.85rem;
 	}
 
 	.solver-container {
