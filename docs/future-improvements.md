@@ -18,3 +18,6 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 - **Improvement Idea:**
   - Introduce a persistent, floating viewport-anchored bottom action bar (`position: sticky; bottom: 0;` or glassmorphic floating pill).
   - Can house quick-action utilities such as persistent hint toggles, formula reference drawers, or step progression navigation without requiring the user to scroll up or down.
+
+### 3. Shared Progress Component
+- Make a shared Component for the "Intelligent Tutoring Progress" tracker to use in all Practice Problem Solvers. Rename to just "Progress"

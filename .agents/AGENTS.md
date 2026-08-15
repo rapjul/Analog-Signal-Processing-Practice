@@ -29,6 +29,7 @@ SignalLab is an interactive, client-side web application for practicing Analog S
 8. **Mandatory `:focus-visible` Button Styling**: Always include explicit `:focus-visible` CSS rules for interactive buttons and focusable controls to ensure clear visual focus indicators during Tab key navigation.
 9. **DRY Code & Shared Type Centralization**: Avoid duplicating code, interfaces, or type definitions across modules. Always extract shared types, utility helpers, and common logic into centralized modules (e.g., `src/lib/math-engine/types.ts`) for single-source reusability.
 10. **Use `\operatorname` for Math Signal Operators**: Use `\operatorname{...}` (e.g., `\operatorname{rect}`, `\operatorname{tri}`, `\operatorname{sgn}`, `\operatorname{sinc}`) rather than `\text{...}` when formatting custom mathematical signal operator functions in LaTeX.
+11. **Narrow Viewport (320px) Responsive Fluidity**: All UI components, navigation bars, control bars, problem cards, stepped solvers, progress indicators, action buttons, and mathematical containers MUST render cleanly without horizontal layout overflow (`document.documentElement.scrollWidth <= document.documentElement.clientWidth`) on viewports down to a minimum width of $320\text{px}$ (WCAG 2.1 Reflow standard). Always use fluid container queries (`@container (max-width: 360px)`), mobile media queries (`@media (max-width: 480px)`), flex-wrapping on control groups and headers, scalable progress pills, and full-width multi-line action button wrapping.
 
 ## Detailed Guidelines
 
