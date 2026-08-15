@@ -1,0 +1,20 @@
+# SignalLab — Future Improvements & Ideas Backlog
+
+A running backlog of prospective UX, visual, and architectural improvements to consider for future development sprints.
+
+---
+
+## Solver & Practice Interface Enhancements
+
+### 1. Compact Top Stepper / Progressive Card Collapse
+- **Context:** Currently, locked upcoming steps (Steps 2–6) are rendered as full-width vertical placeholder cards below the active question.
+- **Improvement Idea:**
+  - Replace the large vertical locked placeholder cards with a compact horizontal breadcrumb/pill stepper at the top (e.g., `[1: Period ✓] -> [2: Symmetry (Active)] -> [3: Shortcuts] -> ...`).
+  - Only render completed steps (collapsed into compact summary cards) and the current active step in the main flow.
+  - Keeps the view concise, reduces page scroll, and prevents visual clutter.
+
+### 2. Floating / Sticky Bottom Action Bar
+- **Context:** On long problem descriptions, mobile viewports, or complex multi-part inputs, action controls can drift out of immediate view.
+- **Improvement Idea:**
+  - Introduce a persistent, floating viewport-anchored bottom action bar (`position: sticky; bottom: 0;` or glassmorphic floating pill).
+  - Can house quick-action utilities such as persistent hint toggles, formula reference drawers, or step progression navigation without requiring the user to scroll up or down.
