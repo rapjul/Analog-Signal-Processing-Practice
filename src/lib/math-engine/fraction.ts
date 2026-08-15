@@ -87,3 +87,146 @@ export function toFractionLatex(
 	const fracStr = `\\frac{${num}}{${den}}`;
 	return isNegative ? `-${fracStr}` : fracStr;
 }
+
+/**
+ * Checks if a string is completely enclosed by a single balanced pair of outer parentheses.
+ * @param {string} s String to check
+ * @returns {boolean} True if the string is wrapped in balanced outer parentheses
+ */
+function isFullyEnclosedInParens(s: string): boolean {
+	if (!s.startsWith("(") || !s.endsWith(")")) {
+		return false;
+	}
+	let depth = 0;
+	for (let i = 0; i < s.length; i++) {
+		if (s[i] === "(") {
+			depth++;
+		} else if (s[i] === ")") {
+			depth--;
+			if (depth === 0 && i < s.length - 1) {
+				return false;
+			}
+		}
+	}
+	return depth === 0;
+}
+
+/**
+ * Strips a balanced outer parenthesis layer and extracts any leading outer negative sign.
+ * @param {string} str Raw input string
+ * @returns {{ sign: number; content: string }} Outer sign multiplier and unwrapped content
+ */
+function stripOuterParens(str: string): { sign: number; content: string } {
+	const s = str.trim();
+
+	// Check if prefixed with negative e.g. -( ... )
+	if (
+		s.startsWith("-") &&
+		s.slice(1).trim().startsWith("(") &&
+		s.endsWith(")")
+	) {
+		const inner = s.slice(1).trim();
+		if (isFullyEnclosedInParens(inner)) {
+			return { sign: -1, content: inner.slice(1, -1).trim() };
+		}
+	}
+
+	if (s.startsWith("(") && s.endsWith(")")) {
+		if (isFullyEnclosedInParens(s)) {
+			return { sign: 1, content: s.slice(1, -1).trim() };
+		}
+	}
+
+	return { sign: 1, content: s };
+}
+
+/**
+ * Helper to parse a single parenthesized or unparenthesized signed decimal/integer number.
+ * @param {string} str Raw single term string (e.g. "42", "-.5", "- 11", "(-11)", "-(3)")
+ * @returns {number} Parsed float or NaN if invalid
+ */
+function parseSingleNumber(str: string): number {
+	const trimmed = str.trim();
+	if (trimmed === "") {
+		return Number.NaN;
+	}
+
+	// Case 1: Unparenthesized signed number e.g. "42", "-7", "- 11", "+ 3.14", ".5", "-.5"
+	const simpleMatch = trimmed.match(/^([+-]?)\s*(\d+(?:\.\d*)?|\.\d+)$/);
+	if (simpleMatch) {
+		const sign = simpleMatch[1] === "-" ? -1 : 1;
+		const val = Number.parseFloat(simpleMatch[2]);
+		return Number.isNaN(val) ? Number.NaN : sign * val;
+	}
+
+	// Case 2: Parenthesized number e.g. "(-11)", "(+3.5)", "(.5)", "-(11)", "+(5)", "(- 11)", "-( -11 )"
+	const parenMatch = trimmed.match(
+		/^([+-]?)\s*\(\s*([+-]?)\s*(\d+(?:\.\d*)?|\.\d+)\s*\)$/,
+	);
+	if (parenMatch) {
+		const sign1 = parenMatch[1] === "-" ? -1 : 1;
+		const sign2 = parenMatch[2] === "-" ? -1 : 1;
+		const val = Number.parseFloat(parenMatch[3]);
+		return Number.isNaN(val) ? Number.NaN : sign1 * sign2 * val;
+	}
+
+	return Number.NaN;
+}
+
+/**
+ * Parses a student numeric or fractional input string into an exact floating-point number.
+ * Supports:
+ * - Integers and decimals: "3", "-2.5", ".5", "+4", "- 11"
+ * - Standard slash fractions: "-11/3", "5/3", "11 / 3", "+7/2", "- 11 / 3"
+ * - Parenthesized numerators/denominators: "(-11)/3", "-(11/3)", "11/(-3)", "5/(-9)", "(-11)/(-3)"
+ * - LaTeX fractions: "\frac{5}{3}", "-\frac{11}{3}", "\frac{-11}{3}", "\frac{11}{-3}"
+ * - Arbitrary scale fractions: "100/2", "500/200000", "-300/100"
+ *
+ * @param {string} input Raw student input string
+ * @returns {number} Evaluated numerical value, or NaN if input is empty, invalid, or divides by zero
+ */
+export function parseNumericInput(input: string): number {
+	if (!input) {
+		return Number.NaN;
+	}
+
+	let cleaned = input.trim();
+	if (cleaned === "") {
+		return Number.NaN;
+	}
+
+	// Normalize LaTeX \frac{num}{den} into num / den
+	cleaned = cleaned.replace(/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, " $1 / $2 ");
+
+	// Normalize outer negative parenthesis e.g. -(11/3) -> outerSign = -1, cleaned = "11/3"
+	const { sign: outerSign, content: unwrapped } = stripOuterParens(cleaned);
+	cleaned = unwrapped;
+
+	// Check if input contains a division slash
+	if (cleaned.includes("/")) {
+		const parts = cleaned.split("/");
+		if (parts.length !== 2) {
+			return Number.NaN;
+		}
+
+		const num = parseSingleNumber(parts[0]);
+		const den = parseSingleNumber(parts[1]);
+
+		if (Number.isNaN(num) || Number.isNaN(den) || den === 0) {
+			return Number.NaN;
+		}
+
+		return outerSign * (num / den);
+	}
+
+	// Single number (decimal or integer)
+	const singleVal = parseSingleNumber(cleaned);
+	if (Number.isNaN(singleVal)) {
+		return Number.NaN;
+	}
+
+	return outerSign * singleVal;
+}
+
+
+

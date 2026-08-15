@@ -1,3 +1,4 @@
+import { parseNumericInput } from "$lib/math-engine/fraction";
 import type {
 	OdeItsOption,
 	OdeProblem,
@@ -182,11 +183,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		let term2 = "s^2";
 		if (a2Str !== "") {
-			const n2 = Number.parseFloat(a2Str);
+			const n2 = parseNumericInput(a2Str);
 			if (!Number.isNaN(n2)) {
 				if (n2 === 1) term2 = "s^2";
 				else if (n2 === -1) term2 = "-s^2";
-				else term2 = `${n2}s^2`;
+				else term2 = `${a2Str}s^2`;
 			} else {
 				term2 = `${a2Str}s^2`;
 			}
@@ -196,12 +197,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		let term1 = "+ a_1 s";
 		if (a1Str !== "") {
-			const n1 = Number.parseFloat(a1Str);
+			const n1 = parseNumericInput(a1Str);
 			if (!Number.isNaN(n1)) {
 				if (n1 === 1) term1 = "+ s";
 				else if (n1 === -1) term1 = "- s";
-				else if (n1 >= 0) term1 = `+ ${n1}s`;
-				else term1 = `- ${Math.abs(n1)}s`;
+				else if (n1 >= 0) term1 = `+ ${a1Str}s`;
+				else term1 = `- ${a1Str.startsWith("-") ? a1Str.slice(1).trim() : Math.abs(n1)}s`;
 			} else {
 				term1 = `+ ${a1Str}s`;
 			}
@@ -211,10 +212,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		let term0 = "+ a_0";
 		if (a0Str !== "") {
-			const n0 = Number.parseFloat(a0Str);
+			const n0 = parseNumericInput(a0Str);
 			if (!Number.isNaN(n0)) {
-				if (n0 >= 0) term0 = `+ ${n0}`;
-				else term0 = `- ${Math.abs(n0)}`;
+				if (n0 >= 0) term0 = `+ ${a0Str}`;
+				else term0 = `- ${a0Str.startsWith("-") ? a0Str.slice(1).trim() : Math.abs(n0)}`;
 			} else {
 				term0 = `+ ${a0Str}`;
 			}
@@ -278,9 +279,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep1(): void {
 		const s1Data = this.problem.itsData.step1;
-		const vA2 = Number.parseFloat(this.step1.a2.trim());
-		const vA1 = Number.parseFloat(this.step1.a1.trim());
-		const vA0 = Number.parseFloat(this.step1.a0.trim());
+		const vA2 = parseNumericInput(this.step1.a2);
+		const vA1 = parseNumericInput(this.step1.a1);
+		const vA0 = parseNumericInput(this.step1.a0);
 
 		if (Number.isNaN(vA2) || Number.isNaN(vA1) || Number.isNaN(vA0)) {
 			this.setValidation(
@@ -351,8 +352,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		if (s2Data.rootType === "distinct_real") {
-			const v1 = Number.parseFloat(this.step2.r1.trim());
-			const v2 = Number.parseFloat(this.step2.r2.trim());
+			const v1 = parseNumericInput(this.step2.r1);
+			const v2 = parseNumericInput(this.step2.r2);
 
 			if (Number.isNaN(v1) || Number.isNaN(v2)) {
 				this.setValidation(
@@ -379,7 +380,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				);
 			}
 		} else if (s2Data.rootType === "repeated_real") {
-			const v1 = Number.parseFloat(this.step2.r1.trim());
+			const v1 = parseNumericInput(this.step2.r1);
 
 			if (Number.isNaN(v1)) {
 				this.setValidation(
@@ -411,9 +412,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const expectedB = s2Data.quadSetup.b;
 		const expectedC = s2Data.quadSetup.c;
 
-		const userA = Number.parseFloat(this.step2.quadA.trim());
-		const userB = Number.parseFloat(this.step2.quadB.trim());
-		const userC = Number.parseFloat(this.step2.quadC.trim());
+		const userA = parseNumericInput(this.step2.quadA);
+		const userB = parseNumericInput(this.step2.quadB);
+		const userC = parseNumericInput(this.step2.quadC);
 
 		if (Number.isNaN(userA) || Number.isNaN(userB) || Number.isNaN(userC)) {
 			this.setValidation(
@@ -475,8 +476,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	checkStep5(): void {
 		const s5Data = this.problem.itsData.step5;
 		if (this.problem.forcing.type === "sinusoid") {
-			const vA = Number.parseFloat(this.step5.a.trim());
-			const vB = Number.parseFloat(this.step5.b.trim());
+			const vA = parseNumericInput(this.step5.a);
+			const vB = parseNumericInput(this.step5.b);
 
 			if (Number.isNaN(vA) || Number.isNaN(vB)) {
 				this.setValidation(
@@ -498,7 +499,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				);
 			}
 		} else {
-			const vKp = Number.parseFloat(this.step5.kp.trim());
+			const vKp = parseNumericInput(this.step5.kp);
 
 			if (Number.isNaN(vKp)) {
 				this.setValidation(
@@ -526,8 +527,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep6(): void {
 		const s6Data = this.problem.itsData.step6;
-		const vC1 = Number.parseFloat(this.step6.c1.trim());
-		const vC2 = Number.parseFloat(this.step6.c2.trim());
+		const vC1 = parseNumericInput(this.step6.c1);
+		const vC2 = parseNumericInput(this.step6.c2);
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 			this.setValidation(

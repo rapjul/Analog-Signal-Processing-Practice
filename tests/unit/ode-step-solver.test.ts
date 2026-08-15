@@ -58,7 +58,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.correctAnsatz.length).toBeGreaterThan(0);
 		expect(
 			solver.correctAnsatz.includes("y_p(t)") ||
-				solver.correctAnsatz.includes("="),
+			solver.correctAnsatz.includes("="),
 		).toBe(true);
 	});
 
@@ -358,14 +358,71 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			"Incorrect constants $C_1$, $C_2$",
 		);
 
-		// Correct constants
-		solver.step6.c1 = String(problem.itsData.step6.expectedC1);
-		solver.step6.c2 = String(problem.itsData.step6.expectedC2);
+		// Correct constants (fractional inputs e.g. -11/3, (-11)/3, \frac{-11}{3})
+		solver.advanceToStep(6);
+		const c1 = problem.itsData.step6.expectedC1;
+		const c2 = problem.itsData.step6.expectedC2;
+		solver.step6.c1 = `(${c1 * 3})/3`;
+		solver.step6.c2 = `${c2 * 5}/5`;
 		solver.checkStep6();
 		expect(solver.step6.isValid).toBe(true);
 		expect(solver.step6.feedback).toBeNull();
 		expect(solver.step6.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(7);
+
+		// Test exact slash fraction and LaTeX fraction inputs
+		solver.advanceToStep(6);
+		solver.step6.c1 = "-11/3";
+		solver.step6.c2 = "5/3";
+		// When problem expects -11/3 and 5/3
+		const mockProblem = {
+			...problem,
+			itsData: {
+				...problem.itsData,
+				step6: {
+					...problem.itsData.step6,
+					expectedC1: -11 / 3,
+					expectedC2: 5 / 3,
+				},
+			},
+		};
+		const mockSolver = new OdeStepSolverState(() => mockProblem);
+		mockSolver.advanceToStep(6);
+
+		// Slash fractions
+		mockSolver.step6.c1 = "-11/3";
+		mockSolver.step6.c2 = "5/3";
+		mockSolver.checkStep6();
+		expect(mockSolver.step6.isValid).toBe(true);
+		expect(mockSolver.currentStep).toBe(7);
+
+		// Parenthesized negative denominator
+		mockSolver.advanceToStep(6);
+		mockSolver.step6.c1 = "11/(-3)";
+		mockSolver.step6.c2 = "5/3";
+		mockSolver.checkStep6();
+		expect(mockSolver.step6.isValid).toBe(true);
+
+		// Parenthesized negative numerator
+		mockSolver.advanceToStep(6);
+		mockSolver.step6.c1 = "(-11)/3";
+		mockSolver.step6.c2 = "5/3";
+		mockSolver.checkStep6();
+		expect(mockSolver.step6.isValid).toBe(true);
+
+		// Unreduced fraction
+		mockSolver.advanceToStep(6);
+		mockSolver.step6.c1 = "-22/6";
+		mockSolver.step6.c2 = "10/6";
+		mockSolver.checkStep6();
+		expect(mockSolver.step6.isValid).toBe(true);
+
+		// LaTeX fractions
+		mockSolver.advanceToStep(6);
+		mockSolver.step6.c1 = "\\frac{-11}{3}";
+		mockSolver.step6.c2 = "\\frac{5}{3}";
+		mockSolver.checkStep6();
+		expect(mockSolver.step6.isValid).toBe(true);
 	});
 
 	it("validates Step 7 response input and triggers onComplete", () => {
@@ -427,9 +484,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("y_p") ||
-					opt.latex.includes("e^{") ||
-					opt.latex.includes("\\cos") ||
-					opt.latex.includes("="),
+				opt.latex.includes("e^{") ||
+				opt.latex.includes("\\cos") ||
+				opt.latex.includes("="),
 			).toBe(true);
 		}
 	});

@@ -2,6 +2,7 @@ import type {
 	FourierItsOption,
 	FourierSeriesProblem,
 } from "$lib/math-engine/fourier-series";
+import { parseNumericInput } from "$lib/math-engine/fraction";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
@@ -153,13 +154,13 @@ export class FourierStepSolverState extends BaseStepSolverState {
 
 		const pMatch =
 			s1Data.tAliases.some((alias) => pTrimmed === alias.toLowerCase()) ||
-			Math.abs(Number.parseFloat(pTrimmed) - s1Data.expectedT) < 0.05;
+			Math.abs(parseNumericInput(pTrimmed) - s1Data.expectedT) < 0.05;
 
 		const fMatch =
 			s1Data.w0Aliases.some(
 				(alias) => fTrimmed === alias.toLowerCase(),
 			) ||
-			Math.abs(Number.parseFloat(fTrimmed) - s1Data.expectedW0) < 0.05;
+			Math.abs(parseNumericInput(fTrimmed) - s1Data.expectedW0) < 0.05;
 
 		if (!pMatch) {
 			this.setIncorrect(
