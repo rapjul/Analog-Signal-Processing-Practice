@@ -6,7 +6,7 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
-	import MathInline from "./MathInline.svelte";
+	import MathText from "./MathText.svelte";
 
 	export type ResponseMode =
 		| "overdamped"
@@ -209,7 +209,7 @@
 				updateValue();
 			}}
 		>
-			1st Order Exponential
+			<MathText text={String.raw`$1^{\text{st}}$ Order Exponential`} />
 		</button>
 	</div>
 
@@ -218,12 +218,12 @@
 		{#if mode === "overdamped"}
 			<div class="input-card">
 				<span class="card-label">
-					Term 1: <MathInline math={"C_1 e^{r_1 t}"} />
+					<MathText text={String.raw`Term 1: $C_1 e^{r_1 t}$`} />
 				</span>
 				<div class="fields-row">
 					<div class="field">
 						<label for="c1-input">
-							<MathInline math={"C_1"} />:
+							<MathText text={"$C_1$:"} />
 						</label>
 						<input
 							id="c1-input"
@@ -236,7 +236,7 @@
 					</div>
 					<div class="field">
 						<label for="builder-r1-input">
-							<MathInline math={"r_1"} />:
+							<MathText text={"$r_1$:"} />
 						</label>
 						<input
 							id="builder-r1-input"
@@ -252,12 +252,12 @@
 
 			<div class="input-card">
 				<span class="card-label">
-					Term 2: <MathInline math={"C_2 e^{r_2 t}"} />
+					<MathText text={String.raw`Term 2: $C_2 e^{r_2 t}$`} />
 				</span>
 				<div class="fields-row">
 					<div class="field">
 						<label for="c2-input">
-							<MathInline math={"C_2"} />:
+							<MathText text={"$C_2$:"} />
 						</label>
 						<input
 							id="c2-input"
@@ -270,7 +270,7 @@
 					</div>
 					<div class="field">
 						<label for="builder-r2-input">
-							<MathInline math={"r_2"} />:
+							<MathText text={"$r_2$:"} />
 						</label>
 						<input
 							id="builder-r2-input"
@@ -286,12 +286,14 @@
 		{:else if mode === "critically_damped"}
 			<div class="input-card">
 				<span class="card-label">
-					Homogeneous: <MathInline math={"(C_1 + C_2 t) e^{r t}"} />
+					<MathText
+						text={String.raw`Homogeneous: $(C_1 + C_2 t) e^{r t}$`}
+					/>
 				</span>
 				<div class="fields-row">
 					<div class="field">
 						<label for="c1-cd-input">
-							<MathInline math={"C_1"} />:
+							<MathText text={"$C_1$:"} />
 						</label>
 						<input
 							id="c1-cd-input"
@@ -304,7 +306,7 @@
 					</div>
 					<div class="field">
 						<label for="c2-cd-input">
-							<MathInline math={"C_2"} />:
+							<MathText text={"$C_2$:"} />
 						</label>
 						<input
 							id="c2-cd-input"
@@ -317,7 +319,7 @@
 					</div>
 					<div class="field">
 						<label for="r-root-input">
-							Repeated Root <MathInline math={"r"} />:
+							<MathText text={"Repeated Root $r$:"} />
 						</label>
 						<input
 							id="r-root-input"
@@ -333,14 +335,14 @@
 		{:else if mode === "underdamped"}
 			<div class="input-card">
 				<span class="card-label">
-					Underdamped: <MathInline
-						math={"e^{\\sigma t} [C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]"}
+					<MathText
+						text={String.raw`Underdamped: $e^{\sigma t} [C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
 					/>
 				</span>
 				<div class="fields-row">
 					<div class="field">
 						<label for="sigma-input">
-							Damping <MathInline math={"\\sigma"} />:
+							<MathText text={String.raw`Damping $\sigma$:`} />
 						</label>
 						<input
 							id="sigma-input"
@@ -353,7 +355,7 @@
 					</div>
 					<div class="field">
 						<label for="omegad-input">
-							Freq <MathInline math={"\\omega_d"} />:
+							<MathText text={String.raw`Freq $\omega_d$:`} />
 						</label>
 						<input
 							id="omegad-input"
@@ -366,7 +368,7 @@
 					</div>
 					<div class="field">
 						<label for="c1-ud-input">
-							<MathInline math={"C_1"} /> (cos):
+							<MathText text={String.raw`$C_1$ ($\cos$):`} />
 						</label>
 						<input
 							id="c1-ud-input"
@@ -379,7 +381,7 @@
 					</div>
 					<div class="field">
 						<label for="c2-ud-input">
-							<MathInline math={"C_2"} /> (sin):
+							<MathText text={String.raw`$C_2$ ($\sin$):`} />
 						</label>
 						<input
 							id="c2-ud-input"
@@ -395,12 +397,12 @@
 		{:else if mode === "first_order"}
 			<div class="input-card">
 				<span class="card-label">
-					Exponential: <MathInline math={"C e^{r t}"} />
+					<MathText text={String.raw`Exponential: $C e^{r t}$`} />
 				</span>
 				<div class="fields-row">
 					<div class="field">
 						<label for="c1-fo-input">
-							<MathInline math={"C"} />:
+							<MathText text={"$C$:"} />
 						</label>
 						<input
 							id="c1-fo-input"
@@ -413,7 +415,7 @@
 					</div>
 					<div class="field">
 						<label for="r1-fo-input">
-							<MathInline math={"r"} />:
+							<MathText text={"$r$:"} />
 						</label>
 						<input
 							id="r1-fo-input"
@@ -431,14 +433,14 @@
 		<!-- Common Particular / Offset Input -->
 		<div class="input-card offset">
 			<span class="card-label">
-				Particular Solution / DC Offset / Forcing Term: <MathInline
-					math={"y_p(t)"}
+				<MathText
+					text={String.raw`Particular Solution / DC Offset / Forcing Term: $y_p(t)$`}
 				/>
 			</span>
 			<div class="fields-row">
 				<div class="field flex-grow">
 					<label for="yp-input">
-						<MathInline math={"y_p(t)"} />:
+						<MathText text={"$y_p(t)$:"} />
 					</label>
 					<input
 						id="yp-input"
@@ -457,7 +459,7 @@
 							bind:checked={includeStep}
 							onchange={updateValue}
 						/>
-						Multiply by <MathInline math={"u(t)"} />
+						<MathText text={"Multiply by $u(t)$"} />
 					</label>
 				</div>
 			</div>
