@@ -450,6 +450,24 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 			if (matchDirect || matchSwapped) {
 				this.setPassed(this.step2, 3);
+			} else if (
+				(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
+				(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+			) {
+				this.setMisconception(
+					this.step2,
+					"Check your signs. Factoring into $(s + a)(s + b) = 0$ yields roots $r_1 = -a$ and $r_2 = -b$.",
+				);
+			} else if (
+				(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 - r2) < 0.05) ||
+				(Math.abs(v1 - r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
+				(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 - r1) < 0.05) ||
+				(Math.abs(v1 - r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+			) {
+				this.setMisconception(
+					this.step2,
+					"Check the sign of your roots. Remember that solving the factor $(s - r) = 0$ yields root $s = r$.",
+				);
 			} else {
 				this.setIncorrect(
 					this.step2,
@@ -471,6 +489,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 			if (Math.abs(v1 - r1) < 0.05) {
 				this.setPassed(this.step2, 3);
+			} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
+				this.setMisconception(
+					this.step2,
+					"Check your sign. Factoring into $(s + a)^2 = 0$ means solving $s + a = 0 \\implies r = -a$.",
+				);
 			} else {
 				this.setIncorrect(
 					this.step2,
@@ -515,6 +538,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					Math.abs(Math.abs(userOm) - expectedOm) < 0.05
 				) {
 					this.setPassed(this.step2, 3);
+				} else if (
+					Math.abs(userSig + expectedSig) < 0.05 &&
+					Math.abs(expectedSig) > 0.01
+				) {
+					this.setMisconception(
+						this.step2,
+						"Check the sign of the real part $\\sigma$. In the quadratic formula, the real part is $\\sigma = \\frac{-b}{2a}$.",
+					);
 				} else {
 					this.setIncorrect(
 						this.step2,
@@ -545,6 +576,24 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 				if (matchDirect || matchSwapped) {
 					this.setPassed(this.step2, 3);
+				} else if (
+					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
+					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+				) {
+					this.setMisconception(
+						this.step2,
+						"Check the signs of your roots. In the quadratic formula, the leading numerator term is $-b$.",
+					);
+				} else if (
+					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 - r2) < 0.05) ||
+					(Math.abs(v1 - r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
+					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 - r1) < 0.05) ||
+					(Math.abs(v1 - r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+				) {
+					this.setMisconception(
+						this.step2,
+						"Check the sign of your roots. Verify that you evaluated $s = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$ with correct signs.",
+					);
 				} else {
 					this.setIncorrect(
 						this.step2,
@@ -568,6 +617,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				const r1 = s2Data.r1;
 				if (Math.abs(v1 - r1) < 0.05) {
 					this.setPassed(this.step2, 3);
+				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
+					this.setMisconception(
+						this.step2,
+						"Check your sign. For a repeated root with $\\Delta = 0$, $r = \\frac{-b}{2a}$.",
+					);
 				} else {
 					this.setIncorrect(
 						this.step2,

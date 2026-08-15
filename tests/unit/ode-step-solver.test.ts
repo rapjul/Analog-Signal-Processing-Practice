@@ -141,10 +141,25 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("incorrect");
 		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
-		expect(solver.step2.feedback).toContain("Incorrect roots");
+		// Both roots sign flipped (misconception)
+		solver.step2.r1 = String(-problem.itsData.step2.r1);
+		solver.step2.r2 = String(-(problem.itsData.step2.r2 ?? 0));
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("misconception");
+		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
+		expect(solver.step2.feedback).toContain("Check your signs");
+
+		// One root sign flipped (misconception)
+		solver.step2.r1 = String(-problem.itsData.step2.r1);
+		solver.step2.r2 = String(problem.itsData.step2.r2 ?? 0);
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("misconception");
+		expect(solver.step2.feedback).toContain("Check the sign of your roots");
 
 		// Swapped order (valid)
-		solver.step2.r1 = String(problem.itsData.step2.r2);
+		solver.step2.r1 = String(problem.itsData.step2.r2 ?? 0);
 		solver.step2.r2 = String(problem.itsData.step2.r1);
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(true);
@@ -165,6 +180,16 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("validation");
 		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
+		// Sign flipped repeated root (misconception)
+		if (Math.abs(problem.itsData.step2.r1) > 0.01) {
+			solver.step2.r1 = String(-problem.itsData.step2.r1);
+			solver.checkStep2();
+			expect(solver.step2.isValid).toBe(false);
+			expect(solver.step2.feedbackType).toBe("misconception");
+			expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
+			expect(solver.step2.feedback).toContain("Check your sign");
+		}
 
 		// Incorrect repeated root
 		solver.step2.r1 = "999";
