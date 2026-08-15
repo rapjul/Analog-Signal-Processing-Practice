@@ -19,16 +19,6 @@
 			status: "Ready",
 		},
 		{
-			id: "convolution",
-			title: "Continuous-Time Convolution",
-			description:
-				"Practice graphical flip-and-shift overlap integrals, piecewise analytical solutions, and impulse/step response synthesis.",
-			badge: "Exam 3 Scope",
-			link: "/convolution",
-			icon: "🔄",
-			status: "Ready",
-		},
-		{
 			id: "fourier-series",
 			title: "Fourier Series Analysis",
 			description:
@@ -46,6 +36,16 @@
 			badge: "Exam 3 Scope",
 			link: "/fourier-transform",
 			icon: "📊",
+			status: "Ready",
+		},
+		{
+			id: "convolution",
+			title: "Continuous-Time Convolution",
+			description:
+				"Practice graphical flip-and-shift overlap integrals, piecewise analytical solutions, and impulse/step response synthesis.",
+			badge: "Exam 3 Scope",
+			link: "/convolution",
+			icon: "🔄",
 			status: "Ready",
 		},
 		{

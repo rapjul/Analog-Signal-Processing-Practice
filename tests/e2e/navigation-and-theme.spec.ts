@@ -45,9 +45,9 @@ test.describe('Navigation and Layout Shell', () => {
 
 		const routes = [
 			{ path: '/odes', label: 'LCC ODEs', expectedTitle: /ODE/i },
-			{ path: '/convolution', label: 'Convolution', expectedTitle: /Convolution/i },
 			{ path: '/fourier-series', label: 'Fourier Series', expectedTitle: /Fourier Series/i },
 			{ path: '/fourier-transform', label: 'CTFT', expectedTitle: /CTFT|Fourier/i },
+			{ path: '/convolution', label: 'Convolution', expectedTitle: /Convolution/i },
 			{ path: '/laplace', label: 'Laplace', expectedTitle: /Laplace/i },
 			{ path: '/circuits', label: 'Circuits', expectedTitle: /Circuit/i }
 		];

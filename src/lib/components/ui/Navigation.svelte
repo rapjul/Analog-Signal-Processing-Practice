@@ -112,14 +112,6 @@
 			LCC ODEs
 		</a>
 		<a
-			href="/convolution"
-			class="nav-link"
-			class:active={activeRoute === "/convolution"}
-			onclick={closeMenu}
-		>
-			Convolution
-		</a>
-		<a
 			href="/fourier-series"
 			class="nav-link"
 			class:active={activeRoute === "/fourier-series"}
@@ -134,6 +126,14 @@
 			onclick={closeMenu}
 		>
 			CTFT
+		</a>
+		<a
+			href="/convolution"
+			class="nav-link"
+			class:active={activeRoute === "/convolution"}
+			onclick={closeMenu}
+		>
+			Convolution
 		</a>
 		<a
 			href="/laplace"
