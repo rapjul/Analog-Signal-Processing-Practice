@@ -258,6 +258,10 @@ $RECYCLE.BIN/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Vite / PWA development builds
+dev-dist/
+
+
 # AI planning conversations and artifacts
 _artifacts/
 .specstory
@@ -265,9 +269,11 @@ _artifacts/
 # Spell checking
 !.vscode/ltex.dictionary*.txt
 
+
 # KaTeX legacy fonts (only .woff2 is used for modern browsers & PWAs)
 static/katex/fonts/*.woff
 static/katex/fonts/*.ttf
+
 
 # Playwright Test artifacts
 test-results/
