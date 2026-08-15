@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * MathText Svelte 5 Component.
+	 *
 	 * Parses text containing inline ($...$) and block ($$...$$) LaTeX expressions and renders them with KaTeX.
 	 */
 	import katex from "katex";
@@ -18,6 +19,56 @@
 		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		class: className = "",
 	}: Props = $props();
+
+	/**
+	 * Safe HTML tags permitted in MathText prose segments.
+	 */
+	const SAFE_TAGS_PATTERN =
+		/<\/?(?:strong|em|b|i|code|br|hr|mark|u|kbd|del|s)(?:\s+[^>]*)?\/?>/gi;
+
+	/**
+	 * Formats non-math text segments by escaping unsafe HTML characters while preserving
+	 * safe HTML tags and translating Markdown bold, italic, and inline code formatting.
+	 * @param {string} str Raw plain text segment
+	 * @returns {string} Sanitized and formatted HTML string
+	 */
+	function formatTextSegment(str: string): string {
+		if (!str) return "";
+
+		// Tokenize safe HTML tags to protect them from character escaping
+		const tokens: string[] = [];
+		const tokenized = str.replace(SAFE_TAGS_PATTERN, (match) => {
+			tokens.push(match);
+			return `@@SAFE_TAG_${tokens.length - 1}@@`;
+		});
+
+		// Escape raw HTML characters to prevent XSS / markup injection
+		let escaped = tokenized
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#039;");
+
+		// Convert Markdown syntax:
+		// 1. Inline code: `code`
+		escaped = escaped.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+		// 2. Bold: **bold** or __bold__
+		escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+		escaped = escaped.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+		// 3. Italic: *italic* or _italic_
+		escaped = escaped.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<em>$1</em>");
+		escaped = escaped.replace(
+			/(?<![a-zA-Z0-9_])_([^_ \n][^_]*?[^_ \n]|[^_ \n])_(?![a-zA-Z0-9_])/g,
+			"<em>$1</em>",
+		);
+
+		// Restore safe HTML tags
+		return escaped.replace(
+			/@@SAFE_TAG_(\d+)@@/g,
+			(_, index) => tokens[Number.parseInt(index, 10)] ?? "",
+		);
+	}
 
 	/**
 	 * Escapes raw HTML special characters in plain text segments to prevent markup injection.
@@ -95,7 +146,7 @@
 					}
 				}
 
-				return escapeHtml(part);
+				return formatTextSegment(part);
 			})
 			.join("");
 	}
