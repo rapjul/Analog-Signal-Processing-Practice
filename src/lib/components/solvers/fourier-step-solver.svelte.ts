@@ -4,13 +4,14 @@ import type {
 } from "$lib/math-engine/fourier-series";
 import {
 	BaseStepSolverState,
-	type StepFeedbackType,
+	type BaseStepState,
+	createStepState,
 } from "./base-step-solver.svelte";
 
 /**
  * Step 1 State: Period and Fundamental Frequency inputs and validation.
  */
-export interface FourierStep1State {
+export interface FourierStep1State extends BaseStepState {
 	/** Student period input string */
 	period: string;
 	/** Period unit (default: 's') */
@@ -19,26 +20,14 @@ export interface FourierStep1State {
 	freq: string;
 	/** Frequency unit (default: 'rad/s') */
 	freqUnit: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 1 is validated */
-	isValid: boolean;
 }
 
 /**
  * Multiple-choice step state for Fourier ITS steps.
  */
-export interface FourierChoiceStepState {
+export interface FourierChoiceStepState extends BaseStepState {
 	/** Selected option identifier or null if unselected */
 	selected: string | null;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether this step is validated */
-	isValid: boolean;
 }
 
 /**
@@ -54,55 +43,61 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	}
 
 	/** Step 1 State: Period & Frequency */
-	step1: FourierStep1State = $state<FourierStep1State>({
-		period: "",
-		periodUnit: "s",
-		freq: "",
-		freqUnit: "rad/s",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step1: FourierStep1State = $state<FourierStep1State>(
+		createStepState({
+			period: "",
+			periodUnit: "s",
+			freq: "",
+			freqUnit: "rad/s",
+		}),
+	);
 
 	/** Step 2 State: Symmetry classification */
-	step2: FourierChoiceStepState = $state<FourierChoiceStepState>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step2: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
 
 	/** Step 3 State: Vanishing coefficients */
-	step3: FourierChoiceStepState = $state<FourierChoiceStepState>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step3: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
 
 	/** Step 4 State: Representation form */
-	step4: FourierChoiceStepState = $state<FourierChoiceStepState>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step4: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
 
 	/** Step 5 State: Integral setup */
-	step5: FourierChoiceStepState = $state<FourierChoiceStepState>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step5: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
 
 	/** Step 6 State: Final series evaluation */
-	step6: FourierChoiceStepState = $state<FourierChoiceStepState>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step6: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
+
+	/**
+	 * Returns the active step state object for the active step index.
+	 */
+	get currentStepState(): BaseStepState | undefined {
+		switch (this.currentStep) {
+			case 1:
+				return this.step1;
+			case 2:
+				return this.step2;
+			case 3:
+				return this.step3;
+			case 4:
+				return this.step4;
+			case 5:
+				return this.step5;
+			case 6:
+				return this.step6;
+			default:
+				return undefined;
+		}
+	}
 
 	/**
 	 * Progressive hints for the currently active step.
@@ -123,66 +118,6 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				return this.problem.itsData.step6.hints;
 			default:
 				return [];
-		}
-	});
-
-	/**
-	 * Active feedback message for the currently active step.
-	 */
-	currentFeedback = $derived.by((): string => {
-		switch (this.currentStep) {
-			case 1:
-				return this.step1.feedback ?? "";
-			case 2:
-				return this.step2.feedback ?? "";
-			case 3:
-				return this.step3.feedback ?? "";
-			case 4:
-				return this.step4.feedback ?? "";
-			case 5:
-				return this.step5.feedback ?? "";
-			case 6:
-				return this.step6.feedback ?? "";
-			default:
-				return "";
-		}
-	});
-
-	/**
-	 * Diagnostic feedback classification for the currently active step.
-	 */
-	currentFeedbackType = $derived.by((): StepFeedbackType | null => {
-		switch (this.currentStep) {
-			case 1:
-				return this.step1.feedbackType ?? null;
-			case 2:
-				return this.step2.feedbackType ?? null;
-			case 3:
-				return this.step3.feedbackType ?? null;
-			case 4:
-				return this.step4.feedbackType ?? null;
-			case 5:
-				return this.step5.feedbackType ?? null;
-			case 6:
-				return this.step6.feedbackType ?? null;
-			default:
-				return null;
-		}
-	});
-
-	/**
-	 * Diagnostic title label for the active feedback banner.
-	 */
-	currentFeedbackTitle = $derived.by((): string => {
-		switch (this.currentFeedbackType) {
-			case "validation":
-				return "Input Required:";
-			case "misconception":
-				return "Misconception Detected:";
-			case "incorrect":
-				return "Incorrect:";
-			default:
-				return "Feedback:";
 		}
 	});
 
@@ -209,10 +144,10 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		const fTrimmed = this.step1.freq.trim().toLowerCase();
 
 		if (pTrimmed === "" || fTrimmed === "") {
-			this.step1.isValid = false;
-			this.step1.feedbackType = "validation";
-			this.step1.feedback =
-				"Please enter numeric or symbolic values for both the period $T_0$ and fundamental frequency $\\omega_0$.";
+			this.setValidation(
+				this.step1,
+				"Please enter numeric or symbolic values for both the period $T_0$ and fundamental frequency $\\omega_0$.",
+			);
 			return;
 		}
 
@@ -227,38 +162,35 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			Math.abs(Number.parseFloat(fTrimmed) - s1Data.expectedW0) < 0.05;
 
 		if (!pMatch) {
-			this.step1.feedbackType = "incorrect";
-			this.step1.feedback =
-				"Incorrect Period value: inspect the duration over which the waveform repeats itself.";
-			this.step1.isValid = false;
+			this.setIncorrect(
+				this.step1,
+				"Incorrect Period value: inspect the duration over which the waveform repeats itself.",
+			);
 			return;
 		}
 		if (this.step1.periodUnit !== "s") {
-			this.step1.feedbackType = "validation";
-			this.step1.feedback =
-				"Incorrect Period unit: period must be measured in seconds (s).";
-			this.step1.isValid = false;
+			this.setValidation(
+				this.step1,
+				"Incorrect Period unit: period must be measured in seconds (s).",
+			);
 			return;
 		}
 		if (!fMatch) {
-			this.step1.feedbackType = "incorrect";
-			this.step1.feedback =
-				"Incorrect Fundamental Frequency: use $\\omega_0 = \\frac{2\\pi}{T_0}$. (e.g. $\\pi$ or $\\pi/2$).";
-			this.step1.isValid = false;
+			this.setIncorrect(
+				this.step1,
+				"Incorrect Fundamental Frequency: use $\\omega_0 = \\frac{2\\pi}{T_0}$. (e.g. $\\pi$ or $\\pi/2$).",
+			);
 			return;
 		}
 		if (this.step1.freqUnit !== "rad/s") {
-			this.step1.feedbackType = "validation";
-			this.step1.feedback =
-				"Incorrect Frequency unit: radian frequency $\\omega_0$ must be in $\\text{rad/s}$.";
-			this.step1.isValid = false;
+			this.setValidation(
+				this.step1,
+				"Incorrect Frequency unit: radian frequency $\\omega_0$ must be in $\\text{rad/s}$.",
+			);
 			return;
 		}
 
-		this.step1.feedback = null;
-		this.step1.feedbackType = null;
-		this.step1.isValid = true;
-		this.advanceToStep(2);
+		this.setPassed(this.step1, 2);
 	}
 
 	/**
@@ -266,28 +198,16 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	 * @param {string} symmetry Selected symmetry identifier
 	 */
 	checkStep2(symmetry: string): void {
-		if (!symmetry) {
-			this.step2.isValid = false;
-			this.step2.feedbackType = "validation";
-			this.step2.feedback = "Please select a waveform symmetry option.";
-			return;
-		}
-
-		this.step2.selected = symmetry;
 		const s2Data = this.problem.itsData.step2;
-
-		if (symmetry === s2Data.correctSymmetry) {
-			this.step2.feedback = null;
-			this.step2.feedbackType = null;
-			this.step2.isValid = true;
-			this.advanceToStep(3);
-		} else {
-			this.step2.isValid = false;
-			this.step2.feedbackType = "misconception";
-			this.step2.feedback =
-				s2Data.misconceptions[symmetry] ??
-				"Incorrect symmetry. Test whether $x(-t) = x(t)$ (even) or $x(-t) = -x(t)$ (odd).";
-		}
+		this.checkChoiceStep(
+			this.step2,
+			symmetry,
+			s2Data.correctSymmetry,
+			s2Data.misconceptions,
+			"Incorrect symmetry. Test whether $x(-t) = x(t)$ (even) or $x(-t) = -x(t)$ (odd).",
+			"Please select a waveform symmetry option.",
+			3,
+		);
 	}
 
 	/**
@@ -295,28 +215,16 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	 * @param {string} choice Selected vanishing choice
 	 */
 	checkStep3(choice: string): void {
-		if (!choice) {
-			this.step3.isValid = false;
-			this.step3.feedbackType = "validation";
-			this.step3.feedback = "Please select which Fourier coefficients vanish.";
-			return;
-		}
-
-		this.step3.selected = choice;
 		const s3Data = this.problem.itsData.step3;
-
-		if (choice === s3Data.correctVanishing) {
-			this.step3.feedback = null;
-			this.step3.feedbackType = null;
-			this.step3.isValid = true;
-			this.advanceToStep(4);
-		} else {
-			this.step3.isValid = false;
-			this.step3.feedbackType = "misconception";
-			this.step3.feedback =
-				s3Data.misconceptions[choice] ??
-				"Incorrect vanishing condition for the signal's symmetry.";
-		}
+		this.checkChoiceStep(
+			this.step3,
+			choice,
+			s3Data.correctVanishing,
+			s3Data.misconceptions,
+			"Incorrect vanishing condition for the signal's symmetry.",
+			"Please select which Fourier coefficients vanish.",
+			4,
+		);
 	}
 
 	/**
@@ -324,28 +232,16 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	 * @param {string} form Selected representation form
 	 */
 	checkStep4(form: string): void {
-		if (!form) {
-			this.step4.isValid = false;
-			this.step4.feedbackType = "validation";
-			this.step4.feedback = "Please select a Fourier series representation form.";
-			return;
-		}
-
-		this.step4.selected = form;
 		const s4Data = this.problem.itsData.step4;
-
-		if (form === s4Data.correctForm) {
-			this.step4.feedback = null;
-			this.step4.feedbackType = null;
-			this.step4.isValid = true;
-			this.advanceToStep(5);
-		} else {
-			this.step4.isValid = false;
-			this.step4.feedbackType = "misconception";
-			this.step4.feedback =
-				s4Data.misconceptions[form] ??
-				"Consider which representation requires computing fewer non-zero integrals.";
-		}
+		this.checkChoiceStep(
+			this.step4,
+			form,
+			s4Data.correctForm,
+			s4Data.misconceptions,
+			"Consider which representation requires computing fewer non-zero integrals.",
+			"Please select a Fourier series representation form.",
+			5,
+		);
 	}
 
 	/**
@@ -353,26 +249,13 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	 * @param {FourierItsOption} opt Selected option
 	 */
 	checkStep5(opt: FourierItsOption): void {
-		if (!opt) {
-			this.step5.isValid = false;
-			this.step5.feedbackType = "validation";
-			this.step5.feedback = "Please select an integral setup formula option.";
-			return;
-		}
-
-		this.step5.selected = opt.id;
-		if (opt.isCorrect) {
-			this.step5.feedback = null;
-			this.step5.feedbackType = null;
-			this.step5.isValid = true;
-			this.advanceToStep(6);
-		} else {
-			this.step5.isValid = false;
-			this.step5.feedbackType = "misconception";
-			this.step5.feedback =
-				opt.feedback ??
-				"Incorrect integral formulation. Check scaling factors ($2/T_0$ vs $1/T_0$) and trigonometric kernels.";
-		}
+		this.checkOptionCardStep(
+			this.step5,
+			opt,
+			"Incorrect integral formulation. Check scaling factors ($2/T_0$ vs $1/T_0$) and trigonometric kernels.",
+			"Please select an integral setup formula option.",
+			6,
+		);
 	}
 
 	/**
@@ -380,26 +263,13 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	 * @param {FourierItsOption} opt Selected option
 	 */
 	checkStep6(opt: FourierItsOption): void {
-		if (!opt) {
-			this.step6.isValid = false;
-			this.step6.feedbackType = "validation";
-			this.step6.feedback = "Please select a final trigonometric series option.";
-			return;
-		}
-
-		this.step6.selected = opt.id;
-		if (opt.isCorrect) {
-			this.step6.feedback = null;
-			this.step6.feedbackType = null;
-			this.step6.isValid = true;
-			this.advanceToStep(7);
-		} else {
-			this.step6.isValid = false;
-			this.step6.feedbackType = "misconception";
-			this.step6.feedback =
-				opt.feedback ??
-				"Incorrect series expression. Check signs, DC offset $a_0$, and harmonic indices.";
-		}
+		this.checkOptionCardStep(
+			this.step6,
+			opt,
+			"Incorrect series expression. Check signs, DC offset $a_0$, and harmonic indices.",
+			"Please select a final trigonometric series option.",
+			7,
+		);
 	}
 
 	/**
@@ -410,44 +280,16 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		this.isCompleted = false;
 		this.hintTier = 0;
 
-		this.step1 = {
+		this.step1 = createStepState({
 			period: "",
 			periodUnit: "s",
 			freq: "",
 			freqUnit: "rad/s",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step2 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step3 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step4 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step5 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step6 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
+		});
+		this.step2 = createStepState({ selected: null as string | null });
+		this.step3 = createStepState({ selected: null as string | null });
+		this.step4 = createStepState({ selected: null as string | null });
+		this.step5 = createStepState({ selected: null as string | null });
+		this.step6 = createStepState({ selected: null as string | null });
 	}
 }

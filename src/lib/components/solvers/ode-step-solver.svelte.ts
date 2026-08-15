@@ -5,31 +5,26 @@ import type {
 } from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
-	type StepFeedbackType,
+	type BaseStepState,
+	createStepState,
 } from "./base-step-solver.svelte";
 
 /**
  * Step 1 State: Characteristic Equation Coefficients (a2 s^2 + a1 s + a0 = 0).
  */
-export interface OdeStep1State {
+export interface OdeStep1State extends BaseStepState {
 	/** Leading coefficient a2 */
 	a2: string;
 	/** First derivative coefficient a1 */
 	a1: string;
 	/** Constant term coefficient a0 */
 	a0: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 1 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 2 State: Characteristic Roots Inputs.
  */
-export interface OdeStep2State {
+export interface OdeStep2State extends BaseStepState {
 	/** First root input string */
 	r1: string;
 	/** Second root input string (for distinct real) */
@@ -38,88 +33,52 @@ export interface OdeStep2State {
 	sigma: string;
 	/** Imaginary part omega_d (for complex conjugate) */
 	omegaD: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 2 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 3 State: Homogeneous Form Template Selection.
  */
-export interface OdeStep3State {
+export interface OdeStep3State extends BaseStepState {
 	/** Selected RootType template */
 	selected: RootType | null;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 3 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 4 State: Particular Solution Ansatz Card Selection.
  */
-export interface OdeStep4State {
+export interface OdeStep4State extends BaseStepState {
 	/** Selected option identifier */
 	selected: string | null;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 4 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 5 State: Undetermined Particular Coefficients.
  */
-export interface OdeStep5State {
+export interface OdeStep5State extends BaseStepState {
 	/** Solved Kp for constant/exponential forcing */
 	kp: string;
 	/** Solved A for sinusoidal forcing */
 	a: string;
 	/** Solved B for sinusoidal forcing */
 	b: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 5 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 6 State: Initial Conditions Constants C1, C2.
  */
-export interface OdeStep6State {
+export interface OdeStep6State extends BaseStepState {
 	/** Constant C1 input string */
 	c1: string;
 	/** Constant C2 input string */
 	c2: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 6 is validated */
-	isValid: boolean;
 }
 
 /**
  * Step 7 State: Response Decomposition via OdeResponseInput.
  */
-export interface OdeStep7State {
+export interface OdeStep7State extends BaseStepState {
 	/** LaTeX formatted student response */
 	latex: string;
-	/** Diagnostic feedback message if validation fails */
-	feedback: string | null;
-	/** Diagnostic feedback classification */
-	feedbackType?: StepFeedbackType | null;
-	/** Whether step 7 is validated */
-	isValid: boolean;
 }
 
 /**
@@ -135,68 +94,63 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/** Step 1 State: Characteristic Equation */
-	step1: OdeStep1State = $state<OdeStep1State>({
-		a2: "",
-		a1: "",
-		a0: "",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step1: OdeStep1State = $state<OdeStep1State>(
+		createStepState({ a2: "", a1: "", a0: "" }),
+	);
 
 	/** Step 2 State: Characteristic Roots */
-	step2: OdeStep2State = $state<OdeStep2State>({
-		r1: "",
-		r2: "",
-		sigma: "",
-		omegaD: "",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step2: OdeStep2State = $state<OdeStep2State>(
+		createStepState({ r1: "", r2: "", sigma: "", omegaD: "" }),
+	);
 
 	/** Step 3 State: Homogeneous Form Template */
-	step3: OdeStep3State = $state<OdeStep3State>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step3: OdeStep3State = $state<OdeStep3State>(
+		createStepState({ selected: null as RootType | null }),
+	);
 
 	/** Step 4 State: Particular Solution Ansatz */
-	step4: OdeStep4State = $state<OdeStep4State>({
-		selected: null,
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step4: OdeStep4State = $state<OdeStep4State>(
+		createStepState({ selected: null as string | null }),
+	);
 
 	/** Step 5 State: Undetermined Particular Coefficients */
-	step5: OdeStep5State = $state<OdeStep5State>({
-		kp: "",
-		a: "",
-		b: "",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step5: OdeStep5State = $state<OdeStep5State>(
+		createStepState({ kp: "", a: "", b: "" }),
+	);
 
 	/** Step 6 State: Initial Conditions Constants */
-	step6: OdeStep6State = $state<OdeStep6State>({
-		c1: "",
-		c2: "",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step6: OdeStep6State = $state<OdeStep6State>(
+		createStepState({ c1: "", c2: "" }),
+	);
 
 	/** Step 7 State: Response Decomposition */
-	step7: OdeStep7State = $state<OdeStep7State>({
-		latex: "",
-		feedback: null,
-		feedbackType: null,
-		isValid: false,
-	});
+	step7: OdeStep7State = $state<OdeStep7State>(
+		createStepState({ latex: "" }),
+	);
+
+	/**
+	 * Returns the active step state object for the active step index.
+	 */
+	get currentStepState(): BaseStepState | undefined {
+		switch (this.currentStep) {
+			case 1:
+				return this.step1;
+			case 2:
+				return this.step2;
+			case 3:
+				return this.step3;
+			case 4:
+				return this.step4;
+			case 5:
+				return this.step5;
+			case 6:
+				return this.step6;
+			case 7:
+				return this.step7;
+			default:
+				return undefined;
+		}
+	}
 
 	/**
 	 * Live rendered preview equation for Step 1 Characteristic Equation.
@@ -286,70 +240,6 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	});
 
 	/**
-	 * Active feedback message for the currently active step.
-	 */
-	currentFeedback = $derived.by((): string => {
-		switch (this.currentStep) {
-			case 1:
-				return this.step1.feedback ?? "";
-			case 2:
-				return this.step2.feedback ?? "";
-			case 3:
-				return this.step3.feedback ?? "";
-			case 4:
-				return this.step4.feedback ?? "";
-			case 5:
-				return this.step5.feedback ?? "";
-			case 6:
-				return this.step6.feedback ?? "";
-			case 7:
-				return this.step7.feedback ?? "";
-			default:
-				return "";
-		}
-	});
-
-	/**
-	 * Diagnostic feedback classification for the currently active step.
-	 */
-	currentFeedbackType = $derived.by((): StepFeedbackType | null => {
-		switch (this.currentStep) {
-			case 1:
-				return this.step1.feedbackType ?? null;
-			case 2:
-				return this.step2.feedbackType ?? null;
-			case 3:
-				return this.step3.feedbackType ?? null;
-			case 4:
-				return this.step4.feedbackType ?? null;
-			case 5:
-				return this.step5.feedbackType ?? null;
-			case 6:
-				return this.step6.feedbackType ?? null;
-			case 7:
-				return this.step7.feedbackType ?? null;
-			default:
-				return null;
-		}
-	});
-
-	/**
-	 * Diagnostic title label for the active feedback banner.
-	 */
-	currentFeedbackTitle = $derived.by((): string => {
-		switch (this.currentFeedbackType) {
-			case "validation":
-				return "Input Required:";
-			case "misconception":
-				return "Misconception Detected:";
-			case "incorrect":
-				return "Incorrect:";
-			default:
-				return "Feedback:";
-		}
-	});
-
-	/**
 	 * Creates a new OdeStepSolverState instance.
 	 * @param {() => OdeProblem} getProblem Reactive getter for active ODE problem
 	 * @param {() => (() => void) | undefined} [getOnComplete] Optional reactive getter for completion callback
@@ -373,10 +263,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const vA0 = Number.parseFloat(this.step1.a0.trim());
 
 		if (Number.isNaN(vA2) || Number.isNaN(vA1) || Number.isNaN(vA0)) {
-			this.step1.isValid = false;
-			this.step1.feedbackType = "validation";
-			this.step1.feedback =
-				"Please enter numeric values for all three coefficients: $a_2$, $a_1$, and $a_0$.";
+			this.setValidation(
+				this.step1,
+				"Please enter numeric values for all three coefficients: $a_2$, $a_1$, and $a_0$.",
+			);
 			return;
 		}
 
@@ -385,9 +275,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			Math.abs(vA0 - this.problem.forcing.K) < 0.05 &&
 			Math.abs(vA0 - s1Data.expectedA0) >= 0.05
 		) {
-			this.step1.isValid = false;
-			this.step1.feedbackType = "misconception";
-			this.step1.feedback = s1Data.misconceptions.forcing_rhs;
+			this.setMisconception(this.step1, s1Data.misconceptions.forcing_rhs);
 			return;
 		}
 
@@ -396,15 +284,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			Math.abs(vA1 - s1Data.expectedA1) < 0.05 &&
 			Math.abs(vA0 - s1Data.expectedA0) < 0.05
 		) {
-			this.step1.feedback = null;
-			this.step1.feedbackType = null;
-			this.step1.isValid = true;
-			this.advanceToStep(2);
+			this.setPassed(this.step1, 2);
 		} else {
-			this.step1.isValid = false;
-			this.step1.feedbackType = "incorrect";
-			this.step1.feedback =
-				"Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.";
+			this.setIncorrect(
+				this.step1,
+				"Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.",
+			);
 		}
 	}
 
@@ -418,10 +303,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const v2 = Number.parseFloat(this.step2.r2.trim());
 
 			if (Number.isNaN(v1) || Number.isNaN(v2)) {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "validation";
-				this.step2.feedback =
-					"Please enter numeric values for both roots: $r_1$ and $r_2$.";
+				this.setValidation(
+					this.step2,
+					"Please enter numeric values for both roots: $r_1$ and $r_2$.",
+				);
 				return;
 			}
 
@@ -434,48 +319,43 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
 
 			if (matchDirect || matchSwapped) {
-				this.step2.feedback = null;
-				this.step2.feedbackType = null;
-				this.step2.isValid = true;
-				this.advanceToStep(3);
+				this.setPassed(this.step2, 3);
 			} else {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "incorrect";
-				this.step2.feedback = `Incorrect roots. Factor the characteristic polynomial $${this.problem.itsData.step1.latex}$.`;
+				this.setIncorrect(
+					this.step2,
+					`Incorrect roots. Factor the characteristic polynomial $${this.problem.itsData.step1.latex}$.`,
+				);
 			}
 		} else if (s2Data.rootType === "repeated_real") {
 			const v1 = Number.parseFloat(this.step2.r1.trim());
 
 			if (Number.isNaN(v1)) {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "validation";
-				this.step2.feedback =
-					"Please enter a numeric value for the repeated root $r$.";
+				this.setValidation(
+					this.step2,
+					"Please enter a numeric value for the repeated root $r$.",
+				);
 				return;
 			}
 
 			const r1 = s2Data.r1;
 
 			if (Math.abs(v1 - r1) < 0.05) {
-				this.step2.feedback = null;
-				this.step2.feedbackType = null;
-				this.step2.isValid = true;
-				this.advanceToStep(3);
+				this.setPassed(this.step2, 3);
 			} else {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "incorrect";
-				this.step2.feedback =
-					"Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.";
+				this.setIncorrect(
+					this.step2,
+					"Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.",
+				);
 			}
 		} else if (s2Data.rootType === "complex_conjugate") {
 			const vSigma = Number.parseFloat(this.step2.sigma.trim());
 			const vOmega = Number.parseFloat(this.step2.omegaD.trim());
 
 			if (Number.isNaN(vSigma) || Number.isNaN(vOmega)) {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "validation";
-				this.step2.feedback =
-					"Please enter numeric values for both the real part $\\sigma$ and imaginary part $\\omega_d$.";
+				this.setValidation(
+					this.step2,
+					"Please enter numeric values for both the real part $\\sigma$ and imaginary part $\\omega_d$.",
+				);
 				return;
 			}
 
@@ -486,15 +366,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				Math.abs(vSigma - sigma) < 0.05 &&
 				Math.abs(vOmega - omega) < 0.05
 			) {
-				this.step2.feedback = null;
-				this.step2.feedbackType = null;
-				this.step2.isValid = true;
-				this.advanceToStep(3);
+				this.setPassed(this.step2, 3);
 			} else {
-				this.step2.isValid = false;
-				this.step2.feedbackType = "incorrect";
-				this.step2.feedback =
-					"Incorrect complex root components. Ensure real part $\\sigma$ and imaginary part $\\omega_d$ match $s = \\sigma \\pm j \\omega_d$.";
+				this.setIncorrect(
+					this.step2,
+					"Incorrect complex root components. Ensure real part $\\sigma$ and imaginary part $\\omega_d$ match $s = \\sigma \\pm j \\omega_d$.",
+				);
 			}
 		}
 	}
@@ -504,28 +381,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * @param {RootType} template Selected template
 	 */
 	checkStep3(template: RootType): void {
-		if (!template) {
-			this.step3.isValid = false;
-			this.step3.feedbackType = "validation";
-			this.step3.feedback = "Please select a homogeneous solution form template.";
-			return;
-		}
-
-		this.step3.selected = template;
 		const s3Data = this.problem.itsData.step3;
-
-		if (template === s3Data.correctTemplate) {
-			this.step3.feedback = null;
-			this.step3.feedbackType = null;
-			this.step3.isValid = true;
-			this.advanceToStep(4);
-		} else {
-			this.step3.isValid = false;
-			this.step3.feedbackType = "misconception";
-			this.step3.feedback =
-				s3Data.misconceptions[template] ??
-				"Incorrect homogeneous template for the characteristic root structure.";
-		}
+		this.checkChoiceStep(
+			this.step3,
+			template,
+			s3Data.correctTemplate,
+			s3Data.misconceptions,
+			"Incorrect homogeneous template for the characteristic root structure.",
+			"Please select a homogeneous solution form template.",
+			4,
+		);
 	}
 
 	/**
@@ -533,26 +398,13 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * @param {OdeItsOption} opt Selected option
 	 */
 	checkStep4(opt: OdeItsOption): void {
-		if (!opt) {
-			this.step4.isValid = false;
-			this.step4.feedbackType = "validation";
-			this.step4.feedback = "Please select a particular solution ansatz.";
-			return;
-		}
-
-		this.step4.selected = opt.id;
-		if (opt.isCorrect) {
-			this.step4.feedback = null;
-			this.step4.feedbackType = null;
-			this.step4.isValid = true;
-			this.advanceToStep(5);
-		} else {
-			this.step4.isValid = false;
-			this.step4.feedbackType = "misconception";
-			this.step4.feedback =
-				opt.feedback ??
-				"Incorrect trial ansatz guess. Check for resonance collisions or missing trigonometric pairs.";
-		}
+		this.checkOptionCardStep(
+			this.step4,
+			opt,
+			"Incorrect trial ansatz guess. Check for resonance collisions or missing trigonometric pairs.",
+			"Please select a particular solution ansatz.",
+			5,
+		);
 	}
 
 	/**
@@ -565,10 +417,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const vB = Number.parseFloat(this.step5.b.trim());
 
 			if (Number.isNaN(vA) || Number.isNaN(vB)) {
-				this.step5.isValid = false;
-				this.step5.feedbackType = "validation";
-				this.step5.feedback =
-					"Please enter numeric values for both coefficients: $A$ and $B$.";
+				this.setValidation(
+					this.step5,
+					"Please enter numeric values for both coefficients: $A$ and $B$.",
+				);
 				return;
 			}
 
@@ -576,39 +428,33 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const expB = s5Data.expectedB ?? 0;
 
 			if (Math.abs(vA - expA) < 0.05 && Math.abs(vB - expB) < 0.05) {
-				this.step5.feedback = null;
-				this.step5.feedbackType = null;
-				this.step5.isValid = true;
-				this.advanceToStep(6);
+				this.setPassed(this.step5, 6);
 			} else {
-				this.step5.feedbackType = "incorrect";
-				this.step5.feedback =
-					"Incorrect coefficients $A$ and $B$. Substitute $y_p(t)$ into the ODE and equate like cosine and sine terms.";
-				this.step5.isValid = false;
+				this.setIncorrect(
+					this.step5,
+					"Incorrect coefficients $A$ and $B$. Substitute $y_p(t)$ into the ODE and equate like cosine and sine terms.",
+				);
 			}
 		} else {
 			const vKp = Number.parseFloat(this.step5.kp.trim());
 
 			if (Number.isNaN(vKp)) {
-				this.step5.isValid = false;
-				this.step5.feedbackType = "validation";
-				this.step5.feedback =
-					"Please enter a numeric value for the particular amplitude $K_p$.";
+				this.setValidation(
+					this.step5,
+					"Please enter a numeric value for the particular amplitude $K_p$.",
+				);
 				return;
 			}
 
 			const expKp = s5Data.expectedKp ?? 0;
 
 			if (Math.abs(vKp - expKp) < 0.05) {
-				this.step5.feedback = null;
-				this.step5.feedbackType = null;
-				this.step5.isValid = true;
-				this.advanceToStep(6);
+				this.setPassed(this.step5, 6);
 			} else {
-				this.step5.feedbackType = "incorrect";
-				this.step5.feedback =
-					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.";
-				this.step5.isValid = false;
+				this.setIncorrect(
+					this.step5,
+					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.",
+				);
 			}
 		}
 	}
@@ -622,10 +468,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const vC2 = Number.parseFloat(this.step6.c2.trim());
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
-			this.step6.isValid = false;
-			this.step6.feedbackType = "validation";
-			this.step6.feedback =
-				"Please enter numeric values for both constants: $C_1$ and $C_2$.";
+			this.setValidation(
+				this.step6,
+				"Please enter numeric values for both constants: $C_1$ and $C_2$.",
+			);
 			return;
 		}
 
@@ -633,15 +479,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			Math.abs(vC1 - s6Data.expectedC1) < 0.05 &&
 			Math.abs(vC2 - s6Data.expectedC2) < 0.05
 		) {
-			this.step6.feedback = null;
-			this.step6.feedbackType = null;
-			this.step6.isValid = true;
-			this.advanceToStep(7);
+			this.setPassed(this.step6, 7);
 		} else {
-			this.step6.isValid = false;
-			this.step6.feedbackType = "incorrect";
-			this.step6.feedback =
-				"Incorrect constants $C_1$, $C_2$. Remember to account for the velocity offset $y_p'(0^+)$ when setting up $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.";
+			this.setIncorrect(
+				this.step6,
+				"Incorrect constants $C_1$, $C_2$. Remember to account for the velocity offset $y_p'(0^+)$ when setting up $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.",
+			);
 		}
 	}
 
@@ -651,15 +494,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	handleStep7Submit(value: string): void {
 		if (value && value.trim().length > 3) {
-			this.step7.feedback = null;
-			this.step7.feedbackType = null;
-			this.step7.isValid = true;
-			this.advanceToStep(8);
+			this.setPassed(this.step7, 8);
 		} else {
-			this.step7.isValid = false;
-			this.step7.feedbackType = "validation";
-			this.step7.feedback =
-				"Please enter the complete total response equation.";
+			this.setValidation(
+				this.step7,
+				"Please enter the complete total response equation.",
+			);
 		}
 	}
 
@@ -671,55 +511,17 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		this.isCompleted = false;
 		this.hintTier = 0;
 
-		this.step1 = {
-			a2: "",
-			a1: "",
-			a0: "",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step2 = {
+		this.step1 = createStepState({ a2: "", a1: "", a0: "" });
+		this.step2 = createStepState({
 			r1: "",
 			r2: "",
 			sigma: "",
 			omegaD: "",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step3 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step4 = {
-			selected: null,
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step5 = {
-			kp: "",
-			a: "",
-			b: "",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step6 = {
-			c1: "",
-			c2: "",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
-		this.step7 = {
-			latex: "",
-			feedback: null,
-			feedbackType: null,
-			isValid: false,
-		};
+		});
+		this.step3 = createStepState({ selected: null as RootType | null });
+		this.step4 = createStepState({ selected: null as string | null });
+		this.step5 = createStepState({ kp: "", a: "", b: "" });
+		this.step6 = createStepState({ c1: "", c2: "" });
+		this.step7 = createStepState({ latex: "" });
 	}
 }
