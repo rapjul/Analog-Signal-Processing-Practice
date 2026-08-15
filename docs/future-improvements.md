@@ -27,3 +27,7 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 - **Action / Review Item:**
   - Verify and audit the completed post-solve experience across Fourier Series and Linear ODEs.
   - Evaluate and decide whether to migrate or remove legacy `StepReveal` / solution breakdown blocks from the remaining practice modules (e.g., Convolution, Laplace, Fourier Transform, Circuits).
+
+### 5. Fourier Series: Convert to Trigonometric/Exponential/Compact Forms
+- Convert all sin/cos series solutions to compact exponential form.
+- Add a new problem type where the Fourier series is given and then the user needs to convert to another form.
