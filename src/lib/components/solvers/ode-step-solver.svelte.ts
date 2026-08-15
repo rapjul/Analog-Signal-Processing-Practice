@@ -22,17 +22,27 @@ export interface OdeStep1State extends BaseStepState {
 }
 
 /**
- * Step 2 State: Characteristic Roots Inputs.
+ * Step 2 State: Characteristic Roots & Quadratic Setup Inputs.
  */
 export interface OdeStep2State extends BaseStepState {
-	/** First root input string */
+	/** Selected solving strategy: factoring or quadratic formula */
+	strategy: "factoring" | "quadratic" | null;
+	/** First root input string (for distinct real / repeated) */
 	r1: string;
 	/** Second root input string (for distinct real) */
 	r2: string;
-	/** Real part sigma (for complex conjugate) */
+	/** Real part sigma (for complex conjugate direct entry fallback) */
 	sigma: string;
-	/** Imaginary part omega_d (for complex conjugate) */
+	/** Imaginary part omega_d (for complex conjugate direct entry fallback) */
 	omegaD: string;
+	/** Leading coefficient 'a' in quadratic formula setup */
+	quadA: string;
+	/** Coefficient 'b' in quadratic formula setup */
+	quadB: string;
+	/** Constant coefficient 'c' in quadratic formula setup */
+	quadC: string;
+	/** Whether quadratic setup has been verified successfully */
+	quadVerified: boolean;
 }
 
 /**
@@ -98,9 +108,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		createStepState({ a2: "", a1: "", a0: "" }),
 	);
 
-	/** Step 2 State: Characteristic Roots */
+	/** Step 2 State: Characteristic Roots & Strategy */
 	step2: OdeStep2State = $state<OdeStep2State>(
-		createStepState({ r1: "", r2: "", sigma: "", omegaD: "" }),
+		createStepState({
+			strategy: null as "factoring" | "quadratic" | null,
+			r1: "",
+			r2: "",
+			sigma: "",
+			omegaD: "",
+			quadA: "",
+			quadB: "",
+			quadC: "",
+			quadVerified: false,
+		}),
 	);
 
 	/** Step 3 State: Homogeneous Form Template */
@@ -294,10 +314,42 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 2 (Characteristic Roots).
+	 * Formatted LaTeX preview string of the student's quadratic formula setup.
+	 */
+	previewQuadSetup = $derived.by((): string => {
+		const bStr = this.step2.quadB.trim() !== "" ? this.step2.quadB.trim() : "b";
+		const aStr = this.step2.quadA.trim() !== "" ? this.step2.quadA.trim() : "a";
+		const cStr = this.step2.quadC.trim() !== "" ? this.step2.quadC.trim() : "c";
+		return String.raw`s = \frac{-(${bStr}) \pm \sqrt{(${bStr})^2 - 4(${aStr})(${cStr})}}{2(${aStr})}`;
+	});
+
+	/**
+	 * Validates Step 2 (Characteristic Roots & Strategy).
 	 */
 	checkStep2(): void {
+		if (this.step2.strategy === "quadratic") {
+			this.checkStep2Quadratic();
+		} else {
+			this.checkStep2Factoring();
+		}
+	}
+
+	/**
+	 * Validates Step 2 via Factoring path.
+	 */
+	checkStep2Factoring(): void {
 		const s2Data = this.problem.itsData.step2;
+
+		// Diagnostic check: If student selected factoring for a complex / un-factorable polynomial
+		if (!s2Data.isFactorable || s2Data.rootType === "complex_conjugate") {
+			const feedback =
+				s2Data.misconceptions.unfactorable_complex ??
+				s2Data.misconceptions.unfactorable_general ??
+				"This polynomial cannot be factored over real integers. Please select the Quadratic Formula.";
+			this.setIncorrect(this.step2, feedback);
+			return;
+		}
+
 		if (s2Data.rootType === "distinct_real") {
 			const v1 = Number.parseFloat(this.step2.r1.trim());
 			const v2 = Number.parseFloat(this.step2.r2.trim());
@@ -347,32 +399,42 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					"Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.",
 				);
 			}
-		} else if (s2Data.rootType === "complex_conjugate") {
-			const vSigma = Number.parseFloat(this.step2.sigma.trim());
-			const vOmega = Number.parseFloat(this.step2.omegaD.trim());
+		}
+	}
 
-			if (Number.isNaN(vSigma) || Number.isNaN(vOmega)) {
-				this.setValidation(
-					this.step2,
-					"Please enter numeric values for both the real part $\\sigma$ and imaginary part $\\omega_d$.",
-				);
-				return;
-			}
+	/**
+	 * Validates Step 2 via Quadratic Formula Setup path.
+	 */
+	checkStep2Quadratic(): void {
+		const s2Data = this.problem.itsData.step2;
+		const expectedA = s2Data.quadSetup.a;
+		const expectedB = s2Data.quadSetup.b;
+		const expectedC = s2Data.quadSetup.c;
 
-			const sigma = s2Data.r1;
-			const omega = s2Data.im ?? 0;
+		const userA = Number.parseFloat(this.step2.quadA.trim());
+		const userB = Number.parseFloat(this.step2.quadB.trim());
+		const userC = Number.parseFloat(this.step2.quadC.trim());
 
-			if (
-				Math.abs(vSigma - sigma) < 0.05 &&
-				Math.abs(vOmega - omega) < 0.05
-			) {
-				this.setPassed(this.step2, 3);
-			} else {
-				this.setIncorrect(
-					this.step2,
-					"Incorrect complex root components. Ensure real part $\\sigma$ and imaginary part $\\omega_d$ match $s = \\sigma \\pm j \\omega_d$.",
-				);
-			}
+		if (Number.isNaN(userA) || Number.isNaN(userB) || Number.isNaN(userC)) {
+			this.setValidation(
+				this.step2,
+				"Please enter numeric values for all quadratic formula parameters: $a$, $b$, and $c$.",
+			);
+			return;
+		}
+
+		if (
+			Math.abs(userA - expectedA) < 0.05 &&
+			Math.abs(userB - expectedB) < 0.05 &&
+			Math.abs(userC - expectedC) < 0.05
+		) {
+			this.step2.quadVerified = true;
+			this.setPassed(this.step2, 3);
+		} else {
+			this.setIncorrect(
+				this.step2,
+				`Incorrect quadratic formula parameters. For $Q(s) = ${this.problem.itsData.step1.latex}$, match $a = ${expectedA}$, $b = ${expectedB}$, and $c = ${expectedC}$.`,
+			);
 		}
 	}
 
@@ -513,10 +575,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		this.step1 = createStepState({ a2: "", a1: "", a0: "" });
 		this.step2 = createStepState({
+			strategy: null as "factoring" | "quadratic" | null,
 			r1: "",
 			r2: "",
 			sigma: "",
 			omegaD: "",
+			quadA: "",
+			quadB: "",
+			quadC: "",
+			quadVerified: false,
 		});
 		this.step3 = createStepState({ selected: null as RootType | null });
 		this.step4 = createStepState({ selected: null as string | null });

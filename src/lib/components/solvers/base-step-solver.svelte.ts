@@ -188,6 +188,16 @@ export abstract class BaseStepSolverState {
 	}
 
 	/**
+	 * Clears the feedback and validation state for the current active step.
+	 */
+	clearFeedback(): void {
+		if (this.currentStepState) {
+			this.currentStepState.feedback = null;
+			this.currentStepState.feedbackType = null;
+		}
+	}
+
+	/**
 	 * Marks the given step state as passed and optionally advances to the next step.
 	 *
 	 * @param {BaseStepState} step - Step state to mark as valid.

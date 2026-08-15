@@ -115,16 +115,39 @@ export interface OdeItsStep1 extends BaseItsStep {
 	misconceptions: Record<string, string>;
 }
 
-/** ITS Step 2: Characteristic Roots */
+/** ITS Step 2: Characteristic Roots & Strategy */
 export interface OdeItsStep2 extends BaseItsStep {
 	/** Classification of characteristic roots */
 	rootType: RootType;
+	/** Whether the characteristic polynomial can be factored over integers */
+	isFactorable: boolean;
+	/** Polynomial discriminant b^2 - 4ac */
+	discriminant: number;
+	/** Quadratic formula parameters and setup values */
+	quadSetup: {
+		/** Leading coefficient a (for s^2) */
+		a: number;
+		/** First derivative coefficient b (for s) */
+		b: number;
+		/** Constant coefficient c */
+		c: number;
+		/** Negated b (-b) */
+		negB: number;
+		/** Discriminant b^2 - 4ac */
+		disc: number;
+		/** Denominator 2a */
+		twoA: number;
+	};
+	/** Exact symbolic formatted roots string in LaTeX */
+	symbolicRootsLatex: string;
 	/** First root (real part if complex) */
 	r1: number;
 	/** Second root (real part if distinct real) */
 	r2?: number;
 	/** Imaginary component omega_d (if complex conjugate) */
 	im?: number;
+	/** Diagnostic misconception feedback dictionary */
+	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 3: Homogeneous Form Template */
@@ -957,18 +980,40 @@ export function generateOdeProblem(
 		},
 		step2: {
 			rootType: resolvedRootType,
+			isFactorable:
+				resolvedRootType === "distinct_real" ||
+				resolvedRootType === "repeated_real",
+			discriminant: a1 * a1 - 4 * 1 * a0,
+			quadSetup: {
+				a: 1,
+				b: a1,
+				c: a0,
+				negB: -a1,
+				disc: a1 * a1 - 4 * 1 * a0,
+				twoA: 2,
+			},
+			symbolicRootsLatex:
+				resolvedRootType === "distinct_real"
+					? `r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}`
+					: resolvedRootType === "repeated_real"
+						? `r_1 = r_2 = ${roots.r1}`
+						: `s = ${roots.r1} \\pm j${roots.im}`,
 			r1: roots.r1,
 			r2: roots.r2,
 			im: roots.im,
 			hints: [
-				"Form the characteristic polynomial $s^2 + a_1 s + a_0 = 0$ by replacing derivatives with powers of $s$.",
-				`The characteristic equation is ${charEqFormatted}. Apply the quadratic formula $s = \\frac{-${a1} \\pm \\sqrt{${a1 * a1} - 4(${a0})}}{2}$.`,
+				`To solve $${charEqLhs} = 0$, first inspect if it factors cleanly into $(s - r_1)(s - r_2) = 0$. You can check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$.`,
+				`The quadratic formula is $s = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. Setting up with $a = 1$, $b = ${a1}$, and $c = ${a0}$ gives $s = \\frac{-(${a1}) \\pm \\sqrt{(${a1})^2 - 4(1)(${a0})}}{2(1)} = \\frac{${-a1} \\pm \\sqrt{${a1 * a1 - 4 * a0}}}{2}$.`,
 				resolvedRootType === "distinct_real"
-					? `The characteristic roots are distinct real: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
+					? `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} > 0$ yields two distinct real roots: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
 					: resolvedRootType === "repeated_real"
-						? `The characteristic root is repeated: $r = ${roots.r1}$.`
-						: `The characteristic roots are complex conjugate: $\\sigma = ${roots.r1}, \\; \\omega_d = ${roots.im}$ ($${roots.r1} \\pm j${roots.im}$).`,
+						? `The discriminant $\\Delta = 0$ yields a single repeated real root: $r = ${roots.r1}$.`
+						: `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} < 0$ produces a negative value under the radical, yielding $\\sqrt{${a1 * a1 - 4 * a0}} = j${(roots.im ?? 0) * 2}$. Dividing by $2$ gives complex conjugate roots: $s = ${roots.r1} \\pm j${roots.im ?? 0}$.`,
 			],
+			misconceptions: {
+				unfactorable_complex: `The polynomial $${charEqLhs} = 0$ cannot be factored over real integers because its discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0} < 0$. The negative quantity under the square root generates an imaginary component $\\pm j\\sqrt{${Math.abs(a1 * a1 - 4 * a0)}} = \\pm j${(roots.im ?? 0) * 2}$, requiring the quadratic formula.`,
+				unfactorable_general: `Check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$. Because $\\Delta$ is not a non-negative perfect square, factoring by integer inspection does not work cleanly. Use the quadratic formula.`,
+			},
 		},
 		step3: {
 			correctTemplate: resolvedRootType,

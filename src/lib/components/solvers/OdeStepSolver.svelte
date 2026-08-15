@@ -198,7 +198,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 2: Characteristic Roots -->
+	<!-- Step 2: Characteristic Roots & Strategy -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 2}
@@ -214,18 +214,83 @@
 			<div class="step-body">
 				<p class="step-prompt">
 					<MathText
-						text={`Solve the characteristic polynomial $${problem.itsData.step1.latex}$ for its roots:`}
+						text={`Characteristic Polynomial: $${problem.itsData.step1.latex}$`}
 					/>
 				</p>
 
-				{#if problem.params.rootType === "distinct_real"}
-					<div class="input-row-grid">
-						<div class="input-pair">
-							<label for="ode-r1-input" class="field-label">
-								<MathText text={"Root $r_1$:"} />
+				<!-- Strategy Gate Selection -->
+				<div class="strategy-gate-box">
+					<span class="field-label">
+						Select solving strategy:
+					</span>
+					<div class="strategy-button-group">
+						<button
+							type="button"
+							class="strategy-pill-btn"
+							class:active={solver.step2.strategy === "factoring" || (solver.step2.strategy === null && problem.itsData.step2.isFactorable)}
+							onclick={() => {
+								solver.step2.strategy = "factoring";
+								solver.clearFeedback();
+							}}
+						>
+							<span class="strategy-icon">🔍</span>
+							<span>Factoring by inspection</span>
+						</button>
+						<button
+							type="button"
+							class="strategy-pill-btn"
+							class:active={solver.step2.strategy === "quadratic" || (solver.step2.strategy === null && !problem.itsData.step2.isFactorable)}
+							onclick={() => {
+								solver.step2.strategy = "quadratic";
+								solver.clearFeedback();
+							}}
+						>
+							<span class="strategy-icon">📐</span>
+							<span>Quadratic formula / Square root</span>
+						</button>
+					</div>
+				</div>
+
+				{#if (solver.step2.strategy === "factoring" || (solver.step2.strategy === null && problem.itsData.step2.isFactorable))}
+					<!-- Factoring Path -->
+					{#if problem.itsData.step2.rootType === "distinct_real"}
+						<div class="input-row-grid">
+							<div class="input-pair">
+								<label for="ode-r1-input" class="field-label">
+									<MathText text={"Root $r_1$:"} />
+								</label>
+								<input
+									id="ode-r1-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. -2"
+									bind:value={solver.step2.r1}
+									onkeydown={(e) =>
+										e.key === "Enter" && solver.checkStep2()}
+								/>
+							</div>
+							<div class="input-pair">
+								<label for="ode-r2-input" class="field-label">
+									<MathText text={"Root $r_2$:"} />
+								</label>
+								<input
+									id="ode-r2-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. -3"
+									bind:value={solver.step2.r2}
+									onkeydown={(e) =>
+										e.key === "Enter" && solver.checkStep2()}
+								/>
+							</div>
+						</div>
+					{:else if problem.itsData.step2.rootType === "repeated_real"}
+						<div class="input-pair" style="max-width: 260px;">
+							<label for="ode-r-rep-input" class="field-label">
+								<MathText text={"Repeated Root $r = r_1 = r_2$:"} />
 							</label>
 							<input
-								id="ode-r1-input"
+								id="ode-r-rep-input"
 								type="text"
 								class="text-input"
 								placeholder="e.g. -2"
@@ -234,82 +299,114 @@
 									e.key === "Enter" && solver.checkStep2()}
 							/>
 						</div>
-						<div class="input-pair">
-							<label for="ode-r2-input" class="field-label">
-								<MathText text={"Root $r_2$:"} />
-							</label>
-							<input
-								id="ode-r2-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. -3"
-								bind:value={solver.step2.r2}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep2()}
+					{:else}
+						<!-- Complex Root Warning & Encouragement to use Quadratic Formula -->
+						<div class="unfactorable-hint-card">
+							<p class="unfactorable-hint-text">
+								<MathText
+									text={`Polynomial $${problem.itsData.step1.latex}$ has discriminant $\\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(1)(${problem.params.a0}) = ${problem.itsData.step2.discriminant} < 0$.`}
+								/>
+							</p>
+							<button
+								type="button"
+								class="btn btn-secondary switch-strategy-btn"
+								onclick={() => {
+									solver.step2.strategy = "quadratic";
+									solver.clearFeedback();
+								}}
+							>
+								Switch to Quadratic Formula Setup →
+							</button>
+						</div>
+					{/if}
+
+					{#if problem.itsData.step2.isFactorable}
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep2()}
+							>
+								Check Factored Roots →
+							</button>
+						</div>
+					{/if}
+				{:else}
+					<!-- Quadratic Formula Setup Path -->
+					<div class="quadratic-setup-container">
+						<p class="quad-formula-prompt">
+							<MathText
+								text={String.raw`Substitute coefficients $a$, $b$, and $c$ into $s = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$:`}
+							/>
+						</p>
+
+						<div class="quad-params-grid">
+							<div class="input-pair">
+								<label for="ode-quad-a" class="field-label">
+									<MathText text={"Coeff $a$ ($s^2$):"} />
+								</label>
+								<input
+									id="ode-quad-a"
+									type="text"
+									class="text-input"
+									placeholder="1"
+									bind:value={solver.step2.quadA}
+									onkeydown={(e) =>
+										e.key === "Enter" && solver.checkStep2()}
+								/>
+							</div>
+
+							<div class="input-pair">
+								<label for="ode-quad-b" class="field-label">
+									<MathText text={"Coeff $b$ ($s$):"} />
+								</label>
+								<input
+									id="ode-quad-b"
+									type="text"
+									class="text-input"
+									placeholder={`e.g. ${problem.params.a1}`}
+									bind:value={solver.step2.quadB}
+									onkeydown={(e) =>
+										e.key === "Enter" && solver.checkStep2()}
+								/>
+							</div>
+
+							<div class="input-pair">
+								<label for="ode-quad-c" class="field-label">
+									<MathText text={"Coeff $c$ (const):"} />
+								</label>
+								<input
+									id="ode-quad-c"
+									type="text"
+									class="text-input"
+									placeholder={`e.g. ${problem.params.a0}`}
+									bind:value={solver.step2.quadC}
+									onkeydown={(e) =>
+										e.key === "Enter" && solver.checkStep2()}
+								/>
+							</div>
+						</div>
+
+						<div class="preview-equation-box">
+							<span class="preview-label">Live Formula Setup:</span>
+							<MathBlock
+								math={solver.previewQuadSetup}
+								compact={true}
+								hideHeader={true}
 							/>
 						</div>
-					</div>
-				{:else if problem.params.rootType === "repeated_real"}
-					<div class="input-pair" style="max-width: 260px;">
-						<label for="ode-r-rep-input" class="field-label">
-							<MathText text={"Repeated Root $r = r_1 = r_2$:"} />
-						</label>
-						<input
-							id="ode-r-rep-input"
-							type="text"
-							class="text-input"
-							placeholder="e.g. -2"
-							bind:value={solver.step2.r1}
-							onkeydown={(e) =>
-								e.key === "Enter" && solver.checkStep2()}
-						/>
-					</div>
-				{:else if problem.params.rootType === "complex_conjugate"}
-					<div class="input-row-grid">
-						<div class="input-pair">
-							<label for="ode-sigma-input" class="field-label">
-								<MathText
-									text={String.raw`Real Part $\sigma$:`}
-								/>
-							</label>
-							<input
-								id="ode-sigma-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. -1"
-								bind:value={solver.step2.sigma}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep2()}
-							/>
-						</div>
-						<div class="input-pair">
-							<label for="ode-omega-input" class="field-label">
-								<MathText
-									text={String.raw`Imaginary Part $\omega_d$:`}
-								/>
-							</label>
-							<input
-								id="ode-omega-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. 2"
-								bind:value={solver.step2.omegaD}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep2()}
-							/>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep2()}
+							>
+								Verify Setup & Evaluate Roots →
+							</button>
 						</div>
 					</div>
 				{/if}
-
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep2()}
-					>
-						Check Roots →
-					</button>
-				</div>
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 2}
@@ -317,19 +414,9 @@
 				<span class="check-icon">✓</span>
 				<span>
 					Roots:
-					{#if problem.params.rootType === "distinct_real"}
-						<MathText
-							text={`$r_1 = ${problem.solutions.r1}, \\; r_2 = ${problem.solutions.r2}$`}
-						/>
-					{:else if problem.params.rootType === "repeated_real"}
-						<MathText
-							text={`$r = ${problem.solutions.r1}$ (Repeated)`}
-						/>
-					{:else}
-						<MathText
-							text={`$s = ${problem.solutions.r1} \\pm j${problem.solutions.r1_im}$`}
-						/>
-					{/if}
+					<MathText
+						text={`$${problem.itsData.step2.symbolicRootsLatex}$`}
+					/>
 				</span>
 			</div>
 		{/if}
@@ -1053,6 +1140,110 @@
 		gap: 0.5rem;
 		font-size: 0.85rem;
 		line-height: 1.4;
+	}
+
+	.strategy-gate-box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.75rem;
+		background: var(--bg-secondary);
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid var(--border-color);
+	}
+
+	.strategy-button-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.strategy-pill-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.45rem 0.85rem;
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		color: var(--text-secondary);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.strategy-pill-btn:hover {
+		border-color: var(--accent-primary);
+		color: var(--text-primary);
+	}
+
+	.strategy-pill-btn.active {
+		border-color: var(--accent-primary);
+		background: rgba(6, 182, 212, 0.12);
+		color: var(--accent-primary);
+		font-weight: 700;
+	}
+
+	.strategy-pill-btn:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.strategy-icon {
+		font-size: 0.9rem;
+	}
+
+	.unfactorable-hint-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 0.85rem;
+		background: rgba(239, 68, 68, 0.08);
+		border: 1px solid rgba(239, 68, 68, 0.25);
+		border-radius: var(--radius-sm, 6px);
+	}
+
+	.unfactorable-hint-text {
+		font-size: 0.85rem;
+		line-height: 1.45;
+		color: var(--text-primary);
+		margin: 0;
+	}
+
+	.switch-strategy-btn {
+		align-self: flex-start;
+		font-size: 0.8rem;
+		font-weight: 600;
+		padding: 0.4rem 0.8rem;
+		background: rgba(6, 182, 212, 0.15);
+		color: var(--accent-primary);
+		border: 1px solid var(--accent-primary);
+		border-radius: var(--radius-sm, 6px);
+		cursor: pointer;
+	}
+
+	.switch-strategy-btn:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.quadratic-setup-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.quad-formula-prompt {
+		font-size: 0.85rem;
+		color: var(--text-secondary);
+		margin: 0;
+	}
+
+	.quad-params-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+		gap: 0.75rem;
 	}
 
 	.hint-badge {
