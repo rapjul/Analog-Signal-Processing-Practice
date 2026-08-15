@@ -902,10 +902,14 @@
 		cursor: pointer;
 	}
 
-	.select-input:focus,
-	.select-input:focus-visible {
-		outline: none;
+	.select-input:focus {
 		border-color: var(--accent-primary);
+	}
+
+	.select-input:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.text-input {
@@ -939,8 +943,13 @@
 	}
 
 	.text-input:focus {
-		outline: none;
 		border-color: var(--accent-primary);
+	}
+
+	.text-input:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.direct-input-row {

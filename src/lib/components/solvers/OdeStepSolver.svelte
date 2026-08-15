@@ -864,7 +864,6 @@
 		padding: 0.5rem 0.75rem;
 		color: var(--text-primary);
 		font-size: 0.9rem;
-		outline: none;
 	}
 
 	.text-input:focus-visible {

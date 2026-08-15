@@ -219,6 +219,12 @@
 		gap: 0.5rem;
 		text-decoration: none;
 		color: var(--text-primary);
+		border-radius: var(--radius-sm);
+	}
+
+	.brand-link:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.brand-icon {
@@ -262,6 +268,11 @@
 	.nav-link:hover {
 		color: var(--text-primary);
 		background: var(--bg-card-hover);
+	}
+
+	.nav-link:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.nav-link.active {

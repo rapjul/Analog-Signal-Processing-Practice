@@ -642,8 +642,12 @@
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm, 6px);
 		background: var(--bg-input);
-		overflow: hidden;
 		max-width: 100%;
+		transition: border-color 0.2s ease;
+	}
+
+	.input-with-unit:focus-within {
+		border-color: var(--accent-primary);
 	}
 
 	.text-input {
@@ -654,11 +658,15 @@
 		padding: 0.5rem 0.75rem;
 		color: var(--text-primary);
 		font-size: 0.9rem;
-		outline: none;
+		border-top-left-radius: var(--radius-sm, 6px);
+		border-bottom-left-radius: var(--radius-sm, 6px);
 	}
 
 	.text-input:focus-visible {
+		position: relative;
+		z-index: 1;
 		outline: 2px solid var(--accent-primary);
+		outline-offset: 0;
 	}
 
 	.unit-select {
@@ -670,8 +678,16 @@
 		padding: 0 0.5rem;
 		font-size: 0.8rem;
 		font-weight: 600;
-		outline: none;
 		cursor: pointer;
+		border-top-right-radius: var(--radius-sm, 6px);
+		border-bottom-right-radius: var(--radius-sm, 6px);
+	}
+
+	.unit-select:focus-visible {
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 0;
 	}
 
 	.button-grid-taxonomic {

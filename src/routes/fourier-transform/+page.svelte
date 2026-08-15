@@ -215,7 +215,6 @@
 		padding: 0.5rem 0.75rem;
 		border-radius: var(--radius-sm);
 		font-size: 0.9rem;
-		outline: none;
 		max-width: 100%;
 		text-overflow: ellipsis;
 	}
@@ -223,6 +222,13 @@
 	.select-input:focus,
 	.math-text-input:focus {
 		border-color: var(--accent-primary);
+	}
+
+	.select-input:focus-visible,
+	.math-text-input:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.workspace-container {

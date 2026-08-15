@@ -154,10 +154,13 @@ button {
 	color: inherit;
 	cursor: pointer;
 	border: none;
-	outline: none;
 }
 
-button:focus-visible {
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
 	outline: 2px solid var(--border-focus);
 	outline-offset: 2px;
 }

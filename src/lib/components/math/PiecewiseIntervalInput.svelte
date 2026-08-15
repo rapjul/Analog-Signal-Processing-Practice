@@ -414,8 +414,14 @@
 
 	.select-input:focus,
 	.text-input:focus {
-		outline: none;
 		border-color: var(--accent-primary);
+	}
+
+	.select-input:focus-visible,
+	.text-input:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.sep {

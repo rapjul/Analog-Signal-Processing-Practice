@@ -226,10 +226,16 @@
 			color 0.15s ease;
 	}
 
-	.math-block:hover .copy-btn,
+	.math-block:hover .copy-btn {
+		opacity: 1;
+		color: var(--text-primary, #f8fafc);
+	}
+
 	.copy-btn:focus-visible {
 		opacity: 1;
 		color: var(--text-primary, #f8fafc);
+		outline: 2px solid var(--accent-primary, #06b6d4);
+		outline-offset: 2px;
 	}
 
 	.copy-btn:hover {

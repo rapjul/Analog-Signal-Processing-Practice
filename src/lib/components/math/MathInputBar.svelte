@@ -422,9 +422,14 @@
 	}
 
 	.latex-textarea:focus {
-		outline: none;
 		border-color: var(--accent-primary);
 		box-shadow: 0 0 12px var(--accent-glow);
+	}
+
+	.latex-textarea:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
 	.preview-box {

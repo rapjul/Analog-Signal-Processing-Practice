@@ -409,7 +409,13 @@
 
 	.text-input:focus,
 	.select-input:focus {
-		outline: none;
 		border-color: var(--accent-primary);
+	}
+
+	.text-input:focus-visible,
+	.select-input:focus-visible {
+		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 </style>

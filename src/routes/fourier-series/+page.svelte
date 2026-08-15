@@ -147,7 +147,6 @@
 		padding: 0.4rem 0.75rem;
 		border-radius: var(--radius-sm);
 		font-size: 0.85rem;
-		outline: none;
 		max-width: 100%;
 		text-overflow: ellipsis;
 	}
