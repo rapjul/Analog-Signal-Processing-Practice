@@ -39,6 +39,8 @@
 	import { onMount } from "svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathInline from "../math/MathInline.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import MathText from "../math/MathText.svelte";
 
 	let themeVersion = $state(0);
 
@@ -185,7 +187,7 @@
 		{#if mathTitle}
 			<MathInline math={mathTitle} />
 		{:else}
-			{title}
+			<MathText text={title} />
 		{/if}
 	</div>
 	<canvas bind:this={canvasEl} class="response-canvas" aria-label={title}

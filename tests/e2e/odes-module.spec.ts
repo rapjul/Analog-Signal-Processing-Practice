@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 /**
  * End-to-End Test Suite: Linear Constant-Coefficient ODEs Practice Module (/odes).
  *
- * Verifies problem customization selectors, anti-spoiler headers,
- * 6-stage interactive ITS solver workflow, progressive hints, distractor feedback,
+ * Verifies problem customization filters, anti-spoiler headers,
+ * 7-stage interactive ITS solver workflow, progressive hints, distractor feedback,
  * and deferred post-solve waveform response canvas.
  */
 
@@ -17,28 +17,37 @@ test.describe('LCC ODEs Practice Module', () => {
 	/**
 	 * Verifies initial rendering of the ODEs module page.
 	 */
-	test('renders header, control selectors, and active practice card with anti-spoiler title', async ({ page }) => {
+	test('renders header, blind exam mode defaults, and active practice card with difficulty badge', async ({ page }) => {
 		await expect(page).toHaveTitle(/LCC ODEs Practice — SignalLab/i);
 		await expect(page.locator('h1.page-title')).toHaveText(/Linear Constant-Coefficient ODEs/i);
 
-		// Select inputs
-		const rootSelect = page.locator('#root-type-select');
-		const forcingSelect = page.locator('#forcing-type-select');
-		await expect(rootSelect).toBeVisible();
-		await expect(forcingSelect).toBeVisible();
+		// Collapsible filters drawer
+		const drillPanel = page.locator('.drill-panel');
+		await expect(drillPanel).toBeVisible();
+		await expect(drillPanel.locator('.drill-badge')).toHaveText(/Random \/ Exam Mode/i);
 
 		// Practice card container
 		const practiceCard = page.locator('.practice-card');
 		await expect(practiceCard).toBeVisible();
 		await expect(practiceCard.locator('.problem-title')).toHaveText(/Practice Problem: 2nd-Order LCC ODE/i);
+
+		// Verify single difficulty badge is visible and no duplicate LCC ODE category badge
+		const badges = practiceCard.locator('.badge');
+		await expect(badges).toHaveCount(1);
+		await expect(practiceCard.locator('.badge.category')).toHaveCount(0);
 	});
 
 	/**
-	 * Verifies changing root classification and forcing function generates new customized problems.
+	 * Verifies opening the collapsible filter drawer and changing options generates customized problems.
 	 */
-	test('updates problem statement when changing root and forcing options', async ({ page }) => {
+	test('updates problem statement when changing root and forcing options in drill filters', async ({ page }) => {
+		const drillSummary = page.locator('.drill-summary');
+		await drillSummary.click();
+
 		const rootSelect = page.locator('#root-type-select');
 		const forcingSelect = page.locator('#forcing-type-select');
+		await expect(rootSelect).toBeVisible();
+		await expect(forcingSelect).toBeVisible();
 
 		// Select Repeated Real Roots & Exponential Forcing
 		await rootSelect.selectOption('repeated_real');
@@ -57,13 +66,13 @@ test.describe('LCC ODEs Practice Module', () => {
 	});
 
 	/**
-	 * Verifies 6-stage ITS ODE workflow: Stage 1 roots inputs, progressive hints, and progression to Stage 2.
+	 * Verifies 7-stage ITS ODE workflow: Stage 1 characteristic equation inputs, progressive hints, and progression to Stage 2.
 	 */
-	test('steps through interactive ODE ITS solver with hints and validation feedback', async ({ page }) => {
+	test('steps through interactive ODE ITS solver Stage 1 characteristic equation and hints', async ({ page }) => {
 		// Verify Stage 1 is active
 		const stage1 = page.locator('.stage-card').first();
 		await expect(stage1).toBeVisible();
-		await expect(stage1.locator('.stage-title')).toHaveText(/Characteristic Polynomial Roots/i);
+		await expect(stage1.locator('.stage-title')).toHaveText(/Characteristic Equation Formulation/i);
 
 		// Test Hint Toggle
 		const hintBtn = page.locator('.hint-toggle-btn');
@@ -71,13 +80,15 @@ test.describe('LCC ODEs Practice Module', () => {
 		await hintBtn.click();
 		await expect(page.locator('.hint-container')).toBeVisible();
 
-		// Input incorrect root values to verify feedback alert
-		const r1Input = page.locator('#ode-r1-input');
-		const r2Input = page.locator('#ode-r2-input');
-		await r1Input.fill('999');
-		await r2Input.fill('999');
+		// Input incorrect coefficient values to verify feedback alert
+		const a2Input = page.locator('#ode-a2-input');
+		const a1Input = page.locator('#ode-a1-input');
+		const a0Input = page.locator('#ode-a0-input');
+		await a2Input.fill('99');
+		await a1Input.fill('99');
+		await a0Input.fill('99');
 
-		const checkBtn = page.locator('.stage-actions .btn-primary');
+		const checkBtn = stage1.locator('.stage-actions .btn-primary');
 		await checkBtn.click();
 		await page.waitForTimeout(200);
 

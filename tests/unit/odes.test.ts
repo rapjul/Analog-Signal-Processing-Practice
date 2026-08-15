@@ -123,6 +123,24 @@ describe("LCC ODE Math Engine", () => {
 			expect(odeComplex.steps[0].latex).toContain("\\sqrt{");
 		});
 
+		it("generates a random ODE problem with valid 7-stage itsData", () => {
+			const problem = generateOdeProblem("random", "random");
+			expect(["distinct_real", "repeated_real", "complex_conjugate"]).toContain(
+				problem.params.rootType,
+			);
+			expect(["constant", "exponential", "sinusoid"]).toContain(
+				problem.forcing.type,
+			);
+			expect(problem.itsData.stage1.expectedA2).toBe(1);
+			expect(problem.itsData.stage1.expectedA1).toBe(problem.params.a1);
+			expect(problem.itsData.stage1.expectedA0).toBe(problem.params.a0);
+			expect(problem.itsData.stage2.rootType).toBe(problem.params.rootType);
+			expect(problem.itsData.stage3.correctTemplate).toBe(problem.params.rootType);
+			expect(problem.itsData.stage4.options.length).toBeGreaterThanOrEqual(3);
+			expect(problem.itsData.stage7.expectedZI).toBeTruthy();
+			expect(problem.itsData.stage7.expectedZS).toBeTruthy();
+		});
+
 		it("renders explicit 2x2 linear system of equations in Step 7 for initial conditions", () => {
 			const problem = generateOdeProblem("distinct_real", "exponential");
 			expect(problem.steps[6].aligned).toBe(true);

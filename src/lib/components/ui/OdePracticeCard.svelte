@@ -73,10 +73,11 @@
 <div class="practice-card ode-practice-card">
 	<div class="card-header">
 		<div class="problem-meta">
-			<span class="badge difficulty-{problem.difficulty}"
-				>{problem.difficulty.toUpperCase()}</span
-			>
-			<span class="badge category">LCC ODE</span>
+			<div class="badge-group">
+				<span class="badge difficulty-{problem.difficulty}">
+					{problem.difficulty.toUpperCase()}
+				</span>
+			</div>
 			<h2 class="problem-title">{problem.title}</h2>
 		</div>
 		<button type="button" class="btn btn-next" onclick={onNextProblem}>
@@ -90,7 +91,7 @@
 			Solve the following linear constant-coefficient ordinary
 			differential equation for <MathInline math={tGe0Math} />:
 		</p>
-		<MathBlock math={problem.odeLatex} />
+		<MathBlock math={problem.odeLatex} compact={true} />
 		<div class="initial-conditions">
 			<span class="ic-label">Initial Conditions:</span>
 			<MathInline
@@ -123,7 +124,7 @@
 			<!-- Live Multi-Curve Response Plot Canvas -->
 			<div class="visualizer-wrapper">
 				<WaveformCanvas
-					title="Verified System Response: Total y(t), Zero-Input y_ZI(t), & Zero-State y_ZS(t)"
+					title={"Verified System Response: Total $y(t)$, Zero-Input $y_{\\text{ZI}}(t)$, & Zero-State $y_{\\text{ZS}}(t)$"}
 					tRange={[0, 5]}
 					curves={plotCurves}
 				/>
@@ -158,6 +159,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+	}
+
+	.badge-group {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.badge {
@@ -226,10 +235,10 @@
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
-		padding: 1.25rem;
+		padding: 1rem 1.25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.6rem;
 	}
 
 	.statement-text {

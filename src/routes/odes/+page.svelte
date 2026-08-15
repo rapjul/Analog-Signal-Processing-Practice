@@ -2,8 +2,8 @@
 	/**
 	 * LCC ODEs Practice Module Route (/odes).
 	 * Implements 1st and 2nd-order Linear Constant Coefficient ODE practice engine
-	 * with randomized problem generation, multi-stage inputs,
-	 * diagnostic validation, and waveform plotting.
+	 * with blind exam-mode problem generation by default, optional collapsible targeted filters,
+	 * 7-stage ITS diagnostic solver, and verified waveform plotting.
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
@@ -18,14 +18,12 @@
 		type RootType,
 	} from "$lib/math-engine/odes";
 
-	let selectedRootType = $state<RootType>("distinct_real");
-	let selectedForcingType = $state<ForcingType>("constant");
+	let selectedRootType = $state<RootType | "random">("random");
+	let selectedForcingType = $state<ForcingType | "random">("random");
 
-	// Active problem state
+	// Active problem state (default blind random exam practice)
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let currentProblem = $state(
-		generateOdeProblem("distinct_real", "constant"),
-	);
+	let currentProblem = $state(generateOdeProblem("random", "random"));
 
 	/**
 	 * Regenerates a new ODE problem using current selected options.
@@ -62,52 +60,69 @@
 		</p>
 	</div>
 
-	<!-- Control Bar: Generator Customization -->
-	<div class="control-bar">
-		<div class="control-group">
-			<label for="root-type-select" class="control-label">
-				Root Classification:
-			</label>
-			<select
-				id="root-type-select"
-				class="select-input"
-				bind:value={selectedRootType}
-				onchange={handleOptionChange}
-			>
-				<option value="distinct_real">
-					Distinct Real Roots (Overdamped)
-				</option>
-				<option value="repeated_real">
-					Repeated Real Roots (Critically Damped)
-				</option>
-				<option value="complex_conjugate">
-					Complex Conjugate Roots (Underdamped)
-				</option>
-			</select>
-		</div>
+	<!-- Collapsible Targeted Drill / Customization Filters -->
+	<details class="drill-panel">
+		<summary class="drill-summary">
+			<span class="drill-summary-content">
+				<span class="drill-icon">⚙️</span>
+				<span class="drill-title">Targeted Drill & Custom Filters</span>
+			</span>
+			<span class="drill-badge">
+				{selectedRootType === "random" &&
+				selectedForcingType === "random"
+					? "Random / Exam Mode"
+					: "Custom Filter Active"}
+			</span>
+		</summary>
 
-		<div class="control-group">
-			<label for="forcing-type-select" class="control-label">
-				Forcing Function <MathInline math={"x(t)"} />:
-			</label>
-			<select
-				id="forcing-type-select"
-				class="select-input"
-				bind:value={selectedForcingType}
-				onchange={handleOptionChange}
-			>
-				<option value="constant">
-					Constant / Step Forcing [K u(t)]
-				</option>
-				<option value="exponential">
-					Exponential Forcing [K exp(p*t)]
-				</option>
-				<option value="sinusoid">
-					Sinusoidal Forcing [K cos(omega*t)]
-				</option>
-			</select>
+		<div class="drill-controls">
+			<div class="control-group">
+				<label for="root-type-select" class="control-label">
+					Root Classification:
+				</label>
+				<select
+					id="root-type-select"
+					class="select-input"
+					bind:value={selectedRootType}
+					onchange={handleOptionChange}
+				>
+					<option value="random">Random / Mixed (Default)</option>
+					<option value="distinct_real">
+						Distinct Real Roots (Overdamped)
+					</option>
+					<option value="repeated_real">
+						Repeated Real Roots (Critically Damped)
+					</option>
+					<option value="complex_conjugate">
+						Complex Conjugate Roots (Underdamped)
+					</option>
+				</select>
+			</div>
+
+			<div class="control-group">
+				<label for="forcing-type-select" class="control-label">
+					Forcing Function <MathInline math={"x(t)"} />:
+				</label>
+				<select
+					id="forcing-type-select"
+					class="select-input"
+					bind:value={selectedForcingType}
+					onchange={handleOptionChange}
+				>
+					<option value="random">Random / Mixed (Default)</option>
+					<option value="constant">
+						Constant / Step Forcing [K u(t)]
+					</option>
+					<option value="exponential">
+						Exponential Forcing [K exp(p*t)]
+					</option>
+					<option value="sinusoid">
+						Sinusoidal Forcing [K cos(omega*t)]
+					</option>
+				</select>
+			</div>
 		</div>
-	</div>
+	</details>
 
 	<!-- Main Practice Workspace (Full Width) -->
 	<div class="workspace-container">
@@ -125,7 +140,7 @@
 		padding: 2rem 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.25rem;
 	}
 
 	.header-section {
@@ -146,14 +161,68 @@
 		color: var(--text-secondary);
 	}
 
-	.control-bar {
-		display: flex;
-		gap: 1.5rem;
+	.drill-panel {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
+		overflow: hidden;
+		transition: border-color 0.2s ease;
+	}
+
+	.drill-panel[open] {
+		border-color: var(--accent-primary);
+	}
+
+	.drill-summary {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.75rem 1.25rem;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		user-select: none;
+		list-style: none;
+		transition: background 0.15s ease;
+	}
+
+	.drill-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.drill-summary:hover {
+		background: var(--bg-secondary);
+	}
+
+	.drill-summary:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: -2px;
+	}
+
+	.drill-summary-content {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.drill-badge {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--accent-primary);
+		background: rgba(6, 182, 212, 0.12);
+		padding: 0.2rem 0.55rem;
+		border-radius: 999px;
+		border: 1px solid rgba(6, 182, 212, 0.25);
+	}
+
+	.drill-controls {
 		padding: 1rem 1.25rem;
-		flex-wrap: wrap;
+		background: var(--bg-secondary);
+		border-top: 1px solid var(--border-color);
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	.control-group {
@@ -201,7 +270,11 @@
 			gap: 1rem;
 		}
 
-		.control-bar {
+		.drill-summary {
+			padding: 0.65rem 0.85rem;
+		}
+
+		.drill-controls {
 			padding: 0.75rem 0.85rem;
 		}
 

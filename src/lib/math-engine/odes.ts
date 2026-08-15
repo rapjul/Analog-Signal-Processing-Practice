@@ -109,8 +109,24 @@ export interface OdeItsOption {
 	feedback?: string;
 }
 
-/** ITS Stage 1: Characteristic Roots */
+/** ITS Stage 1: Characteristic Equation */
 export interface OdeItsStage1 {
+	/** Expected coefficient a2 for s^2 */
+	expectedA2: number;
+	/** Expected coefficient a1 for s */
+	expectedA1: number;
+	/** Expected coefficient a0 for constant term */
+	expectedA0: number;
+	/** Formatted characteristic equation LaTeX: a2 s^2 + a1 s + a0 = 0 */
+	latex: string;
+	/** 3-tiered progressive hints */
+	hints: string[];
+	/** Diagnostic feedback for misconceptions */
+	misconceptions: Record<string, string>;
+}
+
+/** ITS Stage 2: Characteristic Roots */
+export interface OdeItsStage2 {
 	/** Classification of characteristic roots */
 	rootType: RootType;
 	/** First root (real part if complex) */
@@ -123,26 +139,28 @@ export interface OdeItsStage1 {
 	hints: string[];
 }
 
-/** ITS Stage 2: Homogeneous Form Template */
-export interface OdeItsStage2 {
+/** ITS Stage 3: Homogeneous Form Template */
+export interface OdeItsStage3 {
 	/** Correct template matching the roots */
 	correctTemplate: RootType;
+	/** Instantiated template formula with roots and symbolic constants C1, C2 */
+	formLatex: string;
 	/** 3-tiered progressive hints */
 	hints: string[];
 	/** Diagnostic feedback for incorrect template selections */
 	misconceptions: Record<string, string>;
 }
 
-/** ITS Stage 3: Particular Solution Ansatz */
-export interface OdeItsStage3 {
+/** ITS Stage 4: Particular Solution Ansatz */
+export interface OdeItsStage4 {
 	/** Multiple-choice options for trial ansatz */
 	options: OdeItsOption[];
 	/** 3-tiered progressive hints */
 	hints: string[];
 }
 
-/** ITS Stage 4: Particular Coefficients */
-export interface OdeItsStage4 {
+/** ITS Stage 5: Particular Coefficients */
+export interface OdeItsStage5 {
 	/** Solved Kp for constant/exponential forcing */
 	expectedKp?: number;
 	/** Solved A for sinusoidal forcing */
@@ -153,8 +171,8 @@ export interface OdeItsStage4 {
 	hints: string[];
 }
 
-/** ITS Stage 5: Initial Conditions System and Constants */
-export interface OdeItsStage5 {
+/** ITS Stage 6: Initial Conditions System and Constants */
+export interface OdeItsStage6 {
 	/** Solved constant C1 */
 	expectedC1: number;
 	/** Solved constant C2 */
@@ -171,8 +189,8 @@ export interface OdeItsStage5 {
 	hints: string[];
 }
 
-/** ITS Stage 6: Response Decomposition */
-export interface OdeItsStage6 {
+/** ITS Stage 7: Response Decomposition */
+export interface OdeItsStage7 {
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
@@ -183,18 +201,20 @@ export interface OdeItsStage6 {
 
 /** Complete ITS problem data container for ODE problem */
 export interface OdeItsData {
-	/** Stage 1: Roots */
+	/** Stage 1: Characteristic Equation Setup */
 	stage1: OdeItsStage1;
-	/** Stage 2: Homogeneous Form */
+	/** Stage 2: Roots */
 	stage2: OdeItsStage2;
-	/** Stage 3: Particular Ansatz */
+	/** Stage 3: Homogeneous Form */
 	stage3: OdeItsStage3;
-	/** Stage 4: Particular Coefficients */
+	/** Stage 4: Particular Ansatz */
 	stage4: OdeItsStage4;
-	/** Stage 5: Initial Conditions & Solved Constants */
+	/** Stage 5: Particular Coefficients */
 	stage5: OdeItsStage5;
-	/** Stage 6: Response Decomposition */
+	/** Stage 6: Initial Conditions & Solved Constants */
 	stage6: OdeItsStage6;
+	/** Stage 7: Response Decomposition */
+	stage7: OdeItsStage7;
 }
 
 /** Complete ODE practice problem object containing metadata, analytical solutions, steps, and evaluators */
@@ -521,14 +541,30 @@ export function solveHomogeneousConstants(
  * @returns {OdeProblem} Fully formulated OdeProblem object
  */
 export function generateOdeProblem(
-	targetRootType: RootType = "distinct_real",
-	forcingType: ForcingType = "constant",
+	targetRootType: RootType | "random" = "random",
+	forcingType: ForcingType | "random" = "random",
 ): OdeProblem {
+	const rootTypes: RootType[] = [
+		"distinct_real",
+		"repeated_real",
+		"complex_conjugate",
+	];
+	const resolvedRootType: RootType =
+		!targetRootType || targetRootType === "random"
+			? rootTypes[Math.floor(Math.random() * rootTypes.length)]
+			: targetRootType;
+
+	const forcingTypes: ForcingType[] = ["constant", "exponential", "sinusoid"];
+	const resolvedForcingType: ForcingType =
+		!forcingType || forcingType === "random"
+			? forcingTypes[Math.floor(Math.random() * forcingTypes.length)]
+			: forcingType;
+
 	let a1: number;
 	let a0: number;
 	let roots: { r1: number; r2?: number; im?: number };
 
-	switch (targetRootType) {
+	switch (resolvedRootType) {
 		case "distinct_real": {
 			// Characteristic polynomial: Q(s) = (s - r1)(s - r2) = s^2 - (r1 + r2)s + r1*r2 = s^2 + a1*s + a0
 			const r1 = -Math.floor(Math.random() * 4 + 1); // -1 to -4
@@ -557,7 +593,7 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled target root type: ${targetRootType}`);
+			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
 		}
 	}
 
@@ -567,11 +603,11 @@ export function generateOdeProblem(
 		a1,
 		a0,
 		roots,
-		rootType: targetRootType,
+		rootType: resolvedRootType,
 	};
 
 	let forcing: ForcingFunction;
-	switch (forcingType) {
+	switch (resolvedForcingType) {
 		case "constant": {
 			const K = Math.floor(Math.random() * 6 + 1) * a0; // Multiple of a0 for clean y_p
 			forcing = {
@@ -654,7 +690,7 @@ export function generateOdeProblem(
 
 	// Step 1: Characteristic Equation & Quadratic Root Solving
 	let step1Latex: string;
-	switch (targetRootType) {
+	switch (resolvedRootType) {
 		case "distinct_real": {
 			const r1 = roots.r1;
 			const r2 = roots.r2 ?? 0;
@@ -677,13 +713,13 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled target root type: ${targetRootType}`);
+			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
 		}
 	}
 
 	// Step 2: Homogeneous Solution General Form
 	let step2Latex: string;
-	switch (targetRootType) {
+	switch (resolvedRootType) {
 		case "distinct_real": {
 			step2Latex = "y_h(t) = C_1 e^{r_1 t} + C_2 e^{r_2 t}";
 			break;
@@ -698,13 +734,13 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled target root type: ${targetRootType}`);
+			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
 		}
 	}
 
 	// Step 3: Instantiated Homogeneous Solution Form with Roots
 	let step3Latex: string;
-	switch (targetRootType) {
+	switch (resolvedRootType) {
 		case "distinct_real": {
 			step3Latex = `y_h(t) = C_1 e^{${roots.r1}t} + C_2 e^{${roots.r2}t}`;
 			break;
@@ -718,7 +754,7 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled target root type: ${targetRootType}`);
+			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
 		}
 	}
 
@@ -784,7 +820,7 @@ export function generateOdeProblem(
 
 	// Step 7: Initial Conditions System of Linear Equations
 	let step7Latex: string;
-	switch (targetRootType) {
+	switch (resolvedRootType) {
 		case "distinct_real": {
 			const r1 = roots.r1;
 			const r2 = roots.r2 ?? 0;
@@ -809,7 +845,7 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled root type in Step 7 breakdown: ${targetRootType}`);
+			throw new Error(`Unhandled root type in Step 7 breakdown: ${resolvedRootType}`);
 		}
 	}
 
@@ -821,11 +857,11 @@ export function generateOdeProblem(
 	// Step 9: Zero-Input & Zero-State Separation
 	const step9Latex = `y_{ZI}(t) &= ${ziLatex} \\\\[0.75em]\n y_{ZS}(t) &= ${zsLatex}`;
 
-	// Stage 3 Particular Ansatz Options
-	let stage3Options: OdeItsOption[];
+	// Stage 4 Particular Ansatz Options
+	let stage4Options: OdeItsOption[];
 	switch (forcing.type) {
 		case "constant": {
-			stage3Options = [
+			stage4Options = [
 				{ id: "c1", latex: "y_p(t) = K_p", isCorrect: true },
 				{
 					id: "d1",
@@ -853,35 +889,35 @@ export function generateOdeProblem(
 		}
 		case "exponential": {
 			const p = forcing.p ?? 0;
-			stage3Options = [
+			stage4Options = [
 				{ id: "c1", latex: `y_p(t) = K_p e^{${p}t}`, isCorrect: true },
 				{
 					id: "d1",
 					latex: "y_p(t) = K_p",
 					isCorrect: false,
 					feedback:
-						"Ansatz Mismatch: The forcing input is exponential $e^{p t}$, so $y_p(t)$ must contain the exponential term.",
+						"Ansatz Mismatch: The forcing input contains an exponential, so the particular trial solution must have an exponential.",
 				},
 				{
 					id: "d2",
-					latex: `y_p(t) = K_p e^{-${p}t}`,
+					latex: `y_p(t) = K_p t e^{${p}t}`,
 					isCorrect: false,
 					feedback:
-						"Exponent Sign Error: The trial exponent must match the input forcing exponent $p = " + p + "$.",
+						"Resonance Multiplier Error: The factor of $t$ is only needed when the exponential frequency matches a characteristic root.",
 				},
 				{
 					id: "d3",
 					latex: `y_p(t) = A \\cos(${p}t) + B \\sin(${p}t)`,
 					isCorrect: false,
 					feedback:
-						"Ansatz Mismatch: Sinusoidal trial solutions are for trigonometric forcing, not real exponentials.",
+						"Ansatz Mismatch: Exponential forcing requires an exponential trial solution, not sinusoids.",
 				},
 			];
 			break;
 		}
 		case "sinusoid": {
 			const w = forcing.omega ?? 1;
-			stage3Options = [
+			stage4Options = [
 				{
 					id: "c1",
 					latex: `y_p(t) = A \\cos(${w}t) + B \\sin(${w}t)`,
@@ -912,32 +948,52 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled forcing type in stage 3: ${forcing.type}`);
+			throw new Error(`Unhandled forcing type in stage 4: ${forcing.type}`);
 		}
 	}
 
 	const itsData: OdeItsData = {
 		stage1: {
-			rootType: targetRootType,
+			expectedA2: 1,
+			expectedA1: a1,
+			expectedA0: a0,
+			latex: `s^2 + ${a1}s + ${a0} = 0`,
+			hints: [
+				"Recall that differential operators map directly to powers of $s$: $\\frac{d^2}{dt^2} \\to s^2$, $\\frac{d}{dt} \\to s$, and $y(t) \\to 1$.",
+				`Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.`,
+				`For this differential equation, the characteristic equation is $s^2 + ${a1}s + ${a0} = 0$.`,
+			],
+			misconceptions: {
+				forcing_rhs:
+					"The characteristic equation reflects the unforced (homogeneous) system response with $x(t) = 0$, not the forcing amplitude.",
+				sign_error:
+					"Watch the signs: maintain the exact signs of the derivative coefficients from the original ODE.",
+				operator_power:
+					"Each derivative order corresponds to a power of $s$: $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s^1$, and $y(t) \\to s^0 = 1$.",
+			},
+		},
+		stage2: {
+			rootType: resolvedRootType,
 			r1: roots.r1,
 			r2: roots.r2,
 			im: roots.im,
 			hints: [
 				"Form the characteristic polynomial $s^2 + a_1 s + a_0 = 0$ by replacing derivatives with powers of $s$.",
 				`The characteristic equation is $s^2 + ${a1}s + ${a0} = 0$. Apply the quadratic formula $s = \\frac{-${a1} \\pm \\sqrt{${a1 * a1} - 4(${a0})}}{2}$.`,
-				targetRootType === "distinct_real"
+				resolvedRootType === "distinct_real"
 					? `The characteristic roots are distinct real: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
-					: targetRootType === "repeated_real"
+					: resolvedRootType === "repeated_real"
 						? `The characteristic root is repeated: $r = ${roots.r1}$.`
 						: `The characteristic roots are complex conjugate: $\\sigma = ${roots.r1}, \\; \\omega_d = ${roots.im}$ ($${roots.r1} \\pm j${roots.im}$).`,
 			],
 		},
-		stage2: {
-			correctTemplate: targetRootType,
+		stage3: {
+			correctTemplate: resolvedRootType,
+			formLatex: step3Latex,
 			hints: [
-				"Look at the roots found in Stage 1: are they distinct real, repeated real, or complex conjugate?",
+				"Look at the roots found in Stage 2: are they distinct real, repeated real, or complex conjugate?",
 				"Distinct roots produce $C_1 e^{r_1 t} + C_2 e^{r_2 t}$. Repeated roots produce $(C_1 + C_2 t) e^{r t}$. Complex roots produce $e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]$.",
-				`Since the roots are ${targetRootType.replace("_", " ")}, select the corresponding template.`,
+				`Since the roots are ${resolvedRootType.replace("_", " ")}, select the corresponding template.`,
 			],
 			misconceptions: {
 				distinct_real:
@@ -948,15 +1004,15 @@ export function generateOdeProblem(
 					"Complex conjugate roots $\\sigma \\pm j\\omega_d$ generate oscillatory sines/cosines damped by an exponential envelope.",
 			},
 		},
-		stage3: {
-			options: stage3Options,
+		stage4: {
+			options: stage4Options,
 			hints: [
 				`Inspect the forcing function $x(t) = ${forcing.latex}$. What form should the trial particular solution $y_p(t)$ take?`,
-				"Match the functional shape of $x(t)$ (constant $\\to K_p$, exponential $\\to K_p e^{pt}$, sinusoid $\\to A \\cos(\\omega t) + B \\sin(\\omega t)$).",
+				"Match the functional shape of $x(t) (constant \\to K_p, exponential \\to K_p e^{pt}, sinusoid \\to A \\cos(\\omega t) + B \\sin(\\omega t))$.",
 				"Check if the trial guess collides with any characteristic root in the homogeneous solution (resonance).",
 			],
 		},
-		stage4: {
+		stage5: {
 			expectedKp: particular.coeffs.Kp,
 			expectedA: particular.coeffs.A,
 			expectedB: particular.coeffs.B,
@@ -970,7 +1026,7 @@ export function generateOdeProblem(
 						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
 			],
 		},
-		stage5: {
+		stage6: {
 			expectedC1: homogeneousComplete.C1,
 			expectedC2: homogeneousComplete.C2,
 			yp0: particular.eval(0),
@@ -983,7 +1039,7 @@ export function generateOdeProblem(
 				`Solve the $2\\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${c1Str}, \\; C_2 = ${c2Str}$.`,
 			],
 		},
-		stage6: {
+		stage7: {
 			expectedZI: ziLatex,
 			expectedZS: zsLatex,
 			hints: [
@@ -1005,7 +1061,7 @@ export function generateOdeProblem(
 		},
 		{
 			title: "Step 2: Homogeneous Solution Functional Form",
-			description: `Based on the ${targetRootType.replace("_", " ")} root classification, state the general homogeneous solution template.`,
+			description: `Based on the ${resolvedRootType.replace("_", " ")} root classification, state the general homogeneous solution template.`,
 			latex: step2Latex,
 		},
 		{
@@ -1062,19 +1118,23 @@ export function generateOdeProblem(
 	const evalZI = (t: number) => homogeneousZI.eval(t);
 	const evalZS = (t: number) => homogeneousZS.eval(t) + particular.eval(t);
 
+	const difficulty: "easy" | "medium" | "hard" =
+		resolvedRootType === "distinct_real" && resolvedForcingType === "constant"
+			? "easy"
+			: resolvedRootType === "complex_conjugate" || resolvedForcingType === "sinusoid"
+				? "hard"
+				: "medium";
+
 	return {
 		id: `ode_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
 		title: "Practice Problem: 2nd-Order LCC ODE",
-		difficulty:
-			targetRootType === "complex_conjugate" || forcingType === "sinusoid"
-				? "hard"
-				: "medium",
+		difficulty,
 		params: odeParams,
 		forcing,
 		initialConditions,
 		odeLatex,
 		solutions: {
-			rootType: targetRootType,
+			rootType: resolvedRootType,
 			r1: roots.r1,
 			r2: roots.r2,
 			r1_im: roots.im,
