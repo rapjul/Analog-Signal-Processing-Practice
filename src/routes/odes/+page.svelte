@@ -7,7 +7,7 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
@@ -54,9 +54,9 @@
 	<div class="header-section">
 		<h1 class="page-title">Linear Constant-Coefficient ODEs</h1>
 		<p class="page-subtitle">
-			Master homogeneous solutions <MathInline math={"y_h(t)"} />,
-			particular solutions <MathInline math={"y_p(t)"} />, and zero-input
-			vs. zero-state separation.
+			<MathText
+				text={String.raw`Master homogeneous solutions $y_h(t)$, particular solutions $y_p(t)$, and zero-input vs. zero-state separation.`}
+			/>
 		</p>
 	</div>
 
@@ -101,7 +101,7 @@
 
 			<div class="control-group">
 				<label for="forcing-type-select" class="control-label">
-					Forcing Function <MathInline math={"x(t)"} />:
+					<MathText text={String.raw`Forcing Function $x(t)$:`} />
 				</label>
 				<select
 					id="forcing-type-select"

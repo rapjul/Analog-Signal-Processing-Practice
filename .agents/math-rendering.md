@@ -14,9 +14,10 @@ Do **NOT** use raw Unicode math characters in standard HTML elements (buttons, h
 - Units & Angles: $\angle, \degree, \Omega, \mu$
 
 ### 2. LaTeX Component Enforcement
-All mathematical expressions, variables, units, dynamic equations, and inline formulas **MUST** be rendered strictly using LaTeX wrapper components (`<MathInline>` or `<MathBlock>`).
+All mathematical expressions, variables, units, dynamic equations, and inline formulas **MUST** be rendered strictly using LaTeX wrapper components (`<MathText>`, `<MathInline>`, or `<MathBlock>`).
 
-- **`<MathInline>`**: Use for inline formulas, variable names in labels/captions, and compact expressions.
+- **`<MathText>`**: Use for mixed prose, sentence descriptions, labels, button tags, and table cells containing LaTeX math delimited by `$ ... $` or `$$ ... $$` without introducing focusable keyboard tab-stops. Always use `String.raw` template literals (`text={String.raw`...`}`) for strings containing LaTeX backslashes or curly braces. (See [ADR 0020](../docs/adrs/0020-mathtext-prose-rendering-and-keyboard-navigation-accessibility.md)).
+- **`<MathInline>`**: Use exclusively for standalone interactive math snippets that require focusable copy-to-clipboard functionality.
 - **`<MathBlock>`**: Use for multi-line equations, centered derivations, piecewise definitions, and matrix representations.
 
 ### 3. Plain-Text Math in Native Non-LaTeX Controls

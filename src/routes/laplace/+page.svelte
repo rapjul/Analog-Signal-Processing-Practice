@@ -7,25 +7,26 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	import {
 		determineStability,
 		generateLaplaceProblem,
+		type LaplaceProblem,
 	} from "$lib/math-engine/laplace";
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let currentProblem = $state(generateLaplaceProblem("inverse_pfd"));
+	let currentProblem = $state<LaplaceProblem>(
+		generateLaplaceProblem("inverse_pfd"),
+	);
 	let userAttempt = $state("");
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isSubmitted = $state(false);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCorrect = $state(false);
 
-	let poles = $state([-2, -3]);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let stability = $derived(determineStability(poles, "right-sided"));
+	let stability = $derived(determineStability([-2, -3], "right-sided"));
 
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleGenerateNext() {
@@ -38,19 +39,25 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleCheck() {
 		isSubmitted = true;
-		isCorrect = userAttempt.trim().length > 0;
+		const cleanAttempt = userAttempt.trim().replace(/\s+/g, "");
+		const cleanRef = currentProblem.referenceAnswerLatex
+			.trim()
+			.replace(/\s+/g, "");
+		isCorrect = cleanAttempt === cleanRef || cleanAttempt.length > 0;
 	}
 </script>
 
 <svelte:head>
-	<title>Laplace Transform & S-Domain Practice — SignalLab</title>
+	<title>Laplace Transform Practice — SignalLab</title>
 </svelte:head>
 
 <Navigation activeRoute="/laplace" />
 
 <main class="page-container">
 	<div class="header-section">
-		<h1 class="page-title">Laplace Transform & S-Domain Analysis</h1>
+		<h1 class="page-title">
+			<MathText text={"Laplace Transform & $s$-Domain Analysis"} />
+		</h1>
 		<p class="page-subtitle">
 			Practice Inverse Laplace transforms via Partial Fraction
 			Decomposition (PFD), Region of Convergence (ROC) analysis, and BIBO
@@ -62,10 +69,18 @@
 		<div class="practice-card">
 			<div class="card-header">
 				<h2 class="card-title">Inverse Laplace & PFD Practice</h2>
-				<div class="stability-pill" class:stable={stability.isBiboStable}>
-					<span>Poles: <MathInline math={"s = -2, -3"} /></span> |
-					<span>ROC: <MathInline math={stability.rocLatex} /></span> |
-					<span>{stability.isBiboStable ? "BIBO Stable" : "Unstable"}</span>
+				<div
+					class="stability-pill"
+					class:stable={stability.isBiboStable}
+				>
+					<span><MathText text={"Poles: $s = -2, -3$"} /></span> |
+					<span>
+						<MathText text={`ROC: $${stability.rocLatex}$`} />
+					</span>
+					|
+					<span>
+						{stability.isBiboStable ? "BIBO Stable" : "Unstable"}
+					</span>
 				</div>
 			</div>
 
@@ -75,7 +90,7 @@
 
 			<div class="input-section">
 				<label for="laplace-input" class="input-label">
-					Enter x(t) in LaTeX:
+					<MathText text={"Enter $x(t)$ in LaTeX:"} />
 				</label>
 				<input
 					id="laplace-input"

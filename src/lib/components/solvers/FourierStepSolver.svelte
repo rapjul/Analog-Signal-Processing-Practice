@@ -10,8 +10,6 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
-	import MathInline from "../math/MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import Progress from "../ui/Progress.svelte";
@@ -108,21 +106,21 @@
 		{#if solver.currentStep === 1}
 			<div class="step-body">
 				<p class="step-prompt">
-					Enter the fundamental period <MathInline math={"T_0"} /> and
-					fundamental frequency <MathInline math={"\\omega_0"} /> from
-					the waveform definition:
+					<MathText
+						text={String.raw`Enter the fundamental period $T_0$ and fundamental frequency $\omega_0$ from the waveform definition:`}
+					/>
 				</p>
 				<div class="input-row-grid">
 					<div class="input-pair">
 						<label for="fourier-period-input" class="field-label">
-							Period <MathInline math={"T_0"} />:
+							<MathText text={"Period $T_0$:"} />
 						</label>
 						<div class="input-with-unit">
 							<input
 								id="fourier-period-input"
 								type="text"
 								class="text-input"
-								placeholder="e.g. 2"
+								placeholder="e.g. 2 or 1/4"
 								bind:value={solver.step1.period}
 								onkeydown={(e) =>
 									e.key === "Enter" && solver.checkStep1()}
@@ -130,6 +128,7 @@
 							<select
 								class="unit-select"
 								bind:value={solver.step1.periodUnit}
+								aria-label="Period time unit"
 							>
 								<option value="s">s</option>
 								<option value="ms">ms</option>
@@ -139,16 +138,16 @@
 
 					<div class="input-pair">
 						<label for="fourier-freq-input" class="field-label">
-							Frequency <MathInline
-								math={"\\omega_0 = \\frac{2\\pi}{T_0}"}
-							/>:
+							<MathText
+								text={String.raw`Fundamental Freq $\omega_0$:`}
+							/>
 						</label>
 						<div class="input-with-unit">
 							<input
 								id="fourier-freq-input"
 								type="text"
 								class="text-input"
-								placeholder="e.g. \\pi or 3.14"
+								placeholder="e.g. pi or pi/2"
 								bind:value={solver.step1.freq}
 								onkeydown={(e) =>
 									e.key === "Enter" && solver.checkStep1()}
@@ -156,6 +155,7 @@
 							<select
 								class="unit-select"
 								bind:value={solver.step1.freqUnit}
+								aria-label="Frequency unit"
 							>
 								<option value="rad/s">rad/s</option>
 								<option value="Hz">Hz</option>
@@ -175,18 +175,19 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else}
+		{:else if solver.currentStep > 1}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Period: <MathInline math={problem.periodLatex} />,
-					Frequency: <MathInline math={problem.omega0Latex} />
+					<MathText
+						text={String.raw`$T_0 = ${problem.periodLatex}, \quad \omega_0 = ${problem.omega0Latex}$`}
+					/>
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Step 2: Symmetry Classification -->
+	<!-- Step 2: Symmetry Analysis -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 2}
@@ -195,14 +196,15 @@
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 2</div>
-			<h3 class="step-title">Signal Symmetry Classification</h3>
+			<h3 class="step-title">Waveform Symmetry Analysis</h3>
 		</div>
 
 		{#if solver.currentStep === 2}
 			<div class="step-body">
 				<p class="step-prompt">
-					Classify the symmetry of <MathInline math={"x(t)"} /> across
-					the origin and axes:
+					<MathText
+						text={"Classify the symmetry of $x(t)$ across the origin and axes:"}
+					/>
 				</p>
 				<div class="button-grid-taxonomic">
 					<button
@@ -213,7 +215,7 @@
 					>
 						<strong>Even Symmetry</strong>
 						<span class="choice-sub">
-							<MathInline math={"x(-t) = x(t)"} />
+							<MathText text={"$x(-t) = x(t)$"} />
 						</span>
 					</button>
 					<button
@@ -224,7 +226,7 @@
 					>
 						<strong>Odd Symmetry</strong>
 						<span class="choice-sub">
-							<MathInline math={"x(-t) = -x(t)"} />
+							<MathText text={"$x(-t) = -x(t)$"} />
 						</span>
 					</button>
 					<button
@@ -244,7 +246,7 @@
 					>
 						<strong>Half-Wave Odd</strong>
 						<span class="choice-sub">
-							<MathInline math={"x(t - T_0/2) = -x(t)"} />
+							<MathText text={"$x(t - T_0/2) = -x(t)$"} />
 						</span>
 					</button>
 				</div>
@@ -262,7 +264,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 3: Vanishing Coefficients -->
+	<!-- Step 3: Coefficient Shortcuts -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 3}
@@ -277,9 +279,7 @@
 		{#if solver.currentStep === 3}
 			<div class="step-body">
 				<p class="step-prompt">
-					Based on the <strong class="capitalize">
-						{problem.coeffs.symmetry}
-					</strong> symmetry, which Fourier coefficients vanish to zero?
+					Based on the identified symmetry, which coefficients vanish:
 				</p>
 				<div class="button-grid-taxonomic">
 					<button
@@ -288,10 +288,11 @@
 						class:selected={solver.step3.selected === "bn_zero"}
 						onclick={() => solver.checkStep3("bn_zero")}
 					>
-						<strong><MathInline math={"b_n = 0"} /></strong>
+						<strong><MathText text={"$b_n = 0$"} /></strong>
 						<span class="choice-sub">
-							Only cosine terms (<MathInline math={"a_n"} />)
-							exist
+							<MathText
+								text={"Only cosine terms ($a_n$) exist"}
+							/>
 						</span>
 					</button>
 					<button
@@ -301,10 +302,12 @@
 						onclick={() => solver.checkStep3("an_zero")}
 					>
 						<strong>
-							<MathInline math={"a_0 = 0, \\; a_n = 0"} />
+							<MathText
+								text={String.raw`$a_0 = 0, \; a_n = 0$`}
+							/>
 						</strong>
 						<span class="choice-sub">
-							Only sine terms (<MathInline math={"b_n"} />) exist
+							<MathText text={"Only sine terms ($b_n$) exist"} />
 						</span>
 					</button>
 					<button
@@ -315,8 +318,8 @@
 					>
 						<strong>No Coefficients Vanish</strong>
 						<span class="choice-sub">
-							Must compute both <MathInline math={"a_n"} /> and <MathInline
-								math={"b_n"}
+							<MathText
+								text={"Must compute both $a_n$ and $b_n$"}
 							/>
 						</span>
 					</button>
@@ -329,11 +332,13 @@
 				<span>
 					Shortcut:
 					{#if problem.coeffs.symmetry === "even"}
-						<MathInline math={"b_n = 0 \\implies"} /> Cosine harmonics
-						only
+						<MathText
+							text={String.raw`$b_n = 0 \implies$ Cosine harmonics only`}
+						/>
 					{:else if problem.coeffs.symmetry === "odd"}
-						<MathInline math={"a_0 = 0, \\; a_n = 0 \\implies"} /> Sine
-						harmonics only
+						<MathText
+							text={String.raw`$a_0 = 0, \; a_n = 0 \implies$ Sine harmonics only`}
+						/>
 					{:else}
 						All coefficients active
 					{/if}
@@ -369,9 +374,9 @@
 					>
 						<strong>Trigonometric Form</strong>
 						<span class="choice-sub">
-							Ideal when symmetries eliminate <MathInline
-								math={"a_n"}
-							/> or <MathInline math={"b_n"} />
+							<MathText
+								text={"Ideal when symmetries eliminate $a_n$ or $b_n$"}
+							/>
 						</span>
 					</button>
 					<button
@@ -382,7 +387,7 @@
 					>
 						<strong>Exponential Form</strong>
 						<span class="choice-sub">
-							Single integral for <MathInline math={"c_n"} />
+							<MathText text={"Single integral for $c_n$"} />
 						</span>
 					</button>
 					<button
@@ -391,10 +396,11 @@
 						class:selected={solver.step4.selected === "compact"}
 						onclick={() => solver.checkStep4("compact")}
 					>
-						<strong>Compact Polar Form</strong>
+						<strong>Compact Harmonic Form</strong>
 						<span class="choice-sub">
-							<MathInline
-								math={"c_0 + \\sum C_n \\cos(n \\omega_0 t - \\theta_n)"}
+							Amplitude-Phase <MathBlock
+								math={"A_n \\cos(n \\omega_0 t + \\theta_n)"}
+								compact={true}
 							/>
 						</span>
 					</button>
@@ -477,8 +483,9 @@
 		{#if solver.currentStep === 6}
 			<div class="step-body">
 				<p class="step-prompt">
-					Select the evaluated closed-form Fourier Series
-					representation for <MathInline math={"x(t)"} />:
+					<MathText
+						text={String.raw`Select the evaluated closed-form Fourier Series representation for $x(t)$:`}
+					/>
 				</p>
 				<div class="mcq-cards-grid">
 					{#each problem.itsData.step6.options as opt}

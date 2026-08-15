@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * FormulaDrawer Svelte 5 Component.
+	 *
 	 * Slide-over drawer providing on-demand mathematical reference tables,
 	 * formulas, and shortcuts for ODEs, Fourier Series, and Transforms.
 	 */
@@ -8,7 +9,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
-	import MathInline from "../math/MathInline.svelte";
+	import MathText from "../math/MathText.svelte";
 
 	interface Props {
 		/** Whether the drawer overlay is currently open */
@@ -124,20 +125,20 @@
 					<ul class="ref-list">
 						<li>
 							<strong>Distinct Real Roots:</strong>
-							<MathInline
-								math={"y_h(t) = C_1 e^{r_1 t} + C_2 e^{r_2 t}"}
+							<MathText
+								text={String.raw`$y_h(t) = C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
 							/>
 						</li>
 						<li>
 							<strong>Repeated Real Roots:</strong>
-							<MathInline
-								math={"y_h(t) = (C_1 + C_2 t) e^{r t}"}
+							<MathText
+								text={String.raw`$y_h(t) = (C_1 + C_2 t) e^{r t}$`}
 							/>
 						</li>
 						<li>
 							<strong>Complex Conjugate Roots:</strong>
-							<MathInline
-								math={"y_h(t) = e^{\\sigma t} [C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]"}
+							<MathText
+								text={String.raw`$y_h(t) = e^{\sigma t} [C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
 							/>
 						</li>
 					</ul>
@@ -151,48 +152,48 @@
 						<thead>
 							<tr>
 								<th>
-									Input <MathInline math={"x(t)"} />
+									<MathText text={"Input $x(t)$"} />
 								</th>
 								<th>
-									Ansatz <MathInline math={"y_p(t)"} />
+									<MathText text={"Ansatz $y_p(t)$"} />
 								</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
-								<td>Constant <MathInline math={"K"} /></td>
-								<td><MathInline math={"K_p"} /></td>
+								<td><MathText text={"Constant $K$"} /></td>
+								<td><MathText text={"$K_p$"} /></td>
 							</tr>
 							<tr>
 								<td>
-									Exponential <MathInline
-										math={"K e^{p t}"}
+									<MathText
+										text={String.raw`Exponential $K e^{p t}$`}
 									/>
 								</td>
-								<td><MathInline math={"K_p e^{p t}"} /></td>
+								<td
+									><MathText
+										text={String.raw`$K_p e^{p t}$`}
+									/></td
+								>
 							</tr>
 							<tr>
 								<td>
-									Sinusoid <MathInline
-										math={"K \\cos(\\omega t)"}
+									<MathText
+										text={String.raw`Sinusoid $K \cos(\omega t)$`}
 									/>
 								</td>
 								<td>
-									<MathInline
-										math={"A \\cos(\\omega t) + B \\sin(\\omega t)"}
+									<MathText
+										text={String.raw`$A \cos(\omega t) + B \sin(\omega t)$`}
 									/>
 								</td>
 							</tr>
 						</tbody>
 					</table>
 					<div class="callout callout-warning">
-						<strong>Resonance Rule:</strong> If the trial guess <MathInline
-							math={"y_p(t)"}
-						/> contains terms present in <MathInline
-							math={"y_h(t)"}
-						/>, multiply by <MathInline math={"t"} /> (or <MathInline
-							math={"t^2"}
-						/> for repeated roots).
+						<MathText
+							text={String.raw`<strong>Resonance Rule:</strong> If the trial guess $y_p(t)$ contains terms present in $y_h(t)$, multiply by $t$ (or $t^2$ for repeated roots).`}
+						/>
 					</div>
 				</div>
 
@@ -200,37 +201,25 @@
 					<h3 class="section-heading">Response Decomposition</h3>
 					<p class="ref-text">
 						<strong>Total Solution:</strong>
-						<MathInline
-							math={"y(t) = y_{ZI}(t) + y_{ZS}(t) = y_h(t) + y_p(t)"}
+						<MathText
+							text={String.raw`$y(t) = y_{ZI}(t) + y_{ZS}(t) = y_h(t) + y_p(t)$`}
 						/>
 					</p>
 					<ul class="ref-list">
 						<li>
-							<strong>
-								Zero-Input Response (<MathInline
-									math={"y_{ZI}"}
-								/>):
-							</strong>
-							Driven purely by initial conditions (<MathInline
-								math={"x(t) = 0"}
-							/>).
+							<MathText
+								text={String.raw`<strong>Zero-Input Response ($y_{ZI}$):</strong> Driven purely by initial conditions ($x(t) = 0$).`}
+							/>
 						</li>
 						<li>
-							<strong>
-								Zero-State Response (<MathInline
-									math={"y_{ZS}"}
-								/>):
-							</strong>
-							Driven purely by forcing input (<MathInline
-								math={"y(0^-) = y'(0^-) = 0"}
-							/>).
+							<MathText
+								text={String.raw`<strong>Zero-State Response ($y_{ZS}$):</strong> Driven purely by forcing input ($y(0^-) = y'(0^-) = 0$).`}
+							/>
 						</li>
 						<li>
-							<strong>Initial Conditions:</strong> Always match <MathInline
-								math={"y(0^+) = y_h(0^+) + y_p(0^+)"}
-							/> and <MathInline
-								math={"y'(0^+) = y_h'(0^+) + y_p'(0^+)"}
-							/>.
+							<MathText
+								text={String.raw`<strong>Initial Conditions:</strong> Always match $y(0^+) = y_h(0^+) + y_p(0^+)$ and $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.`}
+							/>
 						</li>
 					</ul>
 				</div>
@@ -260,18 +249,18 @@
 					<h3 class="section-heading">Integration Scaling Factors</h3>
 					<ul class="ref-list">
 						<li>
-							<strong>Trigonometric Coefficients:</strong>
-							Requires factor of <MathInline
-								math={"\\frac{2}{T_0}"}
-							/>:
+							<MathText
+								text={String.raw`<strong>Trigonometric Coefficients:</strong> Requires factor of $\frac{2}{T_0}$:`}
+							/>
 							<MathBlock
 								math={"a_n = \\frac{2}{T_0} \\int_{T_0} x(t) \\cos(n \\omega_0 t) dt, \\quad b_n = \\frac{2}{T_0} \\int_{T_0} x(t) \\sin(n \\omega_0 t) dt"}
 								compact={true}
 							/>
 						</li>
 						<li>
-							<strong>Exponential Coefficients:</strong> Requires
-							factor of <MathInline math={"\\frac{1}{T_0}"} />:
+							<MathText
+								text={String.raw`<strong>Exponential Coefficients:</strong> Requires factor of $\frac{1}{T_0}$:`}
+							/>
 							<MathBlock
 								math={"c_n = \\frac{1}{T_0} \\int_{T_0} x(t) e^{-j n \\omega_0 t} dt"}
 								compact={true}
@@ -284,33 +273,19 @@
 					<h3 class="section-heading">Symmetry Shortcuts</h3>
 					<ul class="ref-list">
 						<li>
-							<strong>
-								Even Symmetry (<MathInline
-									math={"x(-t) = x(t)"}
-								/>):
-							</strong>
-							<MathInline
-								math={"b_n = 0, \\; c_n \\in \\mathbb{R}"}
+							<MathText
+								text={String.raw`<strong>Even Symmetry ($x(-t) = x(t)$):</strong> $b_n = 0, \; c_n \in \mathbb{R}$`}
 							/>
 						</li>
 						<li>
-							<strong>
-								Odd Symmetry (<MathInline
-									math={"x(-t) = -x(t)"}
-								/>):
-							</strong>
-							<MathInline
-								math={"a_0 = 0, \\; a_n = 0, \\; c_n \\in j\\mathbb{R}"}
+							<MathText
+								text={String.raw`<strong>Odd Symmetry ($x(-t) = -x(t)$):</strong> $a_0 = 0, \; a_n = 0, \; c_n \in j\mathbb{R}$`}
 							/>
 						</li>
 						<li>
-							<strong>
-								Half-Wave Odd (<MathInline
-									math={"x(t - T_0/2) = -x(t)"}
-								/>):
-							</strong>
-							<MathInline math={"a_n = b_n = c_n = 0"} /> for even
-							<MathInline math={"n"} />.
+							<MathText
+								text={String.raw`<strong>Half-Wave Odd ($x(t - T_0/2) = -x(t)$):</strong> $a_n = b_n = c_n = 0$ for even $n$.`}
+							/>
 						</li>
 					</ul>
 				</div>
@@ -324,12 +299,9 @@
 						compact={true}
 					/>
 					<p class="ref-text">
-						<strong>Gibbs Phenomenon:</strong> Truncated Fourier
-						sums at jump discontinuities exhibit a persistent
-						overshoot of <MathInline math={"\\approx 8.95\\%"} /> of
-						the total jump height as <MathInline
-							math={"N \\to \\infty"}
-						/>.
+						<MathText
+							text={String.raw`<strong>Gibbs Phenomenon:</strong> Truncated Fourier sums at jump discontinuities exhibit a persistent overshoot of $\approx 8.95\%$ of the total jump height as $N \to \infty$.`}
+						/>
 					</p>
 				</div>
 			{:else if activeTab === "transforms"}
@@ -341,50 +313,65 @@
 						<thead>
 							<tr>
 								<th>
-									Time Domain <MathInline
-										math={"x(t) u(t)"}
+									<MathText
+										text={"Time Domain $x(t) u(t)$"}
 									/>
 								</th>
 								<th>
-									Laplace Domain <MathInline math={"X(s)"} />
+									<MathText text={"Laplace Domain $X(s)$"} />
 								</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
-								<td><MathInline math={"\\delta(t)"} /></td>
-								<td><MathInline math={"1"} /></td>
+								<td
+									><MathText
+										text={String.raw`$\delta(t)$`}
+									/></td
+								>
+								<td><MathText text={"$1$"} /></td>
 							</tr>
 							<tr>
-								<td><MathInline math={"u(t)"} /></td>
-								<td><MathInline math={"\\frac{1}{s}"} /></td>
+								<td><MathText text={"$u(t)$"} /></td>
+								<td
+									><MathText
+										text={String.raw`$\frac{1}{s}$`}
+									/></td
+								>
 							</tr>
 							<tr>
-								<td><MathInline math={"e^{-a t} u(t)"} /></td>
-								<td><MathInline math={"\\frac{1}{s + a}"} /></td
+								<td
+									><MathText
+										text={String.raw`$e^{-a t} u(t)$`}
+									/></td
+								>
+								<td
+									><MathText
+										text={String.raw`$\frac{1}{s + a}$`}
+									/></td
 								>
 							</tr>
 							<tr>
 								<td>
-									<MathInline
-										math={"\\cos(\\omega t) u(t)"}
+									<MathText
+										text={String.raw`$\cos(\omega t) u(t)$`}
 									/>
 								</td>
 								<td>
-									<MathInline
-										math={"\\frac{s}{s^2 + \\omega^2}"}
+									<MathText
+										text={String.raw`$\frac{s}{s^2 + \omega^2}$`}
 									/>
 								</td>
 							</tr>
 							<tr>
 								<td>
-									<MathInline
-										math={"\\sin(\\omega t) u(t)"}
+									<MathText
+										text={String.raw`$\sin(\omega t) u(t)$`}
 									/>
 								</td>
 								<td>
-									<MathInline
-										math={"\\frac{\\omega}{s^2 + \\omega^2}"}
+									<MathText
+										text={String.raw`$\frac{\omega}{s^2 + \omega^2}$`}
 									/>
 								</td>
 							</tr>
@@ -403,26 +390,26 @@
 					<ul class="ref-list">
 						<li>
 							<strong>Duality:</strong>
-							<MathInline
-								math={"X(t) \\leftrightarrow 2\\pi x(-\\omega)"}
+							<MathText
+								text={String.raw`$X(t) \leftrightarrow 2\pi x(-\omega)$`}
 							/>
 						</li>
 						<li>
 							<strong>Time Shifting:</strong>
-							<MathInline
-								math={"x(t - t_0) \\leftrightarrow e^{-j \\omega t_0} X(\\omega)"}
+							<MathText
+								text={String.raw`$x(t - t_0) \leftrightarrow e^{-j \omega t_0} X(\omega)$`}
 							/>
 						</li>
 						<li>
 							<strong>Modulation:</strong>
-							<MathInline
-								math={"x(t) e^{j \\omega_0 t} \\leftrightarrow X(\\omega - \\omega_0)"}
+							<MathText
+								text={String.raw`$x(t) e^{j \omega_0 t} \leftrightarrow X(\omega - \omega_0)$`}
 							/>
 						</li>
 						<li>
 							<strong>Differentiation:</strong>
-							<MathInline
-								math={"\\frac{d x}{dt} \\leftrightarrow j \\omega X(\\omega)"}
+							<MathText
+								text={String.raw`$\frac{d x}{dt} \leftrightarrow j \omega X(\omega)$`}
 							/>
 						</li>
 					</ul>

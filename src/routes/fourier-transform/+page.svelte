@@ -8,7 +8,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	import {
@@ -45,7 +45,7 @@
 </script>
 
 <svelte:head>
-	<title>CTFT Practice — SignalLab</title>
+	<title>Continuous-Time Fourier Transform Practice — SignalLab</title>
 </svelte:head>
 
 <Navigation activeRoute="/fourier-transform" />
@@ -54,9 +54,9 @@
 	<div class="header-section">
 		<h1 class="page-title">Continuous-Time Fourier Transform (CTFT)</h1>
 		<p class="page-subtitle">
-			Master forward & inverse CTFT, operational transform properties,
-			energy density spectra
-			<MathInline math={"|X(\\omega)|^2"} />, and 3dB energy bandwidths.
+			<MathText
+				text={String.raw`Master forward & inverse CTFT, operational transform properties, energy density spectra $|X(\omega)|^2$, and 3dB energy bandwidths.`}
+			/>
 		</p>
 	</div>
 
@@ -96,7 +96,7 @@
 
 			<div class="input-section">
 				<label for="ctft-input" class="input-label">
-					Enter <MathInline math={"X(\\omega)"} /> in LaTeX:
+					<MathText text={String.raw`Enter $X(\omega)$ in LaTeX:`} />
 				</label>
 				<input
 					id="ctft-input"

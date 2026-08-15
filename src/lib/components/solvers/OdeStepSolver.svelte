@@ -13,8 +13,6 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import MathInline from "../math/MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import OdeResponseInput from "../math/OdeResponseInput.svelte";
@@ -47,7 +45,6 @@
 			solver.reset();
 		}
 	});
-
 </script>
 
 {#snippet feedbackAndHints()}
@@ -114,20 +111,16 @@
 		{#if solver.currentStep === 1}
 			<div class="step-body">
 				<p class="step-prompt">
-					Map differential operators <MathInline
-						math={"\\frac{d^n}{dt^n} \\to s^n"}
-					/> and set the homogeneous right-hand side to <MathInline
-						math={"0"}
-					/>:
+					<MathText
+						text={String.raw`Map differential operators $\frac{d^n}{dt^n} \to s^n$ and set the homogeneous right-hand side to $0$:`}
+					/>
 				</p>
 
 				<div class="char-eq-interactive-box">
 					<div class="coeff-inputs-row">
 						<div class="coeff-group">
 							<label for="ode-a2-input" class="coeff-label">
-								<MathInline math={"s^2"} /> Coeff (<MathInline
-									math={"a_2"}
-								/>):
+								<MathText text={"$s^2$ Coeff ($a_2$):"} />
 							</label>
 							<input
 								id="ode-a2-input"
@@ -142,9 +135,7 @@
 						<span class="plus-symbol">+</span>
 						<div class="coeff-group">
 							<label for="ode-a1-input" class="coeff-label">
-								<MathInline math={"s"} /> Coeff (<MathInline
-									math={"a_1"}
-								/>):
+								<MathText text={"$s$ Coeff ($a_1$):"} />
 							</label>
 							<input
 								id="ode-a1-input"
@@ -159,7 +150,7 @@
 						<span class="plus-symbol">+</span>
 						<div class="coeff-group">
 							<label for="ode-a0-input" class="coeff-label">
-								Constant (<MathInline math={"a_0"} />):
+								<MathText text={"Constant ($a_0$):"} />
 							</label>
 							<input
 								id="ode-a0-input"
@@ -199,8 +190,8 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Characteristic Equation: <MathInline
-						math={`Q(s) = ${problem.itsData.step1.latex}`}
+					<MathText
+						text={`Characteristic Equation: $Q(s) = ${problem.itsData.step1.latex}$`}
 					/>
 				</span>
 			</div>
@@ -222,16 +213,16 @@
 		{#if solver.currentStep === 2}
 			<div class="step-body">
 				<p class="step-prompt">
-					Solve the characteristic polynomial <MathInline
-						math={problem.itsData.step1.latex}
-					/> for its roots:
+					<MathText
+						text={`Solve the characteristic polynomial $${problem.itsData.step1.latex}$ for its roots:`}
+					/>
 				</p>
 
 				{#if problem.params.rootType === "distinct_real"}
 					<div class="input-row-grid">
 						<div class="input-pair">
 							<label for="ode-r1-input" class="field-label">
-								Root <MathInline math={"r_1"} />:
+								<MathText text={"Root $r_1$:"} />
 							</label>
 							<input
 								id="ode-r1-input"
@@ -245,7 +236,7 @@
 						</div>
 						<div class="input-pair">
 							<label for="ode-r2-input" class="field-label">
-								Root <MathInline math={"r_2"} />:
+								<MathText text={"Root $r_2$:"} />
 							</label>
 							<input
 								id="ode-r2-input"
@@ -261,7 +252,7 @@
 				{:else if problem.params.rootType === "repeated_real"}
 					<div class="input-pair" style="max-width: 260px;">
 						<label for="ode-r-rep-input" class="field-label">
-							Repeated Root <MathInline math={"r = r_1 = r_2"} />:
+							<MathText text={"Repeated Root $r = r_1 = r_2$:"} />
 						</label>
 						<input
 							id="ode-r-rep-input"
@@ -277,7 +268,9 @@
 					<div class="input-row-grid">
 						<div class="input-pair">
 							<label for="ode-sigma-input" class="field-label">
-								Real Part <MathInline math={"\\sigma"} />:
+								<MathText
+									text={String.raw`Real Part $\sigma$:`}
+								/>
 							</label>
 							<input
 								id="ode-sigma-input"
@@ -291,9 +284,9 @@
 						</div>
 						<div class="input-pair">
 							<label for="ode-omega-input" class="field-label">
-								Imaginary Part <MathInline
-									math={"\\omega_d"}
-								/>:
+								<MathText
+									text={String.raw`Imaginary Part $\omega_d$:`}
+								/>
 							</label>
 							<input
 								id="ode-omega-input"
@@ -325,14 +318,16 @@
 				<span>
 					Roots:
 					{#if problem.params.rootType === "distinct_real"}
-						<MathInline
-							math={`r_1 = ${problem.solutions.r1}, \\; r_2 = ${problem.solutions.r2}`}
+						<MathText
+							text={`$r_1 = ${problem.solutions.r1}, \\; r_2 = ${problem.solutions.r2}$`}
 						/>
 					{:else if problem.params.rootType === "repeated_real"}
-						<MathInline math={`r = ${problem.solutions.r1}`} /> (Repeated)
+						<MathText
+							text={`$r = ${problem.solutions.r1}$ (Repeated)`}
+						/>
 					{:else}
-						<MathInline
-							math={`s = ${problem.solutions.r1} \\pm j${problem.solutions.r1_im}`}
+						<MathText
+							text={`$s = ${problem.solutions.r1} \\pm j${problem.solutions.r1_im}$`}
 						/>
 					{/if}
 				</span>
@@ -355,9 +350,9 @@
 		{#if solver.currentStep === 3}
 			<div class="step-body">
 				<p class="step-prompt">
-					Select the general homogeneous solution template <MathInline
-						math={"y_h(t)"}
-					/> matching the characteristic roots:
+					<MathText
+						text={"Select the general homogeneous solution template $y_h(t)$ matching the characteristic roots:"}
+					/>
 				</p>
 				<div class="button-grid-taxonomic">
 					<button
@@ -369,8 +364,8 @@
 					>
 						<strong>Distinct Real Roots</strong>
 						<span class="choice-sub">
-							<MathInline
-								math={"C_1 e^{r_1 t} + C_2 e^{r_2 t}"}
+							<MathText
+								text={String.raw`$C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
 							/>
 						</span>
 					</button>
@@ -383,7 +378,9 @@
 					>
 						<strong>Repeated Real Roots</strong>
 						<span class="choice-sub">
-							<MathInline math={"(C_1 + C_2 t) e^{r t}"} />
+							<MathText
+								text={String.raw`$(C_1 + C_2 t) e^{r t}$`}
+							/>
 						</span>
 					</button>
 					<button
@@ -395,8 +392,8 @@
 					>
 						<strong>Complex Conjugate Roots</strong>
 						<span class="choice-sub">
-							<MathInline
-								math={"e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]"}
+							<MathText
+								text={String.raw`$e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
 							/>
 						</span>
 					</button>
@@ -407,8 +404,8 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Homogeneous Form: <MathInline
-						math={problem.itsData.step3.formLatex}
+					<MathText
+						text={`Homogeneous Form: $${problem.itsData.step3.formLatex}$`}
 					/>
 				</span>
 			</div>
@@ -430,11 +427,9 @@
 		{#if solver.currentStep === 4}
 			<div class="step-body">
 				<p class="step-prompt">
-					Given forcing input <MathInline
-						math={`x(t) = ${problem.forcing.latex}`}
-					/>, select the trial particular solution <MathInline
-						math={"y_p(t)"}
-					/>:
+					<MathText
+						text={`Given forcing input $x(t) = ${problem.forcing.latex}$, select the trial particular solution $y_p(t)$:`}
+					/>
 				</p>
 				<div class="mcq-cards-grid">
 					{#each problem.itsData.step4.options as opt}
@@ -458,7 +453,9 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Particular Ansatz: <MathInline math={solver.correctAnsatz} />
+					<MathText
+						text={`Particular Ansatz: $${solver.correctAnsatz}$`}
+					/>
 				</span>
 			</div>
 		{/if}
@@ -479,17 +476,18 @@
 		{#if solver.currentStep === 5}
 			<div class="step-body">
 				<p class="step-prompt">
-					Substitute <MathInline math={"y_p(t)"} /> and its derivatives
-					into the ODE to solve for the coefficient(s):
+					<MathText
+						text={"Substitute $y_p(t)$ and its derivatives into the ODE to solve for the coefficient(s):"}
+					/>
 				</p>
 
 				{#if problem.forcing.type === "sinusoid"}
 					<div class="input-row-grid">
 						<div class="input-pair">
 							<label for="ode-a-input" class="field-label">
-								Coefficient <MathInline math={"A"} /> (<MathInline
-									math={"\\cos"}
-								/> term):
+								<MathText
+									text={String.raw`Coefficient $A$ ($\cos$ term):`}
+								/>
 							</label>
 							<input
 								id="ode-a-input"
@@ -503,9 +501,9 @@
 						</div>
 						<div class="input-pair">
 							<label for="ode-b-input" class="field-label">
-								Coefficient <MathInline math={"B"} /> (<MathInline
-									math={"\\sin"}
-								/> term):
+								<MathText
+									text={String.raw`Coefficient $B$ ($\sin$ term):`}
+								/>
 							</label>
 							<input
 								id="ode-b-input"
@@ -521,7 +519,7 @@
 				{:else}
 					<div class="input-pair" style="max-width: 260px;">
 						<label for="ode-kp-input" class="field-label">
-							Particular Amplitude <MathInline math={"K_p"} />:
+							<MathText text={"Particular Amplitude $K_p$:"} />
 						</label>
 						<input
 							id="ode-kp-input"
@@ -550,8 +548,8 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Particular Solution: <MathInline
-						math={`y_p(t) = ${problem.solutions.y_p_latex}`}
+					<MathText
+						text={`Particular Solution: $y_p(t) = ${problem.solutions.y_p_latex}$`}
 					/>
 				</span>
 			</div>
@@ -568,8 +566,8 @@
 		<div class="step-header">
 			<div class="step-badge">Step 6</div>
 			<h3 class="step-title">
-				Initial Conditions & Constants <MathInline
-					math={"(C_1, C_2)"}
+				<MathText
+					text={"Initial Conditions & Constants $(C_1, C_2)$"}
 				/>
 			</h3>
 		</div>
@@ -577,18 +575,15 @@
 		{#if solver.currentStep === 6}
 			<div class="step-body">
 				<p class="step-prompt">
-					Evaluate total response <MathInline
-						math={"y(t) = y_h(t) + y_p(t)"}
-					/> at <MathInline math={"t=0^+"} /> to match initial conditions:
-					<MathInline
-						math={`y(0^-) = ${problem.initialConditions.y0}, \\; y'(0^-) = ${problem.initialConditions.dy0}`}
-					/>.
+					<MathText
+						text={`Evaluate total response $y(t) = y_h(t) + y_p(t)$ at $t=0^+$ to match initial conditions: $y(0^-) = ${problem.initialConditions.y0}, \\; y'(0^-) = ${problem.initialConditions.dy0}$.`}
+					/>
 				</p>
 
 				<div class="input-row-grid">
 					<div class="input-pair">
 						<label for="ode-c1-input" class="field-label">
-							Constant <MathInline math={"C_1"} />:
+							<MathText text={"Constant $C_1$:"} />
 						</label>
 						<input
 							id="ode-c1-input"
@@ -602,7 +597,7 @@
 					</div>
 					<div class="input-pair">
 						<label for="ode-c2-input" class="field-label">
-							Constant <MathInline math={"C_2"} />:
+							<MathText text={"Constant $C_2$:"} />
 						</label>
 						<input
 							id="ode-c2-input"
@@ -631,8 +626,8 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Constants: <MathInline
-						math={`C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2)}`}
+					<MathText
+						text={`Constants: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2)}$`}
 					/>
 				</span>
 			</div>
@@ -656,10 +651,9 @@
 		{#if solver.currentStep === 7}
 			<div class="step-body">
 				<p class="step-prompt">
-					Enter the final separated Zero-Input (<MathInline
-						math={"y_{ZI}"}
-					/>) and Zero-State (<MathInline math={"y_{ZS}"} />) response
-					equations:
+					<MathText
+						text={String.raw`Enter the final separated Zero-Input ($y_{ZI}$) and Zero-State ($y_{ZS}$) response equations:`}
+					/>
 				</p>
 
 				<OdeResponseInput
@@ -684,8 +678,8 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Complete Solution Synthesized: <MathInline
-						math={problem.solutions.y_complete_latex}
+					<MathText
+						text={`Complete Solution Synthesized: $${problem.solutions.y_complete_latex}$`}
 					/>
 				</span>
 			</div>

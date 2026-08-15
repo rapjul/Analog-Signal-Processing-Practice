@@ -6,7 +6,7 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
@@ -51,9 +51,9 @@
 	<div class="header-section">
 		<h1 class="page-title">Fourier Series Analysis</h1>
 		<p class="page-subtitle">
-			Calculate Trigonometric <MathInline math={"(a_0, a_n, b_n)"} /> and Exponential
-			<MathInline math={"(c_n)"} /> Fourier coefficients, Parseval power, and
-			observe the Gibbs phenomenon.
+			<MathText
+				text={String.raw`Calculate Trigonometric $(a_0, a_n, b_n)$ and Exponential $(c_n)$ Fourier coefficients, Parseval power, and observe the Gibbs phenomenon.`}
+			/>
 		</p>
 	</div>
 
@@ -72,7 +72,9 @@
 				<option value="square">Square Wave</option>
 				<option value="triangle">Triangle Wave</option>
 				<option value="sawtooth">Sawtooth Wave</option>
-				<option value="half_wave_sine">Half-Wave Rectified Sine Wave</option>
+				<option value="half_wave_sine">
+					Half-Wave Rectified Sine Wave
+				</option>
 			</select>
 		</div>
 	</div>

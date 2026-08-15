@@ -8,7 +8,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	import {
@@ -56,9 +56,9 @@
 	<!-- Topology Bar -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="topology-select" class="control-label"
-				>Circuit Topology:</label
-			>
+			<label for="topology-select" class="control-label">
+				Circuit Topology:
+			</label>
 			<select
 				id="topology-select"
 				class="select-input"
@@ -67,16 +67,16 @@
 			>
 				<option value="series-rlc">1. Series RLC Filter</option>
 				<option value="parallel-rlc">2. Parallel RLC Filter</option>
-				<option value="parallel-lc-series-r"
-					>3. Parallel LC in Series with R (Notch)</option
-				>
-				<option value="parallel-rc-series-l"
-					>4. Parallel RC in Series with L</option
-				>
+				<option value="parallel-lc-series-r">
+					3. Parallel LC in Series with R (Notch)
+				</option>
+				<option value="parallel-rc-series-l">
+					4. Parallel RC in Series with L
+				</option>
 				<option value="rc-lpf">5. 1st-Order RC Low-Pass Filter</option>
-				<option value="active-sallen-key"
-					>6. Active Sallen-Key 2nd-Order LPF</option
-				>
+				<option value="active-sallen-key">
+					6. Active Sallen-Key 2nd-Order LPF
+				</option>
 			</select>
 		</div>
 	</div>
@@ -86,7 +86,9 @@
 			<div class="card-header">
 				<h2 class="card-title">Transfer Function H(s) Derivation</h2>
 				<div class="bode-pill">
-					Frequency Sample <MathInline math={"\\omega = 10\\text{ rad/s}"} />:
+					<MathText
+						text={String.raw`Frequency Sample $\omega = 10\text{ rad/s}$:`}
+					/>
 					<strong>{cornerBode.magnitudeDb.toFixed(2)} dB</strong>,
 					<strong>{cornerBode.phaseDeg.toFixed(2)}°</strong>
 				</div>
@@ -101,8 +103,7 @@
 				<h3 class="panel-title">Interactive Component Values</h3>
 				<div class="slider-row">
 					<label for="r-slider">
-						<MathInline math={"R"} />: {R}
-						<MathInline math={"\\Omega"} />
+						<MathText text={String.raw`$R$: ${R} $\Omega$`} />
 					</label>
 					<input
 						id="r-slider"
@@ -114,8 +115,7 @@
 				</div>
 				<div class="slider-row">
 					<label for="l-slider">
-						<MathInline math={"L"} />: {L}
-						<MathInline math={"\\text{H}"} />
+						<MathText text={String.raw`$L$: ${L} $\text{H}$`} />
 					</label>
 					<input
 						id="l-slider"
@@ -128,8 +128,7 @@
 				</div>
 				<div class="slider-row">
 					<label for="c-slider">
-						<MathInline math={"C"} />: {C}
-						<MathInline math={"\\text{F}"} />
+						<MathText text={String.raw`$C$: ${C} $\text{F}$`} />
 					</label>
 					<input
 						id="c-slider"

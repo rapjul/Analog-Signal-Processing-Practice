@@ -6,7 +6,7 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
@@ -51,9 +51,9 @@
 	<div class="header-section">
 		<h1 class="page-title">Continuous-Time Convolution</h1>
 		<p class="page-subtitle">
-			Master graphical flip-and-shift overlap integrals, piecewise
-			analytical solutions <MathInline math={"y(t) = (x * h)(t)"} />, and
-			impulse response synthesis.
+			<MathText
+				text={String.raw`Master graphical flip-and-shift overlap integrals, piecewise analytical solutions $y(t) = (x * h)(t)$, and impulse response synthesis.`}
+			/>
 		</p>
 	</div>
 
