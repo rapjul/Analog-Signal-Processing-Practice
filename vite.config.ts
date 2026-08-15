@@ -17,49 +17,88 @@ export default defineConfig({
 		VitePWA({
 			strategies: 'generateSW',
 			registerType: 'autoUpdate',
+			devOptions: {
+				enabled: true,
+				type: 'module',
+				navigateFallback: '/'
+			},
 			manifest: {
 				name: 'SignalLab — UIUC ECE 210 Practice',
 				short_name: 'SignalLab',
-				start_url: '/ece-210-practice/v1',
+				id: 'Analog-Signal-Processing-Practice/v1',
+				start_url: '/',
+				scope: '/',
 				description: 'Practice tool for the mathematics of Analog Signal Processing',
 				lang: 'en',
+				categories: ['education', 'productivity'],
 				theme_color: '#06b6d4',
 				background_color: '#0f172a',
 				display: 'standalone',
-				display_override: ['standalone', 'fullscreen'],
+				display_override: ['standalone', 'minimal-ui'], // Clean fallback without WCO requirement
+				shortcuts: [
+					{
+						name: 'Differential Equations',
+						short_name: 'ODEs',
+						description: 'Practice 1st and 2nd Order ODEs',
+						url: '/odes',
+						icons: [{ src: '/icons/pwa-icon-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Fourier Series',
+						short_name: 'Fourier',
+						description: 'Practice Fourier Series Analysis',
+						url: '/fourier-series',
+						icons: [{ src: '/icons/pwa-icon-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Convolution',
+						short_name: 'Convolution',
+						description: 'Practice Continuous-Time Convolution',
+						url: '/convolution',
+						icons: [{ src: '/icons/pwa-icon-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Laplace Transforms',
+						short_name: 'Laplace',
+						description: 'Practice Laplace Transforms and PFD',
+						url: '/laplace',
+						icons: [{ src: '/icons/pwa-icon-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Circuits & RLC',
+						short_name: 'Circuits',
+						description: 'Practice RLC Circuit Analysis',
+						url: '/circuits',
+						icons: [{ src: '/icons/pwa-icon-192x192.png', sizes: '192x192' }]
+					}
+				],
 				icons: [
 					{
-						src: 'favicon.svg',
-						sizes: 'any',
-						type: 'image/svg+xml',
-						purpose: 'any'
-					},
-					{
-						src: 'icons/pwa-icon-192x192.png',
+						src: '/icons/pwa-icon-192x192.png',
 						sizes: '192x192',
 						type: 'image/png',
 						purpose: 'any'
 					},
 					{
-						src: 'icons/pwa-icon-512x512.png',
+						src: '/icons/pwa-icon-512x512.png',
 						sizes: '512x512',
 						type: 'image/png',
 						purpose: 'any'
 					},
 					{
-						src: 'icons/pwa-icon-maskable-192x192.png',
+						src: '/icons/pwa-icon-maskable-192x192.png',
 						sizes: '192x192',
 						type: 'image/png',
 						purpose: 'maskable'
 					},
 					{
-						src: 'icons/pwa-icon-maskable-512x512.png',
+						src: '/icons/pwa-icon-maskable-512x512.png',
 						sizes: '512x512',
 						type: 'image/png',
 						purpose: 'maskable'
 					},
 					{
-						src: 'apple-touch-icon.png',
+						src: '/apple-touch-icon.png',
 						sizes: '180x180',
 						type: 'image/png',
 						purpose: 'any'
