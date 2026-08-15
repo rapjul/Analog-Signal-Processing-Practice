@@ -23,3 +23,27 @@ export interface SolutionStep {
 	/** Whether to apply responsive wrapping */
 	responsive?: boolean;
 }
+
+/**
+ * Evaluation option for ITS multiple-choice steps.
+ */
+export interface ItsOption {
+	/** Unique option identifier */
+	id: string;
+	/** LaTeX rendered mathematical expression */
+	latex: string;
+	/** Whether this option is mathematically correct */
+	isCorrect: boolean;
+	/** Targeted diagnostic explanation for why this distractor is incorrect */
+	feedback?: string;
+}
+
+/**
+ * Base metadata container for an Intelligent Tutoring System step.
+ */
+export interface BaseItsStep {
+	/** Progressive tiered hints for this step */
+	hints: string[];
+	/** Diagnostic feedback for known misconceptions */
+	misconceptions?: Record<string, string>;
+}

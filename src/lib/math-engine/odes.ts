@@ -16,7 +16,7 @@
 
 import { formatOdeLhs, formatQuadraticPolynomial } from "./formatting";
 import { toFractionLatex } from "./fraction";
-import type { SolutionStep } from "./types";
+import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 
 /**
  * Classification of characteristic polynomial roots for second-order differential equations.
@@ -98,20 +98,11 @@ export interface HomogeneousSolution {
 	eval: (t: number) => number;
 }
 
-/** Evaluation option for ITS multiple-choice steps */
-export interface OdeItsOption {
-	/** Unique option id */
-	id: string;
-	/** LaTeX rendered mathematical expression */
-	latex: string;
-	/** Whether this option is mathematically correct */
-	isCorrect: boolean;
-	/** Targeted diagnostic explanation for why this distractor is incorrect */
-	feedback?: string;
-}
+/** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
+export type OdeItsOption = ItsOption;
 
 /** ITS Step 1: Characteristic Equation */
-export interface OdeItsStep1 {
+export interface OdeItsStep1 extends BaseItsStep {
 	/** Expected coefficient a2 for s^2 */
 	expectedA2: number;
 	/** Expected coefficient a1 for s */
@@ -120,14 +111,12 @@ export interface OdeItsStep1 {
 	expectedA0: number;
 	/** Formatted characteristic equation LaTeX: a2 s^2 + a1 s + a0 = 0 */
 	latex: string;
-	/** 3-tiered progressive hints */
-	hints: string[];
 	/** Diagnostic feedback for misconceptions */
 	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 2: Characteristic Roots */
-export interface OdeItsStep2 {
+export interface OdeItsStep2 extends BaseItsStep {
 	/** Classification of characteristic roots */
 	rootType: RootType;
 	/** First root (real part if complex) */
@@ -136,44 +125,36 @@ export interface OdeItsStep2 {
 	r2?: number;
 	/** Imaginary component omega_d (if complex conjugate) */
 	im?: number;
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 3: Homogeneous Form Template */
-export interface OdeItsStep3 {
+export interface OdeItsStep3 extends BaseItsStep {
 	/** Correct template matching the roots */
 	correctTemplate: RootType;
 	/** Instantiated template formula with roots and symbolic constants C1, C2 */
 	formLatex: string;
-	/** 3-tiered progressive hints */
-	hints: string[];
 	/** Diagnostic feedback for incorrect template selections */
 	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 4: Particular Solution Ansatz */
-export interface OdeItsStep4 {
+export interface OdeItsStep4 extends BaseItsStep {
 	/** Multiple-choice options for trial ansatz */
 	options: OdeItsOption[];
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 5: Particular Coefficients */
-export interface OdeItsStep5 {
+export interface OdeItsStep5 extends BaseItsStep {
 	/** Solved Kp for constant/exponential forcing */
 	expectedKp?: number;
 	/** Solved A for sinusoidal forcing */
 	expectedA?: number;
 	/** Solved B for sinusoidal forcing */
 	expectedB?: number;
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 6: Initial Conditions System and Constants */
-export interface OdeItsStep6 {
+export interface OdeItsStep6 extends BaseItsStep {
 	/** Solved constant C1 */
 	expectedC1: number;
 	/** Solved constant C2 */
@@ -186,18 +167,14 @@ export interface OdeItsStep6 {
 	targetYh0: number;
 	/** Effective homogeneous target y_h'(0+) = y'(0+) - y_p'(0+) */
 	targetDYh0: number;
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 7: Response Decomposition */
-export interface OdeItsStep7 {
+export interface OdeItsStep7 extends BaseItsStep {
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
 	expectedZS: string;
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** Complete ITS problem data container for ODE problem */

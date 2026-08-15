@@ -4,7 +4,7 @@
  * N-harmonic partial sums S_N(t), Parseval signal power, and problem generator.
  */
 
-import type { SolutionStep } from "./types";
+import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 
 /** Supported classic periodic waveform categories */
 export type FourierWaveformType =
@@ -53,20 +53,11 @@ export interface SignalPower {
 	powerRatio: number;
 }
 
-/** Evaluation option for ITS multiple-choice steps */
-export interface FourierItsOption {
-	/** Unique option id */
-	id: string;
-	/** LaTeX rendered mathematical expression */
-	latex: string;
-	/** Whether this option is mathematically correct */
-	isCorrect: boolean;
-	/** Targeted diagnostic explanation for why this distractor is incorrect */
-	feedback?: string;
-}
+/** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
+export type FourierItsOption = ItsOption;
 
 /** ITS Step 1: Period and Fundamental Frequency metadata */
-export interface FourierItsStep1 {
+export interface FourierItsStep1 extends BaseItsStep {
 	/** Target period value */
 	expectedT: number;
 	/** Target period unit (always 's') */
@@ -79,56 +70,44 @@ export interface FourierItsStep1 {
 	tAliases: string[];
 	/** Acceptable string aliases for omega0 */
 	w0Aliases: string[];
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 2: Symmetry classification metadata */
-export interface FourierItsStep2 {
+export interface FourierItsStep2 extends BaseItsStep {
 	/** Correct signal symmetry */
 	correctSymmetry: SignalSymmetry;
-	/** 3-tiered progressive hints */
-	hints: string[];
 	/** Diagnostic feedback for incorrect symmetry choices */
 	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 3: Vanishing coefficients metadata */
-export interface FourierItsStep3 {
+export interface FourierItsStep3 extends BaseItsStep {
 	/** Correct vanishing coefficient identifier */
 	correctVanishing: "an_zero" | "bn_zero" | "none" | "both_even";
-	/** 3-tiered progressive hints */
-	hints: string[];
 	/** Diagnostic feedback for incorrect vanishing choices */
 	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 4: Representation form selection metadata */
-export interface FourierItsStep4 {
+export interface FourierItsStep4 extends BaseItsStep {
 	/** Correct representation form */
 	correctForm: "trig" | "exp" | "compact";
-	/** 3-tiered progressive hints */
-	hints: string[];
 	/** Diagnostic feedback for incorrect form choices */
 	misconceptions: Record<string, string>;
 }
 
 /** ITS Step 5: Integral formulation setup metadata */
-export interface FourierItsStep5 {
+export interface FourierItsStep5 extends BaseItsStep {
 	/** Success alert message */
 	successMsg: string;
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** ITS Step 6: Final series summation evaluation metadata */
-export interface FourierItsStep6 {
+export interface FourierItsStep6 extends BaseItsStep {
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
-	/** 3-tiered progressive hints */
-	hints: string[];
 }
 
 /** Complete ITS problem data container */
