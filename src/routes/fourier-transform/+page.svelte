@@ -63,9 +63,9 @@
 	<!-- Selector Bar -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="signal-type-select" class="control-label"
-				>Signal Category:</label
-			>
+			<label for="signal-type-select" class="control-label">
+				Signal Category:
+			</label>
 			<select
 				id="signal-type-select"
 				class="select-input"
@@ -73,9 +73,9 @@
 				onchange={handleGenerateNext}
 			>
 				<option value="rect">Rectangular Pulse rect(t/T)</option>
-				<option value="exponential"
-					>Exponential Decay e^(-at) u(t)</option
-				>
+				<option value="exponential">
+					Exponential Decay e^(-at) u(t)
+				</option>
 				<option value="gaussian">Gaussian e^(-at^2)</option>
 				<option value="delta">Dirac Delta δ(t)</option>
 				<option value="cos">Cosines & Sinusoids</option>
@@ -83,7 +83,7 @@
 		</div>
 	</div>
 
-	<div class="workspace-grid">
+	<div class="workspace-container">
 		<!-- Main Practice Card -->
 		<div class="practice-card">
 			<div class="card-header">
@@ -156,35 +156,6 @@
 				{/each}
 			</div>
 		</div>
-
-		<!-- Formula Sidebar -->
-		<aside class="reference-sidebar">
-			<div class="reference-card">
-				<h3 class="ref-title">📖 CTFT Operational Properties</h3>
-				<div class="ref-section">
-					<h4>Time Shift</h4>
-					<MathInline
-						math={"x(t - t_0) \\iff X(\\omega) e^{-j \\omega t_0}"}
-					/>
-				</div>
-				<div class="ref-section">
-					<h4>Frequency Shift</h4>
-					<MathInline
-						math={"e^{j \\omega_0 t} x(t) \\iff X(\\omega - \\omega_0)"}
-					/>
-				</div>
-				<div class="ref-section">
-					<h4>Time Scaling</h4>
-					<MathInline
-						math={"x(a t) \\iff \\frac{1}{|a|} X\\left(\\frac{\\omega}{a}\\right)"}
-					/>
-				</div>
-				<div class="ref-section">
-					<h4>Duality</h4>
-					<MathInline math={"X(t) \\iff 2\\pi x(-\\omega)"} />
-				</div>
-			</div>
-		</aside>
 	</div>
 </main>
 
@@ -250,17 +221,10 @@
 		border-color: var(--accent-primary);
 	}
 
-	.workspace-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
-		gap: 1.5rem;
-		align-items: start;
-	}
-
-	@media (max-width: 900px) {
-		.workspace-grid {
-			grid-template-columns: 1fr;
-		}
+	.workspace-container {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	.practice-card {
@@ -296,17 +260,15 @@
 		gap: 0.75rem;
 	}
 
-	.btn {
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
-		font-weight: 600;
-		transition: all 0.2s ease;
-	}
-
 	.btn-primary {
 		background: var(--accent-primary);
 		color: #ffffff;
+		border: none;
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
 	}
 
 	.btn-primary:hover,
@@ -320,6 +282,11 @@
 		background: var(--bg-primary);
 		border: 1px solid var(--border-color);
 		color: var(--text-primary);
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
 	}
 
 	.btn-secondary:hover,
@@ -375,36 +342,5 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
-	}
-
-	.reference-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.ref-title {
-		font-size: 1rem;
-		font-weight: 700;
-		border-bottom: 1px solid var(--border-color);
-		padding-bottom: 0.5rem;
-	}
-
-	.ref-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-	}
-
-	.ref-section h4 {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-primary);
 	}
 </style>

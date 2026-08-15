@@ -1,13 +1,10 @@
 <script lang="ts">
 	/**
 	 * Continuous-Time Convolution Practice Module Route (/convolution).
-	 * Implements analytical piecewise convolution practice
-	 * with signal pair customization, interactive flip-and-shift animator,
-	 * guided piecewise input validation, and formula sheet reference.
+	 * Implements graphical flip-and-shift animation canvas, piecewise analytical integration,
+	 * interactive interval input, and formula reference.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathInline from "$lib/components/math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
@@ -15,18 +12,12 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 	import {
+		type ConvolutionPairType,
 		type ConvolutionProblem,
 		generateConvolutionProblem,
 	} from "$lib/math-engine/convolution";
 
-	type SignalPairOption =
-		| "rect_rect"
-		| "rect_shifted_rect"
-		| "multi_rect"
-		| "rect_exp"
-		| "exp_exp";
-
-	let selectedPair = $state<SignalPairOption>("rect_rect");
+	let selectedPair = $state<ConvolutionPairType>("rect_rect");
 
 	// Active problem state
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
@@ -48,14 +39,6 @@
 	function handleOptionChange() {
 		handleGenerateNext();
 	}
-
-	// Sidebar formulas
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	const convIntegralMath =
-		"(x * h)(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau";
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	const rectRectMath =
-		"\\operatorname{rect}\\left(\\frac{t}{T}\\right) * \\operatorname{rect}\\left(\\frac{t}{T}\\right) = T \\operatorname{tri}\\left(\\frac{t}{2T}\\right)";
 </script>
 
 <svelte:head>
@@ -105,58 +88,18 @@
 		</div>
 	</div>
 
-	<!-- Main Practice Workspace -->
-	<div class="workspace-grid">
+	<!-- Main Practice Workspace (Full Width) -->
+	<div class="workspace-container">
 		<ConvolutionPracticeCard
 			problem={currentProblem}
 			onNextProblem={handleGenerateNext}
 		/>
-
-		<!-- Quick Reference Formula Card -->
-		<aside class="reference-sidebar">
-			<div class="reference-card">
-				<h3 class="ref-title">📖 Convolution Formula Sheet</h3>
-				<div class="ref-section">
-					<h4>Convolution Integral Definition</h4>
-					<MathBlock math={convIntegralMath} compact={true} />
-				</div>
-				<div class="ref-section">
-					<h4>Core Operational Properties</h4>
-					<p>
-						<strong>Commutative:</strong>
-						<MathInline math={"x * h = h * x"} />
-					</p>
-					<p>
-						<strong>Distributive:</strong>
-						<MathInline
-							math={"x * (h_1 + h_2) = x * h_1 + x * h_2"}
-						/>
-					</p>
-					<p>
-						<strong>Shift Property:</strong>
-						<MathInline
-							math={"x(t - t_1) * h(t - t_2) = y(t - t_1 - t_2)"}
-						/>
-					</p>
-					<p>
-						<strong>Impulse Identity:</strong>
-						<MathInline
-							math={"x(t) * \\delta(t - t_0) = x(t - t_0)"}
-						/>
-					</p>
-				</div>
-				<div class="ref-section">
-					<h4>Standard Transform Result</h4>
-					<MathBlock math={rectRectMath} compact={true} />
-				</div>
-			</div>
-		</aside>
 	</div>
 </main>
 
 <style>
 	.page-container {
-		max-width: 1200px;
+		max-width: 1100px;
 		margin: 0 auto;
 		padding: 2rem 1.5rem;
 		display: flex;
@@ -214,57 +157,15 @@
 		outline: none;
 	}
 
-	.select-input:focus {
+	.select-input:focus-visible {
 		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
 	}
 
-	.workspace-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
-		gap: 1.5rem;
-		align-items: start;
-	}
-
-	@media (max-width: 900px) {
-		.workspace-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.reference-sidebar {
+	.workspace-container {
 		display: flex;
 		flex-direction: column;
-	}
-
-	.reference-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.ref-title {
-		font-size: 1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		border-bottom: 1px solid var(--border-color);
-		padding-bottom: 0.5rem;
-	}
-
-	.ref-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-	}
-
-	.ref-section h4 {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-primary);
+		width: 100%;
 	}
 </style>

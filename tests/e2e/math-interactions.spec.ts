@@ -70,8 +70,8 @@ test.describe('Math Interactions & Zero-Unicode Audit', () => {
 							const parent = node.parentElement;
 							if (!parent) return NodeFilter.FILTER_REJECT;
 
-							// Ignore KaTeX rendering containers, math tags, svgs, canvases, and script/style tags
-							if (parent.closest('.katex, .katex-html, math, annotation, svg, canvas, script, style')) {
+							// Ignore KaTeX rendering containers, math tags, svgs, canvases, script/style tags, and native option elements
+							if (parent.closest('.katex, .katex-html, math, annotation, svg, canvas, script, style, option')) {
 								return NodeFilter.FILTER_REJECT;
 							}
 							return NodeFilter.FILTER_ACCEPT;

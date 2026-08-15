@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 /**
  * End-to-End Test Suite: Fourier Series Practice Module (/fourier-series).
  *
- * Verifies periodic waveform preset selector, dynamic problem updates,
- * harmonic summation canvas, Gibbs phenomenon visualizer,
- * coefficient inputs, step reveal breakdown, and KaTeX rendering.
+ * Verifies periodic waveform preset selector, anti-spoiler practice headers,
+ * 6-stage interactive ITS tutor workflow, progressive hints, misconception diagnostics,
+ * and deferred post-solve waveform & spectrum visualizer canvas.
  */
 
 test.describe('Fourier Series Module', () => {
@@ -26,10 +26,13 @@ test.describe('Fourier Series Module', () => {
 
 		const practiceCard = page.locator('.fourier-practice-card');
 		await expect(practiceCard).toBeVisible();
+
+		// Check generic anti-spoiler title
+		await expect(practiceCard.locator('.problem-title')).toHaveText(/Practice Problem: Periodic Waveform/i);
 	});
 
 	/**
-	 * Verifies changing periodic waveforms updates signal statement and coefficient forms.
+	 * Verifies changing periodic waveforms resets and updates problem generator.
 	 */
 	test('switches waveforms between square, triangle, sawtooth, and rectified sine', async ({ page }) => {
 		const waveformSelect = page.locator('#waveform-select');
@@ -45,13 +48,8 @@ test.describe('Fourier Series Module', () => {
 		await page.waitForTimeout(300);
 		await expect(card).toBeVisible();
 
-		// Select Half-Wave Rectified
-		await waveformSelect.selectOption('half_wave_sine');
-		await page.waitForTimeout(300);
-		await expect(card).toBeVisible();
-
 		// Next problem generation
-		const nextBtn = page.locator('button:has-text("Generate Next Problem")');
+		const nextBtn = page.locator('.btn-secondary:has-text("New Problem")');
 		if (await nextBtn.isVisible()) {
 			await nextBtn.click();
 			await page.waitForTimeout(300);
@@ -60,33 +58,48 @@ test.describe('Fourier Series Module', () => {
 	});
 
 	/**
-	 * Verifies Fourier partial sum and harmonic spectrum canvas visualizer.
+	 * Verifies 6-stage ITS workflow: Step 1 period inputs, hints toggle, and progressive progression.
 	 */
-	test('renders Fourier partial sum canvas and harmonic spectrum bars', async ({ page }) => {
-		const canvas = page.locator('canvas');
-		await expect(canvas.first()).toBeVisible();
+	test('steps through interactive ITS solver stages with hints and diagnostic feedback', async ({ page }) => {
+		const step1 = page.locator('.step-card').first();
+		await expect(step1).toBeVisible();
+		await expect(step1.locator('.step-title')).toHaveText(/Fundamental Period/i);
 
-		// If harmonic slider exists, verify interaction
-		const harmonicSlider = page.locator('input[type="range"]');
-		if (await harmonicSlider.isVisible()) {
-			await harmonicSlider.fill('15');
-			await page.waitForTimeout(200);
-			await expect(canvas.first()).toBeVisible();
-		}
-	});
+		// Test Hint Toggle
+		const hintBtn = page.locator('.hint-toggle-btn');
+		await expect(hintBtn).toBeVisible();
+		await hintBtn.click();
+		await expect(page.locator('.hint-container')).toBeVisible();
 
-	/**
-	 * Verifies step reveal breakdown with trigonometric and exponential formulas.
-	 */
-	test('expands analytical step reveal and validates KaTeX formula blocks', async ({ page }) => {
-		const revealToggle = page.locator('.reveal-header');
-		if (await revealToggle.isVisible()) {
-			await revealToggle.click();
-			const revealContent = page.locator('.reveal-content');
-			await expect(revealContent).toBeVisible();
+		// Input wrong answer to verify misconception feedback
+		const tInput = page.locator('#fourier-period-input');
+		const w0Input = page.locator('#fourier-freq-input');
+		await tInput.fill('999');
+		await w0Input.fill('999');
 
-			const katex = revealContent.locator('.katex');
-			await expect(katex.first()).toBeVisible();
-		}
+		const checkBtn = page.locator('.step-actions .btn-primary');
+		await checkBtn.click();
+		await page.waitForTimeout(200);
+
+		// Error feedback alert should be displayed
+		const feedbackAlert = page.locator('.feedback-alert');
+		await expect(feedbackAlert).toBeVisible();
+
+		// Detect whether generated problem has T_0 = 2 or T_0 = 4 from problem statement
+		const statementText = (await page.locator('.problem-statement').textContent()) || '';
+		const isT4 = statementText.includes('4');
+		const tVal = isT4 ? '4' : '2';
+		const w0Val = isT4 ? 'pi/2' : 'pi';
+
+		// Fill correct answers for active waveform
+		await tInput.fill(tVal);
+		await w0Input.fill(w0Val);
+		await checkBtn.click();
+		await page.waitForTimeout(200);
+
+		// Should progress to Step 2: Waveform Symmetry
+		const step2 = page.locator('.step-card').nth(1);
+		await expect(step2).toHaveClass(/active/);
+		await expect(step2.locator('.step-title')).toHaveText(/Signal Symmetry Classification/i);
 	});
 });

@@ -58,10 +58,15 @@
 		</p>
 	</div>
 
-	<div class="workspace-grid">
+	<div class="workspace-container">
 		<div class="practice-card">
 			<div class="card-header">
 				<h2 class="card-title">Inverse Laplace & PFD Practice</h2>
+				<div class="stability-pill" class:stable={stability.isBiboStable}>
+					<span>Poles: <MathInline math={"s = -2, -3"} /></span> |
+					<span>ROC: <MathInline math={stability.rocLatex} /></span> |
+					<span>{stability.isBiboStable ? "BIBO Stable" : "Unstable"}</span>
+				</div>
 			</div>
 
 			<div class="problem-prompt">
@@ -129,34 +134,6 @@
 				{/each}
 			</div>
 		</div>
-
-		<!-- S-Domain Reference Card -->
-		<aside class="reference-sidebar">
-			<div class="reference-card">
-				<h3 class="ref-title">🎯 S-Domain Stability Reference</h3>
-				<div class="ref-section">
-					<h4>System Poles</h4>
-					<p>Poles: <MathInline math={"s_1 = -2, s_2 = -3"} /></p>
-				</div>
-				<div class="ref-section">
-					<h4>Region of Convergence (ROC)</h4>
-					<MathBlock math={stability.rocLatex} compact={true} />
-				</div>
-				<div class="ref-section">
-					<h4>BIBO Stability Status</h4>
-					<p
-						class="stability-status"
-						class:stable={stability.isBiboStable}
-					>
-						{#if stability.isBiboStable}
-							✅ BIBO Stable (ROC contains <MathInline math={"j\\omega"} /> axis)
-						{:else}
-							❌ Unstable
-						{/if}
-					</p>
-				</div>
-			</div>
-		</aside>
 	</div>
 </main>
 
@@ -187,17 +164,10 @@
 		color: var(--text-secondary);
 	}
 
-	.workspace-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
-		gap: 1.5rem;
-		align-items: start;
-	}
-
-	@media (max-width: 900px) {
-		.workspace-grid {
-			grid-template-columns: 1fr;
-		}
+	.workspace-container {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	.practice-card {
@@ -210,10 +180,36 @@
 		gap: 1.25rem;
 	}
 
+	.card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
 	.card-title {
 		font-size: 1.1rem;
 		font-weight: 700;
 		color: var(--text-primary);
+		margin: 0;
+	}
+
+	.stability-pill {
+		background: rgba(6, 182, 212, 0.1);
+		border: 1px solid rgba(6, 182, 212, 0.3);
+		color: var(--text-primary);
+		padding: 0.35rem 0.75rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.85rem;
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.stability-pill.stable {
+		border-color: rgba(16, 185, 129, 0.4);
+		background: rgba(16, 185, 129, 0.1);
 	}
 
 	.input-section {
@@ -247,17 +243,15 @@
 		gap: 0.75rem;
 	}
 
-	.btn {
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
-		font-weight: 600;
-		transition: all 0.2s ease;
-	}
-
 	.btn-primary {
 		background: var(--accent-primary);
 		color: #ffffff;
+		border: none;
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
 	}
 
 	.btn-primary:hover,
@@ -271,6 +265,11 @@
 		background: var(--bg-primary);
 		border: 1px solid var(--border-color);
 		color: var(--text-primary);
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
 	}
 
 	.btn-secondary:hover,
@@ -326,45 +325,5 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
-	}
-
-	.reference-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.ref-title {
-		font-size: 1rem;
-		font-weight: 700;
-		border-bottom: 1px solid var(--border-color);
-		padding-bottom: 0.5rem;
-	}
-
-	.ref-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-	}
-
-	.ref-section h4 {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	.stability-status {
-		font-weight: 700;
-		color: var(--color-error);
-	}
-
-	.stability-status.stable {
-		color: var(--color-success);
 	}
 </style>

@@ -81,10 +81,15 @@
 		</div>
 	</div>
 
-	<div class="workspace-grid">
+	<div class="workspace-container">
 		<div class="practice-card">
 			<div class="card-header">
 				<h2 class="card-title">Transfer Function H(s) Derivation</h2>
+				<div class="bode-pill">
+					Frequency Sample <MathInline math={"\\omega = 10\\text{ rad/s}"} />:
+					<strong>{cornerBode.magnitudeDb.toFixed(2)} dB</strong>,
+					<strong>{cornerBode.phaseDeg.toFixed(2)}°</strong>
+				</div>
 			</div>
 
 			<div class="problem-prompt">
@@ -152,29 +157,6 @@
 				{/each}
 			</div>
 		</div>
-
-		<!-- Bode Sidebar -->
-		<aside class="reference-sidebar">
-			<div class="reference-card">
-				<h3 class="ref-title">⚡ Bode Response Info</h3>
-				<div class="ref-section">
-					<h4>
-						Frequency Sample: <MathInline
-							math={"\\omega = 10\\text{ rad/s}"}
-						/>
-					</h4>
-					<p>
-						Magnitude: <strong
-							>{cornerBode.magnitudeDb.toFixed(2)} dB</strong
-						>
-					</p>
-					<p>
-						Phase: <strong>{cornerBode.phaseDeg.toFixed(2)}°</strong
-						>
-					</p>
-				</div>
-			</div>
-		</aside>
 	</div>
 </main>
 
@@ -238,17 +220,10 @@
 		border-color: var(--accent-primary);
 	}
 
-	.workspace-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
-		gap: 1.5rem;
-		align-items: start;
-	}
-
-	@media (max-width: 900px) {
-		.workspace-grid {
-			grid-template-columns: 1fr;
-		}
+	.workspace-container {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	.practice-card {
@@ -261,10 +236,28 @@
 		gap: 1.25rem;
 	}
 
+	.card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
 	.card-title {
 		font-size: 1.1rem;
 		font-weight: 700;
 		color: var(--text-primary);
+		margin: 0;
+	}
+
+	.bode-pill {
+		background: rgba(6, 182, 212, 0.1);
+		border: 1px solid rgba(6, 182, 212, 0.3);
+		color: var(--text-primary);
+		padding: 0.35rem 0.75rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.85rem;
 	}
 
 	.slider-panel {
@@ -325,36 +318,5 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
-	}
-
-	.reference-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.ref-title {
-		font-size: 1rem;
-		font-weight: 700;
-		border-bottom: 1px solid var(--border-color);
-		padding-bottom: 0.5rem;
-	}
-
-	.ref-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-	}
-
-	.ref-section h4 {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-primary);
 	}
 </style>

@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 /**
  * End-to-End Test Suite: Linear Constant-Coefficient ODEs Practice Module (/odes).
  *
- * Verifies problem customization selectors, dynamic problem generation,
- * KaTeX formula rendering, interactive student inputs, validation engine,
- * step-by-step solution reveals, and response waveform canvas plotting.
+ * Verifies problem customization selectors, anti-spoiler headers,
+ * 6-stage interactive ITS solver workflow, progressive hints, distractor feedback,
+ * and deferred post-solve waveform response canvas.
  */
 
 test.describe('LCC ODEs Practice Module', () => {
@@ -17,7 +17,7 @@ test.describe('LCC ODEs Practice Module', () => {
 	/**
 	 * Verifies initial rendering of the ODEs module page.
 	 */
-	test('renders header, control selectors, and active problem card', async ({ page }) => {
+	test('renders header, control selectors, and active practice card with anti-spoiler title', async ({ page }) => {
 		await expect(page).toHaveTitle(/LCC ODEs Practice — SignalLab/i);
 		await expect(page.locator('h1.page-title')).toHaveText(/Linear Constant-Coefficient ODEs/i);
 
@@ -30,7 +30,7 @@ test.describe('LCC ODEs Practice Module', () => {
 		// Practice card container
 		const practiceCard = page.locator('.practice-card');
 		await expect(practiceCard).toBeVisible();
-		await expect(practiceCard.locator('.problem-title')).toBeVisible();
+		await expect(practiceCard.locator('.problem-title')).toHaveText(/Practice Problem: 2nd-Order LCC ODE/i);
 	});
 
 	/**
@@ -57,48 +57,32 @@ test.describe('LCC ODEs Practice Module', () => {
 	});
 
 	/**
-	 * Verifies KaTeX math formula rendering and interactive student answer validation.
+	 * Verifies 6-stage ITS ODE workflow: Stage 1 roots inputs, progressive hints, and progression to Stage 2.
 	 */
-	test('renders KaTeX formulas and provides validation feedback on submission', async ({ page }) => {
-		// Verify KaTeX math expressions are rendered
-		const katexElements = page.locator('.katex');
-		await expect(katexElements.first()).toBeVisible();
+	test('steps through interactive ODE ITS solver with hints and validation feedback', async ({ page }) => {
+		// Verify Stage 1 is active
+		const stage1 = page.locator('.stage-card').first();
+		await expect(stage1).toBeVisible();
+		await expect(stage1.locator('.stage-title')).toHaveText(/Characteristic Polynomial Roots/i);
 
-		// Input student LaTeX solution
-		const mathInput = page.locator('input.math-input-field');
-		if (await mathInput.isVisible()) {
-			await mathInput.fill('e^{-2t} + e^{-3t}');
+		// Test Hint Toggle
+		const hintBtn = page.locator('.hint-toggle-btn');
+		await expect(hintBtn).toBeVisible();
+		await hintBtn.click();
+		await expect(page.locator('.hint-container')).toBeVisible();
 
-			const submitButton = page.locator('button.submit-btn');
-			if (await submitButton.isVisible()) {
-				await submitButton.click();
-				await page.waitForTimeout(300);
+		// Input incorrect root values to verify feedback alert
+		const r1Input = page.locator('#ode-r1-input');
+		const r2Input = page.locator('#ode-r2-input');
+		await r1Input.fill('999');
+		await r2Input.fill('999');
 
-				// Validation alert box should appear
-				const validationAlert = page.locator('.validation-alert');
-				await expect(validationAlert).toBeVisible();
-			}
-		}
-	});
+		const checkBtn = page.locator('.stage-actions .btn-primary');
+		await checkBtn.click();
+		await page.waitForTimeout(200);
 
-	/**
-	 * Verifies step-by-step solution breakdown reveals and waveform canvas visualizer.
-	 */
-	test('expands step-by-step solution reveal and renders response waveform canvas', async ({ page }) => {
-		// Check StepReveal toggle
-		const revealToggle = page.locator('.reveal-header');
-		if (await revealToggle.isVisible()) {
-			await revealToggle.click();
-			const revealBody = page.locator('.reveal-content');
-			await expect(revealBody).toBeVisible();
-		}
-
-		// Verify WaveformCanvas element is rendered
-		const canvas = page.locator('canvas.response-canvas');
-		await expect(canvas).toBeVisible();
-
-		// Verify plot legends are visible
-		const legend = page.locator('.legend');
-		await expect(legend).toBeVisible();
+		// Feedback alert visible
+		const feedbackAlert = page.locator('.feedback-alert');
+		await expect(feedbackAlert).toBeVisible();
 	});
 });
