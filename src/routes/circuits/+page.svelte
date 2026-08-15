@@ -197,7 +197,9 @@
 	.control-group {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		flex-wrap: wrap;
+		gap: 0.5rem 0.75rem;
+		width: 100%;
 	}
 
 	.control-label {
@@ -214,6 +216,8 @@
 		border-radius: var(--radius-sm);
 		font-size: 0.9rem;
 		outline: none;
+		max-width: 100%;
+		text-overflow: ellipsis;
 	}
 
 	.select-input:focus {
@@ -224,6 +228,7 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
+		min-width: 0;
 	}
 
 	.practice-card {
@@ -234,6 +239,27 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	@media (max-width: 480px) {
+		.page-container {
+			padding: 1rem 0.75rem;
+			gap: 1rem;
+		}
+
+		.control-bar {
+			padding: 0.75rem 0.85rem;
+		}
+
+		.select-input {
+			width: 100%;
+		}
+
+		.practice-card {
+			padding: 1rem 0.85rem;
+		}
 	}
 
 	.card-header {

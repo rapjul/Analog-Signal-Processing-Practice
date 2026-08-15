@@ -102,4 +102,50 @@ test.describe('Fourier Series Module', () => {
 		await expect(step2).toHaveClass(/active/);
 		await expect(step2.locator('.step-title')).toHaveText(/Signal Symmetry Classification/i);
 	});
+
+	/**
+	 * Verifies layout reflow and zero horizontal overflow on 320px narrow mobile viewports.
+	 */
+	test('renders cleanly without horizontal layout overflow on 320px narrow mobile viewport', async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 568 });
+		await page.waitForTimeout(300);
+
+		// Assert no horizontal scrollbar on the page
+		const isOverflowing = await page.evaluate(() => {
+			return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+		});
+		expect(isOverflowing).toBe(false);
+
+		// Assert control bar dropdown is visible and bounded
+		const controlGroup = page.locator('.control-group');
+		await expect(controlGroup).toBeVisible();
+
+		// Assert all progress pills are bounded within the progress bar container
+		const progressBar = page.locator('.steps-progress-bar');
+		await expect(progressBar).toBeVisible();
+		const progressBarBox = await progressBar.boundingBox();
+		expect(progressBarBox).not.toBeNull();
+
+		const pills = page.locator('.progress-pill');
+		const pillCount = await pills.count();
+		for (let i = 0; i < pillCount; i++) {
+			const pillBox = await pills.nth(i).boundingBox();
+			expect(pillBox).not.toBeNull();
+			if (pillBox && progressBarBox) {
+				expect(pillBox.x + pillBox.width).toBeLessThanOrEqual(progressBarBox.x + progressBarBox.width + 1);
+			}
+		}
+
+		// Assert primary action button is bounded within the step card
+		const step1Card = page.locator('.step-card').first();
+		const cardBox = await step1Card.boundingBox();
+		const checkBtn = step1Card.locator('.btn-primary');
+		const btnBox = await checkBtn.boundingBox();
+		expect(cardBox).not.toBeNull();
+		expect(btnBox).not.toBeNull();
+		if (cardBox && btnBox) {
+			expect(btnBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+			expect(btnBox.x + btnBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+		}
+	});
 });

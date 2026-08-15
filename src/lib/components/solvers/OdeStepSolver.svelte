@@ -174,7 +174,7 @@
 				advanceToStage(2);
 			} else {
 				s1Valid = false;
-				s1Feedback = `Incorrect roots. Factor the characteristic polynomial s^2 + ${problem.params.a1}s + ${problem.params.a0} = 0.`;
+				s1Feedback = `Incorrect roots. Factor the characteristic polynomial $s^2$ + ${problem.params.a1}s + ${problem.params.a0} = 0.`;
 			}
 		} else if (s1Data.rootType === "repeated_real") {
 			const v1 = Number.parseFloat(s1R1.trim());
@@ -186,7 +186,7 @@
 				advanceToStage(2);
 			} else {
 				s1Valid = false;
-				s1Feedback = `Incorrect repeated root. Characteristic equation: (s - r)^2 = 0.`;
+				s1Feedback = `Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.`;
 			}
 		} else if (s1Data.rootType === "complex_conjugate") {
 			const vSigma = Number.parseFloat(s1Sigma.trim());
@@ -267,7 +267,7 @@
 			} else {
 				s4Valid = false;
 				s4Feedback =
-					"Incorrect coefficients A and B. Substitute y_p(t) into the ODE and equate like cosine and sine terms.";
+					"Incorrect coefficients $A$ and $B$. Substitute $y_p(t)$ into the ODE and equate like cosine and sine terms.";
 			}
 		} else {
 			const vKp = Number.parseFloat(s4Kp.trim());
@@ -280,7 +280,7 @@
 			} else {
 				s4Valid = false;
 				s4Feedback =
-					"Incorrect K_p coefficient. Substitute y_p(t) into the ODE and solve for K_p.";
+					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.";
 			}
 		}
 	}
@@ -303,7 +303,7 @@
 			advanceToStage(6);
 		} else {
 			s5Valid = false;
-			s5Feedback = `Incorrect constants C1, C2. Remember to account for the velocity offset y_p'(0+) when setting up y'(0^+) = y_h'(0^+) + y_p'(0^+).`;
+			s5Feedback = `Incorrect constants $C_1$, $C_2$. Remember to account for the velocity offset $y_p'(0+)$ when setting up $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.`;
 		}
 	}
 
@@ -603,11 +603,11 @@
 						onclick={() => checkStage2("distinct_real")}
 					>
 						<strong>Distinct Real Roots</strong>
-						<span class="choice-sub"
-							><MathInline
+						<span class="choice-sub">
+							<MathInline
 								math={"C_1 e^{r_1 t} + C_2 e^{r_2 t}"}
-							/></span
-						>
+							/>
+						</span>
 					</button>
 					<button
 						type="button"
@@ -616,9 +616,9 @@
 						onclick={() => checkStage2("repeated_real")}
 					>
 						<strong>Repeated Real Roots</strong>
-						<span class="choice-sub"
-							><MathInline math={"(C_1 + C_2 t) e^{r t}"} /></span
-						>
+						<span class="choice-sub">
+							<MathInline math={"(C_1 + C_2 t) e^{r t}"} />
+						</span>
 					</button>
 					<button
 						type="button"
@@ -627,11 +627,11 @@
 						onclick={() => checkStage2("complex_conjugate")}
 					>
 						<strong>Complex Conjugate Roots</strong>
-						<span class="choice-sub"
-							><MathInline
+						<span class="choice-sub">
+							<MathInline
 								math={"e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]"}
-							/></span
-						>
+							/>
+						</span>
 					</button>
 				</div>
 			</div>
@@ -979,6 +979,7 @@
 	}
 
 	.stage-card {
+		container-type: inline-size;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md, 8px);
@@ -1058,7 +1059,7 @@
 		gap: 1rem;
 	}
 
-	@media (max-width: 640px) {
+	@container (max-width: 620px) {
 		.input-row-grid {
 			grid-template-columns: 1fr;
 		}
@@ -1068,6 +1069,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+		max-width: 360px; /* Prevents inputs from stretching excessively */
+		min-width: min(
+			100%,
+			220px
+		); /* Never exceeds 100% on small screens, but maintains 220px floor */
 	}
 
 	.field-label {

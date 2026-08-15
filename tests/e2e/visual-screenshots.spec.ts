@@ -16,7 +16,8 @@ const VIEWPORT_CONFIGS = [
 	{ name: 'desktop-1920x1080', width: 1920, height: 1080 },
 	{ name: 'laptop-1280x800', width: 1280, height: 800 },
 	{ name: 'tablet-768x1024', width: 768, height: 1024 },
-	{ name: 'mobile-375x812', width: 375, height: 812 }
+	{ name: 'mobile-375x812', width: 375, height: 812 },
+	{ name: 'mobile-narrow-320x568', width: 320, height: 568 }
 ];
 
 const TARGET_ROUTES = [

@@ -178,6 +178,18 @@
 		border-color: var(--accent-primary);
 	}
 
+	@media (max-width: 480px) {
+		.fourier-practice-card {
+			padding: 1rem 0.85rem;
+			gap: 1rem;
+		}
+
+		.btn-next {
+			width: 100%;
+			text-align: center;
+		}
+	}
+
 	.btn-next:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;

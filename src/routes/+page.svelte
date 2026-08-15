@@ -161,7 +161,7 @@
 
 	.modules-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 		gap: 1.5rem;
 	}
 
@@ -174,7 +174,24 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		transition: all 0.25 ease;
+		transition: all 0.25s ease;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	@media (max-width: 480px) {
+		.dashboard-container {
+			padding: 1.5rem 0.75rem;
+			gap: 1.5rem;
+		}
+
+		.module-card {
+			padding: 1.15rem 1rem;
+		}
+
+		.modules-grid {
+			gap: 1rem;
+		}
 	}
 
 	.module-card:hover {

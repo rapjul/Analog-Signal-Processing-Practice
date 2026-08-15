@@ -79,7 +79,20 @@
 	function closeFormulaDrawer() {
 		isFormulaDrawerOpen = false;
 	}
+
+	/**
+	 * Handles global keyboard shortcuts to dismiss open mobile navigation on Escape.
+	 * @param {KeyboardEvent} event Keyboard event
+	 */
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === "Escape" && isMenuOpen) {
+			isMenuOpen = false;
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <header class="navbar">
 	<div class="nav-brand">
@@ -148,7 +161,8 @@
 			title="Open Formula Reference Sheet"
 			aria-label="Open Formula Reference Sheet"
 		>
-			📖 Formulas
+			<span class="btn-icon">📖</span>
+			<span class="btn-label">Formulas</span>
 		</button>
 
 		<button
@@ -170,7 +184,8 @@
 				? 'Dark'
 				: 'Light'}."
 		>
-			{isDark ? "🌙 Dark" : "☀️ Light"}
+			<span class="btn-icon">{isDark ? "🌙" : "☀️"}</span>
+			<span class="btn-label">{isDark ? "Dark" : "Light"}</span>
 		</button>
 	</div>
 </header>
@@ -366,6 +381,30 @@
 			text-align: left;
 			padding: 0.6rem 0.8rem;
 			font-size: 0.9rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.navbar {
+			padding: 0.5rem 0.65rem;
+			gap: 0.35rem;
+		}
+
+		.brand-title {
+			font-size: 1.05rem;
+		}
+
+		.nav-actions {
+			gap: 0.35rem;
+		}
+
+		.btn-label {
+			display: none;
+		}
+
+		.btn-formula-drawer,
+		.theme-toggle {
+			padding: 0.35rem 0.55rem;
 		}
 	}
 </style>

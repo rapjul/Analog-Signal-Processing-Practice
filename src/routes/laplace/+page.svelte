@@ -168,6 +168,7 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
+		min-width: 0;
 	}
 
 	.practice-card {
@@ -178,6 +179,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		max-width: 100%;
+		min-width: 0;
 	}
 
 	.card-header {
@@ -205,11 +208,32 @@
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
+		flex-wrap: wrap;
+		max-width: 100%;
 	}
 
 	.stability-pill.stable {
 		border-color: rgba(16, 185, 129, 0.4);
 		background: rgba(16, 185, 129, 0.1);
+	}
+
+	@media (max-width: 480px) {
+		.page-container {
+			padding: 1rem 0.75rem;
+			gap: 1rem;
+		}
+
+		.practice-card {
+			padding: 1rem 0.85rem;
+		}
+
+		.action-bar {
+			flex-direction: column;
+		}
+
+		.action-bar button {
+			width: 100%;
+		}
 	}
 
 	.input-section {

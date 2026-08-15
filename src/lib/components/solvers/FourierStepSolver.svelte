@@ -823,7 +823,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.75rem 1rem;
+		padding: 0.65rem 0.85rem;
 		background: var(--bg-secondary);
 		border-radius: var(--radius-md, 8px);
 		border: 1px solid var(--border-color);
@@ -835,21 +835,23 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--text-secondary);
+		padding: 0.25rem 0.5rem;
 	}
 
 	.progress-pills {
 		display: flex;
-		gap: 0.5rem;
+		flex-wrap: wrap;
+		gap: 0.35rem;
 	}
 
 	.progress-pill {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 1.75rem;
-		height: 1.75rem;
+		width: 1.55rem;
+		height: 1.55rem;
 		border-radius: 50%;
-		font-size: 0.8rem;
+		font-size: 0.75rem;
 		font-weight: 700;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -871,6 +873,7 @@
 	}
 
 	.step-card {
+		container-type: inline-size;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md, 8px);
@@ -879,6 +882,8 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		transition: all 0.2s ease;
+		max-width: 100%;
+		min-width: 0;
 	}
 
 	.step-card.active {
@@ -899,7 +904,8 @@
 	.step-header {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		flex-wrap: wrap;
+		gap: 0.4rem 0.6rem;
 	}
 
 	.step-badge {
@@ -910,6 +916,7 @@
 		color: var(--accent-primary);
 		border-radius: var(--radius-sm, 4px);
 		text-transform: uppercase;
+		flex-shrink: 0;
 	}
 
 	.step-title {
@@ -917,23 +924,31 @@
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
+		overflow-wrap: anywhere;
+		word-break: break-word;
+		min-width: 0;
+		line-height: 1.3;
 	}
 
 	.step-body {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
+		width: 100%;
+		min-width: 0;
 	}
 
 	.step-prompt {
 		font-size: 0.9rem;
 		color: var(--text-primary);
 		margin: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.step-summary {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 0.5rem;
 		font-size: 0.85rem;
 		color: var(--text-secondary);
@@ -948,9 +963,10 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
+		width: 100%;
 	}
 
-	@media (max-width: 640px) {
+	@container (max-width: 620px) {
 		.input-row-grid {
 			grid-template-columns: 1fr;
 		}
@@ -960,6 +976,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+		max-width: 360px;
+		min-width: 0;
+		width: 100%;
 	}
 
 	.field-label {
@@ -974,10 +993,12 @@
 		border-radius: var(--radius-sm, 6px);
 		background: var(--bg-input);
 		overflow: hidden;
+		max-width: 100%;
 	}
 
 	.text-input {
 		flex: 1;
+		min-width: 0;
 		background: transparent;
 		border: none;
 		padding: 0.5rem 0.75rem;
@@ -991,6 +1012,7 @@
 	}
 
 	.unit-select {
+		flex-shrink: 0;
 		background: var(--bg-secondary);
 		border: none;
 		border-left: 1px solid var(--border-color);
@@ -1004,8 +1026,9 @@
 
 	.button-grid-taxonomic {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 		gap: 0.75rem;
+		width: 100%;
 	}
 
 	.choice-btn {
@@ -1021,6 +1044,7 @@
 		color: var(--text-primary);
 		text-align: left;
 		transition: all 0.15s ease;
+		max-width: 100%;
 	}
 
 	.choice-btn:hover {
@@ -1047,6 +1071,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
+		width: 100%;
 	}
 
 	@media (max-width: 640px) {
@@ -1065,6 +1090,7 @@
 		align-items: center;
 		justify-content: center;
 		transition: all 0.15s ease;
+		max-width: 100%;
 	}
 
 	.mcq-card:hover {
@@ -1098,6 +1124,10 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;
+		white-space: normal;
+		line-height: 1.35;
+		text-wrap: balance;
+		max-width: 100%;
 	}
 
 	.btn-primary:hover {
@@ -1107,6 +1137,22 @@
 	.btn-primary:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
+	}
+
+	@container (max-width: 360px) {
+		.step-card {
+			padding: 0.75rem 0.85rem;
+		}
+
+		.step-actions {
+			width: 100%;
+		}
+
+		.btn-primary {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+		}
 	}
 
 	.feedback-alert {

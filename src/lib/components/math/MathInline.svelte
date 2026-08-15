@@ -138,6 +138,7 @@
 	}
 
 	.copy-badge {
+		display: none;
 		position: absolute;
 		top: -2.2em;
 		left: 50%;
@@ -149,26 +150,25 @@
 		pointer-events: none;
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 		z-index: 100;
-		opacity: 0;
 		background-color: var(--bg-card, #1e293b);
 		color: var(--text-primary, #f8fafc);
 		border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
 		transition:
-			opacity 0.2s ease,
-			transform 0.2s ease,
-			background-color 0.2s ease,
-			color 0.2s ease,
-			border-color 0.2s ease,
-			padding 0.2s ease;
+			transform 0.15s ease,
+			background-color 0.15s ease,
+			color 0.15s ease,
+			border-color 0.15s ease,
+			padding 0.15s ease;
 	}
 
-	.math-inline:hover:not(.dismissed) .copy-badge {
-		opacity: 1;
+	.math-inline:hover:not(.dismissed) .copy-badge,
+	.math-inline:focus-visible:not(.dismissed) .copy-badge {
+		display: block;
 		transform: translateX(-50%) scale(1);
 	}
 
 	.math-inline:not(.dismissed) .copy-badge.copied-state {
-		opacity: 1;
+		display: block;
 		transform: translateX(-50%) scale(1);
 		background-color: var(--accent-primary, #6366f1);
 		color: #111111;
