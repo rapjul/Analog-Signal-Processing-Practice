@@ -211,26 +211,28 @@ export function generateConvolutionProblem(
 			const steps: SolutionStep[] = [
 				{
 					title: "Flip & Shift Transformation",
-					description: "Flip h(\\tau) to h(-\\tau) and shift by t to h(t - \\tau).",
+					description:
+						"Flip $h(\\tau)$ to $h(-\\tau)$ and shift by $t$ to obtain $h(t - \\tau)$.",
+					latex: "y(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau",
 				},
 				{
 					title: "Identify Region 1 (No Overlap)",
-					description: "For t < 0, there is zero signal overlap area.",
+					description: "For $t < 0$, there is zero signal overlap area.",
 					latex: "y(t) = 0 \\quad (t < 0)",
 				},
 				{
 					title: "Identify Region 2 (Partial Overlap)",
-					description: `For 0 <= t < ${w1}, overlap area increases linearly.`,
+					description: `For $0 \\le t < ${w1}$, overlap area increases linearly.`,
 					latex: `y(t) = \\int_0^t (${h2}) d\\tau = ${h2}t`,
 				},
 				{
 					title: "Identify Region 3 (Full Overlap)",
-					description: `For ${w1} <= t < ${w2}, overlap area plateaus at maximum value.`,
+					description: `For $${w1} \\le t < ${w2}$, overlap area plateaus at maximum value.`,
 					latex: `y(t) = \\int_{t-${w1}}^t (${h2}) d\\tau = ${h2 * w1}`,
 				},
 				{
 					title: "Identify Region 4 (Receding Overlap)",
-					description: `For ${w2} <= t < ${w1 + w2}, overlap area decreases linearly to 0.`,
+					description: `For $${w2} \\le t < ${w1 + w2}$, overlap area decreases linearly to $0$.`,
 					latex: `y(t) = \\int_{t-${w1}}^{${w2}} (${h2}) d\\tau = ${h2 * (w1 + w2)} - ${h2}t`,
 				},
 			];
@@ -257,22 +259,23 @@ export function generateConvolutionProblem(
 			const rect2: RectSignal = { tStart: tShift, width: w2, height: 1 };
 			const res = solveShiftedRectConvolution(rect1, rect2);
 
-			const xLatex = `rect\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
-			const hLatex = `rect\\left(\\frac{t - ${tShift + w2 / 2}}{${w2}}\\right)`;
+			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
+			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${tShift + w2 / 2}}{${w2}}\\right)`;
 
 			const steps: SolutionStep[] = [
 				{
 					title: "Flip & Shift Transformation",
-					description: `Shifted pulse h(\\tau) is active in [${tShift}, ${tShift + w2}]. Flip and shift yields h(t - \\tau).`,
+					description: `Shifted pulse $h(\\tau)$ is active in $[${tShift}, ${tShift + w2}]$. Flip and shift yields $h(t - \\tau)$.`,
+					latex: "y(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau",
 				},
 				{
 					title: "Region 1 (No Overlap)",
-					description: `For t < ${tShift}, there is zero overlap.`,
+					description: `For $t < ${tShift}$, there is zero overlap.`,
 					latex: `y(t) = 0 \\quad (t < ${tShift})`,
 				},
 				{
 					title: "Region 2 (Linear Growth)",
-					description: `Overlap grows linearly from t = ${tShift}.`,
+					description: `Overlap grows linearly from $t = ${tShift}$.`,
 					latex: `y(t) = t - ${tShift}`,
 				},
 				{
@@ -282,7 +285,7 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Region 4 (Receding Edge)",
-					description: `Receding overlap returns to zero at t = ${tShift + w1 + w2}.`,
+					description: `Receding overlap returns to zero at $t = ${tShift + w1 + w2}$.`,
 					latex: `y(t) = ${tShift + w1 + w2} - t`,
 				},
 			];
@@ -303,23 +306,27 @@ export function generateConvolutionProblem(
 		}
 		case "multi_rect": {
 			const res = solveMultiRectConvolution();
-			const xLatex = "rect\\left(t - 0.5\\right) + rect\\left(t - 3.5\\right)";
-			const hLatex = "rect\\left(\\frac{t - 1}{2}\\right)";
+			const xLatex =
+				"\\operatorname{rect}\\left(t - 0.5\\right) + \\operatorname{rect}\\left(t - 3.5\\right)";
+			const hLatex = "\\operatorname{rect}\\left(\\frac{t - 1}{2}\\right)";
 
 			const steps: SolutionStep[] = [
 				{
 					title: "Superposition Principle",
-					description: "Convolve x(t) = x_1(t) + x_2(t) separately with h(t) using linearity.",
+					description:
+						"Convolve $x(t) = x_1(t) + x_2(t)$ separately with $h(t)$ using linearity.",
 					latex: "y(t) = (x_1 * h)(t) + (x_2 * h)(t)",
 				},
 				{
 					title: "Convolve First Pulse",
-					description: "rect(t - 0.5) * rect((t - 1)/2) produces trapezoid in [0, 3].",
+					description:
+						"$\\operatorname{rect}(t - 0.5) * \\operatorname{rect}((t - 1)/2)$ produces a trapezoid in $[0, 3]$.",
 					latex: "y_1(t) = \\text{trapezoid in } [0, 3]",
 				},
 				{
 					title: "Convolve Second Pulse",
-					description: "rect(t - 3.5) * rect((t - 1)/2) produces identical trapezoid shifted to [3, 6].",
+					description:
+						"$\\operatorname{rect}(t - 3.5) * \\operatorname{rect}((t - 1)/2)$ produces an identical trapezoid shifted to $[3, 6]$.",
 					latex: "y_2(t) = \\text{trapezoid in } [3, 6]",
 				},
 			];
@@ -345,13 +352,14 @@ export function generateConvolutionProblem(
 			const expSignal: ExpSignal = { a, K: 1 };
 
 			const res = solveRectExpConvolution(rect, expSignal);
-			const xLatex = `rect\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
 			const hLatex = `e^{-${a}t} u(t)`;
 
 			const steps: SolutionStep[] = [
 				{
 					title: "Flip & Shift Transformation",
-					description: `Flip h(\\tau) to h(t - \\tau) = e^{-${a}(t - \\tau)} u(t - \\tau).`,
+					description: `Flip $h(\\tau)$ to $h(t - \\tau) = e^{-${a}(t - \\tau)} u(t - \\tau)$.`,
+					latex: "y(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau",
 				},
 				{
 					title: "Region 1 (t < 0)",
@@ -360,12 +368,12 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Region 2 (0 <= t < w)",
-					description: `Integration interval is \\tau in [0, t].`,
+					description: `Integration interval is $\\tau \\in [0, t]$.`,
 					latex: `y(t) = \\int_0^t e^{-${a}(t - \\tau)} d\\tau = \\frac{1}{${a}}\\left(1 - e^{-${a}t}\\right)`,
 				},
 				{
 					title: "Region 3 (t >= w)",
-					description: `Integration interval is \\tau in [0, ${w}].`,
+					description: `Integration interval is $\\tau \\in [0, ${w}]$.`,
 					latex: `y(t) = \\int_0^{${w}} e^{-${a}(t - \\tau)} d\\tau = \\frac{1}{${a}}\\left(e^{-${a}(t - ${w})} - e^{-${a}t}\\right)`,
 				},
 			];
@@ -397,12 +405,12 @@ export function generateConvolutionProblem(
 			const steps: SolutionStep[] = [
 				{
 					title: "Integral Setup",
-					description: "Set up the convolution integral for t >= 0.",
+					description: "Set up the convolution integral for $t \\ge 0$.",
 					latex: `y(t) = \\int_0^t e^{-${a1}\\tau} e^{-${a2}(t - \\tau)} d\\tau`,
 				},
 				{
 					title: "Factor Out Common Terms",
-					description: "Factor out terms not depending on tau.",
+					description: "Factor out terms not depending on $\\tau$.",
 					latex: `y(t) = e^{-${a2}t} \\int_0^t e^{(${a2} - ${a1})\\tau} d\\tau`,
 				},
 				{
@@ -441,12 +449,13 @@ export function generateConvolutionProblem(
 				solutionSteps: [
 					{
 						title: "Integral Setup for Step Input",
-						description: "Convolve u(t) with exponential impulse response.",
+						description:
+							"Convolve $u(t)$ with exponential impulse response.",
 						latex: `y(t) = \\int_0^t e^{-${a}\\tau} d\\tau \\quad (t \\ge 0)`,
 					},
 					{
 						title: "Evaluate Step Response Integral",
-						description: "Integrate from 0 to t.",
+						description: "Integrate from $0$ to $t$.",
 						latex: `y(t) = \\frac{1}{${a}}\\left(1 - e^{-${a}t}\\right) u(t)`,
 					},
 				],
@@ -461,7 +470,7 @@ export function generateConvolutionProblem(
 			const w = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
 			const res = solveStepRectConvolution(w);
 			const xLatex = "u(t)";
-			const hLatex = `rect\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
 
 			return {
 				id,
@@ -472,12 +481,12 @@ export function generateConvolutionProblem(
 				solutionSteps: [
 					{
 						title: "Integrate Pulse Over Moving Limit",
-						description: `For 0 <= t < ${w}, y(t) integrates to t.`,
+						description: `For $0 \\le t < ${w}$, $y(t)$ integrates to $t$.`,
 						latex: "y(t) = t",
 					},
 					{
 						title: "Plateau for t >= w",
-						description: `For t >= ${w}, full pulse is integrated yielding total area ${w}.`,
+						description: `For $t \\ge ${w}$, full pulse is integrated yielding total area $${w}$.`,
 						latex: `y(t) = ${w}`,
 					},
 				],

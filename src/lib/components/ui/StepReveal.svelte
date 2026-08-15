@@ -7,26 +7,36 @@
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import MathText from "$lib/components/math/MathText.svelte";
+	import type { SolutionStep } from "$lib/math-engine/types";
 
-	export interface StepItem {
-		title: string;
-		latex?: string;
-	}
+	/**
+	 * Backward compatibility alias for callers referencing StepItem.
+	 */
+	export type StepItem = SolutionStep;
 
 	interface Props {
 		/** Array of solution steps */
-		steps: StepItem[];
+		steps: SolutionStep[];
 	}
 
 	let { steps }: Props = $props();
 	let revealedCount = $state(1);
 
+	/**
+	 * Reveals the next step in the breakdown.
+	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function revealNextStep() {
 		if (revealedCount < steps.length) {
 			revealedCount += 1;
 		}
 	}
+
+	/**
+	 * Reveals all steps in the breakdown.
+	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function revealAllSteps() {
 		revealedCount = steps.length;
@@ -58,7 +68,22 @@
 		{#each steps.slice(0, revealedCount) as step, idx}
 			<div class="step-card">
 				<h4 class="step-title">Step {idx + 1}: {step.title}</h4>
-				<MathBlock math={step.latex ?? ""} compact={true} />
+				{#if step.description}
+					<p class="step-description">
+						<MathText text={step.description} />
+					</p>
+				{/if}
+				{#if step.latex && step.latex.trim().length > 0}
+					<MathBlock
+						math={step.latex}
+						aligned={step.aligned}
+						cases={step.cases}
+						matrix={step.matrix}
+						gathered={step.gathered}
+						responsive={step.responsive}
+						compact={true}
+					/>
+				{/if}
 			</div>
 		{/each}
 	</div>
@@ -151,5 +176,12 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
+	}
+
+	.step-description {
+		font-size: 0.88rem;
+		color: var(--text-secondary);
+		line-height: 1.5;
+		margin: 0;
 	}
 </style>

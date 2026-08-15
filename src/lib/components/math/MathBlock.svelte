@@ -20,6 +20,8 @@
 		compact?: boolean;
 		/** Whether to apply responsive line breaks/wrapping */
 		responsive?: boolean;
+		/** Whether to hide the LaTeX copy button and header bar */
+		hideHeader?: boolean;
 		/** Optional additional CSS class */
 		class?: string;
 	}
@@ -34,6 +36,8 @@
 		compact = false,
 		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		responsive = false,
+		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+		hideHeader = false,
 		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		class: className = "",
 	}: Props = $props();
@@ -110,61 +114,66 @@
 	}
 </script>
 
-<div
-	class="math-block {className} {compact ? 'is-compact' : ''}"
-	class:math-block-responsive={responsive}
-	aria-label="Mathematical formula block"
->
-	<div class="math-block-header">
-		<button
-			type="button"
-			class="copy-btn"
-			onclick={handleCopy}
-			aria-label="Copy LaTeX string to clipboard"
-		>
-			{#if copied}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="13"
-					height="13"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					><polyline points="20 6 9 17 4 12"></polyline></svg
+{#if formattedMath}
+	<div
+		class="math-block {className} {compact ? 'is-compact' : ''}"
+		class:math-block-responsive={responsive}
+		aria-label="Mathematical formula block"
+	>
+		{#if !hideHeader}
+			<div class="math-block-header">
+				<button
+					type="button"
+					class="copy-btn"
+					onclick={handleCopy}
+					aria-label="Copy LaTeX string to clipboard"
 				>
-				<span>Copied!</span>
-			{:else}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="13"
-					height="13"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
-					></rect><path
-						d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-					></path></svg
-				>
-				<span>LaTeX</span>
-			{/if}
-		</button>
+					{#if copied}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><polyline points="20 6 9 17 4 12"></polyline></svg
+						>
+						<span>Copied!</span>
+					{:else}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
+							></rect><path
+								d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+							></path></svg
+						>
+						<span>LaTeX</span>
+					{/if}
+				</button>
+			</div>
+		{/if}
+		<div class="math-block-content">
+			{@html renderMath(formattedMath)}
+		</div>
 	</div>
-	<div class="math-block-content">
-		{@html renderMath(formattedMath)}
-	</div>
-</div>
+{/if}
 
 <style>
 	.math-block {
 		margin: 0.6rem 0;
 		background-color: var(--bg-secondary);
+		color: var(--text-primary);
 		border-radius: var(--radius-md);
 		border: 1px solid var(--border-color);
 		max-width: 100%;
