@@ -185,9 +185,9 @@
 				<span class="card-label">Polar Phasor Input</span>
 				<div class="fields-grid">
 					<div class="field">
-						<label for="mag-input"
-							>Magnitude <MathInline math={"|V|"} />:</label
-						>
+						<label for="mag-input">
+							Magnitude <MathInline math={"|V|"} />:
+						</label>
 						<input
 							id="mag-input"
 							type="text"
