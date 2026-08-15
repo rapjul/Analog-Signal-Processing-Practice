@@ -31,9 +31,9 @@ test.describe('LCC ODEs Practice Module', () => {
 		await expect(practiceCard).toBeVisible();
 		await expect(practiceCard.locator('.problem-title')).toHaveText(/Practice Problem: 2nd-Order LCC ODE/i);
 
-		// Verify single difficulty badge is visible and no duplicate LCC ODE category badge
-		const badges = practiceCard.locator('.badge');
-		await expect(badges).toHaveCount(1);
+		// Verify difficulty badges and category badge
+		const badges = practiceCard.locator('.badges-row .badge');
+		await expect(badges).toHaveCount(3);
 		await expect(practiceCard.locator('.badge.category')).toHaveCount(0);
 	});
 
@@ -95,5 +95,68 @@ test.describe('LCC ODEs Practice Module', () => {
 		// Feedback alert visible
 		const feedbackAlert = page.locator('.feedback-alert');
 		await expect(feedbackAlert).toBeVisible();
+	});
+
+	/**
+	 * Verifies Step 2 requires explicit strategy selection before revealing factoring or quadratic formula inputs.
+	 */
+	test('requires explicit strategy selection in Step 2 without spoiling answers', async ({ page }) => {
+		const step1 = page.locator('.step-card').nth(0);
+		const hintBtn = step1.locator('.hint-toggle-btn');
+
+		// Reveal hints in Step 1 to extract exact characteristic equation coefficients
+		await hintBtn.click();
+		await hintBtn.click();
+		await hintBtn.click();
+
+		const hint3Text = await step1.locator('.hint-line').last().innerText();
+		const match = hint3Text.match(/s\^2\s*([+-]\s*\d+)?\s*s\s*([+-]\s*\d+)?/);
+
+		let a1 = '0';
+		let a0 = '0';
+		if (match) {
+			a1 = match[1] ? match[1].replace(/\s+/g, '') : '0';
+			a0 = match[2] ? match[2].replace(/\s+/g, '') : '0';
+		}
+
+		const a2Input = page.locator('#ode-a2-input');
+		const a1Input = page.locator('#ode-a1-input');
+		const a0Input = page.locator('#ode-a0-input');
+
+		await a2Input.fill('1');
+		await a1Input.fill(a1);
+		await a0Input.fill(a0);
+
+		await step1.locator('.step-actions .btn-primary').click();
+		await page.waitForTimeout(300);
+
+		// Step 2 should now be active
+		const step2 = page.locator('.step-card').nth(1);
+		await expect(step2).toBeVisible();
+		await expect(step2.locator('.step-title')).toHaveText(/Characteristic Polynomial Roots/i);
+
+		// Neither strategy button should be active initially
+		const strategyBtns = step2.locator('.strategy-pill-btn');
+		await expect(strategyBtns).toHaveCount(2);
+		await expect(step2.locator('.strategy-pill-btn.active')).toHaveCount(0);
+
+		// Prompt to select strategy should be visible
+		await expect(step2.locator('.strategy-helper-text')).toBeVisible();
+
+		// No root or quadratic inputs should be rendered yet
+		await expect(step2.locator('#ode-r1-input')).toHaveCount(0);
+		await expect(step2.locator('#ode-quad-a')).toHaveCount(0);
+
+		// Click Factoring by inspection
+		await strategyBtns.first().click();
+		await expect(strategyBtns.first()).toHaveClass(/active/);
+		await expect(step2.locator('#ode-r1-input, #ode-r-rep-input')).toBeVisible();
+
+		// Click Quadratic formula
+		await strategyBtns.last().click();
+		await expect(strategyBtns.last()).toHaveClass(/active/);
+		await expect(step2.locator('#ode-quad-a')).toBeVisible();
+		await expect(step2.locator('#ode-quad-b')).toBeVisible();
+		await expect(step2.locator('#ode-quad-c')).toBeVisible();
 	});
 });

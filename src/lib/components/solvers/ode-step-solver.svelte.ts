@@ -328,10 +328,23 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Validates Step 2 (Characteristic Roots & Strategy).
 	 */
 	checkStep2(): void {
-		if (this.step2.strategy === "quadratic") {
-			this.checkStep2Quadratic();
-		} else {
-			this.checkStep2Factoring();
+		switch (this.step2.strategy) {
+			case "quadratic":
+				this.checkStep2Quadratic();
+				break;
+			case "factoring":
+				this.checkStep2Factoring();
+				break;
+			case null:
+				this.setValidation(
+					this.step2,
+					"Please select a solving strategy first.",
+				);
+				break;
+			default:
+				throw new Error(
+					`Unhandled ODE solving strategy: ${String(this.step2.strategy)}`,
+				);
 		}
 	}
 

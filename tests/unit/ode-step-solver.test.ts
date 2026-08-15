@@ -115,6 +115,16 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 		solver.advanceToStep(2);
 
+		// Unselected strategy validation
+		expect(solver.step2.strategy).toBeNull();
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.step2.feedback).toContain("select a solving strategy");
+
+		// Select factoring strategy
+		solver.step2.strategy = "factoring";
+
 		// Missing/non-numeric input (validation)
 		solver.step2.r1 = "";
 		solver.step2.r2 = "";
@@ -147,8 +157,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.advanceToStep(2);
+		solver.step2.strategy = "factoring";
 
-		// Non-numeric input (validation)
+		// Missing/non-numeric input (validation)
 		solver.step2.r1 = "";
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);

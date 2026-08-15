@@ -220,14 +220,12 @@
 
 				<!-- Strategy Gate Selection -->
 				<div class="strategy-gate-box">
-					<span class="field-label">
-						Select solving strategy:
-					</span>
+					<span class="field-label"> Select solving strategy: </span>
 					<div class="strategy-button-group">
 						<button
 							type="button"
 							class="strategy-pill-btn"
-							class:active={solver.step2.strategy === "factoring" || (solver.step2.strategy === null && problem.itsData.step2.isFactorable)}
+							class:active={solver.step2.strategy === "factoring"}
 							onclick={() => {
 								solver.step2.strategy = "factoring";
 								solver.clearFeedback();
@@ -239,7 +237,7 @@
 						<button
 							type="button"
 							class="strategy-pill-btn"
-							class:active={solver.step2.strategy === "quadratic" || (solver.step2.strategy === null && !problem.itsData.step2.isFactorable)}
+							class:active={solver.step2.strategy === "quadratic"}
 							onclick={() => {
 								solver.step2.strategy = "quadratic";
 								solver.clearFeedback();
@@ -251,9 +249,33 @@
 					</div>
 				</div>
 
-				{#if (solver.step2.strategy === "factoring" || (solver.step2.strategy === null && problem.itsData.step2.isFactorable))}
+				{#if solver.step2.strategy === null}
+					<div class="strategy-unselected-prompt">
+						<p class="strategy-helper-text">
+							Select whether to factor the polynomial directly or
+							apply the quadratic formula.
+						</p>
+					</div>
+				{:else if solver.step2.strategy === "factoring"}
 					<!-- Factoring Path -->
-					{#if problem.itsData.step2.rootType === "distinct_real"}
+					{#if problem.itsData.step2.rootType === "repeated_real"}
+						<div class="input-pair" style="max-width: 260px;">
+							<label for="ode-r-rep-input" class="field-label">
+								<MathText
+									text={"Repeated Root $r = r_1 = r_2$:"}
+								/>
+							</label>
+							<input
+								id="ode-r-rep-input"
+								type="text"
+								class="text-input"
+								placeholder="e.g. -2"
+								bind:value={solver.step2.r1}
+								onkeydown={(e) =>
+									e.key === "Enter" && solver.checkStep2()}
+							/>
+						</div>
+					{:else}
 						<div class="input-row-grid">
 							<div class="input-pair">
 								<label for="ode-r1-input" class="field-label">
@@ -266,7 +288,8 @@
 									placeholder="e.g. -2"
 									bind:value={solver.step2.r1}
 									onkeydown={(e) =>
-										e.key === "Enter" && solver.checkStep2()}
+										e.key === "Enter" &&
+										solver.checkStep2()}
 								/>
 							</div>
 							<div class="input-pair">
@@ -280,58 +303,23 @@
 									placeholder="e.g. -3"
 									bind:value={solver.step2.r2}
 									onkeydown={(e) =>
-										e.key === "Enter" && solver.checkStep2()}
+										e.key === "Enter" &&
+										solver.checkStep2()}
 								/>
 							</div>
 						</div>
-					{:else if problem.itsData.step2.rootType === "repeated_real"}
-						<div class="input-pair" style="max-width: 260px;">
-							<label for="ode-r-rep-input" class="field-label">
-								<MathText text={"Repeated Root $r = r_1 = r_2$:"} />
-							</label>
-							<input
-								id="ode-r-rep-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. -2"
-								bind:value={solver.step2.r1}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep2()}
-							/>
-						</div>
-					{:else}
-						<!-- Complex Root Warning & Encouragement to use Quadratic Formula -->
-						<div class="unfactorable-hint-card">
-							<p class="unfactorable-hint-text">
-								<MathText
-									text={`Polynomial $${problem.itsData.step1.latex}$ has discriminant $\\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(1)(${problem.params.a0}) = ${problem.itsData.step2.discriminant} < 0$.`}
-								/>
-							</p>
-							<button
-								type="button"
-								class="btn btn-secondary switch-strategy-btn"
-								onclick={() => {
-									solver.step2.strategy = "quadratic";
-									solver.clearFeedback();
-								}}
-							>
-								Switch to Quadratic Formula Setup →
-							</button>
-						</div>
 					{/if}
 
-					{#if problem.itsData.step2.isFactorable}
-						<div class="step-actions">
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => solver.checkStep2()}
-							>
-								Check Factored Roots →
-							</button>
-						</div>
-					{/if}
-				{:else}
+					<div class="step-actions">
+						<button
+							type="button"
+							class="btn btn-primary"
+							onclick={() => solver.checkStep2()}
+						>
+							Check Factored Roots →
+						</button>
+					</div>
+				{:else if solver.step2.strategy === "quadratic"}
 					<!-- Quadratic Formula Setup Path -->
 					<div class="quadratic-setup-container">
 						<p class="quad-formula-prompt">
@@ -352,7 +340,8 @@
 									placeholder="1"
 									bind:value={solver.step2.quadA}
 									onkeydown={(e) =>
-										e.key === "Enter" && solver.checkStep2()}
+										e.key === "Enter" &&
+										solver.checkStep2()}
 								/>
 							</div>
 
@@ -367,7 +356,8 @@
 									placeholder={`e.g. ${problem.params.a1}`}
 									bind:value={solver.step2.quadB}
 									onkeydown={(e) =>
-										e.key === "Enter" && solver.checkStep2()}
+										e.key === "Enter" &&
+										solver.checkStep2()}
 								/>
 							</div>
 
@@ -382,13 +372,16 @@
 									placeholder={`e.g. ${problem.params.a0}`}
 									bind:value={solver.step2.quadC}
 									onkeydown={(e) =>
-										e.key === "Enter" && solver.checkStep2()}
+										e.key === "Enter" &&
+										solver.checkStep2()}
 								/>
 							</div>
 						</div>
 
 						<div class="preview-equation-box">
-							<span class="preview-label">Live Formula Setup:</span>
+							<span class="preview-label">
+								Live Formula Setup:
+							</span>
 							<MathBlock
 								math={solver.previewQuadSetup}
 								compact={true}
@@ -1194,38 +1187,15 @@
 		font-size: 0.9rem;
 	}
 
-	.unfactorable-hint-card {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		padding: 0.85rem;
-		background: rgba(239, 68, 68, 0.08);
-		border: 1px solid rgba(239, 68, 68, 0.25);
-		border-radius: var(--radius-sm, 6px);
+	.strategy-unselected-prompt {
+		padding: 0.5rem 0.25rem;
 	}
 
-	.unfactorable-hint-text {
+	.strategy-helper-text {
 		font-size: 0.85rem;
-		line-height: 1.45;
-		color: var(--text-primary);
+		color: var(--text-secondary);
 		margin: 0;
-	}
-
-	.switch-strategy-btn {
-		align-self: flex-start;
-		font-size: 0.8rem;
-		font-weight: 600;
-		padding: 0.4rem 0.8rem;
-		background: rgba(6, 182, 212, 0.15);
-		color: var(--accent-primary);
-		border: 1px solid var(--accent-primary);
-		border-radius: var(--radius-sm, 6px);
-		cursor: pointer;
-	}
-
-	.switch-strategy-btn:focus-visible {
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
+		font-style: italic;
 	}
 
 	.quadratic-setup-container {

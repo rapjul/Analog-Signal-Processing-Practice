@@ -90,7 +90,7 @@
 	]);
 </script>
 
-<div class="ode-practice-card">
+<div class="ode-practice-card practice-card">
 	<!-- Problem Header (category + badges + next-problem button) -->
 	<ProblemHeader
 		title={problem.title}
