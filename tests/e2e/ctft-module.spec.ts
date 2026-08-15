@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * End-to-End Test Suite: Continuous-Time Fourier Transform Module (/fourier-transform).
  *
  * Verifies CTFT signal category selection, transform formula input,
- * dynamic problem prompt updates, validation feedback, and step breakdown KaTeX math.
+ * dynamic problem prompt updates, validation feedback, and step breakdown LaTeX math.
  */
 
 test.describe('CTFT Practice Module', () => {

@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
  *
  * Verifies signal pair category customization, dynamic problem regeneration,
  * embedded flip-and-shift canvas visualizer, time-scrubber interactions,
- * analytical piecewise solution reveals, and KaTeX rendering.
+ * analytical piecewise solution reveals, and LaTeX rendering.
  */
 
 test.describe('Continuous-Time Convolution Module', () => {

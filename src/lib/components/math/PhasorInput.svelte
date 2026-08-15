@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
 	 * PhasorInput Svelte 5 Component.
+	 *
 	 * Form builder for AC steady-state phasors and sinusoidal signals.
-	 * Formatted with KaTeX for all mathematical symbols and expressions.
+	 * Formatted with LaTeX for all mathematical symbols and expressions.
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathText from "./MathText.svelte";

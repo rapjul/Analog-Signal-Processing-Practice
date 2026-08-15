@@ -4,8 +4,9 @@
 	 * Structured Form Builder for Fourier Series representations.
 	 * Allows students and users to build Fourier coefficients (a0, an, bn, cn)
 	 * using intuitive Numerator/Denominator fraction inputs and Harmonics selectors
-	 * without requiring manual LaTeX coding. Includes live KaTeX preview cards.
+	 * without requiring manual LaTeX coding. Includes live LaTeX preview cards.
 	 */
+
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathInline from "./MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
@@ -276,7 +277,9 @@
 	<div class="global-params-card">
 		<div class="param-item">
 			<label for="w0-input">
-				<MathText text={String.raw`Fundamental Frequency $\omega_0$:`} />
+				<MathText
+					text={String.raw`Fundamental Frequency $\omega_0$:`}
+				/>
 			</label>
 			<input
 				id="w0-input"
@@ -576,7 +579,9 @@
 			<div class="coeff-card">
 				<div class="coeff-header">
 					<span class="coeff-label">
-						<MathText text={"Complex Exponential Coefficient $c_n$"} />
+						<MathText
+							text={"Complex Exponential Coefficient $c_n$"}
+						/>
 					</span>
 					<div class="input-mode-toggle">
 						<button

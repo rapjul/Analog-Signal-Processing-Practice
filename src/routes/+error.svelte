@@ -66,9 +66,9 @@
 	}
 
 	/**
-	 * Returns contextual KaTeX mathematical formula string for the error/module state.
+	 * Returns contextual LaTeX mathematical formula string for the error/module state.
 	 * @param {string} pathname - The requested route path
-	 * @returns {string} KaTeX LaTeX expression string
+	 * @returns {string} LaTeX expression string
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getMathFormula(pathname: string): string {

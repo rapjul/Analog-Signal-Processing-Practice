@@ -3,7 +3,7 @@
 	 * StepFeedback Svelte 5 Component.
 	 *
 	 * Renders diagnostic ITS step solver feedback, input validation warnings,
-	 * and error messages with KaTeX mathematical typesetting and responsive styling.
+	 * and error messages with LaTeX mathematical typesetting and responsive styling.
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";

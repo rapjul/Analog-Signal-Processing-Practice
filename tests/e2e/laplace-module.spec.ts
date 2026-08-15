@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * End-to-End Test Suite: Laplace Transform & S-Domain Practice Module (/laplace).
  *
  * Verifies Inverse Laplace problem generation, Partial Fraction Decomposition (PFD)
- * steps, Region of Convergence (ROC) analysis, BIBO stability checks, and KaTeX rendering.
+ * steps, Region of Convergence (ROC) analysis, BIBO stability checks, and LaTeX rendering.
  */
 
 test.describe('Laplace Transform & S-Domain Module', () => {

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * End-to-End Test Suite: Mathematical Interactions, KaTeX Copy Badges, and Zero-Unicode Audit.
+ * End-to-End Test Suite: Mathematical Interactions, LaTeX Copy Badges, and Zero-Unicode Audit.
  *
  * Verifies click-to-copy tooltip badge visibility on hover/click, clipboard interaction lifecycle,
  * and performs an automated DOM crawl across all 7 routes to enforce Universal Rule 1 (Zero Unicode Math).
