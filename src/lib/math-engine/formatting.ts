@@ -119,3 +119,22 @@ export function formatOdeLhs(a2: number, a1: number, a0: number): string {
 
 	return formatPolynomial(terms);
 }
+
+/**
+ * Formats a linear root factor term $(x - r)$ with clean signs.
+ *
+ * Examples:
+ * - formatRootFactor(-2) -> "(x + 2)"
+ * - formatRootFactor(3) -> "(x - 3)"
+ * - formatRootFactor(0) -> "x"
+ * - formatRootFactor(-2, "s") -> "(s + 2)"
+ *
+ * @param {number} root Numerical root value
+ * @param {string} [variable="x"] Variable symbol (defaults to "x")
+ * @returns {string} Formatted LaTeX factor string
+ */
+export function formatRootFactor(root: number, variable = "x"): string {
+	if (root === 0) return variable;
+	if (root < 0) return `(${variable} + ${Math.abs(root)})`;
+	return `(${variable} - ${root})`;
+}

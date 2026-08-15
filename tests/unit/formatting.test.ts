@@ -3,6 +3,7 @@ import {
 	formatOdeLhs,
 	formatPolynomial,
 	formatQuadraticPolynomial,
+	formatRootFactor,
 } from "$lib/math-engine/formatting";
 import { describe, expect, it } from "vitest";
 
@@ -106,5 +107,27 @@ describe("formatOdeLhs", () => {
 		expect(formatOdeLhs(1, 1, 1)).toBe("\\frac{d^2 y}{dt^2} + \\frac{dy}{dt} + y(t)");
 		expect(formatOdeLhs(1, -1, -1)).toBe("\\frac{d^2 y}{dt^2} - \\frac{dy}{dt} - y(t)");
 		expect(formatOdeLhs(1, 3, 2)).toBe("\\frac{d^2 y}{dt^2} + 3 \\frac{dy}{dt} + 2 y(t)");
+	});
+});
+
+describe("formatRootFactor", () => {
+	it("defaults to independent variable x", () => {
+		expect(formatRootFactor(-2)).toBe("(x + 2)");
+		expect(formatRootFactor(3)).toBe("(x - 3)");
+		expect(formatRootFactor(0)).toBe("x");
+	});
+
+	it("formats negative roots with custom variable", () => {
+		expect(formatRootFactor(-2, "s")).toBe("(s + 2)");
+		expect(formatRootFactor(-5, "s")).toBe("(s + 5)");
+	});
+
+	it("formats positive roots with custom variable", () => {
+		expect(formatRootFactor(3, "s")).toBe("(s - 3)");
+		expect(formatRootFactor(1, "s")).toBe("(s - 1)");
+	});
+
+	it("formats zero root without parentheses", () => {
+		expect(formatRootFactor(0, "s")).toBe("s");
 	});
 });

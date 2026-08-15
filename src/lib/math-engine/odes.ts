@@ -14,7 +14,11 @@
  * - Complete response: y(t) = y_{ZI}(t) + y_{ZS}(t) = y_h(t) + y_p(t)
  */
 
-import { formatOdeLhs, formatQuadraticPolynomial } from "./formatting";
+import {
+	formatOdeLhs,
+	formatQuadraticPolynomial,
+	formatRootFactor,
+} from "./formatting";
 import { toFractionLatex } from "./fraction";
 import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 
@@ -140,6 +144,8 @@ export interface OdeItsStep2 extends BaseItsStep {
 	};
 	/** Exact symbolic formatted roots string in LaTeX */
 	symbolicRootsLatex: string;
+	/** Formatted factored polynomial expression (e.g. "(s + 2)(s + 3) = 0") if factorable */
+	factoredFormLatex?: string;
 	/** First root (real part if complex) */
 	r1: number;
 	/** Second root (real part if distinct real) */
@@ -998,6 +1004,12 @@ export function generateOdeProblem(
 					: resolvedRootType === "repeated_real"
 						? `r_1 = r_2 = ${roots.r1}`
 						: `s = ${roots.r1} \\pm j${roots.im}`,
+			factoredFormLatex:
+				resolvedRootType === "distinct_real"
+					? `${formatRootFactor(roots.r1, "s")}${formatRootFactor(roots.r2 ?? 0, "s")} = 0`
+					: resolvedRootType === "repeated_real"
+						? `${formatRootFactor(roots.r1, "s")}^2 = 0`
+						: undefined,
 			r1: roots.r1,
 			r2: roots.r2,
 			im: roots.im,

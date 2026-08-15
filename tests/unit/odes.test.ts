@@ -158,6 +158,20 @@ describe("LCC ODE Math Engine", () => {
 				expect(problem.itsData.step1.latex).not.toMatch(/[+-]\s*1\s*s\b/);
 			}
 		});
+
+		it("generates correct factoredFormLatex for factorable roots and undefined for complex roots", () => {
+			const distinctProblem = generateOdeProblem("distinct_real");
+			expect(distinctProblem.itsData.step2.factoredFormLatex).toBeDefined();
+			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain("(s");
+			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain("= 0");
+
+			const repeatedProblem = generateOdeProblem("repeated_real");
+			expect(repeatedProblem.itsData.step2.factoredFormLatex).toBeDefined();
+			expect(repeatedProblem.itsData.step2.factoredFormLatex).toContain("^2 = 0");
+
+			const complexProblem = generateOdeProblem("complex_conjugate");
+			expect(complexProblem.itsData.step2.factoredFormLatex).toBeUndefined();
+		});
 	});
 });
 

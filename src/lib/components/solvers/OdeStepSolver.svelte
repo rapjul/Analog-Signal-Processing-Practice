@@ -411,6 +411,13 @@
 						text={`$${problem.itsData.step2.symbolicRootsLatex}$`}
 					/>
 				</span>
+				{#if solver.step2.strategy === "quadratic" && problem.itsData.step2.isFactorable && problem.itsData.step2.factoredFormLatex}
+					<span class="shortcut-tip-note">
+						<MathText
+							text={`(Factoring shortcut: $${problem.itsData.step2.factoredFormLatex}$)`}
+						/>
+					</span>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -839,10 +846,17 @@
 
 	.step-summary {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem;
 		font-size: 0.85rem;
 		color: var(--text-secondary);
+	}
+
+	.shortcut-tip-note {
+		font-size: 0.8rem;
+		color: var(--accent-primary);
+		opacity: 0.9;
 	}
 
 	.check-icon {
