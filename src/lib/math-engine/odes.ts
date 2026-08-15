@@ -14,6 +14,7 @@
  * - Complete response: y(t) = y_{ZI}(t) + y_{ZS}(t) = y_h(t) + y_p(t)
  */
 
+import { formatOdeLhs, formatQuadraticPolynomial } from "./formatting";
 import { toFractionLatex } from "./fraction";
 import type { SolutionStep } from "./types";
 
@@ -676,7 +677,7 @@ export function generateOdeProblem(
 		targetDYhZS,
 	);
 
-	const odeLatex = `\\frac{d^2 y}{dt^2} + ${a1} \\frac{dy}{dt} + ${a0} y(t) = ${forcing.latex}`;
+	const odeLatex = `${formatOdeLhs(1, a1, a0)} = ${forcing.latex}`;
 
 	const completeLatex =
 		particular.latex === "0"
@@ -689,6 +690,10 @@ export function generateOdeProblem(
 			: `${homogeneousZS.latex} + ${particular.latex}`;
 
 	// Step 1: Characteristic Equation & Quadratic Root Solving
+	const charEqLhs = formatQuadraticPolynomial(1, a1, a0, "s").replace(
+		" = 0",
+		"",
+	);
 	let step1Latex: string;
 	switch (resolvedRootType) {
 		case "distinct_real": {
@@ -696,20 +701,20 @@ export function generateOdeProblem(
 			const r2 = roots.r2 ?? 0;
 			const f1 = r1 > 0 ? `- ${r1}` : `+ ${-r1}`;
 			const f2 = r2 > 0 ? `- ${r2}` : `+ ${-r2}`;
-			step1Latex = `s^2 + ${a1} s + ${a0} &= 0 \\\\\n (s ${f1})(s ${f2}) &= 0 \\\\\n \\implies r_1 = ${r1}, \\; r_2 &= ${r2}`;
+			step1Latex = `${charEqLhs} &= 0 \\\\\n (s ${f1})(s ${f2}) &= 0 \\\\\n \\implies r_1 = ${r1}, \\; r_2 &= ${r2}`;
 			break;
 		}
 		case "repeated_real": {
 			const r = roots.r1;
 			const f = r > 0 ? `- ${r}` : `+ ${-r}`;
-			step1Latex = `s^2 + ${a1} s + ${a0} &= 0 \\\\\n (s ${f})^2 &= 0 \\\\\n \\implies r_1 = r_2 &= ${r}`;
+			step1Latex = `${charEqLhs} &= 0 \\\\\n (s ${f})^2 &= 0 \\\\\n \\implies r_1 = r_2 &= ${r}`;
 			break;
 		}
 		case "complex_conjugate": {
 			const sigma = roots.r1;
 			const omega_d = roots.im ?? 0;
 			const disc = a1 * a1 - 4 * a0;
-			step1Latex = `& s^2 + ${a1} s + ${a0} = 0 \\\\\n \\implies & s = \\frac{-(${a1}) \\pm \\sqrt{${a1}^2 - 4(1)(${a0})}}{2(1)} \\\\\n & = \\frac{-${a1} \\pm \\sqrt{${disc}}}{2} = ${sigma} \\pm j${omega_d}`;
+			step1Latex = `& ${charEqLhs} = 0 \\\\\n \\implies & s = \\frac{-(${a1}) \\pm \\sqrt{${a1}^2 - 4(1)(${a0})}}{2(1)} \\\\\n & = \\frac{-${a1} \\pm \\sqrt{${disc}}}{2} = ${sigma} \\pm j${omega_d}`;
 			break;
 		}
 		default: {
@@ -952,16 +957,17 @@ export function generateOdeProblem(
 		}
 	}
 
+	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
 	const itsData: OdeItsData = {
 		stage1: {
 			expectedA2: 1,
 			expectedA1: a1,
 			expectedA0: a0,
-			latex: `s^2 + ${a1}s + ${a0} = 0`,
+			latex: charEqFormatted,
 			hints: [
 				"Recall that differential operators map directly to powers of $s$: $\\frac{d^2}{dt^2} \\to s^2$, $\\frac{d}{dt} \\to s$, and $y(t) \\to 1$.",
 				`Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.`,
-				`For this differential equation, the characteristic equation is $s^2 + ${a1}s + ${a0} = 0$.`,
+				`For this differential equation, the characteristic equation is ${charEqFormatted}.`,
 			],
 			misconceptions: {
 				forcing_rhs:
@@ -979,7 +985,7 @@ export function generateOdeProblem(
 			im: roots.im,
 			hints: [
 				"Form the characteristic polynomial $s^2 + a_1 s + a_0 = 0$ by replacing derivatives with powers of $s$.",
-				`The characteristic equation is $s^2 + ${a1}s + ${a0} = 0$. Apply the quadratic formula $s = \\frac{-${a1} \\pm \\sqrt{${a1 * a1} - 4(${a0})}}{2}$.`,
+				`The characteristic equation is ${charEqFormatted}. Apply the quadratic formula $s = \\frac{-${a1} \\pm \\sqrt{${a1 * a1} - 4(${a0})}}{2}$.`,
 				resolvedRootType === "distinct_real"
 					? `The characteristic roots are distinct real: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
 					: resolvedRootType === "repeated_real"

@@ -118,7 +118,9 @@
 		if (a1Str !== "") {
 			const n1 = Number.parseFloat(a1Str);
 			if (!Number.isNaN(n1)) {
-				if (n1 >= 0) term1 = `+ ${n1}s`;
+				if (n1 === 1) term1 = "+ s";
+				else if (n1 === -1) term1 = "- s";
+				else if (n1 >= 0) term1 = `+ ${n1}s`;
 				else term1 = `- ${Math.abs(n1)}s`;
 			} else {
 				term1 = `+ ${a1Str}s`;
@@ -277,7 +279,7 @@
 				advanceToStage(3);
 			} else {
 				s2Valid = false;
-				s2Feedback = `Incorrect roots. Factor the characteristic polynomial $s^2 + ${problem.params.a1}s + ${problem.params.a0} = 0$.`;
+				s2Feedback = `Incorrect roots. Factor the characteristic polynomial $${problem.itsData.stage1.latex}$.`;
 			}
 		} else if (s2Data.rootType === "repeated_real") {
 			const v1 = Number.parseFloat(s2R1.trim());

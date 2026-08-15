@@ -147,5 +147,17 @@ describe("LCC ODE Math Engine", () => {
 			expect(problem.steps[6].latex).toContain("C_1");
 			expect(problem.steps[6].latex).toContain("C_2");
 		});
+
+		it("omits unit 1 and -1 coefficients from odeLatex and characteristic equations", () => {
+			for (let i = 0; i < 30; i++) {
+				const problem = generateOdeProblem("random", "random");
+				// Ensure neither + 1 y(t), - 1 y(t), + 1 \frac{dy}{dt}, - 1 \frac{dy}{dt}, + 1 s, nor - 1 s appear
+				expect(problem.odeLatex).not.toMatch(/[+-]\s*1\s*y\(t\)/);
+				expect(problem.odeLatex).not.toMatch(/[+-]\s*1\s*\\frac\{dy\}/);
+				expect(problem.itsData.stage1.latex).not.toMatch(/[+-]\s*1s\b/);
+				expect(problem.itsData.stage1.latex).not.toMatch(/[+-]\s*1\s*s\b/);
+			}
+		});
 	});
 });
+
