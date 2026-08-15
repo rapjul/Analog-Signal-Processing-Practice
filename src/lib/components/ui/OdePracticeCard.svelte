@@ -54,19 +54,19 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let plotCurves = $derived([
 		{
-			label: "Total y(t)",
+			label: "Total Solution",
 			math: "y(t)",
 			color: "#06b6d4",
 			eval: problem.evalComplete,
 		},
 		{
-			label: "Zero-Input y_ZI(t)",
+			label: "Zero-Input Response",
 			math: "y_{\\text{ZI}}(t)",
 			color: "#10b981",
 			eval: problem.evalZI,
 		},
 		{
-			label: "Zero-State y_ZS(t)",
+			label: "Zero-State Response",
 			math: "y_{\\text{ZS}}(t)",
 			color: "#f59e0b",
 			eval: problem.evalZS,
