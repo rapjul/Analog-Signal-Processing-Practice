@@ -114,10 +114,10 @@
 						Constant / Step Forcing [K u(t)]
 					</option>
 					<option value="exponential">
-						Exponential Forcing [K exp(p*t)]
+						Exponential Forcing [K e^(pt)]
 					</option>
 					<option value="sinusoid">
-						Sinusoidal Forcing [K cos(omega*t)]
+						Sinusoidal Forcing [K cos(ωt)]
 					</option>
 				</select>
 			</div>
