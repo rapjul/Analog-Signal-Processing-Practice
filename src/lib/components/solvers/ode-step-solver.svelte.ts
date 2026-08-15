@@ -32,18 +32,18 @@ export interface OdeStep2State extends BaseStepState {
 	r1: string;
 	/** Second root input string (for distinct real) */
 	r2: string;
-	/** Real part sigma (for complex conjugate direct entry fallback) */
+	/** Real part sigma (for complex conjugate) */
 	sigma: string;
-	/** Imaginary part omega_d (for complex conjugate direct entry fallback) */
+	/** Imaginary part omega_d (for complex conjugate) */
 	omegaD: string;
-	/** Leading coefficient 'a' in quadratic formula setup */
-	quadA: string;
-	/** Coefficient 'b' in quadratic formula setup */
-	quadB: string;
-	/** Constant coefficient 'c' in quadratic formula setup */
-	quadC: string;
-	/** Whether quadratic setup has been verified successfully */
-	quadVerified: boolean;
+	/** Selected root classification in quadratic formula path */
+	quadClassChoice: RootType | null;
+	/** Calculated discriminant input string (Delta = b^2 - 4ac) */
+	quadDiscriminantInput: string;
+	/** Whether the student selected an incorrect classification and must calculate Delta */
+	quadNeedsDiscriminantCalc: boolean;
+	/** Whether the discriminant has been verified successfully */
+	quadDiscriminantVerified: boolean;
 }
 
 /**
@@ -117,10 +117,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			r2: "",
 			sigma: "",
 			omegaD: "",
-			quadA: "",
-			quadB: "",
-			quadC: "",
-			quadVerified: false,
+			quadClassChoice: null as RootType | null,
+			quadDiscriminantInput: "",
+			quadNeedsDiscriminantCalc: false,
+			quadDiscriminantVerified: false,
 		}),
 	);
 
@@ -315,14 +315,78 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Formatted LaTeX preview string of the student's quadratic formula setup.
+	 * Formatted LaTeX preview string of the substituted quadratic formula.
 	 */
 	previewQuadSetup = $derived.by((): string => {
-		const bStr = this.step2.quadB.trim() !== "" ? this.step2.quadB.trim() : "b";
-		const aStr = this.step2.quadA.trim() !== "" ? this.step2.quadA.trim() : "a";
-		const cStr = this.step2.quadC.trim() !== "" ? this.step2.quadC.trim() : "c";
-		return String.raw`s = \frac{-(${bStr}) \pm \sqrt{(${bStr})^2 - 4(${aStr})(${cStr})}}{2(${aStr})}`;
+		const b = this.problem.params.a1;
+		const a = 1;
+		const c = this.problem.params.a0;
+		return String.raw`s = \frac{-(${b}) \pm \sqrt{(${b})^2 - 4(${a})(${c})}}{2(${a})}`;
 	});
+
+	/**
+	 * Formatted LaTeX preview string of complex roots (sigma +/- j omega_d).
+	 */
+	previewComplexRoots = $derived.by((): string => {
+		const sig =
+			this.step2.sigma.trim() !== "" ? this.step2.sigma.trim() : "\\sigma";
+		const om =
+			this.step2.omegaD.trim() !== "" ? this.step2.omegaD.trim() : "\\omega_d";
+		return String.raw`s = ${sig} \pm j ${om}`;
+	});
+
+	/**
+	 * Handles user selection of root classification in the Quadratic Formula path.
+	 * If the choice is correct, reveals root inputs.
+	 * If incorrect, locks classification buttons and requires calculating Delta = b^2 - 4ac.
+	 * @param {RootType} choice Selected root classification
+	 */
+	selectQuadRootClassification(choice: RootType): void {
+		const s2Data = this.problem.itsData.step2;
+		if (choice === s2Data.rootType) {
+			this.step2.quadClassChoice = choice;
+			this.step2.quadNeedsDiscriminantCalc = false;
+			this.clearFeedback();
+		} else {
+			this.step2.quadClassChoice = null;
+			this.step2.quadNeedsDiscriminantCalc = true;
+			this.setIncorrect(
+				this.step2,
+				"Incorrect root classification. Please calculate the discriminant $\\Delta = b^2 - 4ac$ below to determine the true root structure.",
+			);
+		}
+	}
+
+	/**
+	 * Validates the student's numerical discriminant calculation Delta = b^2 - 4ac.
+	 */
+	verifyDiscriminant(): void {
+		const s2Data = this.problem.itsData.step2;
+		const userDisc = parseNumericInput(this.step2.quadDiscriminantInput);
+
+		if (Number.isNaN(userDisc)) {
+			this.setValidation(
+				this.step2,
+				"Please enter a numeric value for the discriminant $\\Delta = b^2 - 4ac$.",
+			);
+			return;
+		}
+
+		const expectedDisc = s2Data.discriminant;
+		if (Math.abs(userDisc - expectedDisc) < 0.05) {
+			this.step2.quadDiscriminantVerified = true;
+			this.step2.quadClassChoice = s2Data.rootType;
+			this.step2.quadNeedsDiscriminantCalc = false;
+			this.clearFeedback();
+		} else {
+			const a1 = this.problem.params.a1;
+			const a0 = this.problem.params.a0;
+			this.setIncorrect(
+				this.step2,
+				`Incorrect discriminant. Evaluate $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0})$.`,
+			);
+		}
+	}
 
 	/**
 	 * Validates Step 2 (Characteristic Roots & Strategy).
@@ -421,34 +485,102 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep2Quadratic(): void {
 		const s2Data = this.problem.itsData.step2;
-		const expectedA = s2Data.quadSetup.a;
-		const expectedB = s2Data.quadSetup.b;
-		const expectedC = s2Data.quadSetup.c;
 
-		const userA = parseNumericInput(this.step2.quadA);
-		const userB = parseNumericInput(this.step2.quadB);
-		const userC = parseNumericInput(this.step2.quadC);
-
-		if (Number.isNaN(userA) || Number.isNaN(userB) || Number.isNaN(userC)) {
+		if (!this.step2.quadClassChoice) {
 			this.setValidation(
 				this.step2,
-				"Please enter numeric values for all quadratic formula parameters: $a$, $b$, and $c$.",
+				"Please select the root classification or calculate the discriminant $\\Delta$.",
 			);
 			return;
 		}
 
-		if (
-			Math.abs(userA - expectedA) < 0.05 &&
-			Math.abs(userB - expectedB) < 0.05 &&
-			Math.abs(userC - expectedC) < 0.05
-		) {
-			this.step2.quadVerified = true;
-			this.setPassed(this.step2, 3);
-		} else {
-			this.setIncorrect(
-				this.step2,
-				`Incorrect quadratic formula parameters. For $Q(s) = ${this.problem.itsData.step1.latex}$, match $a = ${expectedA}$, $b = ${expectedB}$, and $c = ${expectedC}$.`,
-			);
+		switch (this.step2.quadClassChoice) {
+			case "complex_conjugate": {
+				const userSig = parseNumericInput(this.step2.sigma);
+				const userOm = parseNumericInput(this.step2.omegaD);
+
+				if (Number.isNaN(userSig) || Number.isNaN(userOm)) {
+					this.setValidation(
+						this.step2,
+						"Please enter numeric values for both the real part $\\sigma$ and imaginary part $\\omega_d$.",
+					);
+					return;
+				}
+
+				const expectedSig = s2Data.r1;
+				const expectedOm = Math.abs(s2Data.im ?? 0);
+
+				if (
+					Math.abs(userSig - expectedSig) < 0.05 &&
+					Math.abs(Math.abs(userOm) - expectedOm) < 0.05
+				) {
+					this.setPassed(this.step2, 3);
+				} else {
+					this.setIncorrect(
+						this.step2,
+						`Incorrect complex roots. Real part $\\sigma = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{2}$, imaginary part $\\omega_d = \\frac{\\sqrt{|\\Delta|}}{2a} = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{2}$.`,
+					);
+				}
+				break;
+			}
+
+			case "distinct_real": {
+				const v1 = parseNumericInput(this.step2.r1);
+				const v2 = parseNumericInput(this.step2.r2);
+
+				if (Number.isNaN(v1) || Number.isNaN(v2)) {
+					this.setValidation(
+						this.step2,
+						"Please enter numeric values for both roots: $r_1$ and $r_2$.",
+					);
+					return;
+				}
+
+				const r1 = s2Data.r1;
+				const r2 = s2Data.r2 ?? 0;
+				const matchDirect =
+					Math.abs(v1 - r1) < 0.05 && Math.abs(v2 - r2) < 0.05;
+				const matchSwapped =
+					Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
+
+				if (matchDirect || matchSwapped) {
+					this.setPassed(this.step2, 3);
+				} else {
+					this.setIncorrect(
+						this.step2,
+						`Incorrect roots. Evaluate $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$.`,
+					);
+				}
+				break;
+			}
+
+			case "repeated_real": {
+				const v1 = parseNumericInput(this.step2.r1);
+
+				if (Number.isNaN(v1)) {
+					this.setValidation(
+						this.step2,
+						"Please enter a numeric value for the repeated root $r$.",
+					);
+					return;
+				}
+
+				const r1 = s2Data.r1;
+				if (Math.abs(v1 - r1) < 0.05) {
+					this.setPassed(this.step2, 3);
+				} else {
+					this.setIncorrect(
+						this.step2,
+						`Incorrect repeated root. With $\\Delta = 0$, $r = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{2}$.`,
+					);
+				}
+				break;
+			}
+
+			default:
+				throw new Error(
+					`Unhandled root classification choice: ${String(this.step2.quadClassChoice)}`,
+				);
 		}
 	}
 
@@ -594,10 +726,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			r2: "",
 			sigma: "",
 			omegaD: "",
-			quadA: "",
-			quadB: "",
-			quadC: "",
-			quadVerified: false,
+			quadClassChoice: null as RootType | null,
+			quadDiscriminantInput: "",
+			quadNeedsDiscriminantCalc: false,
+			quadDiscriminantVerified: false,
 		});
 		this.step3 = createStepState({ selected: null as RootType | null });
 		this.step4 = createStepState({ selected: null as string | null });

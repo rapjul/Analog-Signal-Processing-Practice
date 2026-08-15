@@ -182,13 +182,12 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.currentStep).toBe(3);
 	});
 
-	it("validates complex conjugate roots and quadratic formula setup in Step 2", () => {
+	it("validates complex conjugate roots, classification remediation, and discriminant calculation in Step 2", () => {
 		const problem = generateOdeProblem("complex_conjugate");
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.advanceToStep(2);
 
-		// Strategy defaults/switches
 		expect(problem.itsData.step2.isFactorable).toBe(false);
 
 		// Attempting factoring on complex polynomial produces pedagogical discriminant misconception
@@ -196,39 +195,69 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("incorrect");
-		expect(solver.step2.feedback).toContain("cannot be factored over real integers");
+		expect(solver.step2.feedback).toContain(
+			"cannot be factored over real integers",
+		);
 
 		// Switch to quadratic formula path
 		solver.step2.strategy = "quadratic";
 
-		// Non-numeric input (validation)
-		solver.step2.quadA = "";
-		solver.step2.quadB = "";
-		solver.step2.quadC = "";
+		// Unselected classification/discriminant validation
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("validation");
-		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+		expect(solver.step2.feedback).toContain("root classification");
 
-		// Incorrect quadratic formula parameters
-		solver.step2.quadA = "999";
-		solver.step2.quadB = "999";
-		solver.step2.quadC = "999";
+		// Guessing incorrect classification triggers forced discriminant remediation
+		solver.selectQuadRootClassification("distinct_real");
+		expect(solver.step2.quadNeedsDiscriminantCalc).toBe(true);
+		expect(solver.step2.quadClassChoice).toBeNull();
+		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.step2.feedback).toContain("calculate the discriminant");
+
+		// Non-numeric discriminant calculation
+		solver.step2.quadDiscriminantInput = "abc";
+		solver.verifyDiscriminant();
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.step2.feedback).toContain("numeric value");
+
+		// Incorrect discriminant value
+		solver.step2.quadDiscriminantInput = "999";
+		solver.verifyDiscriminant();
+		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.step2.feedback).toContain("Incorrect discriminant");
+
+		// Correct discriminant value unlocks complex roots entry
+		solver.step2.quadDiscriminantInput = String(
+			problem.itsData.step2.discriminant,
+		);
+		solver.verifyDiscriminant();
+		expect(solver.step2.quadDiscriminantVerified).toBe(true);
+		expect(solver.step2.quadClassChoice).toBe("complex_conjugate");
+		expect(solver.step2.quadNeedsDiscriminantCalc).toBe(false);
+		expect(solver.step2.feedbackType).toBeNull();
+
+		// Missing/non-numeric complex roots (validation)
+		solver.step2.sigma = "";
+		solver.step2.omegaD = "";
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.step2.feedback).toContain("numeric values");
+
+		// Incorrect complex roots
+		solver.step2.sigma = "999";
+		solver.step2.omegaD = "999";
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("incorrect");
-		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
-		expect(solver.step2.feedback).toContain(
-			"Incorrect quadratic formula parameters",
-		);
+		expect(solver.step2.feedback).toContain("Incorrect complex roots");
 
-		// Correct quadratic setup auto-evaluates and passes
-		solver.step2.quadA = String(problem.itsData.step2.quadSetup.a);
-		solver.step2.quadB = String(problem.itsData.step2.quadSetup.b);
-		solver.step2.quadC = String(problem.itsData.step2.quadSetup.c);
+		// Correct complex roots (sigma and omega_d)
+		solver.step2.sigma = String(problem.itsData.step2.r1);
+		solver.step2.omegaD = String(Math.abs(problem.itsData.step2.im ?? 0));
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(true);
-		expect(solver.step2.quadVerified).toBe(true);
 		expect(solver.step2.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(3);
 	});

@@ -145,7 +145,7 @@ test.describe('LCC ODEs Practice Module', () => {
 
 		// No root or quadratic inputs should be rendered yet
 		await expect(step2.locator('#ode-r1-input')).toHaveCount(0);
-		await expect(step2.locator('#ode-quad-a')).toHaveCount(0);
+		await expect(step2.locator('#ode-disc-input')).toHaveCount(0);
 
 		// Click Factoring by inspection
 		await strategyBtns.first().click();
@@ -155,8 +155,8 @@ test.describe('LCC ODEs Practice Module', () => {
 		// Click Quadratic formula
 		await strategyBtns.last().click();
 		await expect(strategyBtns.last()).toHaveClass(/active/);
-		await expect(step2.locator('#ode-quad-a')).toBeVisible();
-		await expect(step2.locator('#ode-quad-b')).toBeVisible();
-		await expect(step2.locator('#ode-quad-c')).toBeVisible();
+		await expect(step2.locator('.quad-classification-box')).toBeVisible();
+		await expect(step2.locator('.quad-class-btn')).toHaveCount(3);
+		await expect(step2.locator('#ode-disc-input')).toBeVisible();
 	});
 });

@@ -324,64 +324,11 @@
 					<div class="quadratic-setup-container">
 						<p class="quad-formula-prompt">
 							<MathText
-								text={String.raw`Substitute coefficients $a$, $b$, and $c$ into $s = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$:`}
+								text={String.raw`Substituted characteristic polynomial coefficients into the quadratic formula $s = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$:`}
 							/>
 						</p>
 
-						<div class="quad-params-grid">
-							<div class="input-pair">
-								<label for="ode-quad-a" class="field-label">
-									<MathText text={"Coeff $a$ ($s^2$):"} />
-								</label>
-								<input
-									id="ode-quad-a"
-									type="text"
-									class="text-input"
-									placeholder="1"
-									bind:value={solver.step2.quadA}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep2()}
-								/>
-							</div>
-
-							<div class="input-pair">
-								<label for="ode-quad-b" class="field-label">
-									<MathText text={"Coeff $b$ ($s$):"} />
-								</label>
-								<input
-									id="ode-quad-b"
-									type="text"
-									class="text-input"
-									placeholder={`e.g. ${problem.params.a1}`}
-									bind:value={solver.step2.quadB}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep2()}
-								/>
-							</div>
-
-							<div class="input-pair">
-								<label for="ode-quad-c" class="field-label">
-									<MathText text={"Coeff $c$ (const):"} />
-								</label>
-								<input
-									id="ode-quad-c"
-									type="text"
-									class="text-input"
-									placeholder={`e.g. ${problem.params.a0}`}
-									bind:value={solver.step2.quadC}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep2()}
-								/>
-							</div>
-						</div>
-
 						<div class="preview-equation-box">
-							<span class="preview-label">
-								Live Formula Setup:
-							</span>
 							<MathBlock
 								math={solver.previewQuadSetup}
 								compact={true}
@@ -389,15 +336,256 @@
 							/>
 						</div>
 
-						<div class="step-actions">
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => solver.checkStep2()}
+						<!-- Root Classification & Discriminant Gate -->
+						<div class="quad-classification-box">
+							<span class="classification-step-label">
+								<MathText
+									text={String.raw`1. Determine root structure from discriminant $\Delta = b^2 - 4ac$:`}
+								/>
+							</span>
+
+							<div class="classification-button-group">
+								<button
+									type="button"
+									class="quad-class-btn"
+									class:active={solver.step2.quadClassChoice ===
+										"distinct_real"}
+									disabled={solver.step2
+										.quadNeedsDiscriminantCalc}
+									onclick={() =>
+										solver.selectQuadRootClassification(
+											"distinct_real",
+										)}
+								>
+									<MathText text={"Distinct Real ($\Delta > 0$)"} />
+								</button>
+								<button
+									type="button"
+									class="quad-class-btn"
+									class:active={solver.step2.quadClassChoice ===
+										"repeated_real"}
+									disabled={solver.step2
+										.quadNeedsDiscriminantCalc}
+									onclick={() =>
+										solver.selectQuadRootClassification(
+											"repeated_real",
+										)}
+								>
+									<MathText text={"Repeated Real ($\Delta = 0$)"} />
+								</button>
+								<button
+									type="button"
+									class="quad-class-btn"
+									class:active={solver.step2.quadClassChoice ===
+										"complex_conjugate"}
+									disabled={solver.step2
+										.quadNeedsDiscriminantCalc}
+									onclick={() =>
+										solver.selectQuadRootClassification(
+											"complex_conjugate",
+										)}
+								>
+									<MathText
+										text={"Complex Conjugate ($\Delta < 0$)"}
+									/>
+								</button>
+							</div>
+
+							<!-- Discriminant Calculation Row (Helper or Remediation) -->
+							<div
+								class="disc-calc-row"
+								class:disc-remediation-required={solver.step2
+									.quadNeedsDiscriminantCalc}
 							>
-								Verify Setup & Evaluate Roots →
-							</button>
+								<label
+									for="ode-disc-input"
+									class="disc-field-label"
+								>
+									<MathText
+										text={String.raw`Calculate $\Delta = b^2 - 4ac$:`}
+									/>
+								</label>
+								<div class="disc-input-with-action">
+									<input
+										id="ode-disc-input"
+										type="text"
+										class="text-input disc-input"
+										placeholder="e.g. -36"
+										bind:value={solver.step2
+											.quadDiscriminantInput}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.verifyDiscriminant()}
+									/>
+									<button
+										type="button"
+										class="btn btn-secondary btn-verify-disc"
+										onclick={() =>
+											solver.verifyDiscriminant()}
+									>
+										<MathText text={"Verify $\Delta$"} />
+									</button>
+								</div>
+
+								{#if solver.step2.quadDiscriminantVerified}
+									<span class="disc-verified-badge">
+										<span class="check-icon">✓</span>
+										<MathText
+											text={solver.step2
+												.quadClassChoice ===
+											"complex_conjugate"
+												? String.raw`$\Delta = ${problem.itsData.step2.discriminant} < 0$ (Complex Roots)`
+												: solver.step2
+															.quadClassChoice ===
+													  "repeated_real"
+													? String.raw`$\Delta = 0$ (Repeated Real Root)`
+													: String.raw`$\Delta = ${problem.itsData.step2.discriminant} > 0$ (Distinct Real Roots)`}
+										/>
+									</span>
+								{/if}
+							</div>
 						</div>
+
+						<!-- Dynamic Roots Input Form (revealed when classification is resolved) -->
+						{#if solver.step2.quadClassChoice !== null}
+							<div class="quad-roots-entry-box">
+								<span class="classification-step-label">
+									2. Evaluate the characteristic roots:
+								</span>
+
+								{#if solver.step2.quadClassChoice === "complex_conjugate"}
+									<div class="input-row-grid">
+										<div class="input-pair">
+											<label
+												for="ode-sigma-input"
+												class="field-label"
+											>
+												<MathText
+													text={"Real Part $\\sigma$:"}
+												/>
+											</label>
+											<input
+												id="ode-sigma-input"
+												type="text"
+												class="text-input"
+												placeholder="e.g. -1"
+												bind:value={solver.step2.sigma}
+												onkeydown={(e) =>
+													e.key === "Enter" &&
+													solver.checkStep2()}
+											/>
+										</div>
+										<div class="input-pair">
+											<label
+												for="ode-omega-input"
+												class="field-label"
+											>
+												<MathText
+													text={
+														"Imaginary Part $\\omega_d$:"
+													}
+												/>
+											</label>
+											<input
+												id="ode-omega-input"
+												type="text"
+												class="text-input"
+												placeholder="e.g. 3"
+												bind:value={solver.step2.omegaD}
+												onkeydown={(e) =>
+													e.key === "Enter" &&
+													solver.checkStep2()}
+											/>
+										</div>
+									</div>
+									<div class="preview-equation-box">
+										<span class="preview-label">
+											Live Roots Preview:
+										</span>
+										<MathBlock
+											math={solver.previewComplexRoots}
+											compact={true}
+											hideHeader={true}
+										/>
+									</div>
+								{:else if solver.step2.quadClassChoice === "distinct_real"}
+									<div class="input-row-grid">
+										<div class="input-pair">
+											<label
+												for="ode-quad-r1-input"
+												class="field-label"
+											>
+												<MathText text={"Root $r_1$:"} />
+											</label>
+											<input
+												id="ode-quad-r1-input"
+												type="text"
+												class="text-input"
+												placeholder="e.g. -2"
+												bind:value={solver.step2.r1}
+												onkeydown={(e) =>
+													e.key === "Enter" &&
+													solver.checkStep2()}
+											/>
+										</div>
+										<div class="input-pair">
+											<label
+												for="ode-quad-r2-input"
+												class="field-label"
+											>
+												<MathText text={"Root $r_2$:"} />
+											</label>
+											<input
+												id="ode-quad-r2-input"
+												type="text"
+												class="text-input"
+												placeholder="e.g. -3"
+												bind:value={solver.step2.r2}
+												onkeydown={(e) =>
+													e.key === "Enter" &&
+													solver.checkStep2()}
+											/>
+										</div>
+									</div>
+								{:else if solver.step2.quadClassChoice === "repeated_real"}
+									<div
+										class="input-pair"
+										style="max-width: 260px;"
+									>
+										<label
+											for="ode-quad-r-rep-input"
+											class="field-label"
+										>
+											<MathText
+												text={
+													"Repeated Root $r = r_1 = r_2$:"
+												}
+											/>
+										</label>
+										<input
+											id="ode-quad-r-rep-input"
+											type="text"
+											class="text-input"
+											placeholder="e.g. -2"
+											bind:value={solver.step2.r1}
+											onkeydown={(e) =>
+												e.key === "Enter" &&
+												solver.checkStep2()}
+										/>
+									</div>
+								{/if}
+
+								<div class="step-actions">
+									<button
+										type="button"
+										class="btn btn-primary"
+										onclick={() => solver.checkStep2()}
+									>
+										Verify Roots →
+									</button>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -1224,10 +1412,126 @@
 		margin: 0;
 	}
 
-	.quad-params-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	.quad-classification-box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 0.75rem;
+		background: var(--bg-secondary);
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid var(--border-color);
+	}
+
+	.classification-step-label {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.classification-button-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.quad-class-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.4rem 0.8rem;
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		color: var(--text-secondary);
+		font-size: 0.82rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.quad-class-btn:hover:not(:disabled) {
+		border-color: var(--accent-primary);
+		color: var(--text-primary);
+	}
+
+	.quad-class-btn.active {
+		border-color: var(--accent-primary);
+		background: rgba(6, 182, 212, 0.12);
+		color: var(--accent-primary);
+		font-weight: 700;
+	}
+
+	.quad-class-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.quad-class-btn:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.disc-calc-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 0.25rem;
+		padding-top: 0.5rem;
+		border-top: 1px dashed var(--border-color);
+		transition: all 0.2s ease;
+	}
+
+	.disc-calc-row.disc-remediation-required {
+		padding: 0.5rem 0.75rem;
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid #f59e0b;
+		background: rgba(245, 158, 11, 0.08);
+	}
+
+	.disc-field-label {
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+		white-space: nowrap;
+	}
+
+	.disc-input-with-action {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.disc-input {
+		max-width: 100px;
+	}
+
+	.btn-verify-disc {
+		padding: 0.35rem 0.65rem;
+		font-size: 0.8rem;
+		white-space: nowrap;
+	}
+
+	.btn-verify-disc:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.disc-verified-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: #10b981;
+	}
+
+	.quad-roots-entry-box {
+		display: flex;
+		flex-direction: column;
 		gap: 0.75rem;
+		padding: 0.75rem;
+		background: var(--bg-card);
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid var(--border-color);
 	}
 
 	.hint-badge {
