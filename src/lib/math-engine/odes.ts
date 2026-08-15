@@ -97,6 +97,106 @@ export interface HomogeneousSolution {
 	eval: (t: number) => number;
 }
 
+/** Evaluation option for ITS multiple-choice steps */
+export interface OdeItsOption {
+	/** Unique option id */
+	id: string;
+	/** LaTeX rendered mathematical expression */
+	latex: string;
+	/** Whether this option is mathematically correct */
+	isCorrect: boolean;
+	/** Targeted diagnostic explanation for why this distractor is incorrect */
+	feedback?: string;
+}
+
+/** ITS Stage 1: Characteristic Roots */
+export interface OdeItsStage1 {
+	/** Classification of characteristic roots */
+	rootType: RootType;
+	/** First root (real part if complex) */
+	r1: number;
+	/** Second root (real part if distinct real) */
+	r2?: number;
+	/** Imaginary component omega_d (if complex conjugate) */
+	im?: number;
+	/** 3-tiered progressive hints */
+	hints: string[];
+}
+
+/** ITS Stage 2: Homogeneous Form Template */
+export interface OdeItsStage2 {
+	/** Correct template matching the roots */
+	correctTemplate: RootType;
+	/** 3-tiered progressive hints */
+	hints: string[];
+	/** Diagnostic feedback for incorrect template selections */
+	misconceptions: Record<string, string>;
+}
+
+/** ITS Stage 3: Particular Solution Ansatz */
+export interface OdeItsStage3 {
+	/** Multiple-choice options for trial ansatz */
+	options: OdeItsOption[];
+	/** 3-tiered progressive hints */
+	hints: string[];
+}
+
+/** ITS Stage 4: Particular Coefficients */
+export interface OdeItsStage4 {
+	/** Solved Kp for constant/exponential forcing */
+	expectedKp?: number;
+	/** Solved A for sinusoidal forcing */
+	expectedA?: number;
+	/** Solved B for sinusoidal forcing */
+	expectedB?: number;
+	/** 3-tiered progressive hints */
+	hints: string[];
+}
+
+/** ITS Stage 5: Initial Conditions System and Constants */
+export interface OdeItsStage5 {
+	/** Solved constant C1 */
+	expectedC1: number;
+	/** Solved constant C2 */
+	expectedC2: number;
+	/** Particular value at t=0 */
+	yp0: number;
+	/** Particular derivative value at t=0 */
+	dyp0: number;
+	/** Effective homogeneous target y_h(0+) = y(0+) - y_p(0+) */
+	targetYh0: number;
+	/** Effective homogeneous target y_h'(0+) = y'(0+) - y_p'(0+) */
+	targetDYh0: number;
+	/** 3-tiered progressive hints */
+	hints: string[];
+}
+
+/** ITS Stage 6: Response Decomposition */
+export interface OdeItsStage6 {
+	/** Zero-input LaTeX expression */
+	expectedZI: string;
+	/** Zero-state LaTeX expression */
+	expectedZS: string;
+	/** 3-tiered progressive hints */
+	hints: string[];
+}
+
+/** Complete ITS problem data container for ODE problem */
+export interface OdeItsData {
+	/** Stage 1: Roots */
+	stage1: OdeItsStage1;
+	/** Stage 2: Homogeneous Form */
+	stage2: OdeItsStage2;
+	/** Stage 3: Particular Ansatz */
+	stage3: OdeItsStage3;
+	/** Stage 4: Particular Coefficients */
+	stage4: OdeItsStage4;
+	/** Stage 5: Initial Conditions & Solved Constants */
+	stage5: OdeItsStage5;
+	/** Stage 6: Response Decomposition */
+	stage6: OdeItsStage6;
+}
+
 /** Complete ODE practice problem object containing metadata, analytical solutions, steps, and evaluators */
 export interface OdeProblem {
 	/** Unique problem identifier */
@@ -144,6 +244,8 @@ export interface OdeProblem {
 	evalZI: (t: number) => number;
 	/** Zero-state numerical evaluator closure for y_zs(t) */
 	evalZS: (t: number) => number;
+	/** Intelligent Tutoring System step-by-step metadata */
+	itsData: OdeItsData;
 }
 
 
@@ -719,6 +821,179 @@ export function generateOdeProblem(
 	// Step 9: Zero-Input & Zero-State Separation
 	const step9Latex = `y_{ZI}(t) &= ${ziLatex} \\\\[0.75em]\n y_{ZS}(t) &= ${zsLatex}`;
 
+	// Stage 3 Particular Ansatz Options
+	let stage3Options: OdeItsOption[];
+	switch (forcing.type) {
+		case "constant": {
+			stage3Options = [
+				{ id: "c1", latex: "y_p(t) = K_p", isCorrect: true },
+				{
+					id: "d1",
+					latex: "y_p(t) = K_p t",
+					isCorrect: false,
+					feedback:
+						"Resonance Multiplier Error: The factor of $t$ is only necessary if $s=0$ is a characteristic root ($a_0 = 0$). Here $a_0 \\neq 0$.",
+				},
+				{
+					id: "d2",
+					latex: "y_p(t) = K_p e^{-t}",
+					isCorrect: false,
+					feedback:
+						"Ansatz Mismatch: The forcing input is constant, so the particular trial guess must be a constant $K_p$, not an exponential.",
+				},
+				{
+					id: "d3",
+					latex: "y_p(t) = A \\cos(t) + B \\sin(t)",
+					isCorrect: false,
+					feedback:
+						"Ansatz Mismatch: Sinusoidal ansatz is only used for oscillating sinusoidal inputs.",
+				},
+			];
+			break;
+		}
+		case "exponential": {
+			const p = forcing.p ?? 0;
+			stage3Options = [
+				{ id: "c1", latex: `y_p(t) = K_p e^{${p}t}`, isCorrect: true },
+				{
+					id: "d1",
+					latex: "y_p(t) = K_p",
+					isCorrect: false,
+					feedback:
+						"Ansatz Mismatch: The forcing input is exponential $e^{p t}$, so $y_p(t)$ must contain the exponential term.",
+				},
+				{
+					id: "d2",
+					latex: `y_p(t) = K_p e^{-${p}t}`,
+					isCorrect: false,
+					feedback:
+						"Exponent Sign Error: The trial exponent must match the input forcing exponent $p = " + p + "$.",
+				},
+				{
+					id: "d3",
+					latex: `y_p(t) = A \\cos(${p}t) + B \\sin(${p}t)`,
+					isCorrect: false,
+					feedback:
+						"Ansatz Mismatch: Sinusoidal trial solutions are for trigonometric forcing, not real exponentials.",
+				},
+			];
+			break;
+		}
+		case "sinusoid": {
+			const w = forcing.omega ?? 1;
+			stage3Options = [
+				{
+					id: "c1",
+					latex: `y_p(t) = A \\cos(${w}t) + B \\sin(${w}t)`,
+					isCorrect: true,
+				},
+				{
+					id: "d1",
+					latex: `y_p(t) = A \\cos(${w}t)`,
+					isCorrect: false,
+					feedback:
+						"Missing Sine Component: Derivatives of cosine generate sine terms ($y_p' \\propto \\sin$), so both $A \\cos(\\omega t)$ and $B \\sin(\\omega t)$ are required.",
+				},
+				{
+					id: "d2",
+					latex: `y_p(t) = K_p e^{j ${w}t}`,
+					isCorrect: false,
+					feedback:
+						"Complex Notation: Use the real-valued trigonometric pair $A \\cos(\\omega t) + B \\sin(\\omega t)$ for real differential equations.",
+				},
+				{
+					id: "d3",
+					latex: "y_p(t) = K_p",
+					isCorrect: false,
+					feedback:
+						"Ansatz Mismatch: A constant trial solution cannot balance time-varying sinusoidal forcing.",
+				},
+			];
+			break;
+		}
+		default: {
+			throw new Error(`Unhandled forcing type in stage 3: ${forcing.type}`);
+		}
+	}
+
+	const itsData: OdeItsData = {
+		stage1: {
+			rootType: targetRootType,
+			r1: roots.r1,
+			r2: roots.r2,
+			im: roots.im,
+			hints: [
+				"Form the characteristic polynomial $s^2 + a_1 s + a_0 = 0$ by replacing derivatives with powers of $s$.",
+				`The characteristic equation is $s^2 + ${a1}s + ${a0} = 0$. Apply the quadratic formula $s = \\frac{-${a1} \\pm \\sqrt{${a1 * a1} - 4(${a0})}}{2}$.`,
+				targetRootType === "distinct_real"
+					? `The characteristic roots are distinct real: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
+					: targetRootType === "repeated_real"
+						? `The characteristic root is repeated: $r = ${roots.r1}$.`
+						: `The characteristic roots are complex conjugate: $\\sigma = ${roots.r1}, \\; \\omega_d = ${roots.im}$ ($${roots.r1} \\pm j${roots.im}$).`,
+			],
+		},
+		stage2: {
+			correctTemplate: targetRootType,
+			hints: [
+				"Look at the roots found in Stage 1: are they distinct real, repeated real, or complex conjugate?",
+				"Distinct roots produce $C_1 e^{r_1 t} + C_2 e^{r_2 t}$. Repeated roots produce $(C_1 + C_2 t) e^{r t}$. Complex roots produce $e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]$.",
+				`Since the roots are ${targetRootType.replace("_", " ")}, select the corresponding template.`,
+			],
+			misconceptions: {
+				distinct_real:
+					"Distinct real roots produce two separate exponential modes $C_1 e^{r_1 t} + C_2 e^{r_2 t}$.",
+				repeated_real:
+					"Repeated roots require the $(C_1 + C_2 t)$ multiplier to maintain two linearly independent basis solutions.",
+				complex_conjugate:
+					"Complex conjugate roots $\\sigma \\pm j\\omega_d$ generate oscillatory sines/cosines damped by an exponential envelope.",
+			},
+		},
+		stage3: {
+			options: stage3Options,
+			hints: [
+				`Inspect the forcing function $x(t) = ${forcing.latex}$. What form should the trial particular solution $y_p(t)$ take?`,
+				"Match the functional shape of $x(t)$ (constant $\\to K_p$, exponential $\\to K_p e^{pt}$, sinusoid $\\to A \\cos(\\omega t) + B \\sin(\\omega t)$).",
+				"Check if the trial guess collides with any characteristic root in the homogeneous solution (resonance).",
+			],
+		},
+		stage4: {
+			expectedKp: particular.coeffs.Kp,
+			expectedA: particular.coeffs.A,
+			expectedB: particular.coeffs.B,
+			hints: [
+				"Take derivatives of $y_p(t)$ ($y_p'$ and $y_p''$) and substitute them into the left-hand side of the ODE.",
+				"Collect like terms and equate coefficients with the right-hand side forcing input $x(t)$.",
+				forcing.type === "constant"
+					? `Substitute $y_p = K_p, y_p'=0, y_p''=0$: $0 + 0 + ${a0} K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
+					: forcing.type === "exponential"
+						? `Substitute $y_p = K_p e^{${forcing.p}t}$: $(${((forcing.p ?? 0) ** 2) + a1 * (forcing.p ?? 0) + a0}) K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
+						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
+			],
+		},
+		stage5: {
+			expectedC1: homogeneousComplete.C1,
+			expectedC2: homogeneousComplete.C2,
+			yp0: particular.eval(0),
+			dyp0: particular.evalDeriv(0),
+			targetYh0,
+			targetDYh0,
+			hints: [
+				"Remember initial conditions apply to the TOTAL solution $y(t) = y_h(t) + y_p(t)$. First find $y_p(0^+)$ and $y_p'(0^+)$.",
+				`Calculate the target homogeneous values: $y_h(0^+) = y(0^+) - y_p(0^+) = ${initialConditions.y0} - (${toFractionLatex(particular.eval(0))}) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${initialConditions.dy0} - (${toFractionLatex(particular.evalDeriv(0))}) = ${toFractionLatex(targetDYh0)}$.`,
+				`Solve the $2\\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${c1Str}, \\; C_2 = ${c2Str}$.`,
+			],
+		},
+		stage6: {
+			expectedZI: ziLatex,
+			expectedZS: zsLatex,
+			hints: [
+				"$y_{ZI}(t)$ is the zero-input response (natural response satisfying initial conditions with $x(t)=0$).",
+				"$y_{ZS}(t)$ is the zero-state response (response driven purely by $x(t)$ with zero initial conditions).",
+				`$y_{ZI}(t) = ${ziLatex}$, \\; $y_{ZS}(t) = ${zsLatex}$.`,
+			],
+		},
+	};
+
 	// Progressive step-by-step solution pipeline (9 zero-guesswork steps)
 	const steps = [
 		{
@@ -789,7 +1064,7 @@ export function generateOdeProblem(
 
 	return {
 		id: `ode_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-		title: `2nd-Order ODE (${targetRootType.replace("_", " ")}, ${forcingType} forcing)`,
+		title: "Practice Problem: 2nd-Order LCC ODE",
 		difficulty:
 			targetRootType === "complex_conjugate" || forcingType === "sinusoid"
 				? "hard"
@@ -814,5 +1089,6 @@ export function generateOdeProblem(
 		evalComplete,
 		evalZI,
 		evalZS,
+		itsData,
 	};
 }
