@@ -13,6 +13,7 @@
 	import MathInline from "../math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import Progress from "../ui/Progress.svelte";
 	import { FourierStepSolverState } from "./fourier-step-solver.svelte";
 
@@ -44,10 +45,27 @@
 {#snippet feedbackAndHints()}
 	<!-- Feedback Alert Message -->
 	{#if solver.currentFeedback}
-		<div class="feedback-alert error-box">
-			<span class="alert-icon">⚠️</span>
+		<div
+			class="feedback-alert error-box"
+			class:feedback-validation={solver.currentFeedbackType ===
+				"validation"}
+			class:feedback-misconception={solver.currentFeedbackType ===
+				"misconception"}
+			class:feedback-incorrect={solver.currentFeedbackType ===
+				"incorrect"}
+			role="alert"
+		>
+			<span class="alert-icon">
+				{#if solver.currentFeedbackType === "validation"}
+					ℹ️
+				{:else if solver.currentFeedbackType === "misconception"}
+					⚠️
+				{:else}
+					❌
+				{/if}
+			</span>
 			<div class="alert-content">
-				<strong>Misconception Detected:</strong>
+				<strong>{solver.currentFeedbackTitle}</strong>
 				<p class="alert-text">
 					<MathText text={solver.currentFeedback} />
 				</p>
@@ -832,6 +850,16 @@
 		background: rgba(239, 68, 68, 0.12);
 		border: 1px solid rgba(239, 68, 68, 0.35);
 		color: var(--text-primary);
+	}
+
+	.feedback-alert.feedback-validation {
+		background: rgba(245, 158, 11, 0.12);
+		border: 1px solid rgba(245, 158, 11, 0.35);
+	}
+
+	.feedback-alert.feedback-misconception {
+		background: rgba(249, 115, 22, 0.12);
+		border: 1px solid rgba(249, 115, 22, 0.35);
 	}
 
 	.alert-icon {

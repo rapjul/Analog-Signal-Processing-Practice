@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { FourierStepSolverState } from "../../src/lib/components/solvers/fourier-step-solver.svelte";
 import {
-	computeFourierCoefficients,
-	generateFourierItsData,
-	generateFourierSeriesProblem,
+	generateFourierSeriesProblem
 } from "../../src/lib/math-engine/fourier-series";
 
 describe("FourierStepSolverState Reactive Controller", () => {
@@ -40,37 +38,54 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierStepSolverState(() => problem);
 
-		// 1. Invalid period value
+		// 0. Empty inputs (validation)
+		solver.step1.period = "";
+		solver.step1.freq = "";
+		solver.checkStep1();
+		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+		expect(solver.step1.feedback).toContain("values for both");
+
+		// 1. Invalid period value (incorrect)
 		solver.step1.period = "999";
 		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
 		solver.step1.periodUnit = "s";
 		solver.step1.freqUnit = "rad/s";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step1.feedback).toContain("Incorrect Period value");
 		expect(solver.currentFeedback).toContain("Incorrect Period value");
 
-		// 2. Invalid period unit
+		// 2. Invalid period unit (validation)
 		solver.step1.period = String(problem.itsData.step1.expectedT);
 		solver.step1.periodUnit = "ms";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
 		expect(solver.step1.feedback).toContain("Incorrect Period unit");
 
-		// 3. Invalid frequency value
+		// 3. Invalid frequency value (incorrect)
 		solver.step1.periodUnit = "s";
 		solver.step1.freq = "999";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step1.feedback).toContain(
 			"Incorrect Fundamental Frequency",
 		);
 
-		// 4. Invalid frequency unit
+		// 4. Invalid frequency unit (validation)
 		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
 		solver.step1.freqUnit = "Hz";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
 		expect(solver.step1.feedback).toContain("Incorrect Frequency unit");
 
 		// 5. Correct inputs
@@ -78,6 +93,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(true);
 		expect(solver.step1.feedback).toBeNull();
+		expect(solver.step1.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(2);
 		expect(solver.hintTier).toBe(0);
 	});
@@ -87,11 +103,13 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(2);
 
-		// Incorrect symmetry
+		// Incorrect symmetry (misconception)
 		const wrongSymmetry =
 			problem.itsData.step2.correctSymmetry === "even" ? "odd" : "even";
 		solver.checkStep2(wrongSymmetry);
 		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("misconception");
+		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 		expect(solver.step2.feedback).toBeDefined();
 		expect(solver.currentFeedback).toBe(solver.step2.feedback);
 
@@ -99,6 +117,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		solver.checkStep2(problem.itsData.step2.correctSymmetry);
 		expect(solver.step2.isValid).toBe(true);
 		expect(solver.step2.feedback).toBeNull();
+		expect(solver.step2.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(3);
 	});
 
@@ -107,15 +126,18 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(3);
 
-		// Incorrect vanishing
+		// Incorrect vanishing (misconception)
 		solver.checkStep3("none");
 		expect(solver.step3.isValid).toBe(false);
+		expect(solver.step3.feedbackType).toBe("misconception");
+		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 		expect(solver.step3.feedback).toBeDefined();
 
 		// Correct vanishing
 		solver.checkStep3(problem.itsData.step3.correctVanishing);
 		expect(solver.step3.isValid).toBe(true);
 		expect(solver.step3.feedback).toBeNull();
+		expect(solver.step3.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(4);
 	});
 
@@ -124,17 +146,20 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(4);
 
-		// Incorrect form
+		// Incorrect form (misconception)
 		const wrongForm =
 			problem.itsData.step4.correctForm === "trig" ? "exp" : "trig";
 		solver.checkStep4(wrongForm);
 		expect(solver.step4.isValid).toBe(false);
+		expect(solver.step4.feedbackType).toBe("misconception");
+		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 		expect(solver.step4.feedback).toBeDefined();
 
 		// Correct form
 		solver.checkStep4(problem.itsData.step4.correctForm);
 		expect(solver.step4.isValid).toBe(true);
 		expect(solver.step4.feedback).toBeNull();
+		expect(solver.step4.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(5);
 	});
 
@@ -143,7 +168,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(5);
 
-		// Incorrect option
+		// Incorrect option (misconception)
 		const wrongOpt = problem.itsData.step5.options.find(
 			(o) => !o.isCorrect,
 		);
@@ -151,6 +176,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		if (wrongOpt) {
 			solver.checkStep5(wrongOpt);
 			expect(solver.step5.isValid).toBe(false);
+			expect(solver.step5.feedbackType).toBe("misconception");
+			expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 			expect(solver.step5.feedback).toBe(wrongOpt.feedback);
 		}
 
@@ -163,6 +190,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			solver.checkStep5(correctOpt);
 			expect(solver.step5.isValid).toBe(true);
 			expect(solver.step5.feedback).toBeNull();
+			expect(solver.step5.feedbackType).toBeNull();
 			expect(solver.currentStep).toBe(6);
 		}
 	});
@@ -176,7 +204,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		);
 		solver.advanceToStep(6);
 
-		// Incorrect option
+		// Incorrect option (misconception)
 		const wrongOpt = problem.itsData.step6.options.find(
 			(o) => !o.isCorrect,
 		);
@@ -184,6 +212,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		if (wrongOpt) {
 			solver.checkStep6(wrongOpt);
 			expect(solver.step6.isValid).toBe(false);
+			expect(solver.step6.feedbackType).toBe("misconception");
+			expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 			expect(solver.step6.feedback).toBe(wrongOpt.feedback);
 		}
 
@@ -196,6 +226,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			solver.checkStep6(correctOpt);
 			expect(solver.step6.isValid).toBe(true);
 			expect(solver.step6.feedback).toBeNull();
+			expect(solver.step6.feedbackType).toBeNull();
 			expect(solver.currentStep).toBe(7);
 			expect(solver.isCompleted).toBe(true);
 			expect(onComplete).toHaveBeenCalledTimes(1);
@@ -211,8 +242,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("=") ||
-					opt.latex.includes("\\int") ||
-					opt.latex.includes("0"),
+				opt.latex.includes("\\int") ||
+				opt.latex.includes("0"),
 			).toBe(true);
 		}
 
@@ -222,8 +253,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("x(t)") ||
-					opt.latex.includes("\\sin") ||
-					opt.latex.includes("\\cos"),
+				opt.latex.includes("\\sin") ||
+				opt.latex.includes("\\cos"),
 			).toBe(true);
 		}
 	});

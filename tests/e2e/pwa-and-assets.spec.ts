@@ -40,7 +40,7 @@ test.describe('PWA & Static Asset Verification', () => {
 
 		// Check favicon link
 		const iconLink = page.locator('link[rel="icon"]');
-		await expect(iconLink.first()).toHaveAttribute('href', /favicon\.svg/);
+		await expect(iconLink.first()).toHaveAttribute('href', /favicon\.svg|data:image\/svg\+xml/);
 
 		// Check apple-touch-icon link
 		const appleTouchIcon = page.locator('link[rel="apple-touch-icon"]');

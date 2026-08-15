@@ -1,4 +1,12 @@
 /**
+ * Diagnostic feedback classification for step solver responses.
+ * - `validation`: Incomplete, blank, or non-numeric/invalid input format.
+ * - `misconception`: Diagnosed pedagogical misconception or distractor pattern.
+ * - `incorrect`: General calculation error or algebraic mismatch.
+ */
+export type StepFeedbackType = "validation" | "misconception" | "incorrect";
+
+/**
  * Abstract Base Step Solver State class for Svelte 5 ITS modules.
  *
  * Encapsulates universal step navigation, 3-tier progressive hint mechanics,

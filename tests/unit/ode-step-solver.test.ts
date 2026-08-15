@@ -66,10 +66,12 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const problem = generateOdeProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
-		// Non-numeric inputs
+		// Non-numeric / empty inputs (validation)
 		solver.step1.a2 = "abc";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
 		expect(solver.step1.feedback).toContain("numeric values");
 		expect(solver.currentFeedback).toContain("numeric values");
 
@@ -83,15 +85,19 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		) {
 			solver.checkStep1();
 			expect(solver.step1.isValid).toBe(false);
+			expect(solver.step1.feedbackType).toBe("misconception");
+			expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 			expect(solver.step1.feedback).toBe(
 				problem.itsData.step1.misconceptions.forcing_rhs,
 			);
 		}
 
-		// Wrong coefficients fallback error message
+		// Wrong coefficients fallback error message (incorrect)
 		solver.step1.a0 = "999";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
+		expect(solver.step1.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step1.feedback).toContain("Incorrect coefficients");
 
 		// Valid coefficients
@@ -99,6 +105,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(true);
 		expect(solver.step1.feedback).toBeNull();
+		expect(solver.step1.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(2);
 	});
 
@@ -108,11 +115,22 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 		solver.advanceToStep(2);
 
-		// Incorrect roots
+		// Missing/non-numeric input (validation)
+		solver.step2.r1 = "";
+		solver.step2.r2 = "";
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+		expect(solver.step2.feedback).toContain("numeric values");
+
+		// Incorrect roots (incorrect)
 		solver.step2.r1 = "999";
 		solver.step2.r2 = "888";
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step2.feedback).toContain("Incorrect roots");
 
 		// Swapped order (valid)
@@ -120,6 +138,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.step2.r2 = String(problem.itsData.step2.r1);
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(true);
+		expect(solver.step2.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(3);
 	});
 
@@ -129,16 +148,26 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 		solver.advanceToStep(2);
 
+		// Non-numeric input (validation)
+		solver.step2.r1 = "";
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
 		// Incorrect repeated root
 		solver.step2.r1 = "999";
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step2.feedback).toContain("Incorrect repeated root");
 
 		// Correct repeated root
 		solver.step2.r1 = String(problem.itsData.step2.r1);
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(true);
+		expect(solver.step2.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(3);
 	});
 
@@ -148,11 +177,21 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 		solver.advanceToStep(2);
 
+		// Non-numeric input (validation)
+		solver.step2.sigma = "";
+		solver.step2.omegaD = "";
+		solver.checkStep2();
+		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
 		// Incorrect complex roots
 		solver.step2.sigma = "999";
 		solver.step2.omegaD = "999";
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
+		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step2.feedback).toContain(
 			"Incorrect complex root components",
 		);
@@ -162,6 +201,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.step2.omegaD = String(problem.itsData.step2.im);
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(true);
+		expect(solver.step2.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(3);
 	});
 
@@ -170,9 +210,11 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(3);
 
-		// Incorrect template
+		// Incorrect template (misconception)
 		solver.checkStep3("complex_conjugate");
 		expect(solver.step3.isValid).toBe(false);
+		expect(solver.step3.feedbackType).toBe("misconception");
+		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 		expect(solver.step3.feedback).toBe(
 			problem.itsData.step3.misconceptions.complex_conjugate,
 		);
@@ -181,6 +223,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep3(problem.itsData.step3.correctTemplate);
 		expect(solver.step3.isValid).toBe(true);
 		expect(solver.step3.feedback).toBeNull();
+		expect(solver.step3.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(4);
 	});
 
@@ -189,7 +232,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(4);
 
-		// Incorrect option
+		// Incorrect option (misconception)
 		const wrongOpt = problem.itsData.step4.options.find(
 			(o) => !o.isCorrect,
 		);
@@ -197,6 +240,8 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		if (wrongOpt) {
 			solver.checkStep4(wrongOpt);
 			expect(solver.step4.isValid).toBe(false);
+			expect(solver.step4.feedbackType).toBe("misconception");
+			expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 			expect(solver.step4.feedback).toBe(wrongOpt.feedback);
 		}
 
@@ -209,6 +254,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			solver.checkStep4(correctOpt);
 			expect(solver.step4.isValid).toBe(true);
 			expect(solver.step4.feedback).toBeNull();
+			expect(solver.step4.feedbackType).toBeNull();
 			expect(solver.currentStep).toBe(5);
 		}
 	});
@@ -219,10 +265,21 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.advanceToStep(5);
 
 		if (problem.forcing.type === "sinusoid") {
+			// Non-numeric input (validation)
+			solver.step5.a = "";
+			solver.step5.b = "";
+			solver.checkStep5();
+			expect(solver.step5.isValid).toBe(false);
+			expect(solver.step5.feedbackType).toBe("validation");
+			expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
+			// Incorrect numeric input
 			solver.step5.a = "999";
 			solver.step5.b = "999";
 			solver.checkStep5();
 			expect(solver.step5.isValid).toBe(false);
+			expect(solver.step5.feedbackType).toBe("incorrect");
+			expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 			expect(solver.step5.feedback).toContain(
 				"Incorrect coefficients $A$ and $B$",
 			);
@@ -232,10 +289,21 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			solver.checkStep5();
 			expect(solver.step5.isValid).toBe(true);
 			expect(solver.step5.feedback).toBeNull();
+			expect(solver.step5.feedbackType).toBeNull();
 		} else {
+			// Non-numeric input (validation)
+			solver.step5.kp = "";
+			solver.checkStep5();
+			expect(solver.step5.isValid).toBe(false);
+			expect(solver.step5.feedbackType).toBe("validation");
+			expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
+			// Incorrect numeric input
 			solver.step5.kp = "999";
 			solver.checkStep5();
 			expect(solver.step5.isValid).toBe(false);
+			expect(solver.step5.feedbackType).toBe("incorrect");
+			expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 			expect(solver.step5.feedback).toContain(
 				"Incorrect $K_p$ coefficient",
 			);
@@ -244,6 +312,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			solver.checkStep5();
 			expect(solver.step5.isValid).toBe(true);
 			expect(solver.step5.feedback).toBeNull();
+			expect(solver.step5.feedbackType).toBeNull();
 		}
 		expect(solver.currentStep).toBe(6);
 	});
@@ -253,11 +322,21 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(6);
 
-		// Incorrect constants
+		// Non-numeric input (validation)
+		solver.step6.c1 = "";
+		solver.step6.c2 = "";
+		solver.checkStep6();
+		expect(solver.step6.isValid).toBe(false);
+		expect(solver.step6.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+
+		// Incorrect constants (incorrect)
 		solver.step6.c1 = "999";
 		solver.step6.c2 = "888";
 		solver.checkStep6();
 		expect(solver.step6.isValid).toBe(false);
+		expect(solver.step6.feedbackType).toBe("incorrect");
+		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
 		expect(solver.step6.feedback).toContain(
 			"Incorrect constants $C_1$, $C_2$",
 		);
@@ -268,6 +347,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep6();
 		expect(solver.step6.isValid).toBe(true);
 		expect(solver.step6.feedback).toBeNull();
+		expect(solver.step6.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(7);
 	});
 
@@ -280,14 +360,17 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		);
 		solver.advanceToStep(7);
 
-		// Empty/short response
+		// Empty/short response (validation)
 		solver.handleStep7Submit("y");
 		expect(solver.step7.isValid).toBe(false);
-		expect(solver.step7.feedback).toContain("Please fill in both");
+		expect(solver.step7.feedbackType).toBe("validation");
+		expect(solver.currentFeedbackTitle).toBe("Input Required:");
+		expect(solver.step7.feedback).toContain("total response");
 
 		// Valid response
 		solver.handleStep7Submit("y_{ZI}(t) + y_{ZS}(t)");
 		expect(solver.step7.isValid).toBe(true);
+		expect(solver.step7.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(8);
 		expect(solver.isCompleted).toBe(true);
 		expect(onComplete).toHaveBeenCalledTimes(1);
