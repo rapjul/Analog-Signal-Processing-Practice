@@ -6,16 +6,14 @@
 	 * vanishing shortcuts, form selection, integral setup, and final series evaluation.
 	 */
 
-	import type {
-		FourierItsOption,
-		FourierSeriesProblem,
-	} from "$lib/math-engine/fourier-series";
+	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathInline from "../math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
+	import { FourierStepSolverState } from "./fourier-step-solver.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */
@@ -26,360 +24,66 @@
 
 	let { problem, onComplete }: Props = $props();
 
-	// Active step index (1-based: 1 through 6)
-	let currentStep = $state<number>(1);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let isCompleted = $state<boolean>(false);
+	// Reactive step solver controller
+	const solver = new FourierStepSolverState(
+		() => problem,
+		() => onComplete,
+	);
 
-	// Step 1 State: Period & Frequency Inputs
-	let s1Period = $state<string>("");
-	let s1PeriodUnit = $state<string>("s");
-	let s1Freq = $state<string>("");
-	let s1FreqUnit = $state<string>("rad/s");
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s1Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s1Valid = $state<boolean>(false);
-
-	// Step 2 State: Symmetry
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s2Selected = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s2Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s2Valid = $state<boolean>(false);
-
-	// Step 3 State: Vanishing Coefficients
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s3Selected = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s3Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s3Valid = $state<boolean>(false);
-
-	// Step 4 State: Representation Form
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s4Selected = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s4Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s4Valid = $state<boolean>(false);
-
-	// Step 5 State: Integral Setup Formula Card
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s5Selected = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s5Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s5Valid = $state<boolean>(false);
-
-	// Step 6 State: Final Series Expression Formula Card
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s6Selected = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s6Feedback = $state<string | null>(null);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let s6Valid = $state<boolean>(false);
-
-	// Hint Tier tracking (0 = closed, 1 = Tier 1, 2 = Tier 2, 3 = Tier 3)
-	let hintTier = $state<number>(0);
-
-	// Reset state when problem changes
+	// Reset state when problem instance changes
+	let lastProblemId = "";
 	$effect(() => {
-		currentStep = 1;
-		isCompleted = false;
-		s1Period = "";
-		s1PeriodUnit = "s";
-		s1Freq = "";
-		s1FreqUnit = "rad/s";
-		s1Feedback = null;
-		s1Valid = false;
-
-		s2Selected = null;
-		s2Feedback = null;
-		s2Valid = false;
-
-		s3Selected = null;
-		s3Feedback = null;
-		s3Valid = false;
-
-		s4Selected = null;
-		s4Feedback = null;
-		s4Valid = false;
-
-		s5Selected = null;
-		s5Feedback = null;
-		s5Valid = false;
-
-		s6Selected = null;
-		s6Feedback = null;
-		s6Valid = false;
-
-		hintTier = 0;
-	});
-
-	/**
-	 * Increments the hint tier for the active step.
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function revealNextHint() {
-		if (hintTier < 3) {
-			hintTier += 1;
-		}
-	}
-
-	/**
-	 * Advances to the next interactive step and resets hints.
-	 * @param {number} nextStep Target step index
-	 */
-	function advanceToStep(nextStep: number) {
-		currentStep = nextStep;
-		hintTier = 0;
-		if (nextStep > 6) {
-			isCompleted = true;
-			onComplete?.();
-		}
-	}
-
-	/**
-	 * Validates Step 1 (Period & Frequency).
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep1() {
-		const s1Data = problem.itsData.step1;
-		const pTrimmed = s1Period.trim().toLowerCase();
-		const fTrimmed = s1Freq.trim().toLowerCase();
-
-		const pMatch =
-			s1Data.tAliases.some((alias) => pTrimmed === alias.toLowerCase()) ||
-			Math.abs(Number.parseFloat(pTrimmed) - s1Data.expectedT) < 0.05;
-
-		const fMatch =
-			s1Data.w0Aliases.some(
-				(alias) => fTrimmed === alias.toLowerCase(),
-			) ||
-			Math.abs(Number.parseFloat(fTrimmed) - s1Data.expectedW0) < 0.05;
-
-		if (!pMatch) {
-			s1Feedback =
-				"Incorrect Period value: inspect the duration over which the waveform repeats itself.";
-			s1Valid = false;
-			return;
-		}
-		if (s1PeriodUnit !== "s") {
-			s1Feedback =
-				"Incorrect Period unit: period must be measured in seconds (s).";
-			s1Valid = false;
-			return;
-		}
-		if (!fMatch) {
-			s1Feedback =
-				"Incorrect Fundamental Frequency: use \\omega_0 = \\frac{2\\pi}{T_0}. (e.g. \\pi or \\pi/2).";
-			s1Valid = false;
-			return;
-		}
-		if (s1FreqUnit !== "rad/s") {
-			s1Feedback =
-				"Incorrect Frequency unit: radian frequency \\omega_0 must be in rad/s.";
-			s1Valid = false;
-			return;
-		}
-
-		s1Feedback = null;
-		s1Valid = true;
-		advanceToStep(2);
-	}
-
-	/**
-	 * Validates Step 2 (Symmetry Selection).
-	 * @param {string} symmetry Selected symmetry value
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep2(symmetry: string) {
-		s2Selected = symmetry;
-		const s2Data = problem.itsData.step2;
-
-		if (symmetry === s2Data.correctSymmetry) {
-			s2Feedback = null;
-			s2Valid = true;
-			advanceToStep(3);
-		} else {
-			s2Valid = false;
-			s2Feedback =
-				s2Data.misconceptions[symmetry] ??
-				"Incorrect symmetry. Test whether x(-t) = x(t) (even) or x(-t) = -x(t) (odd).";
-		}
-	}
-
-	/**
-	 * Validates Step 3 (Vanishing Coefficients).
-	 * @param {string} choice Selected vanishing choice
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep3(choice: string) {
-		s3Selected = choice;
-		const s3Data = problem.itsData.step3;
-
-		if (choice === s3Data.correctVanishing) {
-			s3Feedback = null;
-			s3Valid = true;
-			advanceToStep(4);
-		} else {
-			s3Valid = false;
-			s3Feedback =
-				s3Data.misconceptions[choice] ??
-				"Incorrect vanishing condition for the signal's symmetry.";
-		}
-	}
-
-	/**
-	 * Validates Step 4 (Representation Form).
-	 * @param {string} form Selected form choice
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep4(form: string) {
-		s4Selected = form;
-		const s4Data = problem.itsData.step4;
-
-		if (form === s4Data.correctForm) {
-			s4Feedback = null;
-			s4Valid = true;
-			advanceToStep(5);
-		} else {
-			s4Valid = false;
-			s4Feedback =
-				s4Data.misconceptions[form] ??
-				"Consider which representation requires computing fewer non-zero integrals.";
-		}
-	}
-
-	/**
-	 * Validates Step 5 (Integral Setup Formula Card).
-	 * @param {FourierItsOption} opt Selected option
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep5(opt: FourierItsOption) {
-		s5Selected = opt.id;
-		if (opt.isCorrect) {
-			s5Feedback = null;
-			s5Valid = true;
-			advanceToStep(6);
-		} else {
-			s5Valid = false;
-			s5Feedback =
-				opt.feedback ??
-				"Incorrect integral formulation. Check scaling factors (2/T0 vs 1/T0) and trigonometric kernels.";
-		}
-	}
-
-	/**
-	 * Validates Step 6 (Final Series Evaluation).
-	 * @param {FourierItsOption} opt Selected option
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStep6(opt: FourierItsOption) {
-		s6Selected = opt.id;
-		if (opt.isCorrect) {
-			s6Feedback = null;
-			s6Valid = true;
-			advanceToStep(7);
-		} else {
-			s6Valid = false;
-			s6Feedback =
-				opt.feedback ??
-				"Incorrect series expression. Check signs, DC offset a_0, and harmonic indices.";
-		}
-	}
-
-	// Step active hints helper
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let activeHints = $derived.by(() => {
-		switch (currentStep) {
-			case 1:
-				return problem.itsData.step1.hints;
-			case 2:
-				return problem.itsData.step2.hints;
-			case 3:
-				return problem.itsData.step3.hints;
-			case 4:
-				return problem.itsData.step4.hints;
-			case 5:
-				return problem.itsData.step5.hints;
-			case 6:
-				return problem.itsData.step6.hints;
-			default:
-				return [];
-		}
-	});
-
-	/**
-	 * Active feedback for the current step.
-	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	let currentFeedback = $derived.by(() => {
-		switch (currentStep) {
-			case 1:
-				return s1Feedback;
-			case 2:
-				return s2Feedback;
-			case 3:
-				return s3Feedback;
-			case 4:
-				return s4Feedback;
-			case 5:
-				return s5Feedback;
-			case 6:
-				return s6Feedback;
-			default:
-				return "";
+		if (problem.id !== lastProblemId) {
+			lastProblemId = problem.id;
+			solver.reset();
 		}
 	});
 </script>
 
 {#snippet feedbackAndHints()}
 	<!-- Feedback Alert Message -->
-	{#if currentFeedback}
+	{#if solver.currentFeedback}
 		<div class="feedback-alert error-box">
 			<span class="alert-icon">⚠️</span>
 			<div class="alert-content">
 				<strong>Misconception Detected:</strong>
 				<p class="alert-text">
-					<MathText text={currentFeedback} />
+					<MathText text={solver.currentFeedback} />
 				</p>
 			</div>
 		</div>
 	{/if}
 
 	<!-- Progressive Hints Utility -->
-	{#if currentStep <= 6}
+	{#if solver.currentStep <= 6}
 		<div class="hints-box hint-container">
 			<div class="hints-header">
 				<button
 					type="button"
 					class="btn-hint hint-toggle-btn"
-					onclick={revealNextHint}
-					disabled={hintTier >= 3}
+					onclick={() => solver.revealNextHint()}
+					disabled={solver.hintTier >= 3}
 				>
-					💡 {hintTier === 0
+					💡 {solver.hintTier === 0
 						? "Get Hint"
-						: hintTier < 3
-							? `Get Next Hint (${hintTier}/3)`
+						: solver.hintTier < 3
+							? `Get Next Hint (${solver.hintTier}/3)`
 							: "All Hints Revealed (3/3)"}
 				</button>
-				{#if hintTier > 0}
+				{#if solver.hintTier > 0}
 					<span class="tier-label">
-						{hintTier === 1
+						{solver.hintTier === 1
 							? "Tier 1: Conceptual Nudge"
-							: hintTier === 2
+							: solver.hintTier === 2
 								? "Tier 2: Formula Setup"
 								: "Tier 3: Worked Intermediate Step"}
 					</span>
 				{/if}
 			</div>
 
-			{#if hintTier > 0}
+			{#if solver.hintTier > 0}
 				<div class="hints-content">
-					{#each activeHints.slice(0, hintTier) as hint, idx}
+					{#each solver.activeHints.slice(0, solver.hintTier) as hint, idx}
 						<div class="hint-line">
 							<span class="hint-badge">Hint {idx + 1}:</span>
 							<span class="hint-text">
@@ -400,10 +104,10 @@
 			{#each [1, 2, 3, 4, 5, 6] as s}
 				<div
 					class="progress-pill"
-					class:active={currentStep === s}
-					class:completed={currentStep > s}
+					class:active={solver.currentStep === s}
+					class:completed={solver.currentStep > s}
 				>
-					{s < currentStep ? "✓" : s}
+					{s < solver.currentStep ? "✓" : s}
 				</div>
 			{/each}
 		</div>
@@ -412,15 +116,15 @@
 	<!-- Step 1: Period and Frequency -->
 	<div
 		class="step-card"
-		class:active={currentStep === 1}
-		class:done={currentStep > 1}
+		class:active={solver.currentStep === 1}
+		class:done={solver.currentStep > 1}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 1</div>
 			<h3 class="step-title">Fundamental Period & Frequency</h3>
 		</div>
 
-		{#if currentStep === 1}
+		{#if solver.currentStep === 1}
 			<div class="step-body">
 				<p class="step-prompt">
 					Enter the fundamental period <MathInline math={"T_0"} /> and
@@ -438,13 +142,13 @@
 								type="text"
 								class="text-input"
 								placeholder="e.g. 2"
-								bind:value={s1Period}
+								bind:value={solver.step1.period}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStep1()}
+									e.key === "Enter" && solver.checkStep1()}
 							/>
 							<select
 								class="unit-select"
-								bind:value={s1PeriodUnit}
+								bind:value={solver.step1.periodUnit}
 							>
 								<option value="s">s</option>
 								<option value="ms">ms</option>
@@ -463,12 +167,15 @@
 								id="fourier-freq-input"
 								type="text"
 								class="text-input"
-								placeholder="e.g. \pi or 3.14"
-								bind:value={s1Freq}
+								placeholder="e.g. \\pi or 3.14"
+								bind:value={solver.step1.freq}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStep1()}
+									e.key === "Enter" && solver.checkStep1()}
 							/>
-							<select class="unit-select" bind:value={s1FreqUnit}>
+							<select
+								class="unit-select"
+								bind:value={solver.step1.freqUnit}
+							>
 								<option value="rad/s">rad/s</option>
 								<option value="Hz">Hz</option>
 							</select>
@@ -480,7 +187,7 @@
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={checkStep1}
+						onclick={() => solver.checkStep1()}
 					>
 						Check Period & Frequency →
 					</button>
@@ -501,16 +208,16 @@
 	<!-- Step 2: Symmetry Classification -->
 	<div
 		class="step-card"
-		class:active={currentStep === 2}
-		class:done={currentStep > 2}
-		class:locked={currentStep < 2}
+		class:active={solver.currentStep === 2}
+		class:done={solver.currentStep > 2}
+		class:locked={solver.currentStep < 2}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 2</div>
 			<h3 class="step-title">Signal Symmetry Classification</h3>
 		</div>
 
-		{#if currentStep === 2}
+		{#if solver.currentStep === 2}
 			<div class="step-body">
 				<p class="step-prompt">
 					Classify the symmetry of <MathInline math={"x(t)"} /> across
@@ -520,8 +227,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s2Selected === "even"}
-						onclick={() => checkStep2("even")}
+						class:selected={solver.step2.selected === "even"}
+						onclick={() => solver.checkStep2("even")}
 					>
 						<strong>Even Symmetry</strong>
 						<span class="choice-sub">
@@ -531,8 +238,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s2Selected === "odd"}
-						onclick={() => checkStep2("odd")}
+						class:selected={solver.step2.selected === "odd"}
+						onclick={() => solver.checkStep2("odd")}
 					>
 						<strong>Odd Symmetry</strong>
 						<span class="choice-sub">
@@ -542,8 +249,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s2Selected === "none"}
-						onclick={() => checkStep2("none")}
+						class:selected={solver.step2.selected === "none"}
+						onclick={() => solver.checkStep2("none")}
 					>
 						<strong>Neither Symmetry</strong>
 						<span class="choice-sub">Asymmetric / Shifted</span>
@@ -551,8 +258,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s2Selected === "half_wave"}
-						onclick={() => checkStep2("half_wave")}
+						class:selected={solver.step2.selected === "half_wave"}
+						onclick={() => solver.checkStep2("half_wave")}
 					>
 						<strong>Half-Wave Odd</strong>
 						<span class="choice-sub">
@@ -562,7 +269,7 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStep > 2}
+		{:else if solver.currentStep > 2}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
@@ -577,16 +284,16 @@
 	<!-- Step 3: Vanishing Coefficients -->
 	<div
 		class="step-card"
-		class:active={currentStep === 3}
-		class:done={currentStep > 3}
-		class:locked={currentStep < 3}
+		class:active={solver.currentStep === 3}
+		class:done={solver.currentStep > 3}
+		class:locked={solver.currentStep < 3}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 3</div>
 			<h3 class="step-title">Vanishing Coefficient Shortcuts</h3>
 		</div>
 
-		{#if currentStep === 3}
+		{#if solver.currentStep === 3}
 			<div class="step-body">
 				<p class="step-prompt">
 					Based on the <strong class="capitalize">
@@ -597,8 +304,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s3Selected === "bn_zero"}
-						onclick={() => checkStep3("bn_zero")}
+						class:selected={solver.step3.selected === "bn_zero"}
+						onclick={() => solver.checkStep3("bn_zero")}
 					>
 						<strong><MathInline math={"b_n = 0"} /></strong>
 						<span class="choice-sub">
@@ -609,8 +316,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s3Selected === "an_zero"}
-						onclick={() => checkStep3("an_zero")}
+						class:selected={solver.step3.selected === "an_zero"}
+						onclick={() => solver.checkStep3("an_zero")}
 					>
 						<strong>
 							<MathInline math={"a_0 = 0, \\; a_n = 0"} />
@@ -622,8 +329,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s3Selected === "none"}
-						onclick={() => checkStep3("none")}
+						class:selected={solver.step3.selected === "none"}
+						onclick={() => solver.checkStep3("none")}
 					>
 						<strong>No Coefficients Vanish</strong>
 						<span class="choice-sub">
@@ -635,7 +342,7 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStep > 3}
+		{:else if solver.currentStep > 3}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
@@ -657,16 +364,16 @@
 	<!-- Step 4: Representation Form -->
 	<div
 		class="step-card"
-		class:active={currentStep === 4}
-		class:done={currentStep > 4}
-		class:locked={currentStep < 4}
+		class:active={solver.currentStep === 4}
+		class:done={solver.currentStep > 4}
+		class:locked={solver.currentStep < 4}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 4</div>
 			<h3 class="step-title">Optimal Representation Form</h3>
 		</div>
 
-		{#if currentStep === 4}
+		{#if solver.currentStep === 4}
 			<div class="step-body">
 				<p class="step-prompt">
 					Which Fourier series representation is most efficient to
@@ -676,8 +383,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s4Selected === "trig"}
-						onclick={() => checkStep4("trig")}
+						class:selected={solver.step4.selected === "trig"}
+						onclick={() => solver.checkStep4("trig")}
 					>
 						<strong>Trigonometric Form</strong>
 						<span class="choice-sub">
@@ -689,8 +396,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s4Selected === "exp"}
-						onclick={() => checkStep4("exp")}
+						class:selected={solver.step4.selected === "exp"}
+						onclick={() => solver.checkStep4("exp")}
 					>
 						<strong>Exponential Form</strong>
 						<span class="choice-sub">
@@ -700,8 +407,8 @@
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={s4Selected === "compact"}
-						onclick={() => checkStep4("compact")}
+						class:selected={solver.step4.selected === "compact"}
+						onclick={() => solver.checkStep4("compact")}
 					>
 						<strong>Compact Polar Form</strong>
 						<span class="choice-sub">
@@ -713,7 +420,7 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStep > 4}
+		{:else if solver.currentStep > 4}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
@@ -733,16 +440,16 @@
 	<!-- Step 5: Integral Setup -->
 	<div
 		class="step-card"
-		class:active={currentStep === 5}
-		class:done={currentStep > 5}
-		class:locked={currentStep < 5}
+		class:active={solver.currentStep === 5}
+		class:done={solver.currentStep > 5}
+		class:locked={solver.currentStep < 5}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 5</div>
 			<h3 class="step-title">Integral Setup Formulation</h3>
 		</div>
 
-		{#if currentStep === 5}
+		{#if solver.currentStep === 5}
 			<div class="step-body">
 				<p class="step-prompt">
 					Select the correct integral formulation to compute the
@@ -753,8 +460,8 @@
 						<button
 							type="button"
 							class="mcq-card"
-							class:selected={s5Selected === opt.id}
-							onclick={() => checkStep5(opt)}
+							class:selected={solver.step5.selected === opt.id}
+							onclick={() => solver.checkStep5(opt)}
 						>
 							<MathBlock
 								math={opt.latex}
@@ -766,7 +473,7 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStep > 5}
+		{:else if solver.currentStep > 5}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>Integral Form: Validated</span>
@@ -777,16 +484,16 @@
 	<!-- Step 6: Final Series Expression -->
 	<div
 		class="step-card"
-		class:active={currentStep === 6}
-		class:done={currentStep > 6}
-		class:locked={currentStep < 6}
+		class:active={solver.currentStep === 6}
+		class:done={solver.currentStep > 6}
+		class:locked={solver.currentStep < 6}
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 6</div>
 			<h3 class="step-title">Final Fourier Series Expression</h3>
 		</div>
 
-		{#if currentStep === 6}
+		{#if solver.currentStep === 6}
 			<div class="step-body">
 				<p class="step-prompt">
 					Select the evaluated closed-form Fourier Series
@@ -797,8 +504,8 @@
 						<button
 							type="button"
 							class="mcq-card"
-							class:selected={s6Selected === opt.id}
-							onclick={() => checkStep6(opt)}
+							class:selected={solver.step6.selected === opt.id}
+							onclick={() => solver.checkStep6(opt)}
 						>
 							<MathBlock
 								math={opt.latex}
@@ -810,7 +517,7 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStep > 6}
+		{:else if solver.currentStep > 6}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>Fourier Series Synthesized</span>
