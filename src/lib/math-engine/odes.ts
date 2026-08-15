@@ -110,8 +110,8 @@ export interface OdeItsOption {
 	feedback?: string;
 }
 
-/** ITS Stage 1: Characteristic Equation */
-export interface OdeItsStage1 {
+/** ITS Step 1: Characteristic Equation */
+export interface OdeItsStep1 {
 	/** Expected coefficient a2 for s^2 */
 	expectedA2: number;
 	/** Expected coefficient a1 for s */
@@ -126,8 +126,8 @@ export interface OdeItsStage1 {
 	misconceptions: Record<string, string>;
 }
 
-/** ITS Stage 2: Characteristic Roots */
-export interface OdeItsStage2 {
+/** ITS Step 2: Characteristic Roots */
+export interface OdeItsStep2 {
 	/** Classification of characteristic roots */
 	rootType: RootType;
 	/** First root (real part if complex) */
@@ -140,8 +140,8 @@ export interface OdeItsStage2 {
 	hints: string[];
 }
 
-/** ITS Stage 3: Homogeneous Form Template */
-export interface OdeItsStage3 {
+/** ITS Step 3: Homogeneous Form Template */
+export interface OdeItsStep3 {
 	/** Correct template matching the roots */
 	correctTemplate: RootType;
 	/** Instantiated template formula with roots and symbolic constants C1, C2 */
@@ -152,16 +152,16 @@ export interface OdeItsStage3 {
 	misconceptions: Record<string, string>;
 }
 
-/** ITS Stage 4: Particular Solution Ansatz */
-export interface OdeItsStage4 {
+/** ITS Step 4: Particular Solution Ansatz */
+export interface OdeItsStep4 {
 	/** Multiple-choice options for trial ansatz */
 	options: OdeItsOption[];
 	/** 3-tiered progressive hints */
 	hints: string[];
 }
 
-/** ITS Stage 5: Particular Coefficients */
-export interface OdeItsStage5 {
+/** ITS Step 5: Particular Coefficients */
+export interface OdeItsStep5 {
 	/** Solved Kp for constant/exponential forcing */
 	expectedKp?: number;
 	/** Solved A for sinusoidal forcing */
@@ -172,8 +172,8 @@ export interface OdeItsStage5 {
 	hints: string[];
 }
 
-/** ITS Stage 6: Initial Conditions System and Constants */
-export interface OdeItsStage6 {
+/** ITS Step 6: Initial Conditions System and Constants */
+export interface OdeItsStep6 {
 	/** Solved constant C1 */
 	expectedC1: number;
 	/** Solved constant C2 */
@@ -190,8 +190,8 @@ export interface OdeItsStage6 {
 	hints: string[];
 }
 
-/** ITS Stage 7: Response Decomposition */
-export interface OdeItsStage7 {
+/** ITS Step 7: Response Decomposition */
+export interface OdeItsStep7 {
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
@@ -202,20 +202,20 @@ export interface OdeItsStage7 {
 
 /** Complete ITS problem data container for ODE problem */
 export interface OdeItsData {
-	/** Stage 1: Characteristic Equation Setup */
-	stage1: OdeItsStage1;
-	/** Stage 2: Roots */
-	stage2: OdeItsStage2;
-	/** Stage 3: Homogeneous Form */
-	stage3: OdeItsStage3;
-	/** Stage 4: Particular Ansatz */
-	stage4: OdeItsStage4;
-	/** Stage 5: Particular Coefficients */
-	stage5: OdeItsStage5;
-	/** Stage 6: Initial Conditions & Solved Constants */
-	stage6: OdeItsStage6;
-	/** Stage 7: Response Decomposition */
-	stage7: OdeItsStage7;
+	/** Step 1: Characteristic Equation Setup */
+	step1: OdeItsStep1;
+	/** Step 2: Roots */
+	step2: OdeItsStep2;
+	/** Step 3: Homogeneous Form */
+	step3: OdeItsStep3;
+	/** Step 4: Particular Ansatz */
+	step4: OdeItsStep4;
+	/** Step 5: Particular Coefficients */
+	step5: OdeItsStep5;
+	/** Step 6: Initial Conditions & Solved Constants */
+	step6: OdeItsStep6;
+	/** Step 7: Response Decomposition */
+	step7: OdeItsStep7;
 }
 
 /** Complete ODE practice problem object containing metadata, analytical solutions, steps, and evaluators */
@@ -862,11 +862,11 @@ export function generateOdeProblem(
 	// Step 9: Zero-Input & Zero-State Separation
 	const step9Latex = `y_{ZI}(t) &= ${ziLatex} \\\\[0.75em]\n y_{ZS}(t) &= ${zsLatex}`;
 
-	// Stage 4 Particular Ansatz Options
-	let stage4Options: OdeItsOption[];
+	// Step 4 Particular Ansatz Options
+	let step4Options: OdeItsOption[];
 	switch (forcing.type) {
 		case "constant": {
-			stage4Options = [
+			step4Options = [
 				{ id: "c1", latex: "y_p(t) = K_p", isCorrect: true },
 				{
 					id: "d1",
@@ -894,7 +894,7 @@ export function generateOdeProblem(
 		}
 		case "exponential": {
 			const p = forcing.p ?? 0;
-			stage4Options = [
+			step4Options = [
 				{ id: "c1", latex: `y_p(t) = K_p e^{${p}t}`, isCorrect: true },
 				{
 					id: "d1",
@@ -922,7 +922,7 @@ export function generateOdeProblem(
 		}
 		case "sinusoid": {
 			const w = forcing.omega ?? 1;
-			stage4Options = [
+			step4Options = [
 				{
 					id: "c1",
 					latex: `y_p(t) = A \\cos(${w}t) + B \\sin(${w}t)`,
@@ -953,13 +953,13 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled forcing type in stage 4: ${forcing.type}`);
+			throw new Error(`Unhandled forcing type in step 4: ${forcing.type}`);
 		}
 	}
 
 	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
 	const itsData: OdeItsData = {
-		stage1: {
+		step1: {
 			expectedA2: 1,
 			expectedA1: a1,
 			expectedA0: a0,
@@ -978,7 +978,7 @@ export function generateOdeProblem(
 					"Each derivative order corresponds to a power of $s$: $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s^1$, and $y(t) \\to s^0 = 1$.",
 			},
 		},
-		stage2: {
+		step2: {
 			rootType: resolvedRootType,
 			r1: roots.r1,
 			r2: roots.r2,
@@ -993,11 +993,11 @@ export function generateOdeProblem(
 						: `The characteristic roots are complex conjugate: $\\sigma = ${roots.r1}, \\; \\omega_d = ${roots.im}$ ($${roots.r1} \\pm j${roots.im}$).`,
 			],
 		},
-		stage3: {
+		step3: {
 			correctTemplate: resolvedRootType,
 			formLatex: step3Latex,
 			hints: [
-				"Look at the roots found in Stage 2: are they distinct real, repeated real, or complex conjugate?",
+				"Look at the roots found in Step 2: are they distinct real, repeated real, or complex conjugate?",
 				"Distinct roots produce $C_1 e^{r_1 t} + C_2 e^{r_2 t}$. Repeated roots produce $(C_1 + C_2 t) e^{r t}$. Complex roots produce $e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]$.",
 				`Since the roots are ${resolvedRootType.replace("_", " ")}, select the corresponding template.`,
 			],
@@ -1010,15 +1010,15 @@ export function generateOdeProblem(
 					"Complex conjugate roots $\\sigma \\pm j\\omega_d$ generate oscillatory sines/cosines damped by an exponential envelope.",
 			},
 		},
-		stage4: {
-			options: stage4Options,
+		step4: {
+			options: step4Options,
 			hints: [
 				`Inspect the forcing function $x(t) = ${forcing.latex}$. What form should the trial particular solution $y_p(t)$ take?`,
 				"Match the functional shape of $x(t) (constant \\to K_p, exponential \\to K_p e^{pt}, sinusoid \\to A \\cos(\\omega t) + B \\sin(\\omega t))$.",
 				"Check if the trial guess collides with any characteristic root in the homogeneous solution (resonance).",
 			],
 		},
-		stage5: {
+		step5: {
 			expectedKp: particular.coeffs.Kp,
 			expectedA: particular.coeffs.A,
 			expectedB: particular.coeffs.B,
@@ -1032,7 +1032,7 @@ export function generateOdeProblem(
 						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
 			],
 		},
-		stage6: {
+		step6: {
 			expectedC1: homogeneousComplete.C1,
 			expectedC2: homogeneousComplete.C2,
 			yp0: particular.eval(0),
@@ -1045,7 +1045,7 @@ export function generateOdeProblem(
 				`Solve the $2\\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${c1Str}, \\; C_2 = ${c2Str}$.`,
 			],
 		},
-		stage7: {
+		step7: {
 			expectedZI: ziLatex,
 			expectedZS: zsLatex,
 			hints: [

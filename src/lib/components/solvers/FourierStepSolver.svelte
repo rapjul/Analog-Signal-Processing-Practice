@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * FourierStepSolver Svelte 5 Component.
-	 * 6-Stage Intelligent Tutoring System (ITS) for Fourier Series.
+	 * 6-Step Intelligent Tutoring System (ITS) for Fourier Series.
 	 * Guides students sequentially through period/frequency, symmetry classification,
 	 * vanishing shortcuts, form selection, integral setup, and final series evaluation.
 	 */

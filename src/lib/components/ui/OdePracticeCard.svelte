@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * OdePracticeCard Svelte 5 Component.
-	 * Houses the ODE practice prompt, 6-stage Intelligent Tutoring System (ITS)
+	 * Houses the ODE practice prompt, 7-step Intelligent Tutoring System (ITS)
 	 * stepped solver, and deferred post-solve completion visualizer (WaveformCanvas).
 	 */
 
@@ -105,7 +105,7 @@
 		<OdeStepSolver {problem} onComplete={handleProblemCompleted} />
 	</div>
 
-	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all stages) -->
+	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all steps) -->
 	{#if isCompleted}
 		<div class="completion-section">
 			<div class="completion-banner">

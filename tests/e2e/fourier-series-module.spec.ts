@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * End-to-End Test Suite: Fourier Series Practice Module (/fourier-series).
  *
  * Verifies periodic waveform preset selector, anti-spoiler practice headers,
- * 6-stage interactive ITS tutor workflow, progressive hints, misconception diagnostics,
+ * 6-step interactive ITS tutor workflow, progressive hints, misconception diagnostics,
  * and deferred post-solve waveform & spectrum visualizer canvas.
  */
 
@@ -58,9 +58,9 @@ test.describe('Fourier Series Module', () => {
 	});
 
 	/**
-	 * Verifies 6-stage ITS workflow: Step 1 period inputs, hints toggle, and progressive progression.
+	 * Verifies 6-step ITS workflow: Step 1 period inputs, hints toggle, and progressive progression.
 	 */
-	test('steps through interactive ITS solver stages with hints and diagnostic feedback', async ({ page }) => {
+	test('steps through interactive ITS solver steps with hints and diagnostic feedback', async ({ page }) => {
 		const step1 = page.locator('.step-card').first();
 		await expect(step1).toBeVisible();
 		await expect(step1.locator('.step-title')).toHaveText(/Fundamental Period/i);

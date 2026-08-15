@@ -2,7 +2,7 @@
 	/**
 	 * ConvolutionPracticeCard Svelte 5 Component.
 	 * Displays Continuous-Time Convolution practice statement, embedded flip-and-shift canvas animator,
-	 * multi-stage piecewise LaTeX inputs (via MathInputBar), validation feedback, and step reveal breakdown.
+	 * multi-step piecewise LaTeX inputs (via MathInputBar), validation feedback, and step reveal breakdown.
 	 */
 
 	import type { ConvolutionProblem } from "$lib/math-engine/convolution";

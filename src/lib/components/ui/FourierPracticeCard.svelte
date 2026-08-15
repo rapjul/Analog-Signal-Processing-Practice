@@ -2,7 +2,7 @@
 	/**
 	 * FourierPracticeCard Svelte 5 Component.
 	 *
-	 * Houses the Fourier Series problem prompt, 6-stage Intelligent Tutoring System (ITS)
+	 * Houses the Fourier Series problem prompt, 6-step Intelligent Tutoring System (ITS)
 	 * stepped solver, and deferred post-solve completion visualizers (FourierCanvas & StepReveal).
 	 */
 
@@ -77,7 +77,7 @@
 		<FourierStepSolver {problem} onComplete={handleProblemCompleted} />
 	</div>
 
-	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all stages) -->
+	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all steps) -->
 	{#if isCompleted}
 		<div class="completion-section">
 			<div class="completion-banner">

@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * End-to-End Test Suite: Linear Constant-Coefficient ODEs Practice Module (/odes).
  *
  * Verifies problem customization filters, anti-spoiler headers,
- * 7-stage interactive ITS solver workflow, progressive hints, distractor feedback,
+ * 7-step interactive ITS solver workflow, progressive hints, distractor feedback,
  * and deferred post-solve waveform response canvas.
  */
 
@@ -66,13 +66,13 @@ test.describe('LCC ODEs Practice Module', () => {
 	});
 
 	/**
-	 * Verifies 7-stage ITS ODE workflow: Stage 1 characteristic equation inputs, progressive hints, and progression to Stage 2.
+	 * Verifies 7-step ITS ODE workflow: Step 1 characteristic equation inputs, progressive hints, and progression to Step 2.
 	 */
-	test('steps through interactive ODE ITS solver Stage 1 characteristic equation and hints', async ({ page }) => {
-		// Verify Stage 1 is active
-		const stage1 = page.locator('.stage-card').first();
-		await expect(stage1).toBeVisible();
-		await expect(stage1.locator('.stage-title')).toHaveText(/Characteristic Equation Formulation/i);
+	test('steps through interactive ODE ITS solver Step 1 characteristic equation and hints', async ({ page }) => {
+		// Verify Step 1 is active
+		const step1 = page.locator('.step-card').first();
+		await expect(step1).toBeVisible();
+		await expect(step1.locator('.step-title')).toHaveText(/Characteristic Equation Formulation/i);
 
 		// Test Hint Toggle
 		const hintBtn = page.locator('.hint-toggle-btn');
@@ -88,7 +88,7 @@ test.describe('LCC ODEs Practice Module', () => {
 		await a1Input.fill('99');
 		await a0Input.fill('99');
 
-		const checkBtn = stage1.locator('.stage-actions .btn-primary');
+		const checkBtn = step1.locator('.step-actions .btn-primary');
 		await checkBtn.click();
 		await page.waitForTimeout(200);
 

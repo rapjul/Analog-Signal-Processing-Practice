@@ -3,7 +3,7 @@
 	 * LCC ODEs Practice Module Route (/odes).
 	 * Implements 1st and 2nd-order Linear Constant Coefficient ODE practice engine
 	 * with blind exam-mode problem generation by default, optional collapsible targeted filters,
-	 * 7-stage ITS diagnostic solver, and verified waveform plotting.
+	 * 7-step ITS diagnostic solver, and verified waveform plotting.
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.

@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * OdeStepSolver Svelte 5 Component.
-	 * 7-Stage Intelligent Tutoring System (ITS) for Linear Constant-Coefficient ODEs.
+	 * 7-Step Intelligent Tutoring System (ITS) for Linear Constant-Coefficient ODEs.
 	 * Guides students sequentially through characteristic equation formulation, characteristic roots,
 	 * homogeneous form selection, particular ansatz guess, undetermined coefficients,
 	 * initial conditions system, and ZI/ZS response decomposition.
@@ -26,18 +26,18 @@
 	interface Props {
 		/** Active ODE problem instance */
 		problem: OdeProblem;
-		/** Callback triggered when all 7 stages are completed */
+		/** Callback triggered when all 7 steps are completed */
 		onComplete?: () => void;
 	}
 
 	let { problem, onComplete }: Props = $props();
 
-	// Active stage index (1-based: 1 through 7)
-	let currentStage = $state<number>(1);
+	// Active step index (1-based: 1 through 7)
+	let currentStep = $state<number>(1);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCompleted = $state<boolean>(false);
 
-	// Stage 1 State: Characteristic Equation Coefficients (a2 s^2 + a1 s + a0 = 0)
+	// Step 1 State: Characteristic Equation Coefficients (a2 s^2 + a1 s + a0 = 0)
 	let s1A2 = $state<string>("");
 	let s1A1 = $state<string>("");
 	let s1A0 = $state<string>("");
@@ -45,7 +45,7 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s1Valid = $state<boolean>(false);
 
-	// Stage 2 State: Characteristic Roots Inputs
+	// Step 2 State: Characteristic Roots Inputs
 	let s2R1 = $state<string>("");
 	let s2R2 = $state<string>("");
 	let s2Sigma = $state<string>("");
@@ -54,21 +54,21 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s2Valid = $state<boolean>(false);
 
-	// Stage 3 State: Homogeneous Form Template Selection
+	// Step 3 State: Homogeneous Form Template Selection
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s3Selected = $state<RootType | null>(null);
 	let s3Feedback = $state<string | null>(null);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s3Valid = $state<boolean>(false);
 
-	// Stage 4 State: Particular Solution Ansatz Card Selection
+	// Step 4 State: Particular Solution Ansatz Card Selection
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s4Selected = $state<string | null>(null);
 	let s4Feedback = $state<string | null>(null);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s4Valid = $state<boolean>(false);
 
-	// Stage 5 State: Undetermined Particular Coefficients
+	// Step 5 State: Undetermined Particular Coefficients
 	let s5Kp = $state<string>("");
 	let s5A = $state<string>("");
 	let s5B = $state<string>("");
@@ -76,14 +76,14 @@
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s5Valid = $state<boolean>(false);
 
-	// Stage 6 State: Initial Conditions Constants C1, C2
+	// Step 6 State: Initial Conditions Constants C1, C2
 	let s6C1 = $state<string>("");
 	let s6C2 = $state<string>("");
 	let s6Feedback = $state<string | null>(null);
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s6Valid = $state<boolean>(false);
 
-	// Stage 7 State: Response Decomposition via OdeResponseInput
+	// Step 7 State: Response Decomposition via OdeResponseInput
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let s7Latex = $state<string>("");
 	let s7Feedback = $state<string | null>(null);
@@ -93,7 +93,7 @@
 	// Hint Tier tracking (0 = closed, 1 = Tier 1, 2 = Tier 2, 3 = Tier 3)
 	let hintTier = $state<number>(0);
 
-	// Live rendered preview equation for Stage 1 Characteristic Equation
+	// Live rendered preview equation for Step 1 Characteristic Equation
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let previewCharEq = $derived.by(() => {
 		const a2Str = s1A2.trim();
@@ -141,16 +141,15 @@
 		return `${term2} ${term1} ${term0} = 0`;
 	});
 
-	// Stage 4 correct ansatz LaTeX
+	// Step 4 correct ansatz LaTeX
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let correctAnsatz = $derived(
-		problem.itsData.stage4.options.find((opt) => opt.isCorrect)?.latex ??
-			"",
+		problem.itsData.step4.options.find((opt) => opt.isCorrect)?.latex ?? "",
 	);
 
 	// Reset state when problem changes
 	$effect(() => {
-		currentStage = 1;
+		currentStep = 1;
 		isCompleted = false;
 
 		s1A2 = "";
@@ -193,7 +192,7 @@
 	});
 
 	/**
-	 * Increments the hint tier for the active stage.
+	 * Increments the hint tier for the active step.
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function revealNextHint() {
@@ -203,24 +202,24 @@
 	}
 
 	/**
-	 * Advances to the next interactive stage.
-	 * @param {number} nextStage Target stage index
+	 * Advances to the next interactive step.
+	 * @param {number} nextStep Target step index
 	 */
-	function advanceToStage(nextStage: number) {
-		currentStage = nextStage;
+	function advanceToStep(nextStep: number) {
+		currentStep = nextStep;
 		hintTier = 0;
-		if (nextStage > 7) {
+		if (nextStep > 7) {
 			isCompleted = true;
 			onComplete?.();
 		}
 	}
 
 	/**
-	 * Validates Stage 1 (Characteristic Equation Formulation).
+	 * Validates Step 1 (Characteristic Equation Formulation).
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage1() {
-		const s1Data = problem.itsData.stage1;
+	function checkStep1() {
+		const s1Data = problem.itsData.step1;
 		const vA2 = Number.parseFloat(s1A2.trim());
 		const vA1 = Number.parseFloat(s1A1.trim());
 		const vA0 = Number.parseFloat(s1A0.trim());
@@ -249,7 +248,7 @@
 		) {
 			s1Feedback = null;
 			s1Valid = true;
-			advanceToStage(2);
+			advanceToStep(2);
 		} else {
 			s1Valid = false;
 			s1Feedback = `Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.`;
@@ -257,11 +256,11 @@
 	}
 
 	/**
-	 * Validates Stage 2 (Roots).
+	 * Validates Step 2 (Roots).
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage2() {
-		const s2Data = problem.itsData.stage2;
+	function checkStep2() {
+		const s2Data = problem.itsData.step2;
 		if (s2Data.rootType === "distinct_real") {
 			const v1 = Number.parseFloat(s2R1.trim());
 			const v2 = Number.parseFloat(s2R2.trim());
@@ -276,10 +275,10 @@
 			if (matchDirect || matchSwapped) {
 				s2Feedback = null;
 				s2Valid = true;
-				advanceToStage(3);
+				advanceToStep(3);
 			} else {
 				s2Valid = false;
-				s2Feedback = `Incorrect roots. Factor the characteristic polynomial $${problem.itsData.stage1.latex}$.`;
+				s2Feedback = `Incorrect roots. Factor the characteristic polynomial $${problem.itsData.step1.latex}$.`;
 			}
 		} else if (s2Data.rootType === "repeated_real") {
 			const v1 = Number.parseFloat(s2R1.trim());
@@ -288,7 +287,7 @@
 			if (Math.abs(v1 - r1) < 0.05) {
 				s2Feedback = null;
 				s2Valid = true;
-				advanceToStage(3);
+				advanceToStep(3);
 			} else {
 				s2Valid = false;
 				s2Feedback = `Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.`;
@@ -305,7 +304,7 @@
 			) {
 				s2Feedback = null;
 				s2Valid = true;
-				advanceToStage(3);
+				advanceToStep(3);
 			} else {
 				s2Valid = false;
 				s2Feedback = `Incorrect complex root components. Ensure real part \\sigma and imaginary part \\omega_d match s = \\sigma \\pm j \\omega_d.`;
@@ -314,18 +313,18 @@
 	}
 
 	/**
-	 * Validates Stage 3 (Homogeneous Template Selection).
+	 * Validates Step 3 (Homogeneous Template Selection).
 	 * @param {RootType} template Selected template
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage3(template: RootType) {
+	function checkStep3(template: RootType) {
 		s3Selected = template;
-		const s3Data = problem.itsData.stage3;
+		const s3Data = problem.itsData.step3;
 
 		if (template === s3Data.correctTemplate) {
 			s3Feedback = null;
 			s3Valid = true;
-			advanceToStage(4);
+			advanceToStep(4);
 		} else {
 			s3Valid = false;
 			s3Feedback =
@@ -335,16 +334,16 @@
 	}
 
 	/**
-	 * Validates Stage 4 (Particular Solution Ansatz).
+	 * Validates Step 4 (Particular Solution Ansatz).
 	 * @param {OdeItsOption} opt Selected option
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage4(opt: OdeItsOption) {
+	function checkStep4(opt: OdeItsOption) {
 		s4Selected = opt.id;
 		if (opt.isCorrect) {
 			s4Feedback = null;
 			s4Valid = true;
-			advanceToStage(5);
+			advanceToStep(5);
 		} else {
 			s4Valid = false;
 			s4Feedback =
@@ -354,11 +353,11 @@
 	}
 
 	/**
-	 * Validates Stage 5 (Particular Coefficients).
+	 * Validates Step 5 (Particular Coefficients).
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage5() {
-		const s5Data = problem.itsData.stage5;
+	function checkStep5() {
+		const s5Data = problem.itsData.step5;
 		if (problem.forcing.type === "sinusoid") {
 			const vA = Number.parseFloat(s5A.trim());
 			const vB = Number.parseFloat(s5B.trim());
@@ -368,7 +367,7 @@
 			if (Math.abs(vA - expA) < 0.05 && Math.abs(vB - expB) < 0.05) {
 				s5Feedback = null;
 				s5Valid = true;
-				advanceToStage(6);
+				advanceToStep(6);
 			} else {
 				s5Feedback =
 					"Incorrect coefficients $A$ and $B$. Substitute $y_p(t)$ into the ODE and equate like cosine and sine terms.";
@@ -381,7 +380,7 @@
 			if (Math.abs(vKp - expKp) < 0.05) {
 				s5Feedback = null;
 				s5Valid = true;
-				advanceToStage(6);
+				advanceToStep(6);
 			} else {
 				s5Feedback =
 					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.";
@@ -391,11 +390,11 @@
 	}
 
 	/**
-	 * Validates Stage 6 (Initial Conditions System & Constants C1, C2).
+	 * Validates Step 6 (Initial Conditions System & Constants C1, C2).
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function checkStage6() {
-		const s6Data = problem.itsData.stage6;
+	function checkStep6() {
+		const s6Data = problem.itsData.step6;
 		const vC1 = Number.parseFloat(s6C1.trim());
 		const vC2 = Number.parseFloat(s6C2.trim());
 
@@ -405,7 +404,7 @@
 		) {
 			s6Feedback = null;
 			s6Valid = true;
-			advanceToStage(7);
+			advanceToStep(7);
 		} else {
 			s6Valid = false;
 			s6Feedback = `Incorrect constants $C_1$, $C_2$. Remember to account for the velocity offset $y_p'(0^+)$ when setting up $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.`;
@@ -413,15 +412,15 @@
 	}
 
 	/**
-	 * Handles submission from Stage 7 OdeResponseInput.
+	 * Handles submission from Step 7 OdeResponseInput.
 	 * @param {string} value LaTeX formatted student response
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-	function handleStage7Submit(value: string) {
+	function handleStep7Submit(value: string) {
 		if (value && value.length > 3) {
 			s7Feedback = null;
 			s7Valid = true;
-			advanceToStage(8);
+			advanceToStep(8);
 		} else {
 			s7Valid = false;
 			s7Feedback =
@@ -434,32 +433,32 @@
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let activeHints = $derived.by(() => {
-		switch (currentStage) {
+		switch (currentStep) {
 			case 1:
-				return problem.itsData.stage1.hints;
+				return problem.itsData.step1.hints;
 			case 2:
-				return problem.itsData.stage2.hints;
+				return problem.itsData.step2.hints;
 			case 3:
-				return problem.itsData.stage3.hints;
+				return problem.itsData.step3.hints;
 			case 4:
-				return problem.itsData.stage4.hints;
+				return problem.itsData.step4.hints;
 			case 5:
-				return problem.itsData.stage5.hints;
+				return problem.itsData.step5.hints;
 			case 6:
-				return problem.itsData.stage6.hints;
+				return problem.itsData.step6.hints;
 			case 7:
-				return problem.itsData.stage7.hints;
+				return problem.itsData.step7.hints;
 			default:
 				return [];
 		}
 	});
 
 	/**
-	 * Active feedback for the current stage.
+	 * Active feedback for the current step.
 	 */
 	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let currentFeedback = $derived.by(() => {
-		switch (currentStage) {
+		switch (currentStep) {
 			case 1:
 				return s1Feedback;
 			case 2:
@@ -495,7 +494,7 @@
 	{/if}
 
 	<!-- Progressive Hints Utility -->
-	{#if currentStage <= 7}
+	{#if currentStep <= 7}
 		<div class="hints-box hint-container">
 			<div class="hints-header">
 				<button
@@ -538,35 +537,35 @@
 {/snippet}
 
 <div class="ode-step-solver">
-	<div class="stages-progress-bar">
+	<div class="steps-progress-bar">
 		<span class="progress-title">ITS Problem Progression:</span>
 		<div class="progress-pills">
 			{#each [1, 2, 3, 4, 5, 6, 7] as s}
 				<div
 					class="progress-pill"
-					class:active={currentStage === s}
-					class:completed={currentStage > s}
+					class:active={currentStep === s}
+					class:completed={currentStep > s}
 				>
-					{s < currentStage ? "✓" : s}
+					{s < currentStep ? "✓" : s}
 				</div>
 			{/each}
 		</div>
 	</div>
 
-	<!-- Stage 1: Characteristic Equation Setup -->
+	<!-- Step 1: Characteristic Equation Setup -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 1}
-		class:done={currentStage > 1}
+		class="step-card"
+		class:active={currentStep === 1}
+		class:done={currentStep > 1}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 1</div>
-			<h3 class="stage-title">Characteristic Equation Formulation</h3>
+		<div class="step-header">
+			<div class="step-badge">Step 1</div>
+			<h3 class="step-title">Characteristic Equation Formulation</h3>
 		</div>
 
-		{#if currentStage === 1}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 1}
+			<div class="step-body">
+				<p class="step-prompt">
 					Map differential operators <MathInline
 						math={"\\frac{d^n}{dt^n} \\to s^n"}
 					/> and set the homogeneous right-hand side to <MathInline
@@ -589,7 +588,7 @@
 								placeholder="1"
 								bind:value={s1A2}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage1()}
+									e.key === "Enter" && checkStep1()}
 							/>
 						</div>
 						<span class="plus-symbol">+</span>
@@ -606,7 +605,7 @@
 								placeholder="e.g. 8"
 								bind:value={s1A1}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage1()}
+									e.key === "Enter" && checkStep1()}
 							/>
 						</div>
 						<span class="plus-symbol">+</span>
@@ -621,7 +620,7 @@
 								placeholder="e.g. 12"
 								bind:value={s1A0}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage1()}
+									e.key === "Enter" && checkStep1()}
 							/>
 						</div>
 					</div>
@@ -637,11 +636,11 @@
 					</div>
 				</div>
 
-				<div class="stage-actions">
+				<div class="step-actions">
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={checkStage1}
+						onclick={checkStep1}
 					>
 						Check Characteristic Equation →
 					</button>
@@ -649,34 +648,34 @@
 			</div>
 			{@render feedbackAndHints()}
 		{:else}
-			<div class="stage-summary">
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Characteristic Equation: <MathInline
-						math={`Q(s) = ${problem.itsData.stage1.latex}`}
+						math={`Q(s) = ${problem.itsData.step1.latex}`}
 					/>
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Stage 2: Characteristic Roots -->
+	<!-- Step 2: Characteristic Roots -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 2}
-		class:done={currentStage > 2}
-		class:locked={currentStage < 2}
+		class="step-card"
+		class:active={currentStep === 2}
+		class:done={currentStep > 2}
+		class:locked={currentStep < 2}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 2</div>
-			<h3 class="stage-title">Characteristic Polynomial Roots</h3>
+		<div class="step-header">
+			<div class="step-badge">Step 2</div>
+			<h3 class="step-title">Characteristic Polynomial Roots</h3>
 		</div>
 
-		{#if currentStage === 2}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 2}
+			<div class="step-body">
+				<p class="step-prompt">
 					Solve the characteristic polynomial <MathInline
-						math={problem.itsData.stage1.latex}
+						math={problem.itsData.step1.latex}
 					/> for its roots:
 				</p>
 
@@ -693,7 +692,7 @@
 								placeholder="e.g. -2"
 								bind:value={s2R1}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage2()}
+									e.key === "Enter" && checkStep2()}
 							/>
 						</div>
 						<div class="input-pair">
@@ -707,7 +706,7 @@
 								placeholder="e.g. -3"
 								bind:value={s2R2}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage2()}
+									e.key === "Enter" && checkStep2()}
 							/>
 						</div>
 					</div>
@@ -722,8 +721,7 @@
 							class="text-input"
 							placeholder="e.g. -2"
 							bind:value={s2R1}
-							onkeydown={(e) =>
-								e.key === "Enter" && checkStage2()}
+							onkeydown={(e) => e.key === "Enter" && checkStep2()}
 						/>
 					</div>
 				{:else if problem.params.rootType === "complex_conjugate"}
@@ -739,7 +737,7 @@
 								placeholder="e.g. -1"
 								bind:value={s2Sigma}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage2()}
+									e.key === "Enter" && checkStep2()}
 							/>
 						</div>
 						<div class="input-pair">
@@ -755,25 +753,25 @@
 								placeholder="e.g. 2"
 								bind:value={s2OmegaD}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage2()}
+									e.key === "Enter" && checkStep2()}
 							/>
 						</div>
 					</div>
 				{/if}
 
-				<div class="stage-actions">
+				<div class="step-actions">
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={checkStage2}
+						onclick={checkStep2}
 					>
 						Check Roots →
 					</button>
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 2}
-			<div class="stage-summary">
+		{:else if currentStep > 2}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Roots:
@@ -793,21 +791,21 @@
 		{/if}
 	</div>
 
-	<!-- Stage 3: Homogeneous Form Selection -->
+	<!-- Step 3: Homogeneous Form Selection -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 3}
-		class:done={currentStage > 3}
-		class:locked={currentStage < 3}
+		class="step-card"
+		class:active={currentStep === 3}
+		class:done={currentStep > 3}
+		class:locked={currentStep < 3}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 3</div>
-			<h3 class="stage-title">Homogeneous Form Template</h3>
+		<div class="step-header">
+			<div class="step-badge">Step 3</div>
+			<h3 class="step-title">Homogeneous Form Template</h3>
 		</div>
 
-		{#if currentStage === 3}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 3}
+			<div class="step-body">
+				<p class="step-prompt">
 					Select the general homogeneous solution template <MathInline
 						math={"y_h(t)"}
 					/> matching the characteristic roots:
@@ -817,7 +815,7 @@
 						type="button"
 						class="choice-btn"
 						class:selected={s3Selected === "distinct_real"}
-						onclick={() => checkStage3("distinct_real")}
+						onclick={() => checkStep3("distinct_real")}
 					>
 						<strong>Distinct Real Roots</strong>
 						<span class="choice-sub">
@@ -830,7 +828,7 @@
 						type="button"
 						class="choice-btn"
 						class:selected={s3Selected === "repeated_real"}
-						onclick={() => checkStage3("repeated_real")}
+						onclick={() => checkStep3("repeated_real")}
 					>
 						<strong>Repeated Real Roots</strong>
 						<span class="choice-sub">
@@ -841,7 +839,7 @@
 						type="button"
 						class="choice-btn"
 						class:selected={s3Selected === "complex_conjugate"}
-						onclick={() => checkStage3("complex_conjugate")}
+						onclick={() => checkStep3("complex_conjugate")}
 					>
 						<strong>Complex Conjugate Roots</strong>
 						<span class="choice-sub">
@@ -853,33 +851,33 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 3}
-			<div class="stage-summary">
+		{:else if currentStep > 3}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Homogeneous Form: <MathInline
-						math={problem.itsData.stage3.formLatex}
+						math={problem.itsData.step3.formLatex}
 					/>
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Stage 4: Particular Solution Ansatz Guess -->
+	<!-- Step 4: Particular Solution Ansatz Guess -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 4}
-		class:done={currentStage > 4}
-		class:locked={currentStage < 4}
+		class="step-card"
+		class:active={currentStep === 4}
+		class:done={currentStep > 4}
+		class:locked={currentStep < 4}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 4</div>
-			<h3 class="stage-title">Particular Solution Ansatz Form</h3>
+		<div class="step-header">
+			<div class="step-badge">Step 4</div>
+			<h3 class="step-title">Particular Solution Ansatz Form</h3>
 		</div>
 
-		{#if currentStage === 4}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 4}
+			<div class="step-body">
+				<p class="step-prompt">
 					Given forcing input <MathInline
 						math={`x(t) = ${problem.forcing.latex}`}
 					/>, select the trial particular solution <MathInline
@@ -887,12 +885,12 @@
 					/>:
 				</p>
 				<div class="mcq-cards-grid">
-					{#each problem.itsData.stage4.options as opt}
+					{#each problem.itsData.step4.options as opt}
 						<button
 							type="button"
 							class="mcq-card"
 							class:selected={s4Selected === opt.id}
-							onclick={() => checkStage4(opt)}
+							onclick={() => checkStep4(opt)}
 						>
 							<MathBlock
 								math={opt.latex}
@@ -904,8 +902,8 @@
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 4}
-			<div class="stage-summary">
+		{:else if currentStep > 4}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Particular Ansatz: <MathInline math={correctAnsatz} />
@@ -914,21 +912,21 @@
 		{/if}
 	</div>
 
-	<!-- Stage 5: Solve Particular Coefficients -->
+	<!-- Step 5: Solve Particular Coefficients -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 5}
-		class:done={currentStage > 5}
-		class:locked={currentStage < 5}
+		class="step-card"
+		class:active={currentStep === 5}
+		class:done={currentStep > 5}
+		class:locked={currentStep < 5}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 5</div>
-			<h3 class="stage-title">Undetermined Coefficients</h3>
+		<div class="step-header">
+			<div class="step-badge">Step 5</div>
+			<h3 class="step-title">Undetermined Coefficients</h3>
 		</div>
 
-		{#if currentStage === 5}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 5}
+			<div class="step-body">
+				<p class="step-prompt">
 					Substitute <MathInline math={"y_p(t)"} /> and its derivatives
 					into the ODE to solve for the coefficient(s):
 				</p>
@@ -948,7 +946,7 @@
 								placeholder="e.g. 1/2"
 								bind:value={s5A}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage5()}
+									e.key === "Enter" && checkStep5()}
 							/>
 						</div>
 						<div class="input-pair">
@@ -964,7 +962,7 @@
 								placeholder="e.g. -1/4"
 								bind:value={s5B}
 								onkeydown={(e) =>
-									e.key === "Enter" && checkStage5()}
+									e.key === "Enter" && checkStep5()}
 							/>
 						</div>
 					</div>
@@ -979,25 +977,24 @@
 							class="text-input"
 							placeholder="e.g. 2"
 							bind:value={s5Kp}
-							onkeydown={(e) =>
-								e.key === "Enter" && checkStage5()}
+							onkeydown={(e) => e.key === "Enter" && checkStep5()}
 						/>
 					</div>
 				{/if}
 
-				<div class="stage-actions">
+				<div class="step-actions">
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={checkStage5}
+						onclick={checkStep5}
 					>
 						Check Particular Solution →
 					</button>
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 5}
-			<div class="stage-summary">
+		{:else if currentStep > 5}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Particular Solution: <MathInline
@@ -1008,25 +1005,25 @@
 		{/if}
 	</div>
 
-	<!-- Stage 6: Initial Conditions System & Solved Constants -->
+	<!-- Step 6: Initial Conditions System & Solved Constants -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 6}
-		class:done={currentStage > 6}
-		class:locked={currentStage < 6}
+		class="step-card"
+		class:active={currentStep === 6}
+		class:done={currentStep > 6}
+		class:locked={currentStep < 6}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 6</div>
-			<h3 class="stage-title">
+		<div class="step-header">
+			<div class="step-badge">Step 6</div>
+			<h3 class="step-title">
 				Initial Conditions & Constants <MathInline
 					math={"(C_1, C_2)"}
 				/>
 			</h3>
 		</div>
 
-		{#if currentStage === 6}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 6}
+			<div class="step-body">
+				<p class="step-prompt">
 					Evaluate total response <MathInline
 						math={"y(t) = y_h(t) + y_p(t)"}
 					/> at <MathInline math={"t=0^+"} /> to match initial conditions:
@@ -1046,8 +1043,7 @@
 							class="text-input"
 							placeholder="e.g. 1"
 							bind:value={s6C1}
-							onkeydown={(e) =>
-								e.key === "Enter" && checkStage6()}
+							onkeydown={(e) => e.key === "Enter" && checkStep6()}
 						/>
 					</div>
 					<div class="input-pair">
@@ -1060,52 +1056,51 @@
 							class="text-input"
 							placeholder="e.g. -1/2"
 							bind:value={s6C2}
-							onkeydown={(e) =>
-								e.key === "Enter" && checkStage6()}
+							onkeydown={(e) => e.key === "Enter" && checkStep6()}
 						/>
 					</div>
 				</div>
 
-				<div class="stage-actions">
+				<div class="step-actions">
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={checkStage6}
+						onclick={checkStep6}
 					>
 						Check Constants →
 					</button>
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 6}
-			<div class="stage-summary">
+		{:else if currentStep > 6}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Constants: <MathInline
-						math={`C_1 = ${toFractionLatex(problem.itsData.stage6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.stage6.expectedC2)}`}
+						math={`C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2)}`}
 					/>
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Stage 7: Response Separation (Zero-Input vs. Zero-State) -->
+	<!-- Step 7: Response Separation (Zero-Input vs. Zero-State) -->
 	<div
-		class="stage-card"
-		class:active={currentStage === 7}
-		class:done={currentStage > 7}
-		class:locked={currentStage < 7}
+		class="step-card"
+		class:active={currentStep === 7}
+		class:done={currentStep > 7}
+		class:locked={currentStep < 7}
 	>
-		<div class="stage-header">
-			<div class="stage-badge">Stage 7</div>
-			<h3 class="stage-title">
+		<div class="step-header">
+			<div class="step-badge">Step 7</div>
+			<h3 class="step-title">
 				Response Decomposition: Zero-Input & Zero-State
 			</h3>
 		</div>
 
-		{#if currentStage === 7}
-			<div class="stage-body">
-				<p class="stage-prompt">
+		{#if currentStep === 7}
+			<div class="step-body">
+				<p class="step-prompt">
 					Enter the final separated Zero-Input (<MathInline
 						math={"y_{ZI}"}
 					/>) and Zero-State (<MathInline math={"y_{ZS}"} />) response
@@ -1118,19 +1113,19 @@
 					}}
 				/>
 
-				<div class="stage-actions">
+				<div class="step-actions">
 					<button
 						type="button"
 						class="btn btn-primary"
-						onclick={() => handleStage7Submit(s7Latex)}
+						onclick={() => handleStep7Submit(s7Latex)}
 					>
 						Submit Response & Complete →
 					</button>
 				</div>
 			</div>
 			{@render feedbackAndHints()}
-		{:else if currentStage > 7}
-			<div class="stage-summary">
+		{:else if currentStep > 7}
+			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
 					Complete Solution Synthesized: <MathInline
@@ -1150,7 +1145,7 @@
 		width: 100%;
 	}
 
-	.stages-progress-bar {
+	.steps-progress-bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1202,7 +1197,7 @@
 		color: #10b981;
 	}
 
-	.stage-card {
+	.step-card {
 		container-type: inline-size;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -1214,28 +1209,28 @@
 		transition: all 0.2s ease;
 	}
 
-	.stage-card.active {
+	.step-card.active {
 		border-color: var(--accent-primary);
 		box-shadow: 0 2px 12px rgba(6, 182, 212, 0.1);
 	}
 
-	.stage-card.done {
+	.step-card.done {
 		border-color: rgba(16, 185, 129, 0.35);
 		background: rgba(16, 185, 129, 0.02);
 		padding: 0.75rem 1.25rem;
 	}
 
-	.stage-card.locked {
+	.step-card.locked {
 		opacity: 0.55;
 	}
 
-	.stage-header {
+	.step-header {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
 	}
 
-	.stage-badge {
+	.step-badge {
 		font-size: 0.75rem;
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
@@ -1245,26 +1240,26 @@
 		text-transform: uppercase;
 	}
 
-	.stage-title {
+	.step-title {
 		font-size: 1rem;
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
 	}
 
-	.stage-body {
+	.step-body {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
 	}
 
-	.stage-prompt {
+	.step-prompt {
 		font-size: 0.9rem;
 		color: var(--text-primary);
 		margin: 0;
 	}
 
-	.stage-summary {
+	.step-summary {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -1473,7 +1468,7 @@
 		background: rgba(6, 182, 212, 0.12);
 	}
 
-	.stage-actions {
+	.step-actions {
 		display: flex;
 		justify-content: flex-end;
 		margin-top: 0.25rem;
