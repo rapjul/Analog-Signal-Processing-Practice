@@ -53,9 +53,31 @@
 	/**
 	 * Closes mobile menu when clicking a link.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: closeMenu function is referenced in template click handler
+	// biome-ignore lint/correctness/noUnusedVariables: closeMenu function is referenced in template click handler.
 	function closeMenu() {
 		isMenuOpen = false;
+	}
+
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import FormulaDrawer from "./FormulaDrawer.svelte";
+
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	let isFormulaDrawerOpen = $state(false);
+
+	/**
+	 * Opens the global formula reference slide-over drawer.
+	 */
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	function openFormulaDrawer() {
+		isFormulaDrawerOpen = true;
+	}
+
+	/**
+	 * Closes the global formula reference slide-over drawer.
+	 */
+	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
+	function closeFormulaDrawer() {
+		isFormulaDrawerOpen = false;
 	}
 </script>
 
@@ -121,6 +143,16 @@
 	<div class="nav-actions">
 		<button
 			type="button"
+			class="btn-formula-drawer formula-drawer-btn"
+			onclick={openFormulaDrawer}
+			title="Open Formula Reference Sheet"
+			aria-label="Open Formula Reference Sheet"
+		>
+			📖 Formulas
+		</button>
+
+		<button
+			type="button"
 			class="menu-toggle"
 			onclick={toggleMenu}
 			aria-label="Toggle navigation menu"
@@ -142,6 +174,8 @@
 		</button>
 	</div>
 </header>
+
+<FormulaDrawer isOpen={isFormulaDrawerOpen} onClose={closeFormulaDrawer} />
 
 <style>
 	.navbar {
@@ -245,6 +279,32 @@
 	.menu-toggle:hover,
 	.menu-toggle:focus-visible {
 		border-color: var(--accent-primary);
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.btn-formula-drawer {
+		background: rgba(6, 182, 212, 0.12);
+		border: 1px solid rgba(6, 182, 212, 0.35);
+		color: var(--accent-primary);
+		padding: 0.35rem 0.75rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.btn-formula-drawer:hover {
+		background: rgba(6, 182, 212, 0.22);
+		border-color: var(--accent-primary);
+	}
+
+	.btn-formula-drawer:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}

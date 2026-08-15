@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * End-to-End Test Suite: Navigation, Theme Switching, and Layout Responsiveness.
  *
  * Verifies core layout components including the header navigation bar,
- * module landing cards, mobile hamburger drawer, and theme toggling persistence.
+ * slide-over formula reference drawer, module landing cards, mobile hamburger drawer, and theme toggling persistence.
  */
 
 test.describe('Navigation and Layout Shell', () => {
@@ -70,6 +70,43 @@ test.describe('Navigation and Layout Shell', () => {
 		await brandLink.click();
 		await page.waitForLoadState('networkidle');
 		await expect(page).toHaveURL(/\/$/);
+	});
+
+	/**
+	 * Verifies global slide-over formula reference drawer opening, tab switching, and closing.
+	 */
+	test('opens global formula drawer, switches formula tabs, and closes via backdrop or Esc key', async ({ page }) => {
+		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+
+		const formulaBtn = page.locator('.formula-drawer-btn');
+		await expect(formulaBtn).toBeVisible();
+
+		// Open drawer
+		await formulaBtn.click();
+		const drawer = page.locator('.formula-drawer');
+		await expect(drawer).toBeVisible();
+		await expect(drawer.locator('h2')).toHaveText(/Formula Reference Sheet/i);
+
+		// Switch tabs
+		const fourierTab = page.locator('.drawer-tabs button:has-text("Fourier Series")');
+		await fourierTab.click();
+		await expect(drawer.locator('text=Fourier Series Representations')).toBeVisible();
+
+		const transformTab = page.locator('.drawer-tabs button:has-text("Transforms & Circuits")');
+		await transformTab.click();
+		await expect(drawer.locator('text=Common Laplace Transform Pairs')).toBeVisible();
+
+		// Close via close button
+		const closeBtn = page.locator('.close-btn');
+		await closeBtn.click();
+		await expect(drawer).not.toBeVisible();
+
+		// Reopen and close via Esc key
+		await formulaBtn.click();
+		await expect(drawer).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(drawer).not.toBeVisible();
 	});
 
 	/**
