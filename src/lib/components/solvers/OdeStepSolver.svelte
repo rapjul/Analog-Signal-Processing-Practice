@@ -18,6 +18,8 @@
 	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import OdeResponseInput from "../math/OdeResponseInput.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+	import Progress from "../ui/Progress.svelte";
 	import { OdeStepSolverState } from "./ode-step-solver.svelte";
 
 	interface Props {
@@ -104,20 +106,7 @@
 {/snippet}
 
 <div class="ode-step-solver">
-	<div class="steps-progress-bar">
-		<span class="progress-title">ITS Problem Progression:</span>
-		<div class="progress-pills">
-			{#each [1, 2, 3, 4, 5, 6, 7] as s}
-				<div
-					class="progress-pill"
-					class:active={solver.currentStep === s}
-					class:completed={solver.currentStep > s}
-				>
-					{s < solver.currentStep ? "✓" : s}
-				</div>
-			{/each}
-		</div>
-	</div>
+	<Progress currentStep={solver.currentStep} totalSteps={solver.totalSteps} />
 
 	<!-- Step 1: Characteristic Equation Setup -->
 	<div
@@ -718,58 +707,6 @@
 		flex-direction: column;
 		gap: 1rem;
 		width: 100%;
-	}
-
-	.steps-progress-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem 1rem;
-		background: var(--bg-secondary);
-		border-radius: var(--radius-md, 8px);
-		border: 1px solid var(--border-color);
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.progress-title {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-secondary);
-	}
-
-	.progress-pills {
-		display: flex;
-		gap: 0.4rem;
-		flex-wrap: wrap;
-	}
-
-	.progress-pill {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.65rem;
-		height: 1.65rem;
-		border-radius: 50%;
-		font-size: 0.75rem;
-		font-weight: 700;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		color: var(--text-secondary);
-		transition: all 0.2s ease;
-	}
-
-	.progress-pill.active {
-		background: var(--accent-primary);
-		color: #ffffff;
-		border-color: var(--accent-primary);
-		box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
-	}
-
-	.progress-pill.completed {
-		background: rgba(16, 185, 129, 0.15);
-		border-color: #10b981;
-		color: #10b981;
 	}
 
 	.step-card {

@@ -13,6 +13,7 @@
 	import MathInline from "../math/MathInline.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
+	import Progress from "../ui/Progress.svelte";
 	import { FourierStepSolverState } from "./fourier-step-solver.svelte";
 
 	interface Props {
@@ -98,20 +99,7 @@
 {/snippet}
 
 <div class="fourier-step-solver">
-	<div class="steps-progress-bar">
-		<span class="progress-title">Intelligent Tutoring Progress:</span>
-		<div class="progress-pills">
-			{#each [1, 2, 3, 4, 5, 6] as s}
-				<div
-					class="progress-pill"
-					class:active={solver.currentStep === s}
-					class:completed={solver.currentStep > s}
-				>
-					{s < solver.currentStep ? "✓" : s}
-				</div>
-			{/each}
-		</div>
-	</div>
+	<Progress currentStep={solver.currentStep} totalSteps={solver.totalSteps} />
 
 	<!-- Step 1: Period and Frequency -->
 	<div
@@ -532,59 +520,6 @@
 		flex-direction: column;
 		gap: 1rem;
 		width: 100%;
-	}
-
-	.steps-progress-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.65rem 0.85rem;
-		background: var(--bg-secondary);
-		border-radius: var(--radius-md, 8px);
-		border: 1px solid var(--border-color);
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.progress-title {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--text-secondary);
-		padding: 0.25rem 0.5rem;
-	}
-
-	.progress-pills {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.35rem;
-	}
-
-	.progress-pill {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.55rem;
-		height: 1.55rem;
-		border-radius: 50%;
-		font-size: 0.75rem;
-		font-weight: 700;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		color: var(--text-secondary);
-		transition: all 0.2s ease;
-	}
-
-	.progress-pill.active {
-		background: var(--accent-primary);
-		color: #151515;
-		border-color: var(--accent-primary);
-		box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
-	}
-
-	.progress-pill.completed {
-		background: rgba(16, 185, 129, 0.15);
-		border-color: #10b981;
-		color: #10b981;
 	}
 
 	.step-card {
