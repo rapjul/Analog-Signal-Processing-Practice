@@ -274,12 +274,16 @@
 </div>
 
 <style>
+	/* ── Outer math input container ────────────────────────── */
+
 	.math-input-container {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		margin: 1rem 0;
 	}
+
+	/* ── Input header & mode toggle tabs ───────────────────── */
 
 	.input-header {
 		display: flex;
@@ -323,6 +327,7 @@
 		outline-offset: 2px;
 	}
 
+	/* Active mode tab — filled accent glow */
 	.tab-btn.active {
 		background: var(--accent-primary);
 		color: #000;
@@ -333,6 +338,8 @@
 		outline: 2px solid var(--text-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── Guided builder category picker ────────────────────── */
 
 	.builder-picker {
 		display: flex;
@@ -377,11 +384,14 @@
 		outline-offset: 2px;
 	}
 
+	/* Selected builder button — cyan tint */
 	.picker-btn.active {
 		border-color: var(--accent-primary);
 		color: var(--accent-primary);
 		background: rgba(6, 182, 212, 0.1);
 	}
+
+	/* ── Symbol helper toolbar ─────────────────────────────── */
 
 	.symbol-toolbar {
 		display: flex;
@@ -411,6 +421,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── LaTeX code textarea ───────────────────────────────── */
+
 	.latex-textarea {
 		width: 100%;
 		background: var(--bg-input);
@@ -434,6 +446,8 @@
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── KaTeX live preview container ──────────────────────── */
 
 	.preview-box {
 		background: var(--bg-primary);

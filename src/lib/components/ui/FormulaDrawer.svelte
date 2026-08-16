@@ -429,6 +429,8 @@
 {/if}
 
 <style>
+	/* ── Drawer backdrop overlay ───────────────────────────── */
+
 	.drawer-backdrop {
 		position: fixed;
 		inset: 0;
@@ -437,6 +439,8 @@
 		z-index: 200;
 		animation: fadeIn 0.2s ease-out forwards;
 	}
+
+	/* ── Slide-over drawer container ───────────────────────── */
 
 	.formula-drawer {
 		position: fixed;
@@ -470,6 +474,8 @@
 			transform: translateX(0);
 		}
 	}
+
+	/* ── Drawer header & close action ──────────────────────── */
 
 	.drawer-header {
 		display: flex;
@@ -523,6 +529,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Category tabs navigation ──────────────────────────── */
+
 	.drawer-tabs {
 		display: flex;
 		border-bottom: 1px solid var(--border-color);
@@ -559,6 +567,8 @@
 		outline-offset: -2px;
 	}
 
+	/* ── Drawer scrollable body ────────────────────────────── */
+
 	.drawer-content {
 		flex: 1;
 		overflow-y: auto;
@@ -567,6 +577,8 @@
 		flex-direction: column;
 		gap: 1.5rem;
 	}
+
+	/* ── Reference sections & typography ───────────────────── */
 
 	.ref-section {
 		display: flex;
@@ -617,6 +629,8 @@
 		margin: 0;
 	}
 
+	/* ── Reference property tables ─────────────────────────── */
+
 	.ref-table {
 		width: 100%;
 		border-collapse: collapse;
@@ -637,6 +651,8 @@
 		font-weight: 600;
 	}
 
+	/* ── Callout boxes ─────────────────────────────────────── */
+
 	.callout {
 		padding: 0.75rem 1rem;
 		border-radius: var(--radius-sm, 6px);
@@ -649,6 +665,8 @@
 		border: 1px solid rgba(245, 158, 11, 0.35);
 		color: var(--text-primary);
 	}
+
+	/* ── Mobile media query (≤640px) ─────────────────────── */
 
 	@media (max-width: 640px) {
 		.formula-drawer {

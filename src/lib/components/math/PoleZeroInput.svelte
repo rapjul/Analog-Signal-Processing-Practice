@@ -419,6 +419,8 @@
 </div>
 
 <style>
+	/* ── Pole-Zero builder container ───────────────────────── */
+
 	.pole-zero-builder {
 		display: flex;
 		flex-direction: column;
@@ -428,6 +430,8 @@
 		border-radius: var(--radius-md);
 		padding: 1rem;
 	}
+
+	/* ── Header & title ────────────────────────────────────── */
 
 	.builder-header {
 		display: flex;
@@ -444,6 +448,8 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
+
+	/* ── Submode selector buttons ──────────────────────────── */
 
 	.submode-selector {
 		display: flex;
@@ -470,6 +476,7 @@
 		outline-offset: 2px;
 	}
 
+	/* Active submode button — cyan glow */
 	.submode-btn.active {
 		background: var(--accent-primary);
 		color: #000;
@@ -482,6 +489,8 @@
 		outline-offset: 2px;
 		box-shadow: 0 0 14px var(--accent-glow);
 	}
+
+	/* ── Rational form section ─────────────────────────────── */
 
 	.form-section {
 		display: flex;
@@ -509,6 +518,8 @@
 		font-size: 0.8rem;
 		white-space: nowrap;
 	}
+
+	/* ── Form inputs & controls ────────────────────────────── */
 
 	.text-input,
 	.select-input {
@@ -541,6 +552,8 @@
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── Partial fractions decomposition section ───────────── */
 
 	.pfd-section {
 		display: flex;

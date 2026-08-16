@@ -204,6 +204,8 @@
 />
 
 <style>
+	/* ── Navigation bar layout ─────────────────────────────── */
+
 	.navbar {
 		display: flex;
 		justify-content: space-around;
@@ -217,6 +219,8 @@
 		gap: 1rem;
 		flex-wrap: nowrap;
 	}
+
+	/* ── Brand identity & logo ─────────────────────────────── */
 
 	.nav-brand {
 		display: flex;
@@ -257,6 +261,8 @@
 		white-space: nowrap;
 	}
 
+	/* ── Navigation links list ─────────────────────────────── */
+
 	.nav-links {
 		display: flex;
 		gap: 0.35rem;
@@ -286,18 +292,20 @@
 		outline-offset: 2px;
 	}
 
+	/* Active link — highlighted pill */
 	.nav-link.active {
 		color: var(--accent-primary);
 		background: rgba(6, 182, 212, 0.12);
 		font-weight: 600;
 	}
 
+	/* ── Nav actions (Drawer, Theme, Mobile toggle) ────────── */
+
 	.nav-actions {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		flex-shrink: 0;
-		/* margin-left: auto; */
 	}
 
 	.menu-toggle {
@@ -366,6 +374,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Tablet media query (≤950px) ───────────────────────── */
+
 	@media (max-width: 950px) {
 		.navbar {
 			padding: 0.6rem 1rem;
@@ -405,6 +415,8 @@
 			font-size: var(--text-sm);
 		}
 	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
 
 	@media (max-width: 480px) {
 		.navbar {

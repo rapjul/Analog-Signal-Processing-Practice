@@ -525,12 +525,16 @@
 </div>
 
 <style>
+	/* ── Outer solver container ────────────────────────────── */
+
 	.fourier-step-solver {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 		width: 100%;
 	}
+
+	/* ── Step card ─────────────────────────────────────────── */
 
 	.step-card {
 		container-type: inline-size;
@@ -546,17 +550,20 @@
 		min-width: 0;
 	}
 
+	/* Active — accent primary border + subtle glow */
 	.step-card.active {
 		border-color: var(--accent-primary);
 		box-shadow: 0 2px 12px rgba(6, 182, 212, 0.1);
 	}
 
+	/* Done — green border tint, compact padding */
 	.step-card.done {
 		border-color: rgba(16, 185, 129, 0.35);
 		background: rgba(16, 185, 129, 0.02);
 		padding: 0.75rem 1.25rem;
 	}
 
+	/* Locked — dimmed opacity */
 	.step-card.locked {
 		opacity: 0.65;
 	}
@@ -565,6 +572,8 @@
 		background: rgba(255, 255, 255, 0.08);
 		color: var(--text-secondary);
 	}
+
+	/* ── Step card header ──────────────────────────────────── */
 
 	.step-header {
 		display: flex;
@@ -595,6 +604,8 @@
 		line-height: var(--leading-tight, 1.25);
 	}
 
+	/* ── Step body & prompt ────────────────────────────────── */
+
 	.step-body {
 		display: flex;
 		flex-direction: column;
@@ -624,17 +635,13 @@
 		font-weight: 800;
 	}
 
+	/* ── Input pairs & row grid ────────────────────────────── */
+
 	.input-row-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
 		width: 100%;
-	}
-
-	@container (max-width: 620px) {
-		.input-row-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.input-pair {
@@ -651,6 +658,8 @@
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
+
+	/* ── Composite input with unit selector ────────────────── */
 
 	.input-with-unit {
 		display: flex;
@@ -705,6 +714,8 @@
 		outline-offset: 0;
 	}
 
+	/* ── Multiple choice button grid ───────────────────────── */
+
 	.button-grid-taxonomic {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
@@ -748,17 +759,13 @@
 		color: var(--text-secondary);
 	}
 
+	/* ── Multiple choice math cards ────────────────────────── */
+
 	.mcq-cards-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
 		width: 100%;
-	}
-
-	@media (max-width: 640px) {
-		.mcq-cards-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.mcq-card {
@@ -803,6 +810,8 @@
 		background: rgba(6, 182, 212, 0.12);
 	}
 
+	/* ── Step actions & buttons ────────────────────────────── */
+
 	.step-actions {
 		display: flex;
 		justify-content: flex-end;
@@ -834,21 +843,7 @@
 		outline-offset: 2px;
 	}
 
-	@container (max-width: 360px) {
-		.step-card {
-			padding: 0.75rem 0.85rem;
-		}
-
-		.step-actions {
-			width: 100%;
-		}
-
-		.btn-primary {
-			width: 100%;
-			text-align: center;
-			justify-content: center;
-		}
-	}
+	/* ── Tiered hints disclosure ───────────────────────────── */
 
 	.hints-box {
 		background: var(--bg-secondary);
@@ -925,5 +920,39 @@
 
 	.capitalize {
 		text-transform: capitalize;
+	}
+
+	/* ── Container queries (≤620px) ────────────────────────── */
+
+	@container (max-width: 620px) {
+		.input-row-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	/* ── Narrow viewport (≤360px) container query ─────────── */
+
+	@container (max-width: 360px) {
+		.step-card {
+			padding: 0.75rem 0.85rem;
+		}
+
+		.step-actions {
+			width: 100%;
+		}
+
+		.btn-primary {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+		}
+	}
+
+	/* ── Mobile media query (≤640px) ─────────────────────── */
+
+	@media (max-width: 640px) {
+		.mcq-cards-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

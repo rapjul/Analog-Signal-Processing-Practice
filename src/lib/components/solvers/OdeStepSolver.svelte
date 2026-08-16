@@ -1327,12 +1327,16 @@
 </div>
 
 <style>
+	/* ── Outer solver container ────────────────────────────── */
+
 	.ode-step-solver {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 		width: 100%;
 	}
+
+	/* ── Step card ─────────────────────────────────────────── */
 
 	.step-card {
 		container-type: inline-size;
@@ -1346,17 +1350,20 @@
 		transition: all 0.2s ease;
 	}
 
+	/* Active — accent primary border + glow */
 	.step-card.active {
 		border-color: var(--accent-primary);
 		box-shadow: 0 2px 12px rgba(6, 182, 212, 0.1);
 	}
 
+	/* Done — subtle emerald border and background */
 	.step-card.done {
 		border-color: rgba(16, 185, 129, 0.35);
 		background: rgba(16, 185, 129, 0.02);
 		padding: 0.75rem 1.25rem;
 	}
 
+	/* Locked — dimmed opacity */
 	.step-card.locked {
 		opacity: 0.65;
 	}
@@ -1365,6 +1372,8 @@
 		background: rgba(255, 255, 255, 0.08);
 		color: var(--text-secondary);
 	}
+
+	/* ── Step card header ──────────────────────────────────── */
 
 	.step-header {
 		display: flex;
@@ -1388,6 +1397,8 @@
 		color: var(--text-primary);
 		margin: 0;
 	}
+
+	/* ── Step body & prompt ────────────────────────────────── */
 
 	.step-body {
 		display: flex;
@@ -1420,6 +1431,8 @@
 		color: #10b981;
 		font-weight: 800;
 	}
+
+	/* ── Step 1: Characteristic equation interactive box ────── */
 
 	.char-eq-interactive-box {
 		display: flex;
@@ -1482,16 +1495,12 @@
 		letter-spacing: 0.03em;
 	}
 
+	/* ── Input pairs & grid layout ─────────────────────────── */
+
 	.input-row-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
-	}
-
-	@container (max-width: 620px) {
-		.input-row-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.input-pair {
@@ -1521,6 +1530,8 @@
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── Multiple choice button grid ───────────────────────── */
 
 	.button-grid-taxonomic {
 		display: grid;
@@ -1563,16 +1574,12 @@
 		color: var(--text-secondary);
 	}
 
+	/* ── Multiple choice math cards ────────────────────────── */
+
 	.mcq-cards-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
-	}
-
-	@media (max-width: 640px) {
-		.mcq-cards-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.mcq-card {
@@ -1616,6 +1623,8 @@
 		background: rgba(6, 182, 212, 0.12);
 	}
 
+	/* ── Step actions & buttons ────────────────────────────── */
+
 	.step-actions {
 		display: flex;
 		justify-content: flex-end;
@@ -1642,6 +1651,8 @@
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── Tiered hints disclosure ───────────────────────────── */
 
 	.hints-box {
 		background: var(--bg-secondary);
@@ -1705,6 +1716,18 @@
 		font-size: 0.85rem;
 		line-height: 1.4;
 	}
+
+	.hint-badge {
+		font-weight: 700;
+		color: #f59e0b;
+		white-space: nowrap;
+	}
+
+	.hint-text {
+		color: var(--text-secondary);
+	}
+
+	/* ── Step 2: Root strategy & quadratic setup ───────────── */
 
 	.strategy-gate-box {
 		display: flex;
@@ -1903,17 +1926,8 @@
 		border: 1px solid var(--border-color);
 	}
 
-	.hint-badge {
-		font-weight: 700;
-		color: #f59e0b;
-		white-space: nowrap;
-	}
+	/* ── Step 7: Subphase decomposition & classification ───── */
 
-	.hint-text {
-		color: var(--text-secondary);
-	}
-
-	/* Step 7: Synthesis & Subphases Styling */
 	.synthesis-banner {
 		display: flex;
 		flex-direction: column;
@@ -2070,6 +2084,8 @@
 		overflow-x: auto;
 	}
 
+	/* ── Complete solution summary & conceptual takeaway ───── */
+
 	.step-summary-full {
 		display: flex;
 		flex-direction: column;
@@ -2142,6 +2158,16 @@
 		line-height: 1.45;
 	}
 
+	/* ── Container queries (≤620px) ────────────────────────── */
+
+	@container (max-width: 620px) {
+		.input-row-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	/* ── Narrow viewport (≤360px) container query ─────────── */
+
 	@container (max-width: 360px) {
 		.summary-decomposition-grid {
 			grid-template-columns: 1fr;
@@ -2153,6 +2179,14 @@
 
 		.concept-option-card {
 			padding: 0.5rem 0.65rem;
+		}
+	}
+
+	/* ── Mobile media query (≤640px) ─────────────────────── */
+
+	@media (max-width: 640px) {
+		.mcq-cards-grid {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

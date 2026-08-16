@@ -146,6 +146,8 @@
 </div>
 
 <style>
+	/* ── Practice card container ───────────────────────────── */
+
 	.ode-practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -159,6 +161,8 @@
 		min-width: 0;
 		container-type: inline-size;
 	}
+
+	/* ── Problem statement & initial conditions ────────────── */
 
 	.problem-statement {
 		background: var(--bg-secondary);
@@ -188,11 +192,15 @@
 		flex-wrap: wrap;
 	}
 
+	/* ── Solver workspace container ────────────────────────── */
+
 	.solver-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 	}
+
+	/* ── Completion section & waveform visualizer ──────────── */
 
 	.completion-section {
 		display: flex;

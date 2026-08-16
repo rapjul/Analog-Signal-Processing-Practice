@@ -470,6 +470,8 @@
 </div>
 
 <style>
+	/* ── Fourier canvas wrapper ────────────────────────────── */
+
 	.fourier-canvas-wrapper {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -479,6 +481,8 @@
 		flex-direction: column;
 		gap: 1.25rem;
 	}
+
+	/* ── Header bar & title ────────────────────────────────── */
 
 	.header-bar {
 		display: flex;
@@ -493,6 +497,8 @@
 		font-size: 0.95rem;
 		color: var(--text-primary);
 	}
+
+	/* ── Plot legends & color dots ─────────────────────────── */
 
 	.plot-legend {
 		display: flex;
@@ -514,12 +520,15 @@
 		border-radius: 50%;
 	}
 
+	/* Dot color variants */
 	.dot.cyan {
 		background: #06b6d4;
 	}
 	.dot.amber {
 		background: #f59e0b;
 	}
+
+	/* ── Plot card & canvas frames ─────────────────────────── */
 
 	.plot-card {
 		display: flex;
@@ -550,6 +559,8 @@
 		background: var(--bg-primary);
 		display: block;
 	}
+
+	/* ── Interactive harmonic count slider bar ─────────────── */
 
 	.controls-bar {
 		display: flex;

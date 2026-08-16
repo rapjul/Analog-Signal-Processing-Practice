@@ -216,6 +216,8 @@
 </div>
 
 <style>
+	/* ── Canvas wrapper container ──────────────────────────── */
+
 	.canvas-wrapper {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -226,6 +228,8 @@
 		gap: 0.75rem;
 	}
 
+	/* ── Title heading ─────────────────────────────────────── */
+
 	.canvas-title {
 		display: flex;
 		justify-content: center;
@@ -234,6 +238,8 @@
 		font-size: 0.95rem;
 		color: var(--text-primary);
 	}
+
+	/* ── Legend display ────────────────────────────────────── */
 
 	.legend {
 		display: flex;
@@ -255,6 +261,8 @@
 		height: 10px;
 		border-radius: 50%;
 	}
+
+	/* ── HTML5 Canvas element ──────────────────────────────── */
 
 	.response-canvas {
 		width: 100%;

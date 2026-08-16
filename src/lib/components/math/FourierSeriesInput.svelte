@@ -716,6 +716,8 @@
 </div>
 
 <style>
+	/* ── Fourier builder container ─────────────────────────── */
+
 	.fourier-builder {
 		display: flex;
 		flex-direction: column;
@@ -725,6 +727,8 @@
 		border-radius: var(--radius-md);
 		padding: 1rem;
 	}
+
+	/* ── Mode switcher tabs (Trig vs Exp) ──────────────────── */
 
 	.mode-tabs {
 		display: flex;
@@ -752,6 +756,7 @@
 		outline-offset: 2px;
 	}
 
+	/* Active mode tab — filled accent button */
 	.mode-btn.active {
 		background: var(--accent-primary);
 		color: #000;
@@ -764,6 +769,8 @@
 		outline-offset: 2px;
 		box-shadow: 0 0 14px var(--accent-glow);
 	}
+
+	/* ── Global parameter cards (w0, DC offset) ─────────────── */
 
 	.global-params-card {
 		display: flex;
@@ -789,11 +796,15 @@
 		white-space: nowrap;
 	}
 
+	/* ── Form inputs grid ──────────────────────────────────── */
+
 	.inputs-grid {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 	}
+
+	/* ── Coefficient builder card ──────────────────────────── */
 
 	.coeff-card {
 		background: var(--bg-card);
@@ -849,22 +860,19 @@
 		outline-offset: 1px;
 	}
 
+	/* Active mode toggle — highlighted pill */
 	.toggle-btn.active {
 		background: var(--accent-primary);
 		color: #000;
 	}
+
+	/* ── Fraction builder layout ───────────────────────────── */
 
 	.fraction-builder-grid {
 		display: grid;
 		grid-template-columns: minmax(180px, 1fr) minmax(200px, 1fr);
 		gap: 1rem;
 		align-items: center;
-	}
-
-	@media (max-width: 600px) {
-		.fraction-builder-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.fraction-column {
@@ -906,6 +914,8 @@
 		flex-direction: column;
 		gap: 0.35rem;
 	}
+
+	/* ── Form controls (selects & inputs) ──────────────────── */
 
 	.select-input {
 		background: var(--bg-input);
@@ -977,6 +987,8 @@
 		flex: 1;
 	}
 
+	/* ── Live rendered coefficient card ────────────────────── */
+
 	.coeff-preview {
 		display: flex;
 		align-items: center;
@@ -995,5 +1007,13 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		flex-shrink: 0;
+	}
+
+	/* ── Mobile media query (≤600px) ─────────────────────── */
+
+	@media (max-width: 600px) {
+		.fraction-builder-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

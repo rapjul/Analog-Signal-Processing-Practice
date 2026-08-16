@@ -194,6 +194,8 @@
 </div>
 
 <style>
+	/* ── Practice card container ───────────────────────────── */
+
 	.convolution-practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -207,6 +209,8 @@
 		min-width: 0;
 		container-type: inline-size;
 	}
+
+	/* ── Problem statement & signal preview ────────────────── */
 
 	.problem-statement {
 		background: var(--bg-secondary);
@@ -229,12 +233,6 @@
 		gap: 1rem;
 	}
 
-	@media (max-width: 600px) {
-		.signals-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
 	.signal-box {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -251,6 +249,8 @@
 		color: var(--text-muted);
 	}
 
+	/* ── Guided solution input section ─────────────────────── */
+
 	.input-section {
 		display: flex;
 		flex-direction: column;
@@ -262,6 +262,8 @@
 		font-weight: 700;
 		color: var(--text-primary);
 	}
+
+	/* ── Action bar & submit button ────────────────────────── */
 
 	.action-bar {
 		display: flex;
@@ -287,6 +289,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Validation alert banner ───────────────────────────── */
+
 	.validation-alert {
 		display: flex;
 		align-items: flex-start;
@@ -296,12 +300,14 @@
 		font-size: 0.9rem;
 	}
 
+	/* Correct — green alert */
 	.validation-alert.correct {
 		background: rgba(16, 185, 129, 0.12);
 		border: 1px solid rgba(16, 185, 129, 0.3);
 		color: #10b981;
 	}
 
+	/* Incorrect — red alert */
 	.validation-alert.incorrect {
 		background: rgba(239, 68, 68, 0.12);
 		border: 1px solid rgba(239, 68, 68, 0.3);
@@ -325,5 +331,13 @@
 	.alert-message {
 		font-size: 0.85rem;
 		opacity: 0.9;
+	}
+
+	/* ── Mobile media query (≤600px) ─────────────────────── */
+
+	@media (max-width: 600px) {
+		.signals-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

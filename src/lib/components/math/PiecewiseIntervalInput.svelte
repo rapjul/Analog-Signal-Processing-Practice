@@ -292,6 +292,8 @@
 </div>
 
 <style>
+	/* ── Piecewise builder container ───────────────────────── */
+
 	.piecewise-builder {
 		display: flex;
 		flex-direction: column;
@@ -301,6 +303,8 @@
 		border-radius: var(--radius-md);
 		padding: 1rem;
 	}
+
+	/* ── Header & add row button ───────────────────────────── */
 
 	.builder-header {
 		display: flex;
@@ -338,6 +342,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Interval rows list & row card ─────────────────────── */
+
 	.rows-container {
 		display: flex;
 		flex-direction: column;
@@ -373,6 +379,8 @@
 		flex-shrink: 0;
 	}
 
+	/* ── Field groups & labels ─────────────────────────────── */
+
 	.field-group {
 		display: flex;
 		align-items: center;
@@ -400,6 +408,8 @@
 		white-space: nowrap;
 		font-weight: 500;
 	}
+
+	/* ── Form inputs & controls ────────────────────────────── */
 
 	.select-input,
 	.text-input {
@@ -440,6 +450,8 @@
 		font-size: 0.8rem;
 		font-weight: 500;
 	}
+
+	/* ── Row remove action button ──────────────────────────── */
 
 	.remove-row-btn {
 		position: static;

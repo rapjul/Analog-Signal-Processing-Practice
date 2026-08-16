@@ -170,6 +170,8 @@
 </main>
 
 <style>
+	/* ── Page layout container ─────────────────────────────── */
+
 	.page-container {
 		max-width: 1200px;
 		margin: 0 auto;
@@ -178,6 +180,8 @@
 		flex-direction: column;
 		gap: 1.5rem;
 	}
+
+	/* ── Header section ────────────────────────────────────── */
 
 	.header-section {
 		display: flex;
@@ -195,6 +199,8 @@
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
+
+	/* ── Control bar & selection group ─────────────────────── */
 
 	.control-bar {
 		background: var(--bg-card);
@@ -241,12 +247,16 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Workspace container ───────────────────────────────── */
+
 	.workspace-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		min-width: 0;
 	}
+
+	/* ── Practice card ─────────────────────────────────────── */
 
 	.practice-card {
 		background: var(--bg-card);
@@ -258,26 +268,13 @@
 		gap: 1.25rem;
 	}
 
-	@container (max-width: 360px) {
-		.page-container {
-			padding: 0.85rem 0.6rem;
-			gap: 0.85rem;
-		}
-
-		.control-bar {
-			padding: 0.75rem 0.85rem;
-		}
-
-		.practice-card {
-			padding: 1rem 0.85rem;
-		}
-	}
-
 	.card-title {
 		font-size: var(--text-lg);
 		font-weight: 700;
 		color: var(--text-primary);
 	}
+
+	/* ── LaTeX input section & actions ─────────────────────── */
 
 	.input-section {
 		display: flex;
@@ -334,6 +331,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Feedback banner ───────────────────────────────────── */
+
 	.feedback-box {
 		padding: 1rem;
 		border-radius: var(--radius-md);
@@ -342,15 +341,19 @@
 		gap: 0.5rem;
 	}
 
+	/* Correct — green alert */
 	.feedback-box.correct {
 		background: var(--color-success-bg);
 		border: 1px solid var(--color-success);
 	}
 
+	/* Incorrect — red alert */
 	.feedback-box.incorrect {
 		background: var(--color-error-bg);
 		border: 1px solid var(--color-error);
 	}
+
+	/* ── Solution breakdown ────────────────────────────────── */
 
 	.solution-breakdown {
 		border-top: 1px solid var(--border-color);
@@ -380,5 +383,22 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
+	}
+
+	/* ── Narrow viewport (≤360px) container query ─────────── */
+
+	@container (max-width: 360px) {
+		.page-container {
+			padding: 0.85rem 0.6rem;
+			gap: 0.85rem;
+		}
+
+		.control-bar {
+			padding: 0.75rem 0.85rem;
+		}
+
+		.practice-card {
+			padding: 1rem 0.85rem;
+		}
 	}
 </style>

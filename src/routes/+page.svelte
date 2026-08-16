@@ -118,6 +118,8 @@
 </main>
 
 <style>
+	/* ── Dashboard container ───────────────────────────────── */
+
 	.dashboard-container {
 		max-width: 1200px;
 		margin: 0 auto;
@@ -126,6 +128,8 @@
 		flex-direction: column;
 		gap: 2.5rem;
 	}
+
+	/* ── Hero section ──────────────────────────────────────── */
 
 	.hero-section {
 		display: flex;
@@ -163,11 +167,15 @@
 		line-height: var(--leading-relaxed, 1.625);
 	}
 
+	/* ── Modules grid ──────────────────────────────────────── */
+
 	.modules-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 		gap: 1.5rem;
 	}
+
+	/* ── Module card ───────────────────────────────────────── */
 
 	.module-card {
 		background: var(--bg-card);
@@ -183,26 +191,13 @@
 		min-width: 0;
 	}
 
-	@media (max-width: 480px) {
-		.dashboard-container {
-			padding: 1.5rem 0.75rem;
-			gap: 1.5rem;
-		}
-
-		.module-card {
-			padding: 1.15rem 1rem;
-		}
-
-		.modules-grid {
-			gap: 1rem;
-		}
-	}
-
 	.module-card:hover {
 		transform: translateY(-4px);
 		border-color: var(--accent-primary);
 		box-shadow: var(--shadow-glow);
 	}
+
+	/* ── Module header & badge ─────────────────────────────── */
 
 	.module-header {
 		display: flex;
@@ -223,6 +218,8 @@
 		border-radius: 4px;
 	}
 
+	/* ── Module body copy ──────────────────────────────────── */
+
 	.module-title {
 		font-size: var(--text-lg);
 		font-weight: 700;
@@ -236,6 +233,8 @@
 		flex-grow: 1;
 	}
 
+	/* ── Module footer & status indicator ──────────────────── */
+
 	.module-footer {
 		margin-top: 0.5rem;
 		padding-top: 0.75rem;
@@ -248,7 +247,25 @@
 		color: var(--text-muted);
 	}
 
+	/* Ready status — accent primary */
 	.status-indicator.ready {
 		color: var(--accent-primary);
+	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
+
+	@media (max-width: 480px) {
+		.dashboard-container {
+			padding: 1.5rem 0.75rem;
+			gap: 1.5rem;
+		}
+
+		.module-card {
+			padding: 1.15rem 1rem;
+		}
+
+		.modules-grid {
+			gap: 1rem;
+		}
 	}
 </style>

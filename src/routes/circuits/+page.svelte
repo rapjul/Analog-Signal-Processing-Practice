@@ -167,6 +167,8 @@
 </main>
 
 <style>
+	/* ── Page layout container ─────────────────────────────── */
+
 	.page-container {
 		max-width: 1200px;
 		margin: 0 auto;
@@ -175,6 +177,8 @@
 		flex-direction: column;
 		gap: 1.5rem;
 	}
+
+	/* ── Header section ────────────────────────────────────── */
 
 	.header-section {
 		display: flex;
@@ -192,6 +196,8 @@
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
+
+	/* ── Control bar & selection group ─────────────────────── */
 
 	.control-bar {
 		background: var(--bg-card);
@@ -235,12 +241,16 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Workspace container ───────────────────────────────── */
+
 	.workspace-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		min-width: 0;
 	}
+
+	/* ── Practice card ─────────────────────────────────────── */
 
 	.practice-card {
 		background: var(--bg-card);
@@ -252,25 +262,6 @@
 		gap: 1.25rem;
 		max-width: 100%;
 		min-width: 0;
-	}
-
-	@media (max-width: 480px) {
-		.page-container {
-			padding: 1rem 0.75rem;
-			gap: 1rem;
-		}
-
-		.control-bar {
-			padding: 0.75rem 0.85rem;
-		}
-
-		.select-input {
-			width: 100%;
-		}
-
-		.practice-card {
-			padding: 1rem 0.85rem;
-		}
 	}
 
 	.card-header {
@@ -297,6 +288,8 @@
 		font-size: var(--text-sm);
 	}
 
+	/* ── Parameter slider panel ────────────────────────────── */
+
 	.slider-panel {
 		background: var(--bg-primary);
 		border: 1px solid var(--border-color);
@@ -320,12 +313,16 @@
 		font-size: var(--text-sm);
 	}
 
+	/* ── Transfer function output ──────────────────────────── */
+
 	.tf-output {
 		background: var(--bg-primary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
 		padding: 1rem;
 	}
+
+	/* ── Solution breakdown ────────────────────────────────── */
 
 	.solution-breakdown {
 		border-top: 1px solid var(--border-color);
@@ -355,5 +352,26 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
+	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
+
+	@media (max-width: 480px) {
+		.page-container {
+			padding: 1rem 0.75rem;
+			gap: 1rem;
+		}
+
+		.control-bar {
+			padding: 0.75rem 0.85rem;
+		}
+
+		.select-input {
+			width: 100%;
+		}
+
+		.practice-card {
+			padding: 1rem 0.85rem;
+		}
 	}
 </style>

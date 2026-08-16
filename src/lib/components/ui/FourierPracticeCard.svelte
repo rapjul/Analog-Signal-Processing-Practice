@@ -121,6 +121,8 @@
 </div>
 
 <style>
+	/* ── Practice card container ───────────────────────────── */
+
 	.fourier-practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -134,6 +136,8 @@
 		min-width: 0;
 		container-type: inline-size;
 	}
+
+	/* ── Problem statement & period parameters ─────────────── */
 
 	.problem-statement {
 		background: var(--bg-secondary);
@@ -167,11 +171,15 @@
 		color: var(--text-secondary);
 	}
 
+	/* ── Stepped solver workspace container ────────────────── */
+
 	.solver-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 	}
+
+	/* ── Completion summary & visualizer ───────────────────── */
 
 	.completion-section {
 		display: flex;
@@ -196,6 +204,8 @@
 	.visualizer-wrapper {
 		width: 100%;
 	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
 
 	@media (max-width: 480px) {
 		.fourier-practice-card {

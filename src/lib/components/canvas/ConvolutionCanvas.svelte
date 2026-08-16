@@ -320,6 +320,8 @@
 </div>
 
 <style>
+	/* ── Convolution wrapper container ─────────────────────── */
+
 	.convolution-wrapper {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -329,6 +331,8 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
+
+	/* ── Header bar & title ────────────────────────────────── */
 
 	.header-bar {
 		display: flex;
@@ -343,6 +347,8 @@
 		font-size: 0.95rem;
 		color: var(--text-primary);
 	}
+
+	/* ── Legend & color dots ───────────────────────────────── */
 
 	.legend {
 		display: flex;
@@ -364,6 +370,7 @@
 		border-radius: 50%;
 	}
 
+	/* Dot color variants */
 	.dot.blue {
 		background: #3b82f6;
 	}
@@ -376,6 +383,8 @@
 	.dot.cyan {
 		background: #06b6d4;
 	}
+
+	/* ── Dual-plot canvas container ────────────────────────── */
 
 	.canvas-container {
 		position: relative;
@@ -408,6 +417,8 @@
 		border-radius: var(--radius-sm);
 		background: var(--bg-primary);
 	}
+
+	/* ── Interactive animation controls bar ────────────────── */
 
 	.controls-bar {
 		display: flex;

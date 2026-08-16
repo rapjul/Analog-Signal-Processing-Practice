@@ -178,6 +178,8 @@
 {/if}
 
 <style>
+	/* ── Math block container ──────────────────────────────── */
+
 	.math-block {
 		margin: 0.6rem 0;
 		background-color: var(--bg-secondary);
@@ -194,10 +196,13 @@
 		z-index: 1;
 	}
 
+	/* Compact variant — reduced font and vertical margin */
 	.math-block.is-compact {
 		font-size: 0.9em;
 		margin: 0.35rem 0;
 	}
+
+	/* ── Header bar & copy button ──────────────────────────── */
 
 	.math-block-header {
 		display: flex;
@@ -252,6 +257,8 @@
 		color: var(--accent-primary, #6366f1);
 	}
 
+	/* ── KaTeX display content area ────────────────────────── */
+
 	.math-block-content {
 		padding: 1.25rem 1.25rem 1.5rem 1.25rem;
 		width: 100%;
@@ -275,7 +282,8 @@
 		padding: 0.25rem 0.25rem 0.4rem 0.25rem;
 	}
 
-	/* Custom slim overlay scrollbar floating at the very bottom edge of the block container */
+	/* ── Scrollbar customization ───────────────────────────── */
+
 	.math-block-content::-webkit-scrollbar {
 		height: 5px;
 	}

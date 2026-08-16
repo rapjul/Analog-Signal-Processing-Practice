@@ -95,6 +95,8 @@
 </div>
 
 <style>
+	/* ── Reveal container layout ───────────────────────────── */
+
 	.step-reveal-container {
 		display: flex;
 		flex-direction: column;
@@ -102,6 +104,8 @@
 		border-top: 1px solid var(--border-color);
 		padding-top: 1rem;
 	}
+
+	/* ── Header & progressive reveal controls ──────────────── */
 
 	.step-header {
 		display: flex;
@@ -160,6 +164,8 @@
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
+
+	/* ── Revealed step cards list ──────────────────────────── */
 
 	.steps-list {
 		display: flex;

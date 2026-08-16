@@ -286,6 +286,8 @@
 </div>
 
 <style>
+	/* ── Phasor builder container ──────────────────────────── */
+
 	.phasor-builder {
 		display: flex;
 		flex-direction: column;
@@ -295,6 +297,8 @@
 		border-radius: var(--radius-md);
 		padding: 1rem;
 	}
+
+	/* ── Header & title ────────────────────────────────────── */
 
 	.builder-header {
 		display: flex;
@@ -311,6 +315,8 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
+
+	/* ── Mode selector buttons ─────────────────────────────── */
 
 	.mode-selector {
 		display: flex;
@@ -338,6 +344,7 @@
 		outline-offset: 2px;
 	}
 
+	/* Active mode button — filled cyan glow */
 	.mode-btn.active {
 		background: var(--accent-primary);
 		color: #000;
@@ -350,6 +357,8 @@
 		outline-offset: 2px;
 		box-shadow: 0 0 14px var(--accent-glow);
 	}
+
+	/* ── Inputs grid & dynamic parameter cards ─────────────── */
 
 	.inputs-grid {
 		display: flex;
@@ -392,6 +401,8 @@
 		font-size: 0.8rem;
 		white-space: nowrap;
 	}
+
+	/* ── Form inputs (text inputs & select menus) ───────────── */
 
 	.text-input,
 	.select-input {

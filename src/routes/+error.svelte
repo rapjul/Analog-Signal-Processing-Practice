@@ -156,6 +156,8 @@
 </main>
 
 <style>
+	/* ── Outer container ───────────────────────────────────── */
+
 	.error-container {
 		max-width: 650px;
 		margin: 3.5rem auto;
@@ -163,6 +165,8 @@
 		display: flex;
 		justify-content: center;
 	}
+
+	/* ── Error card ────────────────────────────────────────── */
 
 	.error-card {
 		background: var(--bg-card);
@@ -178,6 +182,8 @@
 		box-shadow: var(--shadow-md);
 	}
 
+	/* ── Error status badge ────────────────────────────────── */
+
 	.error-badge {
 		display: flex;
 		align-items: center;
@@ -188,6 +194,7 @@
 		border-radius: 999px;
 	}
 
+	/* Coming soon variant — cyan */
 	.error-badge.coming-soon {
 		background: rgba(6, 182, 212, 0.12);
 		border-color: rgba(6, 182, 212, 0.3);
@@ -211,6 +218,8 @@
 		color: var(--text-secondary);
 	}
 
+	/* ── Math formula banner ───────────────────────────────── */
+
 	.math-banner {
 		padding: 0.75rem 1.25rem;
 		background: var(--bg-card-hover);
@@ -219,6 +228,8 @@
 		font-size: 1.1rem;
 		color: var(--accent-primary);
 	}
+
+	/* ── Headings & error message ──────────────────────────── */
 
 	.error-title {
 		font-size: 1.75rem;
@@ -235,6 +246,8 @@
 		margin: 0;
 		max-width: 480px;
 	}
+
+	/* ── Available modules notice & quick links ────────────── */
 
 	.available-modules-notice {
 		display: flex;
@@ -281,6 +294,8 @@
 		background: var(--accent-primary);
 		color: var(--bg-dark);
 	}
+
+	/* ── Action buttons ────────────────────────────────────── */
 
 	.action-buttons {
 		margin-top: 0.5rem;

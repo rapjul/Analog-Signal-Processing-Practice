@@ -106,6 +106,8 @@
 </button>
 
 <style>
+	/* ── Inline math trigger button ────────────────────────── */
+
 	.math-inline {
 		display: inline-block;
 		vertical-align: baseline;
@@ -135,6 +137,8 @@
 		outline: 2px solid var(--accent-primary, #6366f1);
 		outline-offset: 1px;
 	}
+
+	/* ── Copy tooltip badge ────────────────────────────────── */
 
 	.copy-badge {
 		display: none;
@@ -166,6 +170,7 @@
 		transform: translateX(-50%) scale(1);
 	}
 
+	/* Copied state — active primary accent badge */
 	.math-inline:not(.dismissed) .copy-badge.copied-state {
 		display: block;
 		transform: translateX(-50%) scale(1);

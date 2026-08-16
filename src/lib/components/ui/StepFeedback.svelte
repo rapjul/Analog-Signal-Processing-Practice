@@ -38,6 +38,8 @@
 {/if}
 
 <style>
+	/* ── Feedback alert banner ─────────────────────────────── */
+
 	.feedback-alert {
 		display: flex;
 		gap: 0.75rem;
@@ -48,21 +50,26 @@
 		word-break: break-word;
 	}
 
+	/* Error box — red alert */
 	.feedback-alert.error-box {
 		background: rgba(239, 68, 68, 0.12);
 		border: 1px solid rgba(239, 68, 68, 0.35);
 		color: var(--text-primary);
 	}
 
+	/* Validation notice — amber alert */
 	.feedback-alert.feedback-validation {
 		background: rgba(245, 158, 11, 0.12);
 		border: 1px solid rgba(245, 158, 11, 0.35);
 	}
 
+	/* Misconception hint — orange alert */
 	.feedback-alert.feedback-misconception {
 		background: rgba(249, 115, 22, 0.12);
 		border: 1px solid rgba(249, 115, 22, 0.35);
 	}
+
+	/* ── Alert icon & content body ─────────────────────────── */
 
 	.alert-icon {
 		font-size: 1.1rem;

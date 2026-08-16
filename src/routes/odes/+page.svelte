@@ -141,6 +141,8 @@
 </main>
 
 <style>
+	/* ── Page layout container ─────────────────────────────── */
+
 	.page-container {
 		max-width: 1100px;
 		margin: 0 auto;
@@ -149,6 +151,8 @@
 		flex-direction: column;
 		gap: 1.25rem;
 	}
+
+	/* ── Header section ────────────────────────────────────── */
 
 	.header-section {
 		display: flex;
@@ -167,6 +171,8 @@
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
+
+	/* ── Drill mode disclosure panel ───────────────────────── */
 
 	.drill-panel {
 		background: var(--bg-card);
@@ -223,6 +229,8 @@
 		border: 1px solid rgba(6, 182, 212, 0.25);
 	}
 
+	/* ── Drill controls & selectors ────────────────────────── */
+
 	.drill-controls {
 		padding: 1rem 1.25rem;
 		background: var(--bg-secondary);
@@ -263,12 +271,16 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Workspace container ───────────────────────────────── */
+
 	.workspace-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		min-width: 0;
 	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
 
 	@media (max-width: 480px) {
 		.page-container {

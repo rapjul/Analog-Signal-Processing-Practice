@@ -157,9 +157,13 @@
 </span>
 
 <style>
+	/* ── Inline math text wrapper ──────────────────────────── */
+
 	.math-text {
 		display: inline;
 	}
+
+	/* ── KaTeX sizing normalization ────────────────────────── */
 
 	:global(.math-text .katex) {
 		font-size: 1.02em;

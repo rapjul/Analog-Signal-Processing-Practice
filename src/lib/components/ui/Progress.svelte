@@ -87,6 +87,8 @@
 </div>
 
 <style>
+	/* ── Progress bar container ────────────────────────────── */
+
 	.steps-progress-bar {
 		display: flex;
 		align-items: center;
@@ -100,6 +102,8 @@
 		width: 100%;
 		box-sizing: border-box;
 	}
+
+	/* ── Progress info & title ─────────────────────────────── */
 
 	.progress-info {
 		display: flex;
@@ -127,6 +131,8 @@
 		border: 1px solid rgba(6, 182, 212, 0.25);
 		word-break: break-word;
 	}
+
+	/* ── Progress pills track ──────────────────────────────── */
 
 	.progress-pills {
 		display: flex;
@@ -163,6 +169,7 @@
 		outline-offset: 2px;
 	}
 
+	/* Active step — filled cyan with subtle shadow */
 	.progress-pill.active {
 		background: var(--accent-primary);
 		color: #ffffff;
@@ -170,11 +177,14 @@
 		box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
 	}
 
+	/* Completed step — emerald checkmark */
 	.progress-pill.completed {
 		background: rgba(16, 185, 129, 0.15);
 		border-color: #10b981;
 		color: #10b981;
 	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
 
 	@media (max-width: 480px) {
 		.steps-progress-bar {

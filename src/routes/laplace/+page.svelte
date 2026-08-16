@@ -160,6 +160,8 @@
 </main>
 
 <style>
+	/* ── Page layout container ─────────────────────────────── */
+
 	.page-container {
 		max-width: 1200px;
 		margin: 0 auto;
@@ -168,6 +170,8 @@
 		flex-direction: column;
 		gap: 1.5rem;
 	}
+
+	/* ── Header section ────────────────────────────────────── */
 
 	.header-section {
 		display: flex;
@@ -186,12 +190,16 @@
 		color: var(--text-secondary);
 	}
 
+	/* ── Workspace container ───────────────────────────────── */
+
 	.workspace-container {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		min-width: 0;
 	}
+
+	/* ── Practice card ─────────────────────────────────────── */
 
 	.practice-card {
 		background: var(--bg-card);
@@ -220,6 +228,8 @@
 		margin: 0;
 	}
 
+	/* ── Stability pill badge ──────────────────────────────── */
+
 	.stability-pill {
 		background: rgba(6, 182, 212, 0.1);
 		border: 1px solid rgba(6, 182, 212, 0.3);
@@ -234,29 +244,13 @@
 		max-width: 100%;
 	}
 
+	/* Stable status — emerald */
 	.stability-pill.stable {
 		border-color: rgba(16, 185, 129, 0.4);
 		background: rgba(16, 185, 129, 0.1);
 	}
 
-	@media (max-width: 480px) {
-		.page-container {
-			padding: 1rem 0.75rem;
-			gap: 1rem;
-		}
-
-		.practice-card {
-			padding: 1rem 0.85rem;
-		}
-
-		.action-bar {
-			flex-direction: column;
-		}
-
-		.action-bar button {
-			width: 100%;
-		}
-	}
+	/* ── Input section & action buttons ────────────────────── */
 
 	.input-section {
 		display: flex;
@@ -332,6 +326,8 @@
 		outline-offset: 2px;
 	}
 
+	/* ── Feedback banner ───────────────────────────────────── */
+
 	.feedback-box {
 		padding: 1rem;
 		border-radius: var(--radius-md);
@@ -340,15 +336,19 @@
 		gap: 0.5rem;
 	}
 
+	/* Correct — green alert */
 	.feedback-box.correct {
 		background: var(--color-success-bg);
 		border: 1px solid var(--color-success);
 	}
 
+	/* Incorrect — red alert */
 	.feedback-box.incorrect {
 		background: var(--color-error-bg);
 		border: 1px solid var(--color-error);
 	}
+
+	/* ── Solution breakdown ────────────────────────────────── */
 
 	.solution-breakdown {
 		border-top: 1px solid var(--border-color);
@@ -378,5 +378,26 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		color: var(--accent-primary);
+	}
+
+	/* ── Mobile media query (≤480px) ─────────────────────── */
+
+	@media (max-width: 480px) {
+		.page-container {
+			padding: 1rem 0.75rem;
+			gap: 1rem;
+		}
+
+		.practice-card {
+			padding: 1rem 0.85rem;
+		}
+
+		.action-bar {
+			flex-direction: column;
+		}
+
+		.action-bar button {
+			width: 100%;
+		}
 	}
 </style>
