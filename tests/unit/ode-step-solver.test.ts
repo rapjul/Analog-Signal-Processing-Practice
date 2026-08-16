@@ -490,7 +490,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(mockSolver.step6.isValid).toBe(true);
 	});
 
-	it("validates Step 7 response input and triggers onComplete", () => {
+	it("validates Step 7 multi-phase response decomposition and triggers onComplete", () => {
 		const onComplete = vi.fn();
 		const problem = generateOdeProblem("distinct_real");
 		const solver = new OdeStepSolverState(
@@ -499,17 +499,77 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		);
 		solver.advanceToStep(7);
 
-		// Empty/short response (validation)
-		solver.handleStep7Submit("y");
-		expect(solver.step7.isValid).toBe(false);
-		expect(solver.step7.feedbackType).toBe("validation");
-		expect(solver.currentFeedbackTitle).toBe("Input Required:");
-		expect(solver.step7.feedback).toContain("total response");
+		expect(solver.step7.subStep).toBe("zi_zs");
 
-		// Valid response
-		solver.handleStep7Submit("y_{ZI}(t) + y_{ZS}(t)");
-		expect(solver.step7.isValid).toBe(true);
-		expect(solver.step7.feedbackType).toBeNull();
+		// Phase 1: Missing input
+		solver.step7.ziC1 = "";
+		solver.step7.ziC2 = "";
+		solver.checkStep7ZI();
+		expect(solver.step7.ziZsPassed).toBe(false);
+		expect(solver.step7.feedbackType).toBe("validation");
+
+		// Phase 1: Incorrect sign misconception
+		const expC1 = problem.itsData.step7.ziConstants.C1;
+		const expC2 = problem.itsData.step7.ziConstants.C2;
+		if (Math.abs(expC1) > 0.01) {
+			solver.step7.ziC1 = String(-expC1);
+			solver.step7.ziC2 = String(expC2);
+			solver.checkStep7ZI();
+			expect(solver.step7.feedbackType).toBe("misconception");
+		}
+
+		// Phase 1: Correct constants
+		solver.step7.ziC1 = String(expC1);
+		solver.step7.ziC2 = String(expC2);
+		solver.checkStep7ZI();
+		expect(solver.step7.ziZsPassed).toBe(true);
+		expect(solver.step7.subStep).toBe("tr_ss");
+
+		// Phase 2: Missing transient / steady-state selection
+		solver.checkStep7TrSS();
+		expect(solver.step7.trSsPassed).toBe(false);
+		expect(solver.step7.feedbackType).toBe("validation");
+
+		// Phase 2: Wrong transient selection
+		solver.step7.selectedTransient = "tr_yp";
+		solver.step7.selectedSteadyState = "ss_correct";
+		solver.checkStep7TrSS();
+		expect(solver.step7.trSsPassed).toBe(false);
+		expect(solver.step7.feedbackType).toBe("misconception");
+
+		// Phase 2: Correct transient and steady-state selection
+		solver.step7.selectedTransient = "tr_correct";
+		solver.step7.selectedSteadyState = "ss_correct";
+		solver.checkStep7TrSS();
+		expect(solver.step7.trSsPassed).toBe(true);
+		expect(solver.step7.subStep).toBe("concept");
+
+		// Phase 3: Missing conceptual answer
+		solver.checkStep7Concept();
+		expect(solver.step7.conceptPassed).toBe(false);
+		expect(solver.step7.feedbackType).toBe("validation");
+
+		// Phase 3: Incorrect conceptual option
+		const wrongOption = problem.itsData.step7.conceptQuestion.options.find(
+			(o) => !o.isCorrect,
+		);
+		if (wrongOption) {
+			solver.step7.selectedConcept = wrongOption.id;
+			solver.checkStep7Concept();
+			expect(solver.step7.conceptPassed).toBe(false);
+			expect(solver.step7.feedbackType).toBe("misconception");
+		}
+
+		// Phase 3: Correct conceptual option
+		const correctOption = problem.itsData.step7.conceptQuestion.options.find(
+			(o) => o.isCorrect,
+		);
+		expect(correctOption).toBeDefined();
+		solver.step7.selectedConcept = correctOption?.id ?? "";
+		solver.checkStep7Concept();
+
+		expect(solver.step7.conceptPassed).toBe(true);
+		expect(solver.step7.subStep).toBe("done");
 		expect(solver.currentStep).toBe(8);
 		expect(solver.isCompleted).toBe(true);
 		expect(onComplete).toHaveBeenCalledTimes(1);
@@ -537,7 +597,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step4.selected).toBeNull();
 		expect(solver.step5.kp).toBe("");
 		expect(solver.step6.c1).toBe("");
-		expect(solver.step7.latex).toBe("");
+		expect(solver.step7.ziC1).toBe("");
+		expect(solver.step7.ziZsPassed).toBe(false);
+		expect(solver.step7.subStep).toBe("zi_zs");
 	});
 
 	it("verifies all option LaTeX math strings in ODE steps are valid", () => {

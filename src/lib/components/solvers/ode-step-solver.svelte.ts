@@ -1,4 +1,4 @@
-import { parseNumericInput } from "$lib/math-engine/fraction";
+import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 import type {
 	OdeItsOption,
 	OdeProblem,
@@ -85,11 +85,27 @@ export interface OdeStep6State extends BaseStepState {
 }
 
 /**
- * Step 7 State: Response Decomposition via OdeResponseInput.
+ * Step 7 State: Response Decomposition & Conceptual Mastery.
  */
 export interface OdeStep7State extends BaseStepState {
-	/** LaTeX formatted student response */
-	latex: string;
+	/** Sub-phase within Step 7: 'zi_zs' -> 'tr_ss' -> 'concept' -> 'done' */
+	subStep: "zi_zs" | "tr_ss" | "concept" | "done";
+	/** Zero-input C1 constant input */
+	ziC1: string;
+	/** Zero-input C2 constant input */
+	ziC2: string;
+	/** Selected option for transient response */
+	selectedTransient: string | null;
+	/** Selected option for steady-state response */
+	selectedSteadyState: string | null;
+	/** Selected option ID for conceptual mastery question */
+	selectedConcept: string | null;
+	/** Whether ZI/ZS phase passed */
+	ziZsPassed: boolean;
+	/** Whether Transient/Steady-State phase passed */
+	trSsPassed: boolean;
+	/** Whether conceptual question passed */
+	conceptPassed: boolean;
 }
 
 /**
@@ -144,9 +160,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		createStepState({ c1: "", c2: "" }),
 	);
 
-	/** Step 7 State: Response Decomposition */
+	/** Step 7 State: Response Decomposition & Conceptual Mastery */
 	step7: OdeStep7State = $state<OdeStep7State>(
-		createStepState({ latex: "" }),
+		createStepState({
+			subStep: "zi_zs" as "zi_zs" | "tr_ss" | "concept" | "done",
+			ziC1: "",
+			ziC2: "",
+			selectedTransient: null as string | null,
+			selectedSteadyState: null as string | null,
+			selectedConcept: null as string | null,
+			ziZsPassed: false,
+			trSsPassed: false,
+			conceptPassed: false,
+		}),
 	);
 
 	/**
@@ -751,17 +777,204 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Handles submission from Step 7 Response Decomposition.
-	 * @param {string} value LaTeX formatted student response
+	 * Formatted LaTeX preview string of the student's Zero-Input response.
 	 */
-	handleStep7Submit(value: string): void {
-		if (value && value.trim().length > 3) {
-			this.setPassed(this.step7, 8);
-		} else {
+	previewZI = $derived.by((): string => {
+		const c1 =
+			this.step7.ziC1.trim() !== "" ? this.step7.ziC1.trim() : "C_{1,ZI}";
+		const c2 =
+			this.step7.ziC2.trim() !== "" ? this.step7.ziC2.trim() : "C_{2,ZI}";
+		const rootType = this.problem.params.rootType;
+		const roots = this.problem.params.roots;
+
+		switch (rootType) {
+			case "distinct_real":
+				return `${c1} e^{${roots.r1}t} + ${c2} e^{${roots.r2}t}`;
+			case "repeated_real":
+				return `(${c1} + ${c2}t) e^{${roots.r1}t}`;
+			case "complex_conjugate":
+				return `e^{${roots.r1}t} [${c1} \\cos(${roots.im}t) + ${c2} \\sin(${roots.im}t)]`;
+			default:
+				return `${c1} + ${c2}`;
+		}
+	});
+
+	/**
+	 * Derived Zero-State Constant C1 from superposition: C_{1,ZS} = C_1 - C_{1,ZI}.
+	 */
+	derivedZSC1 = $derived.by((): string => {
+		const totalC1 = this.problem.itsData.step6.expectedC1;
+		const vC1 = parseNumericInput(this.step7.ziC1);
+		if (Number.isNaN(vC1)) return "C_{1,ZS}";
+		const zsC1 = totalC1 - vC1;
+		return toFractionLatex(zsC1);
+	});
+
+	/**
+	 * Derived Zero-State Constant C2 from superposition: C_{2,ZS} = C_2 - C_{2,ZI}.
+	 */
+	derivedZSC2 = $derived.by((): string => {
+		const totalC2 = this.problem.itsData.step6.expectedC2;
+		const vC2 = parseNumericInput(this.step7.ziC2);
+		if (Number.isNaN(vC2)) return "C_{2,ZS}";
+		const zsC2 = totalC2 - vC2;
+		return toFractionLatex(zsC2);
+	});
+
+	/**
+	 * Formatted LaTeX preview string of the Zero-State response y_{ZS}(t).
+	 */
+	previewZS = $derived.by((): string => {
+		const c1 = this.derivedZSC1;
+		const c2 = this.derivedZSC2;
+		const rootType = this.problem.params.rootType;
+		const roots = this.problem.params.roots;
+		const yp = this.problem.solutions.y_p_latex;
+
+		let homoPart = "";
+		switch (rootType) {
+			case "distinct_real":
+				homoPart = `${c1} e^{${roots.r1}t} + ${c2} e^{${roots.r2}t}`;
+				break;
+			case "repeated_real":
+				homoPart = `(${c1} + ${c2}t) e^{${roots.r1}t}`;
+				break;
+			case "complex_conjugate":
+				homoPart = `e^{${roots.r1}t} [${c1} \\cos(${roots.im}t) + ${c2} \\sin(${roots.im}t)]`;
+				break;
+			default:
+				homoPart = `${c1} + ${c2}`;
+				break;
+		}
+		return yp === "0" ? homoPart : `${homoPart} + ${yp}`;
+	});
+
+	/**
+	 * Validates Step 7 Phase 1: Zero-Input (y_{ZI}) and Zero-State (y_{ZS}) decomposition constants.
+	 */
+	checkStep7ZI(): void {
+		const s7Data = this.problem.itsData.step7;
+		const vC1 = parseNumericInput(this.step7.ziC1);
+		const vC2 = parseNumericInput(this.step7.ziC2);
+
+		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 			this.setValidation(
 				this.step7,
-				"Please enter the complete total response equation.",
+				"Please enter numeric values or fractions for both Zero-Input constants: $C_{1,ZI}$ and $C_{2,ZI}$.",
 			);
+			return;
+		}
+
+		const expC1 = s7Data.ziConstants.C1;
+		const expC2 = s7Data.ziConstants.C2;
+
+		if (
+			Math.abs(vC1 - expC1) < 0.05 &&
+			Math.abs(vC2 - expC2) < 0.05
+		) {
+			this.step7.ziZsPassed = true;
+			this.step7.subStep = "tr_ss";
+			this.clearFeedback();
+		} else if (
+			Math.abs(vC1 + expC1) < 0.05 ||
+			Math.abs(vC2 + expC2) < 0.05
+		) {
+			this.setMisconception(
+				this.step7,
+				"Check the signs of your Zero-Input constants. Remember that $y_{ZI}(t)$ matches initial conditions $y(0^-), y'(0^-)$ with forcing $x(t) = 0$.",
+			);
+		} else {
+			this.setIncorrect(
+				this.step7,
+				"Incorrect Zero-Input constants. Set up the homogeneous system matching $y_h(0^-) = y(0^-)$ and $y_h'(0^-) = y'(0^-)$ without subtracting $y_p$.",
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 7 Phase 2: Transient (y_{tr}) and Steady-State (y_{ss}) decomposition.
+	 */
+	checkStep7TrSS(): void {
+		const s7Data = this.problem.itsData.step7;
+
+		if (!this.step7.selectedTransient || !this.step7.selectedSteadyState) {
+			this.setValidation(
+				this.step7,
+				"Please select options for both the Transient Response $y_{tr}(t)$ and Steady-State Response $y_{ss}(t)$.",
+			);
+			return;
+		}
+
+		const trOption = s7Data.transientOptions.find(
+			(o) => o.id === this.step7.selectedTransient,
+		);
+		const ssOption = s7Data.steadyStateOptions.find(
+			(o) => o.id === this.step7.selectedSteadyState,
+		);
+
+		if (!trOption?.isCorrect) {
+			this.setMisconception(
+				this.step7,
+				trOption?.feedback ||
+					"Incorrect Transient response. The transient response consists of the decaying natural modes $y_h(t)$.",
+			);
+			return;
+		}
+
+		if (!ssOption?.isCorrect) {
+			this.setMisconception(
+				this.step7,
+				ssOption?.feedback ||
+					"Incorrect Steady-State response. The steady-state response is the persistent forced response $y_p(t)$.",
+			);
+			return;
+		}
+
+		this.step7.trSsPassed = true;
+		this.step7.subStep = "concept";
+		this.clearFeedback();
+	}
+
+	/**
+	 * Validates Step 7 Phase 3: Targeted Conceptual Mastery Question.
+	 */
+	checkStep7Concept(): void {
+		const s7Data = this.problem.itsData.step7;
+
+		if (!this.step7.selectedConcept) {
+			this.setValidation(
+				this.step7,
+				"Please select an answer for the conceptual mastery question.",
+			);
+			return;
+		}
+
+		const option = s7Data.conceptQuestion.options.find(
+			(o) => o.id === this.step7.selectedConcept,
+		);
+
+		if (option?.isCorrect) {
+			this.step7.conceptPassed = true;
+			this.step7.subStep = "done";
+			this.setPassed(this.step7, 8);
+		} else {
+			this.setMisconception(
+				this.step7,
+				option?.feedback ||
+					"Incorrect choice. Re-examine how linearity and superposition govern response decomposition.",
+			);
+		}
+	}
+
+	/**
+	 * Handles submission from Step 7 Response Decomposition (legacy/shortcut compatible).
+	 * @param {string} _value LaTeX formatted student response (unused in multi-phase decomposition)
+	 */
+	handleStep7Submit(_value?: string): void {
+		if (this.step7.conceptPassed) {
+			this.setPassed(this.step7, 8);
+		} else {
+			this.checkStep7Concept();
 		}
 	}
 
@@ -789,6 +1002,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createStepState({ kp: "", a: "", b: "" });
 		this.step6 = createStepState({ c1: "", c2: "" });
-		this.step7 = createStepState({ latex: "" });
+		this.step7 = createStepState({
+			subStep: "zi_zs" as "zi_zs" | "tr_ss" | "concept" | "done",
+			ziC1: "",
+			ziC2: "",
+			selectedTransient: null as string | null,
+			selectedSteadyState: null as string | null,
+			selectedConcept: null as string | null,
+			ziZsPassed: false,
+			trSsPassed: false,
+			conceptPassed: false,
+		});
 	}
 }

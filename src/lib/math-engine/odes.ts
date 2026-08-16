@@ -198,12 +198,33 @@ export interface OdeItsStep6 extends BaseItsStep {
 	targetDYh0: number;
 }
 
-/** ITS Step 7: Response Decomposition */
+/** ITS Step 7: Response Decomposition & Conceptual Mastery */
 export interface OdeItsStep7 extends BaseItsStep {
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
 	expectedZS: string;
+	/** Homogeneous constants for Zero-Input response (x(t) = 0) */
+	ziConstants: { C1: number; C2: number };
+	/** Homogeneous constants for Zero-State response (initial conditions = 0) */
+	zsConstants: { C1: number; C2: number };
+	/** Transient response LaTeX expression y_{tr}(t) */
+	y_tr_latex: string;
+	/** Steady-state response LaTeX expression y_{ss}(t) */
+	y_ss_latex: string;
+	/** Multiple-choice options for transient response identification */
+	transientOptions: OdeItsOption[];
+	/** Multiple-choice options for steady-state response identification */
+	steadyStateOptions: OdeItsOption[];
+	/** Targeted conceptual mastery question */
+	conceptQuestion: {
+		/** Question prompt formatted in LaTeX */
+		prompt: string;
+		/** List of multiple choice option answers */
+		options: OdeItsOption[];
+		/** Detailed conceptual explanation upon completion */
+		explanation: string;
+	};
 }
 
 /** Complete ITS problem data container for ODE problem */
@@ -262,6 +283,10 @@ export interface OdeProblem {
 		y_zi_latex: string;
 		/** LaTeX rendered zero-state response y_zs(t) */
 		y_zs_latex: string;
+		/** LaTeX rendered transient response y_tr(t) */
+		y_tr_latex: string;
+		/** LaTeX rendered steady-state response y_ss(t) */
+		y_ss_latex: string;
 	};
 	/** Progressive step-by-step solution breakdown steps for <StepReveal> */
 	steps: SolutionStep[];
@@ -694,6 +719,8 @@ export function generateOdeProblem(
 		particular.latex === "0"
 			? homogeneousZS.latex
 			: `${homogeneousZS.latex} + ${particular.latex}`;
+	const y_tr_latex = homogeneousComplete.latex;
+	const y_ss_latex = particular.latex;
 
 	// Step 1: Characteristic Equation & Quadratic Root Solving
 	const charEqLhs = formatQuadraticPolynomial(1, a1, a0, "s").replace(
@@ -963,6 +990,186 @@ export function generateOdeProblem(
 		}
 	}
 
+	// Step 7 Transient and Steady-State Options
+	const transientOptions: OdeItsOption[] = [
+		{
+			id: "tr_correct",
+			latex: `y_{tr}(t) = ${y_tr_latex}`,
+			isCorrect: true,
+		},
+		{
+			id: "tr_yp",
+			latex: `y_{tr}(t) = ${particular.latex}`,
+			isCorrect: false,
+			feedback:
+				"Misconception: $y_p(t)$ is the forced response (steady-state for step/sinusoidal inputs), not the decaying transient natural response.",
+		},
+		{
+			id: "tr_zi",
+			latex: `y_{tr}(t) = ${ziLatex}`,
+			isCorrect: false,
+			feedback:
+				"Misconception: $y_{ZI}(t)$ is the zero-input response (which is indeed transient, but only accounts for initial conditions, not the complete transient response of the total system).",
+		},
+	];
+
+	const steadyStateOptions: OdeItsOption[] = [
+		{
+			id: "ss_correct",
+			latex: `y_{ss}(t) = ${y_ss_latex}`,
+			isCorrect: true,
+		},
+		{
+			id: "ss_yh",
+			latex: `y_{ss}(t) = ${homogeneousComplete.latex}`,
+			isCorrect: false,
+			feedback:
+				"Misconception: The homogeneous solution $y_h(t)$ contains decaying exponential terms that vanish as $t \\to \\infty$, so it is transient, not steady-state.",
+		},
+		{
+			id: "ss_zs",
+			latex: `y_{ss}(t) = ${zsLatex}`,
+			isCorrect: false,
+			feedback:
+				"Misconception: $y_{ZS}(t)$ contains both the transient natural modes needed to satisfy zero initial conditions AND the forced steady-state response.",
+		},
+	];
+
+	// Concept Questions Pool
+	const conceptQuestionsPool = [
+		{
+			prompt: String.raw`How do the integration constants of the complete response $y(t) = y_h(t) + y_p(t)$ relate to those of the Zero-Input ($y_{ZI}$) and Zero-State ($y_{ZS}$) responses?`,
+			options: [
+				{
+					id: "cq1_opt1",
+					latex: String.raw`C_1 = C_{1,ZI} + C_{1,ZS} \quad \text{and} \quad C_2 = C_{2,ZI} + C_{2,ZS}`,
+					isCorrect: true,
+				},
+				{
+					id: "cq1_opt2",
+					latex: String.raw`C_1 = C_{1,ZI} \cdot C_{1,ZS} \quad \text{and} \quad C_2 = C_{2,ZI} \cdot C_{2,ZS}`,
+					isCorrect: false,
+					feedback:
+						"Superposition is additive, not multiplicative. In linear systems, responses and their modal constants sum linearly.",
+				},
+				{
+					id: "cq1_opt3",
+					latex: String.raw`C_1 = C_{1,ZI} - C_{1,ZS} \quad \text{and} \quad C_2 = C_{2,ZI} - C_{2,ZS}`,
+					isCorrect: false,
+					feedback:
+						"Total response is $y(t) = y_{ZI}(t) + y_{ZS}(t)$, which requires adding the modal constants, not subtracting them.",
+				},
+				{
+					id: "cq1_opt4",
+					latex: String.raw`C_{1,ZI} = C_1 \quad \text{and} \quad C_{2,ZI} = C_2 \quad (\text{independent of } y_{ZS})`,
+					isCorrect: false,
+					feedback:
+						"The complete constants $C_1, C_2$ must satisfy $y_h(0^+) = y(0^+) - y_p(0^+)$, so they shift due to $y_p(0^+)$ from the forcing function.",
+				},
+			],
+			explanation:
+				"By linearity and superposition, the complete response $y(t) = y_{ZI}(t) + y_{ZS}(t)$. Because both $y_{ZI}$ and $y_{ZS}$ share the identical characteristic basis modes, their integration constants add directly: $C_1 = C_{1,ZI} + C_{1,ZS}$ and $C_2 = C_{2,ZI} + C_{2,ZS}$.",
+		},
+		{
+			prompt: String.raw`If the initial conditions are doubled to $2 y(0^-)$ and $2 y'(0^-)$ while the input $x(t)$ remains unchanged, how do the decomposed responses change?`,
+			options: [
+				{
+					id: "cq2_opt1",
+					latex: String.raw`y_{ZI}(t) \to 2 y_{ZI}(t), \quad y_{ZS}(t) \text{ is unchanged}`,
+					isCorrect: true,
+				},
+				{
+					id: "cq2_opt2",
+					latex: String.raw`\text{Both } y_{ZI}(t) \to 2 y_{ZI}(t) \quad \text{and} \quad y_{ZS}(t) \to 2 y_{ZS}(t)`,
+					isCorrect: false,
+					feedback:
+						"The Zero-State response $y_{ZS}(t)$ is computed with initial conditions strictly equal to zero, so changing $y(0^-)$ has zero effect on $y_{ZS}(t)$.",
+				},
+				{
+					id: "cq2_opt3",
+					latex: String.raw`\text{Only } y_{ss}(t) \text{ doubles}`,
+					isCorrect: false,
+					feedback:
+						"The steady-state response $y_{ss}(t) = y_p(t)$ depends entirely on the input $x(t)$, which was not changed.",
+				},
+				{
+					id: "cq2_opt4",
+					latex: String.raw`\text{Neither response changes}`,
+					isCorrect: false,
+					feedback:
+						"Initial conditions drive $y_{ZI}(t)$. Since the differential equation is linear, scaling initial conditions by $2$ doubles $y_{ZI}(t)$.",
+				},
+			],
+			explanation:
+				"The Zero-Input response $y_{ZI}(t)$ is a linear function of initial state values, so doubling initial conditions doubles $y_{ZI}(t)$. The Zero-State response $y_{ZS}(t)$ assumes zero initial energy and depends solely on $x(t)$, so it remains unchanged.",
+		},
+		{
+			prompt: String.raw`For this stable differential equation ($\operatorname{Re}(r_i) < 0$), what is the limiting behavior of the transient response $y_{tr}(t)$ as $t \to \infty$?`,
+			options: [
+				{
+					id: "cq3_opt1",
+					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = 0 \quad (\text{all natural modes decay to zero})`,
+					isCorrect: true,
+				},
+				{
+					id: "cq3_opt2",
+					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = y_p(t)`,
+					isCorrect: false,
+					feedback:
+						"The transient response consists strictly of natural homogeneous modes $e^{rt}$ which decay to $0$ as $t \\to \\infty$, leaving only the steady-state response.",
+				},
+				{
+					id: "cq3_opt3",
+					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = y(0^-)`,
+					isCorrect: false,
+					feedback:
+						"Initial conditions dictate the starting values at $t=0$, not the asymptotic limit at $t \\to \\infty$.",
+				},
+			],
+			explanation:
+				String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\lim_{t \to \infty} y_{tr}(t) = 0$.`,
+		},
+		{
+			prompt: String.raw`If the forcing function $x(t)$ is replaced by a different input signal $\tilde{x}(t)$, which response component is guaranteed to remain strictly identical?`,
+			options: [
+				{
+					id: "cq4_opt1",
+					latex: String.raw`\text{The Zero-Input response } y_{ZI}(t)`,
+					isCorrect: true,
+				},
+				{
+					id: "cq4_opt2",
+					latex: String.raw`\text{The Zero-State response } y_{ZS}(t)`,
+					isCorrect: false,
+					feedback:
+						"The Zero-State response $y_{ZS}(t)$ is driven directly by the forcing input $x(t)$, so changing $x(t)$ changes $y_{ZS}(t)$.",
+				},
+				{
+					id: "cq4_opt3",
+					latex: String.raw`\text{The particular solution } y_p(t)`,
+					isCorrect: false,
+					feedback:
+						"The particular solution $y_p(t)$ is derived directly from the shape and amplitude of the forcing function $x(t)$.",
+				},
+				{
+					id: "cq4_opt4",
+					latex: String.raw`\text{The complete response } y(t)`,
+					isCorrect: false,
+					feedback:
+						"Since $y(t) = y_{ZI}(t) + y_{ZS}(t)$, changing $x(t)$ alters $y_{ZS}(t)$ and therefore changes $y(t)$.",
+				},
+			],
+			explanation:
+				"The Zero-Input response $y_{ZI}(t)$ describes how the system relaxes from its initial state with the input set to zero ($x(t) = 0$). It depends exclusively on system dynamics and initial conditions, making it completely independent of $x(t)$.",
+		},
+	];
+
+	// Pick a concept question
+	const selectedConceptQ =
+		conceptQuestionsPool[
+		Math.floor(Math.random() * conceptQuestionsPool.length)
+		];
+
 	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
 	const itsData: OdeItsData = {
 		step1: {
@@ -1082,6 +1289,19 @@ export function generateOdeProblem(
 		step7: {
 			expectedZI: ziLatex,
 			expectedZS: zsLatex,
+			ziConstants: {
+				C1: homogeneousZI.C1,
+				C2: homogeneousZI.C2,
+			},
+			zsConstants: {
+				C1: homogeneousZS.C1,
+				C2: homogeneousZS.C2,
+			},
+			y_tr_latex,
+			y_ss_latex,
+			transientOptions,
+			steadyStateOptions,
+			conceptQuestion: selectedConceptQ,
 			hints: [
 				"$y_{ZI}(t)$ is the zero-input response (natural response satisfying initial conditions with $x(t)=0$).",
 				"$y_{ZS}(t)$ is the zero-state response (response driven purely by $x(t)$ with zero initial conditions).",
@@ -1184,6 +1404,8 @@ export function generateOdeProblem(
 			y_complete_latex: completeLatex,
 			y_zi_latex: ziLatex,
 			y_zs_latex: zsLatex,
+			y_tr_latex,
+			y_ss_latex,
 		},
 		steps,
 		evalComplete,

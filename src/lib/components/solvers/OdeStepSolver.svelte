@@ -15,8 +15,6 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import OdeResponseInput from "../math/OdeResponseInput.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Progress from "../ui/Progress.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import StepFeedback from "../ui/StepFeedback.svelte";
@@ -348,8 +346,8 @@
 								<button
 									type="button"
 									class="quad-class-btn"
-									class:active={solver.step2.quadClassChoice ===
-										"distinct_real"}
+									class:active={solver.step2
+										.quadClassChoice === "distinct_real"}
 									disabled={solver.step2
 										.quadNeedsDiscriminantCalc}
 									onclick={() =>
@@ -357,13 +355,15 @@
 											"distinct_real",
 										)}
 								>
-									<MathText text={"Distinct Real ($\Delta > 0$)"} />
+									<MathText
+										text={"Distinct Real ($Delta > 0$)"}
+									/>
 								</button>
 								<button
 									type="button"
 									class="quad-class-btn"
-									class:active={solver.step2.quadClassChoice ===
-										"repeated_real"}
+									class:active={solver.step2
+										.quadClassChoice === "repeated_real"}
 									disabled={solver.step2
 										.quadNeedsDiscriminantCalc}
 									onclick={() =>
@@ -371,12 +371,15 @@
 											"repeated_real",
 										)}
 								>
-									<MathText text={"Repeated Real ($\Delta = 0$)"} />
+									<MathText
+										text={"Repeated Real ($Delta = 0$)"}
+									/>
 								</button>
 								<button
 									type="button"
 									class="quad-class-btn"
-									class:active={solver.step2.quadClassChoice ===
+									class:active={solver.step2
+										.quadClassChoice ===
 										"complex_conjugate"}
 									disabled={solver.step2
 										.quadNeedsDiscriminantCalc}
@@ -386,7 +389,7 @@
 										)}
 								>
 									<MathText
-										text={"Complex Conjugate ($\Delta < 0$)"}
+										text={"Complex Conjugate ($Delta < 0$)"}
 									/>
 								</button>
 							</div>
@@ -411,8 +414,9 @@
 										type="text"
 										class="text-input disc-input"
 										placeholder="e.g. -36"
-										bind:value={solver.step2
-											.quadDiscriminantInput}
+										bind:value={
+											solver.step2.quadDiscriminantInput
+										}
 										onkeydown={(e) =>
 											e.key === "Enter" &&
 											solver.verifyDiscriminant()}
@@ -423,7 +427,7 @@
 										onclick={() =>
 											solver.verifyDiscriminant()}
 									>
-										<MathText text={"Verify $\Delta$"} />
+										<MathText text={"Verify $Delta$"} />
 									</button>
 								</div>
 
@@ -481,9 +485,7 @@
 												class="field-label"
 											>
 												<MathText
-													text={
-														"Imaginary Part $\\omega_d$:"
-													}
+													text={"Imaginary Part $\\omega_d$:"}
 												/>
 											</label>
 											<input
@@ -515,7 +517,9 @@
 												for="ode-quad-r1-input"
 												class="field-label"
 											>
-												<MathText text={"Root $r_1$:"} />
+												<MathText
+													text={"Root $r_1$:"}
+												/>
 											</label>
 											<input
 												id="ode-quad-r1-input"
@@ -533,7 +537,9 @@
 												for="ode-quad-r2-input"
 												class="field-label"
 											>
-												<MathText text={"Root $r_2$:"} />
+												<MathText
+													text={"Root $r_2$:"}
+												/>
 											</label>
 											<input
 												id="ode-quad-r2-input"
@@ -557,9 +563,7 @@
 											class="field-label"
 										>
 											<MathText
-												text={
-													"Repeated Root $r = r_1 = r_2$:"
-												}
+												text={"Repeated Root $r = r_1 = r_2$:"}
 											/>
 										</label>
 										<input
@@ -909,7 +913,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 7: Response Separation (Zero-Input vs. Zero-State) -->
+	<!-- Step 7: Dual Response Decomposition & Conceptual Mastery -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 7}
@@ -919,44 +923,355 @@
 		<div class="step-header">
 			<div class="step-badge">Step 7</div>
 			<h3 class="step-title">
-				Response Decomposition: Zero-Input & Zero-State
+				Response Decomposition & Conceptual Mastery
 			</h3>
 		</div>
 
 		{#if solver.currentStep === 7}
 			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={String.raw`Enter the final separated Zero-Input ($y_{ZI}$) and Zero-State ($y_{ZS}$) response equations:`}
-					/>
-				</p>
-
-				<OdeResponseInput
-					onChange={(latex) => {
-						solver.step7.latex = latex;
-					}}
-				/>
-
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() =>
-							solver.handleStep7Submit(solver.step7.latex)}
-					>
-						Submit Response & Complete →
-					</button>
+				<!-- Total Solution Synthesis Card -->
+				<div class="synthesis-banner">
+					<span class="synthesis-badge">Total Solution Form:</span>
+					<div class="synthesis-math">
+						<MathBlock
+							math={`y(t) = (${problem.solutions.y_complete_latex}) u(t)`}
+							compact={true}
+							hideHeader={true}
+						/>
+					</div>
 				</div>
+
+				<!-- Phase 1: Zero-Input (y_ZI) vs Zero-State (y_ZS) Decomposition -->
+				<div
+					class="subphase-container"
+					class:subphase-done={solver.step7.ziZsPassed}
+				>
+					<div class="subphase-header">
+						<span class="subphase-step-tag">Phase 1</span>
+						<h4 class="subphase-title">
+							<MathText
+								text={"Zero-Input ($y_{ZI}$) & Zero-State ($y_{ZS}$) Decomposition"}
+							/>
+						</h4>
+						{#if solver.step7.ziZsPassed}
+							<span class="phase-check-badge"
+								><span class="check-icon">✓</span> Verified</span
+							>
+						{/if}
+					</div>
+
+					{#if !solver.step7.ziZsPassed}
+						<p class="step-prompt">
+							<MathText
+								text={String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting $x(t) = 0$ ($y_p = 0$) and solving for homogeneous constants matching initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0}$:`}
+							/>
+						</p>
+
+						<div class="input-row-grid">
+							<div class="input-pair">
+								<label for="ode-zic1-input" class="field-label">
+									<MathText
+										text={"Zero-Input Constant $C_{1,ZI}$:"}
+									/>
+								</label>
+								<input
+									id="ode-zic1-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. 1"
+									bind:value={solver.step7.ziC1}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep7ZI()}
+								/>
+							</div>
+							<div class="input-pair">
+								<label for="ode-zic2-input" class="field-label">
+									<MathText
+										text={"Zero-Input Constant $C_{2,ZI}$:"}
+									/>
+								</label>
+								<input
+									id="ode-zic2-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. -2"
+									bind:value={solver.step7.ziC2}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep7ZI()}
+								/>
+							</div>
+						</div>
+
+						<div class="preview-equation-box">
+							<span class="preview-label">
+								Live Zero-Input & Zero-State Previews:
+							</span>
+							<MathBlock
+								math={`y_{ZI}(t) = (${solver.previewZI}) u(t)`}
+								compact={true}
+								hideHeader={true}
+							/>
+							<div class="superposition-note">
+								<MathText
+									text={`Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${solver.derivedZSC2}$`}
+								/>
+							</div>
+							<MathBlock
+								math={`y_{ZS}(t) = (${solver.previewZS}) u(t)`}
+								compact={true}
+								hideHeader={true}
+							/>
+						</div>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep7ZI()}
+							>
+								Verify ZI/ZS Decomposition →
+							</button>
+						</div>
+					{:else}
+						<div class="phase-verified-summary">
+							<div class="verified-item">
+								<span class="verified-label">Zero-Input:</span>
+								<MathText
+									text={`$y_{ZI}(t) = (${problem.solutions.y_zi_latex}) u(t)$`}
+								/>
+							</div>
+							<div class="verified-item">
+								<span class="verified-label">Zero-State:</span>
+								<MathText
+									text={`$y_{ZS}(t) = (${problem.solutions.y_zs_latex}) u(t)$`}
+								/>
+							</div>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Phase 2: Transient (y_tr) vs Steady-State (y_ss) Identification -->
+				{#if solver.step7.ziZsPassed}
+					<div
+						class="subphase-container"
+						class:subphase-done={solver.step7.trSsPassed}
+					>
+						<div class="subphase-header">
+							<span class="subphase-step-tag">Phase 2</span>
+							<h4 class="subphase-title">
+								<MathText
+									text={"Transient ($y_{tr}$) & Steady-State ($y_{ss}$) Identification"}
+								/>
+							</h4>
+							{#if solver.step7.trSsPassed}
+								<span class="phase-check-badge"
+									><span class="check-icon">✓</span> Verified</span
+								>
+							{/if}
+						</div>
+
+						{#if !solver.step7.trSsPassed}
+							<p class="step-prompt">
+								<MathText
+									text={String.raw`Identify which part is the Transient Response $y_{tr}(t)$ (natural modes decaying as $t \to \infty$) and which is the Steady-State Response $y_{ss}(t)$ (forced component persisting as $t \to \infty$):`}
+								/>
+							</p>
+
+							<div class="classification-group">
+								<span class="classification-step-label">
+									<MathText
+										text={"1. Select Transient Response $y_{tr}(t)$:"}
+									/>
+								</span>
+								<div class="mcq-cards-grid">
+									{#each problem.itsData.step7.transientOptions as option}
+										<button
+											type="button"
+											class="mcq-card"
+											class:selected={solver.step7
+												.selectedTransient ===
+												option.id}
+											onclick={() => {
+												solver.step7.selectedTransient =
+													option.id;
+												solver.clearFeedback();
+											}}
+										>
+											<MathText
+												text={`$${option.latex}$`}
+											/>
+										</button>
+									{/each}
+								</div>
+							</div>
+
+							<div class="classification-group">
+								<span class="classification-step-label">
+									<MathText
+										text={"2. Select Steady-State Response $y_{ss}(t)$:"}
+									/>
+								</span>
+								<div class="mcq-cards-grid">
+									{#each problem.itsData.step7.steadyStateOptions as option}
+										<button
+											type="button"
+											class="mcq-card"
+											class:selected={solver.step7
+												.selectedSteadyState ===
+												option.id}
+											onclick={() => {
+												solver.step7.selectedSteadyState =
+													option.id;
+												solver.clearFeedback();
+											}}
+										>
+											<MathText
+												text={`$${option.latex}$`}
+											/>
+										</button>
+									{/each}
+								</div>
+							</div>
+
+							<div class="step-actions">
+								<button
+									type="button"
+									class="btn btn-primary"
+									onclick={() => solver.checkStep7TrSS()}
+								>
+									Verify Transient & Steady-State →
+								</button>
+							</div>
+						{:else}
+							<div class="phase-verified-summary">
+								<div class="verified-item">
+									<span class="verified-label">
+										Transient:
+									</span>
+									<MathText
+										text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
+									/>
+								</div>
+								<div class="verified-item">
+									<span class="verified-label">
+										Steady-State:
+									</span>
+									<MathText
+										text={`$y_{ss}(t) = (${problem.solutions.y_ss_latex}) u(t)$`}
+									/>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- Phase 3: Targeted Conceptual Mastery Question -->
+				{#if solver.step7.trSsPassed}
+					<div class="subphase-container">
+						<div class="subphase-header">
+							<span class="subphase-step-tag">Phase 3</span>
+							<h4 class="subphase-title">
+								Targeted Conceptual Mastery Check
+							</h4>
+						</div>
+
+						<p class="step-prompt">
+							<MathText
+								text={problem.itsData.step7.conceptQuestion
+									.prompt}
+							/>
+						</p>
+
+						<div class="concept-options-list">
+							{#each problem.itsData.step7.conceptQuestion.options as option}
+								<button
+									type="button"
+									class="concept-option-card"
+									class:selected={solver.step7
+										.selectedConcept === option.id}
+									onclick={() => {
+										solver.step7.selectedConcept =
+											option.id;
+										solver.clearFeedback();
+									}}
+								>
+									<span class="option-radio-indicator">
+										{solver.step7.selectedConcept ===
+										option.id
+											? "●"
+											: "○"}
+									</span>
+									<div class="option-math-content">
+										<MathText text={`$${option.latex}$`} />
+									</div>
+								</button>
+							{/each}
+						</div>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep7Concept()}
+							>
+								Submit Answer & Complete Problem →
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 7}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>
+			<div class="step-summary-full">
+				<div class="summary-row">
+					<span class="check-icon">✓</span>
+					<span class="summary-heading">Complete Solution:</span>
 					<MathText
-						text={`Complete Solution Synthesized: $${problem.solutions.y_complete_latex}$`}
+						text={`$y(t) = (${problem.solutions.y_complete_latex}) u(t)$`}
 					/>
-				</span>
+				</div>
+				<div class="summary-decomposition-grid">
+					<div class="decomp-card">
+						<span class="decomp-title">
+							Zero-Input / Zero-State Decomposition
+						</span>
+						<div class="decomp-math">
+							<MathText
+								text={`$y_{ZI}(t) = (${problem.solutions.y_zi_latex}) u(t)$`}
+							/>
+						</div>
+						<div class="decomp-math">
+							<MathText
+								text={`$y_{ZS}(t) = (${problem.solutions.y_zs_latex}) u(t)$`}
+							/>
+						</div>
+					</div>
+					<div class="decomp-card">
+						<span class="decomp-title">
+							Transient / Steady-State Decomposition
+						</span>
+						<div class="decomp-math">
+							<MathText
+								text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
+							/>
+						</div>
+						<div class="decomp-math">
+							<MathText
+								text={`$y_{ss}(t) = (${problem.solutions.y_ss_latex}) u(t)$`}
+							/>
+						</div>
+					</div>
+				</div>
+				<div class="concept-takeaway-box">
+					<span class="takeaway-label"
+						>💡 Key Conceptual Insight:</span
+					>
+					<p class="takeaway-text">
+						{problem.itsData.step7.conceptQuestion.explanation}
+					</p>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -1542,5 +1857,248 @@
 
 	.hint-text {
 		color: var(--text-secondary);
+	}
+
+	/* Step 7: Synthesis & Subphases Styling */
+	.synthesis-banner {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.85rem 1rem;
+		background: rgba(6, 182, 212, 0.06);
+		border: 1px solid rgba(6, 182, 212, 0.25);
+		border-radius: var(--radius-sm, 6px);
+	}
+
+	.synthesis-badge {
+		font-size: 0.78rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--accent-primary);
+	}
+
+	.synthesis-math {
+		width: 100%;
+		overflow-x: auto;
+	}
+
+	.subphase-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm, 6px);
+		transition: all 0.2s ease;
+	}
+
+	.subphase-container.subphase-done {
+		border-color: rgba(16, 185, 129, 0.3);
+		background: rgba(16, 185, 129, 0.02);
+		padding: 0.75rem 1rem;
+	}
+
+	.subphase-header {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.subphase-step-tag {
+		font-size: 0.72rem;
+		font-weight: 700;
+		padding: 0.15rem 0.45rem;
+		background: rgba(6, 182, 212, 0.15);
+		color: var(--accent-primary);
+		border-radius: var(--radius-sm, 4px);
+		text-transform: uppercase;
+	}
+
+	.subphase-title {
+		font-size: 0.92rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0;
+		flex: 1;
+	}
+
+	.phase-check-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: #10b981;
+	}
+
+	.superposition-note {
+		font-size: 0.82rem;
+		color: var(--accent-primary);
+		background: rgba(6, 182, 212, 0.05);
+		padding: 0.4rem 0.6rem;
+		border-radius: var(--radius-sm, 4px);
+		border-left: 2px solid var(--accent-primary);
+	}
+
+	.phase-verified-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.verified-item {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.85rem;
+		flex-wrap: wrap;
+	}
+
+	.verified-label {
+		font-weight: 600;
+		color: var(--text-secondary);
+		min-width: 90px;
+	}
+
+	.classification-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.concept-options-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+
+	.concept-option-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm, 6px);
+		cursor: pointer;
+		text-align: left;
+		transition: all 0.15s ease;
+		color: var(--text-primary);
+		width: 100%;
+	}
+
+	.concept-option-card:hover {
+		border-color: var(--accent-primary);
+		background: var(--bg-card-hover);
+	}
+
+	.concept-option-card:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
+
+	.concept-option-card.selected {
+		border-color: var(--accent-primary);
+		background: rgba(6, 182, 212, 0.12);
+	}
+
+	.option-radio-indicator {
+		font-size: 1rem;
+		color: var(--accent-primary);
+		flex-shrink: 0;
+	}
+
+	.option-math-content {
+		flex: 1;
+		overflow-x: auto;
+	}
+
+	.step-summary-full {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+	}
+
+	.summary-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		font-size: 0.9rem;
+	}
+
+	.summary-heading {
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.summary-decomposition-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.decomp-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 0.75rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm, 6px);
+	}
+
+	.decomp-title {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.2rem;
+	}
+
+	.decomp-math {
+		font-size: 0.85rem;
+	}
+
+	.concept-takeaway-box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		padding: 0.75rem;
+		background: rgba(245, 158, 11, 0.08);
+		border: 1px solid rgba(245, 158, 11, 0.3);
+		border-radius: var(--radius-sm, 6px);
+	}
+
+	.takeaway-label {
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: #f59e0b;
+	}
+
+	.takeaway-text {
+		font-size: 0.85rem;
+		color: var(--text-primary);
+		margin: 0;
+		line-height: 1.45;
+	}
+
+	@container (max-width: 360px) {
+		.summary-decomposition-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.subphase-container {
+			padding: 0.65rem;
+		}
+
+		.concept-option-card {
+			padding: 0.5rem 0.65rem;
+		}
 	}
 </style>

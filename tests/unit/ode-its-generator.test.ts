@@ -35,9 +35,20 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		expect(problem.itsData.step6.expectedC1).toBeDefined();
 		expect(problem.itsData.step6.expectedC2).toBeDefined();
 
-		// Step 7: Response Decomposition
+		// Step 7: Dual Response Decomposition & Conceptual Mastery
 		expect(problem.itsData.step7.expectedZI).toBeDefined();
 		expect(problem.itsData.step7.expectedZS).toBeDefined();
+		expect(problem.itsData.step7.ziConstants.C1).toBeDefined();
+		expect(problem.itsData.step7.ziConstants.C2).toBeDefined();
+		expect(problem.itsData.step7.zsConstants.C1).toBeDefined();
+		expect(problem.itsData.step7.zsConstants.C2).toBeDefined();
+		expect(problem.itsData.step7.y_tr_latex).toBeDefined();
+		expect(problem.itsData.step7.y_ss_latex).toBeDefined();
+		expect(problem.itsData.step7.transientOptions.length).toBeGreaterThanOrEqual(2);
+		expect(problem.itsData.step7.steadyStateOptions.length).toBeGreaterThanOrEqual(2);
+		expect(problem.itsData.step7.conceptQuestion).toBeDefined();
+		expect(problem.itsData.step7.conceptQuestion.options.some((o) => o.isCorrect)).toBe(true);
+		expect(problem.itsData.step7.conceptQuestion.explanation.length).toBeGreaterThan(10);
 	});
 
 	it("generates valid 7-step ITS data for complex conjugate roots with sinusoidal forcing", () => {
@@ -62,5 +73,10 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		// Step 5
 		expect(problem.itsData.step5.expectedA).toBeDefined();
 		expect(problem.itsData.step5.expectedB).toBeDefined();
+
+		// Step 7
+		expect(problem.itsData.step7.ziConstants).toBeDefined();
+		expect(problem.itsData.step7.zsConstants).toBeDefined();
+		expect(problem.itsData.step7.conceptQuestion.options.length).toBeGreaterThanOrEqual(2);
 	});
 });
