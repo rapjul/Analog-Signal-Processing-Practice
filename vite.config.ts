@@ -3,7 +3,28 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 
+/**
+ * Standard security response headers for local Vite development and preview servers.
+ *
+ * Matches production headers defined in `static/_headers` and `src/app.html`.
+ */
+const securityHeaders: Record<string, string> = {
+	"Content-Security-Policy":
+		"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self';",
+	"Permissions-Policy":
+		"accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), screen-wake-lock=(), usb=(), bluetooth=(), serial=()",
+	"X-Content-Type-Options": "nosniff",
+	"X-Frame-Options": "SAMEORIGIN",
+	"Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
 export default defineConfig({
+	server: {
+		headers: securityHeaders,
+	},
+	preview: {
+		headers: securityHeaders,
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {
