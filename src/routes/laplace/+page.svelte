@@ -10,7 +10,7 @@
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
-	import Navigation from "$lib/components/ui/Navigation.svelte";
+	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		determineStability,
 		generateLaplaceProblem,
@@ -48,157 +48,104 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Laplace Transform Practice — SignalLab</title>
-</svelte:head>
-
-<Navigation activeRoute="/laplace" />
-
-<main class="page-container">
-	<div class="header-section">
-		<h1 class="page-title">
-			<MathText text={"Laplace Transform & $s$-Domain Analysis"} />
-		</h1>
-		<p class="page-subtitle">
-			Practice Inverse Laplace transforms via Partial Fraction
-			Decomposition (PFD), Region of Convergence (ROC) analysis, and BIBO
-			stability.
-		</p>
-	</div>
-
-	<div class="workspace-container">
-		<div class="practice-card">
-			<div class="card-header">
-				<h2 class="card-title">Inverse Laplace & PFD Practice</h2>
-				<div
-					class="stability-pill"
-					class:stable={stability.isBiboStable}
-				>
-					<span><MathText text={"Poles: $s = -2, -3$"} /></span> |
-					<span>
-						<MathText text={`ROC: $${stability.rocLatex}$`} />
-					</span>
-					|
-					<span>
-						{stability.isBiboStable ? "BIBO Stable" : "Unstable"}
-					</span>
-				</div>
-			</div>
-
-			<div class="problem-prompt">
-				<MathBlock math={currentProblem.promptLatex} />
-			</div>
-
-			<div class="input-section">
-				<label
-					for="laplace-input"
-					class="input-label"
-				>
-					<MathText text={"Enter $x(t)$ in LaTeX:"} />
-				</label>
-				<input
-					id="laplace-input"
-					type="text"
-					class="math-text-input"
-					bind:value={userAttempt}
-					placeholder="Enter LaTeX answer..."
-				/>
-
-				<div class="action-bar">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={handleCheck}
-					>
-						Check Answer
-					</button>
-					<button
-						type="button"
-						class="btn btn-secondary"
-						onclick={handleGenerateNext}
-					>
-						Next Problem
-					</button>
-				</div>
-			</div>
-
-			{#if isSubmitted}
-				<div
-					class="feedback-box"
-					class:correct={isCorrect}
-					class:incorrect={!isCorrect}
-				>
-					<p class="feedback-status">
-						{isCorrect
-							? "✅ Correct!"
-							: "❌ Check reference solution below."}
-					</p>
-					<div class="ref-solution">
-						<strong>Reference Answer:</strong>
-						<MathBlock
-							math={currentProblem.referenceAnswerLatex}
-							compact={true}
-						/>
-					</div>
-				</div>
-			{/if}
-
-			<div class="solution-breakdown">
-				<h3 class="solution-title">Solution Breakdown</h3>
-				{#each currentProblem.solutionSteps as step}
-					<div class="step-card">
-						<h4 class="step-heading">{step.title}</h4>
-						<MathBlock
-							math={step.latex}
-							compact={true}
-						/>
-					</div>
-				{/each}
+<PageLayout
+	title="Laplace Transform & s-Domain Analysis"
+	subtitleText="Practice Inverse Laplace transforms via Partial Fraction Decomposition (PFD), Region of Convergence (ROC) analysis, and BIBO stability."
+	metaDescription="Practice inverse Laplace transforms with Partial Fraction Decomposition (PFD), ROC regions, and s-domain pole-zero stability checks."
+	activeRoute="/laplace"
+>
+	<div class="practice-card">
+		<div class="card-header">
+			<h2 class="card-title">Inverse Laplace & PFD Practice</h2>
+			<div
+				class="stability-pill"
+				class:stable={stability.isBiboStable}
+			>
+				<span><MathText text={"Poles: $s = -2, -3$"} /></span> |
+				<span>
+					<MathText text={`ROC: $${stability.rocLatex}$`} />
+				</span>
+				|
+				<span>
+					{stability.isBiboStable ? "BIBO Stable" : "Unstable"}
+				</span>
 			</div>
 		</div>
+
+		<div class="problem-prompt">
+			<MathBlock math={currentProblem.promptLatex} />
+		</div>
+
+		<div class="input-section">
+			<label
+				for="laplace-input"
+				class="input-label"
+			>
+				<MathText text={"Enter $x(t)$ in LaTeX:"} />
+			</label>
+			<input
+				id="laplace-input"
+				type="text"
+				class="math-text-input"
+				bind:value={userAttempt}
+				placeholder="Enter LaTeX answer..."
+			/>
+
+			<div class="action-bar">
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={handleCheck}
+				>
+					Check Answer
+				</button>
+				<button
+					type="button"
+					class="btn btn-secondary"
+					onclick={handleGenerateNext}
+				>
+					Next Problem
+				</button>
+			</div>
+		</div>
+
+		{#if isSubmitted}
+			<div
+				class="feedback-box"
+				class:correct={isCorrect}
+				class:incorrect={!isCorrect}
+			>
+				<p class="feedback-status">
+					{isCorrect
+						? "✅ Correct!"
+						: "❌ Check reference solution below."}
+				</p>
+				<div class="ref-solution">
+					<strong>Reference Answer:</strong>
+					<MathBlock
+						math={currentProblem.referenceAnswerLatex}
+						compact={true}
+					/>
+				</div>
+			</div>
+		{/if}
+
+		<div class="solution-breakdown">
+			<h3 class="solution-title">Solution Breakdown</h3>
+			{#each currentProblem.solutionSteps as step}
+				<div class="step-card">
+					<h4 class="step-heading">{step.title}</h4>
+					<MathBlock
+						math={step.latex}
+						compact={true}
+					/>
+				</div>
+			{/each}
+		</div>
 	</div>
-</main>
+</PageLayout>
 
 <style>
-	/* ── Page layout container ─────────────────────────────── */
-
-	.page-container {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 2rem 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	/* ── Header section ────────────────────────────────────── */
-
-	.header-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.page-title {
-		font-size: var(--text-3xl);
-		font-weight: 800;
-		color: var(--text-primary);
-	}
-
-	.page-subtitle {
-		font-size: var(--text-sm);
-		color: var(--text-secondary);
-	}
-
-	/* ── Workspace container ───────────────────────────────── */
-
-	.workspace-container {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		min-width: 0;
-	}
-
 	/* ── Practice card ─────────────────────────────────────── */
 
 	.practice-card {
@@ -233,24 +180,32 @@
 	.stability-pill {
 		background: rgba(6, 182, 212, 0.1);
 		border: 1px solid rgba(6, 182, 212, 0.3);
-		color: var(--text-primary);
 		padding: 0.35rem 0.75rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
+		border-radius: 999px;
+		font-size: var(--text-xs);
+		color: var(--text-secondary);
 		display: flex;
-		gap: 0.5rem;
 		align-items: center;
+		gap: 0.5rem;
 		flex-wrap: wrap;
-		max-width: 100%;
 	}
 
-	/* Stable status — emerald */
 	.stability-pill.stable {
-		border-color: rgba(16, 185, 129, 0.4);
-		background: rgba(16, 185, 129, 0.1);
+		border-color: var(--color-success);
+		color: var(--color-success);
 	}
 
-	/* ── Input section & action buttons ────────────────────── */
+	/* ── Problem prompt ────────────────────────────────────── */
+
+	.problem-prompt {
+		background: var(--bg-input);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-md);
+		padding: 1.25rem;
+		overflow-x: auto;
+	}
+
+	/* ── Input section & action bar ────────────────────────── */
 
 	.input-section {
 		display: flex;
@@ -262,25 +217,6 @@
 		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
-	}
-
-	.math-text-input {
-		background: var(--bg-input);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		padding: 0.5rem 0.75rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-base);
-	}
-
-	.math-text-input:focus {
-		border-color: var(--accent-primary);
-	}
-
-	.math-text-input:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
 	}
 
 	.action-bar {
@@ -348,6 +284,16 @@
 		border: 1px solid var(--color-error);
 	}
 
+	.feedback-status {
+		font-weight: 700;
+		font-size: var(--text-sm);
+	}
+
+	.ref-solution {
+		margin-top: 0.5rem;
+		font-size: var(--text-sm);
+	}
+
 	/* ── Solution breakdown ────────────────────────────────── */
 
 	.solution-breakdown {
@@ -380,24 +326,16 @@
 		color: var(--accent-primary);
 	}
 
-	/* ── Mobile media query (≤480px) ─────────────────────── */
+	/* ── Narrow viewport (≤360px) container query ─────────── */
 
-	@media (max-width: 480px) {
-		.page-container {
-			padding: 1rem 0.75rem;
-			gap: 1rem;
-		}
-
+	@container (max-width: 360px) {
 		.practice-card {
 			padding: 1rem 0.85rem;
 		}
 
-		.action-bar {
+		.stability-pill {
 			flex-direction: column;
-		}
-
-		.action-bar button {
-			width: 100%;
+			align-items: flex-start;
 		}
 	}
 </style>

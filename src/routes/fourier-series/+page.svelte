@@ -7,11 +7,11 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathText from "$lib/components/math/MathText.svelte";
+	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import Navigation from "$lib/components/ui/Navigation.svelte";
+	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type FourierSeriesProblem,
 		type FourierWaveformType,
@@ -42,154 +42,45 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Fourier Series Practice — SignalLab</title>
-</svelte:head>
+<PageLayout
+	title="Fourier Series Analysis"
+	subtitleText={String.raw`Calculate Trigonometric $(a_0, a_n, b_n)$ and Exponential $(c_n)$ Fourier coefficients, Parseval power, and observe the Gibbs phenomenon.`}
+	metaDescription="Practice deriving Trigonometric and Exponential Fourier Series coefficients with harmonic spectrum analysis and Gibbs phenomenon visualization."
+	activeRoute="/fourier-series"
+>
+	{#snippet controls()}
+		<DrillPanel
+			title="Targeted Drill & Waveform Customization"
+			badge={selectedWaveform === "square"
+				? "Default (Square Wave)"
+				: "Custom Waveform Selected"}
+		>
+			<div class="control-group">
+				<label
+					for="waveform-select"
+					class="control-label"
+				>
+					Periodic Waveform Category:
+				</label>
+				<select
+					id="waveform-select"
+					class="select-input"
+					bind:value={selectedWaveform}
+					onchange={handleOptionChange}
+				>
+					<option value="square">Square Wave</option>
+					<option value="triangle">Triangle Wave</option>
+					<option value="sawtooth">Sawtooth Wave</option>
+					<option value="half_wave_sine">
+						Half-Wave Rectified Sine Wave
+					</option>
+				</select>
+			</div>
+		</DrillPanel>
+	{/snippet}
 
-<Navigation activeRoute="/fourier-series" />
-
-<main class="page-container">
-	<div class="header-section">
-		<h1 class="page-title">Fourier Series Analysis</h1>
-		<p class="page-subtitle">
-			<MathText
-				text={String.raw`Calculate Trigonometric $(a_0, a_n, b_n)$ and Exponential $(c_n)$ Fourier coefficients, Parseval power, and observe the Gibbs phenomenon.`}
-			/>
-		</p>
-	</div>
-
-	<!-- Control Bar: Waveform Customization -->
-	<div class="control-bar">
-		<div class="control-group">
-			<label
-				for="waveform-select"
-				class="control-label"
-			>
-				Periodic Waveform Category:
-			</label>
-			<select
-				id="waveform-select"
-				class="select-input"
-				bind:value={selectedWaveform}
-				onchange={handleOptionChange}
-			>
-				<option value="square">Square Wave</option>
-				<option value="triangle">Triangle Wave</option>
-				<option value="sawtooth">Sawtooth Wave</option>
-				<option value="half_wave_sine">
-					Half-Wave Rectified Sine Wave
-				</option>
-			</select>
-		</div>
-	</div>
-
-	<!-- Main Practice Workspace (Full Width) -->
-	<div class="workspace-container">
-		<FourierPracticeCard
-			problem={currentProblem}
-			onNextProblem={handleGenerateNext}
-		/>
-	</div>
-</main>
-
-<style>
-	/* ── Page layout container ─────────────────────────────── */
-
-	.page-container {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: 2rem 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	/* ── Header section ────────────────────────────────────── */
-
-	.header-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.page-title {
-		font-size: var(--text-3xl);
-		font-weight: 800;
-		letter-spacing: -0.025em;
-		color: var(--text-primary);
-	}
-
-	.page-subtitle {
-		font-size: var(--text-sm);
-		color: var(--text-secondary);
-	}
-
-	/* ── Control bar & selection group ─────────────────────── */
-
-	.control-bar {
-		display: flex;
-		gap: 1.5rem;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-md);
-		padding: 1rem 1.25rem;
-		flex-wrap: wrap;
-	}
-
-	.control-group {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem 0.75rem;
-		width: 100%;
-	}
-
-	.control-label {
-		font-size: var(--text-sm);
-		font-weight: 600;
-		color: var(--text-secondary);
-	}
-
-	.select-input {
-		background: var(--bg-input);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		padding: 0.4rem 0.75rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
-		max-width: 100%;
-		text-overflow: ellipsis;
-	}
-
-	.select-input:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
-	}
-
-	/* ── Workspace container ───────────────────────────────── */
-
-	.workspace-container {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		min-width: 0;
-	}
-
-	/* ── Mobile media query (≤480px) ─────────────────────── */
-
-	@media (max-width: 480px) {
-		.page-container {
-			padding: 1rem 0.75rem;
-			gap: 1rem;
-		}
-
-		.control-bar {
-			padding: 0.75rem 0.85rem;
-		}
-
-		.select-input {
-			width: 100%;
-		}
-	}
-</style>
+	<FourierPracticeCard
+		problem={currentProblem}
+		onNextProblem={handleGenerateNext}
+	/>
+</PageLayout>

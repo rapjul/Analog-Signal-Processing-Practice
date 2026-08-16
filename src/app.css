@@ -242,3 +242,48 @@ select {
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--accent-primary);
 }
+
+/* ── Standardized Form & Filter Control Utilities ───────── */
+
+.control-group {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.5rem 0.75rem;
+	width: 100%;
+}
+
+.control-label {
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+.select-input,
+.math-text-input {
+	background: var(--bg-input);
+	border: 1px solid var(--border-color);
+	color: var(--text-primary);
+	padding: 0.45rem 0.75rem;
+	border-radius: var(--radius-sm);
+	font-size: var(--text-sm);
+	max-width: 100%;
+	text-overflow: ellipsis;
+	transition: border-color 0.15s ease;
+}
+
+.select-input:focus-visible,
+.math-text-input:focus-visible {
+	border-color: var(--accent-primary);
+	outline: 2px solid var(--accent-primary);
+	outline-offset: 2px;
+}
+
+/* ── Mobile Form Reflow (≤480px) ────────────────────────── */
+
+@media (max-width: 480px) {
+	.select-input,
+	.math-text-input {
+		width: 100%;
+	}
+}

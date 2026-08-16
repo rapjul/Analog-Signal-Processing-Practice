@@ -536,3 +536,93 @@ describe("StickyActionBar — visibility", () => {
 		expect(isStickyBarVisible(false)).toBe(false);
 	});
 });
+
+// ─────────────────────────────────────────────────────────
+// Section 2: PageLayout — max-width computation helper
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Computes the inline CSS max-width value based on the maxWidth prop.
+ * Mirrors the getComputedMaxWidth() helper in PageLayout.svelte.
+ *
+ * @param {"1100px" | "1200px" | "1400px" | "full"} width - Requested max-width constraint
+ * @returns {string} Computed CSS max-width string value
+ */
+function getComputedMaxWidth(
+	width: "1100px" | "1200px" | "1400px" | "full",
+): string {
+	switch (width) {
+		case "1100px":
+			return "1100px";
+		case "1200px":
+			return "1200px";
+		case "1400px":
+			return "1400px";
+		case "full":
+			return "100%";
+		default:
+			return "1200px";
+	}
+}
+
+describe("PageLayout — getComputedMaxWidth()", () => {
+	it("returns '1100px' for 1100px width", () => {
+		expect(getComputedMaxWidth("1100px")).toBe("1100px");
+	});
+
+	it("returns '1200px' for 1200px width", () => {
+		expect(getComputedMaxWidth("1200px")).toBe("1200px");
+	});
+
+	it("returns '1400px' for 1400px width", () => {
+		expect(getComputedMaxWidth("1400px")).toBe("1400px");
+	});
+
+	it("returns '100%' for 'full' width", () => {
+		expect(getComputedMaxWidth("full")).toBe("100%");
+	});
+
+	it("falls back to '1200px' for unknown width string", () => {
+		expect(
+			getComputedMaxWidth(
+				"unknown" as "1100px" | "1200px" | "1400px" | "full",
+			),
+		).toBe("1200px");
+	});
+});
+
+// ─────────────────────────────────────────────────────────
+// Section 2: DrillPanel — filter badge helper
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Computes the status badge text for ODE drill filters.
+ *
+ * @param {string} rootType - Selected root classification
+ * @param {string} forcingType - Selected forcing function type
+ * @returns {string} Badge display label
+ */
+function getOdeDrillBadge(rootType: string, forcingType: string): string {
+	if (rootType === "random" && forcingType === "random") {
+		return "Random / Exam Mode";
+	}
+	return "Custom Filter Active";
+}
+
+describe("DrillPanel — ODE Filter Badges", () => {
+	it("returns 'Random / Exam Mode' when all filters are random", () => {
+		expect(getOdeDrillBadge("random", "random")).toBe("Random / Exam Mode");
+	});
+
+	it("returns 'Custom Filter Active' when rootType is non-random", () => {
+		expect(getOdeDrillBadge("distinct_real", "random")).toBe(
+			"Custom Filter Active",
+		);
+	});
+
+	it("returns 'Custom Filter Active' when forcingType is non-random", () => {
+		expect(getOdeDrillBadge("random", "constant")).toBe(
+			"Custom Filter Active",
+		);
+	});
+});

@@ -7,11 +7,11 @@
 	 */
 
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
-	import Navigation from "$lib/components/ui/Navigation.svelte";
+	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
+	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
+	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type ConvolutionPairType,
 		type ConvolutionProblem,
@@ -42,163 +42,56 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Continuous-Time Convolution Practice — SignalLab</title>
-</svelte:head>
+<PageLayout
+	title="Continuous-Time Convolution"
+	subtitleText={String.raw`Master graphical flip-and-shift overlap integrals, piecewise analytical solutions $y(t) = (x * h)(t)$, and impulse response synthesis.`}
+	metaDescription="Practice graphical flip-and-shift convolution overlap integrals and analytical piecewise solutions with step-by-step verification."
+	activeRoute="/convolution"
+>
+	{#snippet controls()}
+		<DrillPanel
+			title="Targeted Drill & Signal Pair Filters"
+			badge={selectedPair === "rect_rect"
+				? "Default (Rect * Rect)"
+				: "Custom Signal Pair"}
+		>
+			<div class="control-group">
+				<label
+					for="pair-type-select"
+					class="control-label"
+				>
+					Signal Pair Category:
+				</label>
+				<select
+					id="pair-type-select"
+					class="select-input"
+					bind:value={selectedPair}
+					onchange={handleOptionChange}
+				>
+					<option value="rect_rect">
+						Rectangular Pulse * Rectangular Pulse (Piecewise Linear)
+					</option>
+					<option value="rect_shifted_rect">
+						Rectangular Pulse * Shifted Rectangular Pulse
+						(Trapezoid)
+					</option>
+					<option value="multi_rect">
+						Multi-Pulse Signal * Rectangular Pulse (Composite
+						Pulses)
+					</option>
+					<option value="rect_exp">
+						Rectangular Pulse * Exponential Decay [e^(-at) u(t)]
+					</option>
+					<option value="exp_exp">
+						Exponential Decay * Exponential Decay
+					</option>
+				</select>
+			</div>
+		</DrillPanel>
+	{/snippet}
 
-<Navigation activeRoute="/convolution" />
-
-<main class="page-container">
-	<div class="header-section">
-		<h1 class="page-title">Continuous-Time Convolution</h1>
-		<p class="page-subtitle">
-			<MathText
-				text={String.raw`Master graphical flip-and-shift overlap integrals, piecewise analytical solutions $y(t) = (x * h)(t)$, and impulse response synthesis.`}
-			/>
-		</p>
-	</div>
-
-	<!-- Control Bar: Signal Pair Customization -->
-	<div class="control-bar">
-		<div class="control-group">
-			<label
-				for="pair-type-select"
-				class="control-label"
-			>
-				Signal Pair Category:
-			</label>
-			<select
-				id="pair-type-select"
-				class="select-input"
-				bind:value={selectedPair}
-				onchange={handleOptionChange}
-			>
-				<option value="rect_rect">
-					Rectangular Pulse * Rectangular Pulse (Piecewise Linear)
-				</option>
-				<option value="rect_shifted_rect">
-					Rectangular Pulse * Shifted Rectangular Pulse (Trapezoid)
-				</option>
-				<option value="multi_rect">
-					Multi-Pulse Signal * Rectangular Pulse (Composite Pulses)
-				</option>
-				<option value="rect_exp">
-					Rectangular Pulse * Exponential Decay [e^(-at) u(t)]
-				</option>
-				<option value="exp_exp">
-					Exponential Decay * Exponential Decay
-				</option>
-			</select>
-		</div>
-	</div>
-
-	<!-- Main Practice Workspace (Full Width) -->
-	<div class="workspace-container">
-		<ConvolutionPracticeCard
-			problem={currentProblem}
-			onNextProblem={handleGenerateNext}
-		/>
-	</div>
-</main>
-
-<style>
-	/* ── Page layout container ─────────────────────────────── */
-
-	.page-container {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: 2rem 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	/* ── Header section ────────────────────────────────────── */
-
-	.header-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.page-title {
-		font-size: var(--text-3xl);
-		font-weight: 800;
-		letter-spacing: -0.025em;
-		color: var(--text-primary);
-	}
-
-	.page-subtitle {
-		font-size: var(--text-sm);
-		color: var(--text-secondary);
-	}
-
-	/* ── Control bar & selection group ─────────────────────── */
-
-	.control-bar {
-		display: flex;
-		gap: 1.5rem;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-md);
-		padding: 1rem 1.25rem;
-		flex-wrap: wrap;
-	}
-
-	.control-group {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem 0.75rem;
-		width: 100%;
-	}
-
-	.control-label {
-		font-size: var(--text-sm);
-		font-weight: 600;
-		color: var(--text-secondary);
-	}
-
-	.select-input {
-		background: var(--bg-input);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		padding: 0.4rem 0.75rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
-		max-width: 100%;
-		text-overflow: ellipsis;
-	}
-
-	.select-input:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
-	}
-
-	/* ── Workspace container ───────────────────────────────── */
-
-	.workspace-container {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		min-width: 0;
-	}
-
-	/* ── Mobile media query (≤480px) ─────────────────────── */
-
-	@media (max-width: 480px) {
-		.page-container {
-			padding: 1rem 0.75rem;
-			gap: 1rem;
-		}
-
-		.control-bar {
-			padding: 0.75rem 0.85rem;
-		}
-
-		.select-input {
-			width: 100%;
-		}
-	}
-</style>
+	<ConvolutionPracticeCard
+		problem={currentProblem}
+		onNextProblem={handleGenerateNext}
+	/>
+</PageLayout>
