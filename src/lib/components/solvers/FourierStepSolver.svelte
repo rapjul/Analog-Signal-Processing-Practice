@@ -536,7 +536,7 @@
 		container-type: inline-size;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
-		border-radius: var(--radius-md, 8px);
+		border-radius: var(--radius-md);
 		padding: 1.25rem;
 		display: flex;
 		flex-direction: column;
@@ -549,13 +549,13 @@
 	/* Active — accent primary border + subtle glow */
 	.step-card.active {
 		border-color: var(--accent-primary);
-		box-shadow: 0 2px 12px rgba(6, 182, 212, 0.1);
+		box-shadow: 0 2px 12px var(--accent-glow);
 	}
 
 	/* Done — green border tint, compact padding */
 	.step-card.done {
-		border-color: rgba(16, 185, 129, 0.35);
-		background: rgba(16, 185, 129, 0.02);
+		border-color: var(--color-success);
+		background: var(--color-success-bg);
 		padding: 0.75rem 1.25rem;
 	}
 
@@ -565,7 +565,7 @@
 	}
 
 	.step-card.locked .step-badge {
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--white-10);
 		color: var(--text-secondary);
 	}
 
@@ -582,9 +582,9 @@
 		font-size: var(--text-xs);
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
-		background: rgba(6, 182, 212, 0.15);
+		background: var(--accent-bg);
 		color: var(--accent-primary);
-		border-radius: var(--radius-sm, 4px);
+		border-radius: var(--radius-sm);
 		text-transform: uppercase;
 		flex-shrink: 0;
 	}
@@ -597,7 +597,7 @@
 		overflow-wrap: anywhere;
 		word-break: break-word;
 		min-width: 0;
-		line-height: var(--leading-tight, 1.25);
+		line-height: var(--leading-tight);
 	}
 
 	/* ── Step body & prompt ────────────────────────────────── */
@@ -611,7 +611,7 @@
 	}
 
 	.step-prompt {
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		color: var(--text-primary);
 		margin: 0;
 		overflow-wrap: anywhere;
@@ -622,12 +622,12 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.5rem;
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
 	.check-icon {
-		color: #10b981;
+		color: var(--color-success);
 		font-weight: 800;
 	}
 
@@ -650,7 +650,7 @@
 	}
 
 	.field-label {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -660,7 +660,7 @@
 	.input-with-unit {
 		display: flex;
 		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm, 6px);
+		border-radius: var(--radius-sm);
 		background: var(--bg-input);
 		max-width: 100%;
 		transition: border-color 0.2s ease;
@@ -677,9 +677,9 @@
 		border: none;
 		padding: 0.5rem 0.75rem;
 		color: var(--text-primary);
-		font-size: 0.9rem;
-		border-top-left-radius: var(--radius-sm, 6px);
-		border-bottom-left-radius: var(--radius-sm, 6px);
+		font-size: var(--text-sm);
+		border-top-left-radius: var(--radius-sm);
+		border-bottom-left-radius: var(--radius-sm);
 	}
 
 	.text-input:focus-visible {
@@ -696,11 +696,11 @@
 		border-left: 1px solid var(--border-color);
 		color: var(--text-secondary);
 		padding: 0 0.5rem;
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		cursor: pointer;
-		border-top-right-radius: var(--radius-sm, 6px);
-		border-bottom-right-radius: var(--radius-sm, 6px);
+		border-top-right-radius: var(--radius-sm);
+		border-bottom-right-radius: var(--radius-sm);
 	}
 
 	.unit-select:focus-visible {
@@ -722,7 +722,7 @@
 	.choice-btn {
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm, 6px);
+		border-radius: var(--radius-sm);
 		padding: 0.75rem 1rem;
 		display: flex;
 		flex-direction: column;
@@ -747,11 +747,11 @@
 
 	.choice-btn.selected {
 		border-color: var(--accent-primary);
-		background: rgba(6, 182, 212, 0.12);
+		background: var(--accent-bg);
 	}
 
 	.choice-sub {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		color: var(--text-secondary);
 	}
 
@@ -767,7 +767,7 @@
 	.mcq-card {
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm, 6px);
+		border-radius: var(--radius-sm);
 		padding: 0.75rem 1rem;
 		cursor: pointer;
 		display: flex;
@@ -803,7 +803,7 @@
 
 	.mcq-card.selected {
 		border-color: var(--accent-primary);
-		background: rgba(6, 182, 212, 0.12);
+		background: var(--accent-bg);
 	}
 
 	/* ── Step actions & buttons ────────────────────────────── */
@@ -816,16 +816,16 @@
 
 	.btn-primary {
 		background: var(--accent-primary);
-		color: var(--accent-contrast, #042f2e);
+		color: var(--accent-contrast);
 		border: none;
-		border-radius: var(--radius-sm, 6px);
+		border-radius: var(--radius-sm);
 		padding: 0.5rem 1rem;
 		font-size: var(--text-sm);
 		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: normal;
-		line-height: var(--leading-snug, 1.375);
+		line-height: var(--leading-snug);
 		text-wrap: balance;
 		max-width: 100%;
 	}
@@ -844,7 +844,7 @@
 	.hints-box {
 		background: var(--bg-secondary);
 		border: 1px dashed var(--border-color);
-		border-radius: var(--radius-md, 8px);
+		border-radius: var(--radius-md);
 		padding: 0.85rem 1rem;
 		display: flex;
 		flex-direction: column;
@@ -858,23 +858,24 @@
 	}
 
 	.btn-hint {
-		background: rgba(245, 158, 11, 0.15);
-		border: 1px solid rgba(245, 158, 11, 0.4);
-		color: #f59e0b;
+		background: var(--color-warning-bg);
+		border: 1px solid var(--color-warning);
+		color: var(--color-warning);
 		padding: 0.35rem 0.75rem;
-		border-radius: var(--radius-sm, 6px);
-		font-size: 0.8rem;
+		border-radius: var(--radius-sm);
+		font-size: var(--text-xs);
 		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
 	.btn-hint:hover:not(:disabled) {
-		background: rgba(245, 158, 11, 0.25);
+		background: var(--color-warning-bg);
+		filter: brightness(1.15);
 	}
 
 	.btn-hint:focus-visible {
-		outline: 2px solid #f59e0b;
+		outline: 2px solid var(--color-warning);
 		outline-offset: 2px;
 	}
 
@@ -884,7 +885,7 @@
 	}
 
 	.tier-label {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -900,13 +901,13 @@
 	.hint-line {
 		display: flex;
 		gap: 0.5rem;
-		font-size: 0.85rem;
-		line-height: 1.4;
+		font-size: var(--text-sm);
+		line-height: var(--leading-normal);
 	}
 
 	.hint-badge {
 		font-weight: 700;
-		color: #f59e0b;
+		color: var(--color-warning);
 		white-space: nowrap;
 	}
 

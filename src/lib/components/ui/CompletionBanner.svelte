@@ -114,9 +114,9 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 1rem;
-		background: rgba(16, 185, 129, 0.1);
-		border: 1px solid rgba(16, 185, 129, 0.35);
-		border-radius: var(--radius-md, 8px);
+		background: var(--color-success-bg);
+		border: 1px solid var(--color-success);
+		border-radius: var(--radius-md);
 		padding: 1rem 1.25rem;
 		animation: bannerFadeIn 0.35s ease-out;
 		width: 100%;
@@ -160,7 +160,7 @@
 	.banner-title {
 		font-size: var(--text-lg);
 		font-weight: 800;
-		color: #10b981;
+		color: var(--color-success);
 		margin: 0;
 		overflow-wrap: anywhere;
 	}
@@ -171,7 +171,7 @@
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		margin: 0;
-		line-height: var(--leading-normal, 1.5);
+		line-height: var(--leading-normal);
 	}
 
 	/* ── Stats row ────────────────────────────────────────── */
@@ -187,9 +187,9 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		background: rgba(16, 185, 129, 0.1);
-		border: 1px solid rgba(16, 185, 129, 0.25);
-		border-radius: 999px;
+		background: var(--color-success-bg);
+		border: 1px solid var(--color-success);
+		border-radius: var(--radius-full);
 		padding: 0.2rem 0.65rem;
 		font-size: var(--text-xs);
 	}
@@ -200,7 +200,7 @@
 	}
 
 	.stat-value {
-		color: #10b981;
+		color: var(--color-success);
 		font-weight: 700;
 	}
 

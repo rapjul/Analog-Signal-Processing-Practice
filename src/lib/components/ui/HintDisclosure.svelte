@@ -132,7 +132,7 @@
 	.hints-box {
 		background: var(--bg-secondary);
 		border: 1px dashed var(--border-color);
-		border-radius: var(--radius-md, 8px);
+		border-radius: var(--radius-md);
 		padding: 0.85rem 1rem;
 		display: flex;
 		flex-direction: column;
@@ -154,12 +154,12 @@
 	/* ── Trigger button ───────────────────────────────────── */
 
 	.btn-hint {
-		background: rgba(245, 158, 11, 0.15);
-		border: 1px solid rgba(245, 158, 11, 0.4);
-		color: #f59e0b;
+		background: var(--color-warning-bg);
+		border: 1px solid var(--color-warning);
+		color: var(--color-warning);
 		padding: 0.35rem 0.75rem;
-		border-radius: var(--radius-sm, 6px);
-		font-size: 0.8rem;
+		border-radius: var(--radius-sm);
+		font-size: var(--text-xs);
 		font-weight: 700;
 		cursor: pointer;
 		transition:
@@ -170,11 +170,12 @@
 	}
 
 	.btn-hint:hover:not(:disabled) {
-		background: rgba(245, 158, 11, 0.25);
+		background: var(--color-warning-bg);
+		filter: brightness(1.15);
 	}
 
 	.btn-hint:focus-visible {
-		outline: 2px solid #f59e0b;
+		outline: 2px solid var(--color-warning);
 		outline-offset: 2px;
 	}
 
@@ -186,7 +187,7 @@
 	/* ── Tier label ───────────────────────────────────────── */
 
 	.tier-label {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -204,15 +205,15 @@
 	.hint-line {
 		display: flex;
 		gap: 0.5rem;
-		font-size: 0.85rem;
-		line-height: 1.4;
+		font-size: var(--text-sm);
+		line-height: var(--leading-normal);
 		flex-wrap: wrap;
 		min-width: 0;
 	}
 
 	.hint-badge {
 		font-weight: 700;
-		color: #f59e0b;
+		color: var(--color-warning);
 		white-space: nowrap;
 		flex-shrink: 0;
 	}

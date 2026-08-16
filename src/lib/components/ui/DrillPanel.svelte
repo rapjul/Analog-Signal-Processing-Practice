@@ -29,14 +29,14 @@
 		title = "Targeted Drill & Custom Filters",
 		icon = "⚙️",
 		badge = "Random / Exam Mode",
-		isOpen = false,
+		isOpen = $bindable(false),
 		children,
 	}: Props = $props();
 </script>
 
 <details
 	class="drill-panel"
-	open={isOpen}
+	bind:open={isOpen}
 >
 	<summary class="drill-summary">
 		<span class="drill-summary-content">

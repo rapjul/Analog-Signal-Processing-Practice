@@ -130,35 +130,35 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		padding: 0.25rem 0.6rem;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		width: fit-content;
 		white-space: nowrap;
 	}
 
 	/* Primary — cyan (default) */
 	.badge--primary {
-		background: rgba(6, 182, 212, 0.12);
+		background: var(--accent-bg);
 		color: var(--accent-primary);
-		border: 1px solid rgba(6, 182, 212, 0.3);
+		border: 1px solid var(--accent-primary);
 	}
 
 	/* Secondary — amber */
 	.badge--secondary {
-		background: rgba(245, 158, 11, 0.12);
-		color: #f59e0b;
-		border: 1px solid rgba(245, 158, 11, 0.3);
+		background: var(--color-warning-bg);
+		color: var(--color-warning);
+		border: 1px solid var(--color-warning);
 	}
 
 	/* Accent — green */
 	.badge--accent {
-		background: rgba(16, 185, 129, 0.12);
-		color: #10b981;
-		border: 1px solid rgba(16, 185, 129, 0.3);
+		background: var(--color-success-bg);
+		color: var(--color-success);
+		border: 1px solid var(--color-success);
 	}
 
 	/* Category — muted neutral */
 	.badge--category {
-		background: rgba(148, 163, 184, 0.1);
+		background: var(--white-10);
 		color: var(--text-secondary);
 		border: 1px solid var(--border-color);
 	}

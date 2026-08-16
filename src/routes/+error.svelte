@@ -183,16 +183,16 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.3);
+		background: var(--color-error-bg);
+		border: 1px solid var(--color-error);
 		padding: 0.35rem 0.85rem;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 	}
 
 	/* Coming soon variant — cyan */
 	.error-badge.coming-soon {
-		background: rgba(6, 182, 212, 0.12);
-		border-color: rgba(6, 182, 212, 0.3);
+		background: var(--accent-bg);
+		border-color: var(--accent-primary);
 	}
 
 	.error-badge.coming-soon .status-code {
@@ -201,12 +201,12 @@
 
 	.status-code {
 		font-weight: 800;
-		font-size: 0.9rem;
-		color: #f87171;
+		font-size: var(--text-sm);
+		color: var(--color-error);
 	}
 
 	.badge-label {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;

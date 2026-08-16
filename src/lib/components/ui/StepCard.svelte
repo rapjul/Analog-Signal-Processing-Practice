@@ -115,13 +115,13 @@
 	/* Active — accent border + subtle glow */
 	.step-card--active {
 		border-color: var(--accent-primary);
-		box-shadow: 0 2px 12px rgba(6, 182, 212, 0.1);
+		box-shadow: 0 2px 12px var(--accent-glow);
 	}
 
 	/* Completed — green tint, compact padding */
 	.step-card--completed {
-		border-color: rgba(16, 185, 129, 0.35);
-		background: rgba(16, 185, 129, 0.02);
+		border-color: var(--color-success);
+		background: var(--color-success-bg);
 		padding: 0.75rem 1.25rem;
 	}
 
@@ -132,7 +132,7 @@
 	}
 
 	.step-card--locked .step-badge {
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--white-10);
 		color: var(--text-secondary);
 	}
 
@@ -149,9 +149,9 @@
 		font-size: var(--text-xs);
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
-		background: rgba(6, 182, 212, 0.15);
+		background: var(--accent-bg);
 		color: var(--accent-primary);
-		border-radius: var(--radius-sm, 4px);
+		border-radius: var(--radius-sm);
 		text-transform: uppercase;
 		flex-shrink: 0;
 		white-space: nowrap;
@@ -165,7 +165,7 @@
 		overflow-wrap: anywhere;
 		word-break: break-word;
 		min-width: 0;
-		line-height: var(--leading-tight, 1.25);
+		line-height: var(--leading-tight);
 	}
 
 	/* ── Body ─────────────────────────────────────────────── */
@@ -190,7 +190,7 @@
 	}
 
 	.check-icon {
-		color: #10b981;
+		color: var(--color-success);
 		font-weight: 800;
 		flex-shrink: 0;
 	}
@@ -216,7 +216,7 @@
 
 	@media (max-width: 480px) {
 		.step-title {
-			font-size: 0.95rem;
+			font-size: var(--text-sm);
 		}
 	}
 </style>

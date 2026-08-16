@@ -627,7 +627,7 @@
 		background: transparent;
 		color: var(--text-muted);
 		border: none;
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		cursor: pointer;
 		padding: 0.2rem 0.4rem;
 		transition: color 0.2s ease;
@@ -635,8 +635,8 @@
 
 	.remove-term-btn:hover,
 	.remove-term-btn:focus-visible {
-		color: #f43f5e;
-		outline: 2px solid #f43f5e;
+		color: var(--color-error);
+		outline: 2px solid var(--color-error);
 		outline-offset: 2px;
 	}
 </style>

@@ -179,10 +179,10 @@
 		align-items: center;
 		gap: 0.3rem;
 		padding: 0.3rem 0.55rem;
-		border-radius: var(--radius-sm, 6px);
-		font-size: 0.75rem;
+		border-radius: var(--radius-sm);
+		font-size: var(--text-xs);
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 		white-space: nowrap;
 		text-decoration: none;
 		cursor: default;
@@ -198,15 +198,15 @@
 	.crumb-pill--active {
 		border-color: var(--accent-primary);
 		color: var(--accent-primary);
-		background: rgba(6, 182, 212, 0.08);
+		background: var(--accent-bg-subtle);
 		animation: crumb-pulse 2.4s ease-in-out infinite;
 	}
 
 	/* Completed – muted green tint, clickable variant */
 	.crumb-pill--completed {
-		border-color: rgba(16, 185, 129, 0.4);
-		color: #10b981;
-		background: rgba(16, 185, 129, 0.07);
+		border-color: var(--color-success);
+		color: var(--color-success);
+		background: var(--color-success-bg);
 	}
 
 	/* Locked – greyed out, non-interactive */
@@ -219,32 +219,33 @@
 
 	/* Button-specific states for completed/clickable pills */
 	button.crumb-pill--completed:hover {
-		background: rgba(16, 185, 129, 0.14);
-		border-color: rgba(16, 185, 129, 0.65);
+		background: var(--color-success-bg);
+		border-color: var(--color-success);
+		filter: brightness(1.15);
 		cursor: pointer;
 	}
 
 	button.crumb-pill--completed:focus-visible {
-		outline: 2px solid #10b981;
+		outline: 2px solid var(--color-success);
 		outline-offset: 2px;
 	}
 
 	/* ── Step parts ───────────────────────────────────────── */
 
 	.crumb-num {
-		font-size: 0.7rem;
+		font-size: var(--text-2xs);
 		font-weight: 800;
 		opacity: 0.75;
 	}
 
 	.crumb-title {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		min-width: 0;
 	}
 
 	.crumb-icon {
-		font-size: 0.7rem;
+		font-size: var(--text-2xs);
 	}
 
 	/* ── Separator ────────────────────────────────────────── */

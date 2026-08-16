@@ -110,20 +110,20 @@
 	}
 
 	.progress-title {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		color: var(--text-secondary);
 		white-space: nowrap;
 	}
 
 	.active-task-desc {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--accent-primary);
-		background: rgba(6, 182, 212, 0.1);
+		background: var(--accent-bg-subtle);
 		padding: 0.15rem 0.5rem;
-		border-radius: 4px;
-		border: 1px solid rgba(6, 182, 212, 0.25);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--accent-bg);
 		word-break: break-word;
 	}
 
@@ -142,8 +142,8 @@
 		justify-content: center;
 		width: 1.65rem;
 		height: 1.65rem;
-		border-radius: 50%;
-		font-size: 0.75rem;
+		border-radius: var(--radius-full);
+		font-size: var(--text-xs);
 		font-weight: 700;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -167,16 +167,16 @@
 	/* Active step — filled cyan with subtle shadow */
 	.progress-pill.active {
 		background: var(--accent-primary);
-		color: #ffffff;
+		color: var(--accent-contrast);
 		border-color: var(--accent-primary);
-		box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+		box-shadow: 0 0 8px var(--accent-glow);
 	}
 
 	/* Completed step — emerald checkmark */
 	.progress-pill.completed {
-		background: rgba(16, 185, 129, 0.15);
-		border-color: #10b981;
-		color: #10b981;
+		background: var(--color-success-bg);
+		border-color: var(--color-success);
+		color: var(--color-success);
 	}
 
 	/* ── Mobile media query (≤480px) ─────────────────────── */
@@ -197,7 +197,7 @@
 		.progress-pill {
 			width: 1.5rem;
 			height: 1.5rem;
-			font-size: 0.7rem;
+			font-size: var(--text-2xs);
 		}
 	}
 </style>

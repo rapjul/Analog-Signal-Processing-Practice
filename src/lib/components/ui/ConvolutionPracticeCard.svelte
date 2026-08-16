@@ -260,13 +260,13 @@
 
 	.btn-submit {
 		background: var(--accent-primary);
-		color: #000;
+		color: var(--accent-contrast);
 		font-weight: 700;
 		border: none;
 		padding: 0.6rem 1.25rem;
 		border-radius: var(--radius-md);
 		cursor: pointer;
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		transition: all 0.2s ease;
 	}
 
@@ -285,25 +285,25 @@
 		gap: 0.75rem;
 		padding: 1rem;
 		border-radius: var(--radius-md);
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 	}
 
 	/* Correct — green alert */
 	.validation-alert.correct {
-		background: rgba(16, 185, 129, 0.12);
-		border: 1px solid rgba(16, 185, 129, 0.3);
-		color: #10b981;
+		background: var(--color-success-bg);
+		border: 1px solid var(--color-success);
+		color: var(--color-success);
 	}
 
 	/* Incorrect — red alert */
 	.validation-alert.incorrect {
-		background: rgba(239, 68, 68, 0.12);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: #ef4444;
+		background: var(--color-error-bg);
+		border: 1px solid var(--color-error);
+		color: var(--color-error);
 	}
 
 	.alert-icon {
-		font-size: 1.25rem;
+		font-size: var(--text-xl);
 	}
 
 	.alert-content {
@@ -317,7 +317,7 @@
 	}
 
 	.alert-message {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		opacity: 0.9;
 	}
 
