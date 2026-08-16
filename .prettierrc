@@ -10,6 +10,17 @@
       }
     }
   ],
-  "htmlWhitespaceSensitivity": "ignore",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": true,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "objectWrap": "preserve",
+  "svelteSortOrder": "scripts-options-markup-styles",
+  "singleAttributePerLine": true,
+  "svelteIndentScriptAndStyle": true,
+  "htmlWhitespaceSensitivity": "css",
+  "bracketSpacing": true,
   "bracketSameLine": false
 }
