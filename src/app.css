@@ -36,10 +36,13 @@
 	--color-info-bg: rgba(59, 130, 246, 0.15);
 
 	/* Typography */
+	--font-sans:
+		system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
 	--font-serif:
 		"KaTeX_Main", "Georgia", "Cambria", "Times New Roman", Times, serif;
-	--font-sans: var(--font-serif);
 	--font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+	--math-inline-valign: 0.04em;
 
 	/* Typography Size Scale */
 	--text-2xs: 0.7rem; /* 11.2px - Micro badges, keyboard legends, tiny metadata */
@@ -195,7 +198,7 @@ select {
 /* KaTeX theme adaptation: keep inline math matched 1:1 with surrounding text */
 .katex {
 	color: inherit;
-	font-size: 1.08em;
+	font-size: 1.04em;
 }
 
 .katex-display {

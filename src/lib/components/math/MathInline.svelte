@@ -103,7 +103,7 @@
 
 	.math-inline {
 		display: inline-block;
-		vertical-align: baseline;
+		vertical-align: var(--math-inline-valign, 0.04em);
 		font-size: inherit;
 		background: transparent;
 		border: none;
