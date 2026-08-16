@@ -59,5 +59,36 @@ function synthesizeLatex(): string {
 
 ## 5. CSS & Styling Rules
 
-- Use Vanilla CSS or defined CSS custom properties (`var(--color-bg)`).
+- Use Vanilla CSS or defined CSS custom properties (`var(--bg-card)`, `var(--accent-primary)`).
 - Avoid inline HTML `style="..."` attributes; move layout and color properties to component `<style>` blocks.
+- **Structured Section Dividers**: Group rules logically using box-drawing comments:
+    ```css
+    /* ── Outer row / container ────────────────────────────── */
+    .container {
+    	display: flex;
+    }
+
+    /* ── Badge variants ────────────────────────────────────── */
+    .badge {
+    	font-size: var(--text-xs);
+    }
+
+    /* Primary — cyan (default) */
+    .badge--primary {
+    	background: rgba(6, 182, 212, 0.12);
+    }
+
+    /* ── Narrow viewport (≤360px) container query ─────────── */
+    @container (max-width: 360px) {
+    	.container {
+    		padding: 0.75rem;
+    	}
+    }
+
+    /* ── Mobile media query (≤480px) ─────────────────────── */
+    @media (max-width: 480px) {
+    	.container {
+    		flex-direction: column;
+    	}
+    }
+    ```
