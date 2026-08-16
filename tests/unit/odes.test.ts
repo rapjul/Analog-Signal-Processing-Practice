@@ -68,7 +68,6 @@ describe("LCC ODE Math Engine", () => {
 		it("generates a valid ODE problem with distinct real roots", () => {
 			const problem = generateOdeProblem("distinct_real", "constant");
 			expect(problem.params.rootType).toBe("distinct_real");
-			expect(problem.steps.length).toBe(9);
 
 			// Verify completeness of evaluation functions at t = 0
 			const yComplete0 = problem.evalComplete(0);
@@ -80,7 +79,6 @@ describe("LCC ODE Math Engine", () => {
 		it("generates a valid ODE problem with complex conjugate roots and sinusoidal forcing", () => {
 			const problem = generateOdeProblem("complex_conjugate", "sinusoid");
 			expect(problem.params.rootType).toBe("complex_conjugate");
-			expect(problem.steps.length).toBe(9);
 			expect(problem.forcing.type).toBe("sinusoid");
 
 			// Zero-Input + Zero-State linearity check at t = 1s: y(t) == y_zi(t) + y_zs(t)
@@ -91,36 +89,24 @@ describe("LCC ODE Math Engine", () => {
 		});
 	});
 
-	describe("ODE Step Breakdown Generation", () => {
-		it("generates clean formal LaTeX templates for Step 2 across root types", () => {
+	describe("ODE ITS Data Generation", () => {
+		it("generates instantiated homogeneous formulas in Step 3 across root types", () => {
 			// Distinct real
 			const odeDistinct = generateOdeProblem("distinct_real");
-			expect(odeDistinct.steps[1].latex).toBe(
-				"y_h(t) = C_1 e^{r_1 t} + C_2 e^{r_2 t}"
-			);
+			expect(odeDistinct.itsData.step3.correctTemplate).toBe("distinct_real");
+			expect(odeDistinct.itsData.step3.formLatex).toContain("C_1 e^{");
+			expect(odeDistinct.itsData.step3.formLatex).toContain("C_2 e^{");
 
 			// Repeated real
 			const odeRepeated = generateOdeProblem("repeated_real");
-			expect(odeRepeated.steps[1].latex).toBe(
-				"y_h(t) = (C_1 + C_2 t) e^{r t}"
-			);
+			expect(odeRepeated.itsData.step3.correctTemplate).toBe("repeated_real");
+			expect(odeRepeated.itsData.step3.formLatex).toContain("(C_1 + C_2 t) e^{");
 
 			// Complex conjugate
 			const odeComplex = generateOdeProblem("complex_conjugate");
-			expect(odeComplex.steps[1].latex).toBe(
-				"y_h(t) = e^{\\sigma t} [C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]"
-			);
-		});
-
-		it("generates factored forms in Step 1 for integer roots and quadratic formula for complex conjugate roots", () => {
-			const odeDistinct = generateOdeProblem("distinct_real");
-			expect(odeDistinct.steps[0].latex).toContain("(s ");
-
-			const odeRepeated = generateOdeProblem("repeated_real");
-			expect(odeRepeated.steps[0].latex).toContain(")^2 &= 0");
-
-			const odeComplex = generateOdeProblem("complex_conjugate");
-			expect(odeComplex.steps[0].latex).toContain("\\sqrt{");
+			expect(odeComplex.itsData.step3.correctTemplate).toBe("complex_conjugate");
+			expect(odeComplex.itsData.step3.formLatex).toContain("\\cos(");
+			expect(odeComplex.itsData.step3.formLatex).toContain("\\sin(");
 		});
 
 		it("generates a random ODE problem with valid 7-step itsData", () => {
@@ -137,15 +123,10 @@ describe("LCC ODE Math Engine", () => {
 			expect(problem.itsData.step2.rootType).toBe(problem.params.rootType);
 			expect(problem.itsData.step3.correctTemplate).toBe(problem.params.rootType);
 			expect(problem.itsData.step4.options.length).toBeGreaterThanOrEqual(3);
+			expect(problem.itsData.step6.expectedC1).toBeDefined();
+			expect(problem.itsData.step6.expectedC2).toBeDefined();
 			expect(problem.itsData.step7.expectedZI).toBeTruthy();
 			expect(problem.itsData.step7.expectedZS).toBeTruthy();
-		});
-
-		it("renders explicit 2x2 linear system of equations in Step 7 for initial conditions", () => {
-			const problem = generateOdeProblem("distinct_real", "exponential");
-			expect(problem.steps[6].aligned).toBe(true);
-			expect(problem.steps[6].latex).toContain("C_1");
-			expect(problem.steps[6].latex).toContain("C_2");
 		});
 
 		it("omits unit 1 and -1 coefficients from odeLatex and characteristic equations", () => {

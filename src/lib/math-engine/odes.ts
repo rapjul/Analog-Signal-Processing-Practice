@@ -20,7 +20,7 @@ import {
 	formatRootFactor,
 } from "./formatting";
 import { toFractionLatex } from "./fraction";
-import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
+import type { BaseItsStep, ItsOption } from "./types";
 
 /**
  * Classification of characteristic polynomial roots for second-order differential equations.
@@ -107,14 +107,14 @@ export type OdeItsOption = ItsOption;
 
 /** ITS Step 1: Characteristic Equation */
 export interface OdeItsStep1 extends BaseItsStep {
+	/** Formatted characteristic equation LaTeX: a2 s^2 + a1 s + a0 = 0 */
+	latex: string;
 	/** Expected coefficient a2 for s^2 */
 	expectedA2: number;
 	/** Expected coefficient a1 for s */
 	expectedA1: number;
 	/** Expected coefficient a0 for constant term */
 	expectedA0: number;
-	/** Formatted characteristic equation LaTeX: a2 s^2 + a1 s + a0 = 0 */
-	latex: string;
 	/** Diagnostic feedback for misconceptions */
 	misconceptions: Record<string, string>;
 }
@@ -168,7 +168,7 @@ export interface OdeItsStep3 extends BaseItsStep {
 
 /** ITS Step 4: Particular Solution Ansatz */
 export interface OdeItsStep4 extends BaseItsStep {
-	/** Multiple-choice options for trial ansatz */
+	/** Multiple-choice candidate ansatz options including pedagogical distractors */
 	options: OdeItsOption[];
 }
 
@@ -245,7 +245,7 @@ export interface OdeItsData {
 	step7: OdeItsStep7;
 }
 
-/** Complete ODE practice problem object containing metadata, analytical solutions, steps, and evaluators */
+/** Complete ODE practice problem object containing metadata, analytical solutions, and evaluators */
 export interface OdeProblem {
 	/** Unique problem identifier */
 	id: string;
@@ -288,8 +288,6 @@ export interface OdeProblem {
 		/** LaTeX rendered steady-state response y_ss(t) */
 		y_ss_latex: string;
 	};
-	/** Progressive step-by-step solution breakdown steps for <StepReveal> */
-	steps: SolutionStep[];
 	/** Complete numerical evaluator closure for y(t) = y_h(t) + y_p(t) */
 	evalComplete: (t: number) => number;
 	/** Zero-input numerical evaluator closure for y_zi(t) */
@@ -722,61 +720,13 @@ export function generateOdeProblem(
 	const y_tr_latex = homogeneousComplete.latex;
 	const y_ss_latex = particular.latex;
 
-	// Step 1: Characteristic Equation & Quadratic Root Solving
+	// Characteristic Equation LHS for hint calculations
 	const charEqLhs = formatQuadraticPolynomial(1, a1, a0, "s").replace(
 		" = 0",
 		"",
 	);
-	let step1Latex: string;
-	switch (resolvedRootType) {
-		case "distinct_real": {
-			const r1 = roots.r1;
-			const r2 = roots.r2 ?? 0;
-			const f1 = r1 > 0 ? `- ${r1}` : `+ ${-r1}`;
-			const f2 = r2 > 0 ? `- ${r2}` : `+ ${-r2}`;
-			step1Latex = `${charEqLhs} &= 0 \\\\\n (s ${f1})(s ${f2}) &= 0 \\\\\n \\implies r_1 = ${r1}, \\; r_2 &= ${r2}`;
-			break;
-		}
-		case "repeated_real": {
-			const r = roots.r1;
-			const f = r > 0 ? `- ${r}` : `+ ${-r}`;
-			step1Latex = `${charEqLhs} &= 0 \\\\\n (s ${f})^2 &= 0 \\\\\n \\implies r_1 = r_2 &= ${r}`;
-			break;
-		}
-		case "complex_conjugate": {
-			const sigma = roots.r1;
-			const omega_d = roots.im ?? 0;
-			const disc = a1 * a1 - 4 * a0;
-			step1Latex = `& ${charEqLhs} = 0 \\\\\n \\implies & s = \\frac{-(${a1}) \\pm \\sqrt{${a1}^2 - 4(1)(${a0})}}{2(1)} \\\\\n & = \\frac{-${a1} \\pm \\sqrt{${disc}}}{2} = ${sigma} \\pm j${omega_d}`;
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
-		}
-	}
 
-	// Step 2: Homogeneous Solution General Form
-	let step2Latex: string;
-	switch (resolvedRootType) {
-		case "distinct_real": {
-			step2Latex = "y_h(t) = C_1 e^{r_1 t} + C_2 e^{r_2 t}";
-			break;
-		}
-		case "repeated_real": {
-			step2Latex = "y_h(t) = (C_1 + C_2 t) e^{r t}";
-			break;
-		}
-		case "complex_conjugate": {
-			step2Latex =
-				"y_h(t) = e^{\\sigma t} [C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]";
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
-		}
-	}
-
-	// Step 3: Instantiated Homogeneous Solution Form with Roots
+	// Homogeneous Solution Form with Roots for Step 3
 	let step3Latex: string;
 	switch (resolvedRootType) {
 		case "distinct_real": {
@@ -795,105 +745,6 @@ export function generateOdeProblem(
 			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
 		}
 	}
-
-	// Step 4: Particular Solution Ansatz & Derivatives
-	let step4Ansatz: string;
-	let step4Derivs: string;
-	switch (forcing.type) {
-		case "constant": {
-			step4Ansatz = "y_p(t) &= K_p";
-			step4Derivs = "y_p'(t) &= 0 \\\\\n y_p''(t) &= 0";
-			break;
-		}
-		case "exponential": {
-			const p = forcing.p ?? 0;
-			step4Ansatz = `y_p(t) &= K_p e^{${p}t}`;
-			step4Derivs = `y_p'(t) &= ${p} K_p e^{${p}t} \\\\\n y_p''(t) &= ${p * p} K_p e^{${p}t}`;
-			break;
-		}
-		case "sinusoid": {
-			const w = forcing.omega ?? 1;
-			step4Ansatz = `y_p(t) &= A \\cos(${w}t) + B \\sin(${w}t)`;
-			step4Derivs = `y_p'(t) &= -${w} A \\sin(${w}t) + ${w} B \\cos(${w}t) \\\\\n y_p''(t) &= -${w * w} A \\cos(${w}t) - ${w * w} B \\sin(${w}t)`;
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled forcing function type: ${forcing.type}`);
-		}
-	}
-
-	// Step 5: Substitute y_p(t) into ODE & Solve Coefficients
-	let step5Latex: string;
-	switch (forcing.type) {
-		case "constant": {
-			step5Latex = `0 + 0 + ${a0} K_p &= ${forcing.K} \\\\\n \\implies \\; \\; \\, K_p &= ${toFractionLatex(particular.coeffs.Kp ?? 0)} \\\\\n \\implies y_p(t) &= ${particular.latex}`;
-			break;
-		}
-		case "exponential": {
-			const p = forcing.p ?? 0;
-			const denom = p * p + a1 * p + a0;
-			step5Latex = `(${p * p} + ${a1}(${p}) + ${a0}) K_p e^{${p}t} &= ${forcing.K} e^{${p}t} \\\\\n \\implies ${denom} K_p &= ${forcing.K} \\\\\n \\implies y_p(t) &= ${particular.latex}`;
-			break;
-		}
-		case "sinusoid": {
-			const K = forcing.K;
-			const w = forcing.omega ?? 1;
-			const m11 = a0 - w * w;
-			const m12 = a1 * w;
-			const m21 = -a1 * w;
-			const m22 = a0 - w * w;
-			step5Latex = `\\begin{cases} (${m11})A + (${m12})B = ${K} \\\\ (${m21})A + (${m22})B = 0 \\end{cases} \\implies y_p(t) = ${particular.latex}`;
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled forcing function type: ${forcing.type}`);
-		}
-	}
-
-	// Step 6: Form Complete Solution with Unsolved Constants
-	const step6Latex =
-		particular.latex === "0"
-			? `y(t) = y_h(t) = ${step3Latex.replace("y_h(t) = ", "")}`
-			: `y(t) = ${step3Latex.replace("y_h(t) = ", "")} + ${particular.latex}`;
-
-	// Step 7: Initial Conditions System of Linear Equations
-	let step7Latex: string;
-	switch (resolvedRootType) {
-		case "distinct_real": {
-			const r1 = roots.r1;
-			const r2 = roots.r2 ?? 0;
-			const targetY0Frac = toFractionLatex(targetYh0);
-			const targetDY0Frac = toFractionLatex(targetDYh0);
-			step7Latex = `y(0^+) &= C_1 + C_2 + y_p(0^+) = ${initialConditions.y0} \\\\[0.5em] y'(0^+) &= ${r1} C_1 + ${r2} C_2 + y_p'(0^+) = ${initialConditions.dy0} \\\\[1.25em]\n \\implies &\\begin{cases} C_1 + C_2 = ${targetY0Frac} \\\\[0.5em] ${r1} C_1 + ${r2} C_2 = ${targetDY0Frac} \\end{cases}`;
-			break;
-		}
-		case "repeated_real": {
-			const r = roots.r1;
-			const targetY0Frac = toFractionLatex(targetYh0);
-			const targetDY0Frac = toFractionLatex(targetDYh0);
-			step7Latex = `y(0^+) &= C_1 + y_p(0^+) = ${initialConditions.y0} \\\\[0.5em] y'(0^+) &= ${r} C_1 + C_2 + y_p'(0^+) = ${initialConditions.dy0} \\\\[1.25em]\n \\implies &\\begin{cases} C_1 = ${targetY0Frac} \\\\[0.5em] ${r} C_1 + C_2 = ${targetDY0Frac} \\end{cases}`;
-			break;
-		}
-		case "complex_conjugate": {
-			const sigma = roots.r1;
-			const omega_d = roots.im ?? 0;
-			const targetY0Frac = toFractionLatex(targetYh0);
-			const targetDY0Frac = toFractionLatex(targetDYh0);
-			step7Latex = `y(0^+) &= C_1 + y_p(0^+) = ${initialConditions.y0} \\\\[0.5em] y'(0^+) &= ${sigma} C_1 + ${omega_d} C_2 + y_p'(0^+) = ${initialConditions.dy0} \\\\[1.25em]\n \\implies &\\begin{cases} C_1 = ${targetY0Frac} \\\\[0.5em] ${sigma} C_1 + ${omega_d} C_2 = ${targetDY0Frac} \\end{cases}`;
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled root type in Step 7 breakdown: ${resolvedRootType}`);
-		}
-	}
-
-	// Step 8: Solved Constants & Total Response Equation
-	const c1Str = toFractionLatex(homogeneousComplete.C1);
-	const c2Str = toFractionLatex(homogeneousComplete.C2);
-	const step8Latex = `C_1 &= ${c1Str}, \\quad C_2 = ${c2Str} \\\\[0.75em]\n \\implies y(t) &= ${completeLatex}`;
-
-	// Step 9: Zero-Input & Zero-State Separation
-	const step9Latex = `y_{ZI}(t) &= ${ziLatex} \\\\[0.75em]\n y_{ZS}(t) &= ${zsLatex}`;
 
 	// Step 4 Particular Ansatz Options
 	let step4Options: OdeItsOption[];
@@ -1283,7 +1134,7 @@ export function generateOdeProblem(
 			hints: [
 				"Remember initial conditions apply to the TOTAL solution $y(t) = y_h(t) + y_p(t)$. First find $y_p(0^+)$ and $y_p'(0^+)$.",
 				`Calculate the target homogeneous values: $y_h(0^+) = y(0^+) - y_p(0^+) = ${initialConditions.y0} - (${toFractionLatex(particular.eval(0))}) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${initialConditions.dy0} - (${toFractionLatex(particular.evalDeriv(0))}) = ${toFractionLatex(targetDYh0)}$.`,
-				`Solve the $2\\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${c1Str}, \\; C_2 = ${c2Str}$.`,
+				String.raw`Solve the $2\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \; C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
 			],
 		},
 		step7: {
@@ -1309,69 +1160,6 @@ export function generateOdeProblem(
 			],
 		},
 	};
-
-	// Progressive step-by-step solution pipeline (9 zero-guesswork steps)
-	const steps = [
-		{
-			title: "Step 1: Characteristic Equation & Roots",
-			description:
-				"Form the characteristic polynomial, set it equal to 0, and solve for its roots.",
-			latex: step1Latex,
-			aligned: true,
-		},
-		{
-			title: "Step 2: Homogeneous Solution Functional Form",
-			description: `Based on the ${resolvedRootType.replace("_", " ")} root classification, state the general homogeneous solution template.`,
-			latex: step2Latex,
-		},
-		{
-			title: "Step 3: Instantiated Homogeneous Solution",
-			description:
-				"Substitute the calculated characteristic roots into the homogeneous solution form.",
-			latex: step3Latex,
-		},
-		{
-			title: "Step 4: Particular Solution Ansatz & Derivatives",
-			description:
-				"Form the trial particular solution $y_p(t)$ and calculate its derivatives for ODE substitution.",
-			latex: `${step4Ansatz} \\\\\n${step4Derivs}`,
-			aligned: true,
-		},
-		{
-			title: "Step 5: Substitute $y_p(t)$ & Solve Coefficients",
-			description:
-				"Substitute $y_p(t)$ and its derivatives into the ODE to solve for the undetermined coefficient(s).",
-			latex: step5Latex,
-			aligned: true,
-		},
-		{
-			title: "Step 6: Total Response Form $y(t) = y_h(t) + y_p(t)$",
-			description:
-				"Combine the natural response $y_h(t)$ and particular response $y_p(t)$ into the total solution structure.",
-			latex: step6Latex,
-		},
-		{
-			title: "Step 7: Initial Conditions Linear System",
-			description:
-				"Evaluate $y(0^+)$ and $y'(0^+)$ to build a 2x2 system of linear equations for constants $C_1$ and $C_2$.",
-			latex: step7Latex,
-			aligned: true,
-		},
-		{
-			title: "Step 8: Solve Constants & Total Response Equation",
-			description:
-				"Solve the 2x2 system for constants $C_1$ and $C_2$ to state the total response $y(t)$.",
-			latex: step8Latex,
-			aligned: true,
-		},
-		{
-			title: "Step 9: Separation of Responses (Zero-Input & Zero-State)",
-			description:
-				"Decompose the total response into Zero-Input (initial energy only) and Zero-State (input driven only) components.",
-			latex: step9Latex,
-			aligned: true,
-		},
-	];
 
 	const evalComplete = (t: number) =>
 		homogeneousComplete.eval(t) + particular.eval(t);
@@ -1407,7 +1195,6 @@ export function generateOdeProblem(
 			y_tr_latex,
 			y_ss_latex,
 		},
-		steps,
 		evalComplete,
 		evalZI,
 		evalZS,
