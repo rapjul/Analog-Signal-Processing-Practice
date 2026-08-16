@@ -76,13 +76,32 @@ describe("formatPolynomial", () => {
 		).toBe("2 s^2 - 4");
 	});
 
-	it("returns 0 when all terms are 0", () => {
+	it("returns 0 when all terms are 0 or array is empty", () => {
 		expect(
 			formatPolynomial([
 				{ coeff: 0, symbol: "s^2" },
 				{ coeff: 0, symbol: "s" },
 			]),
 		).toBe("0");
+
+		expect(formatPolynomial([])).toBe("0");
+	});
+
+	it("formats single-term polynomials correctly", () => {
+		expect(formatPolynomial([{ coeff: 3, symbol: "s" }])).toBe("3 s");
+		expect(formatPolynomial([{ coeff: 1, symbol: "s" }])).toBe("s");
+		expect(formatPolynomial([{ coeff: -1, symbol: "s" }])).toBe("-s");
+		expect(formatPolynomial([{ coeff: -5, symbol: "" }])).toBe("-5");
+	});
+
+	it("formats fractional and decimal coefficients cleanly", () => {
+		expect(
+			formatPolynomial([
+				{ coeff: 0.5, symbol: "s^2" },
+				{ coeff: -1.5, symbol: "s" },
+				{ coeff: 0.25, symbol: "" },
+			]),
+		).toBe("0.5 s^2 - 1.5 s + 0.25");
 	});
 });
 
