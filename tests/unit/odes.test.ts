@@ -51,6 +51,24 @@ describe("LCC ODE Math Engine", () => {
 			expect(ps.coeffs.Kp).toBe(6);
 			expect(ps.eval(0)).toBe(6);
 		});
+
+		it("computes sinusoidal forcing particular solution for y'' + 5y' + 6y = 104 \\cos(2t)", () => {
+			const ode = solveCharacteristicEquation(5, 6);
+			const forcing = {
+				type: "sinusoid" as const,
+				K: 104,
+				omega: 2,
+				latex: "104 \\cos(2t)",
+			};
+			const ps = computeParticularSolution(ode, forcing);
+			// m11 = 6 - 4 = 2, m12 = 10, m21 = -10, m22 = 2, det = 4 - (-100) = 104
+			// A = (104 * 2) / 104 = 2
+			// B = (-104 * (-10)) / 104 = 10
+			expect(ps.coeffs.A).toBeCloseTo(2, 5);
+			expect(ps.coeffs.B).toBeCloseTo(10, 5);
+			expect(ps.eval(0)).toBeCloseTo(2, 5);
+			expect(ps.evalDeriv(0)).toBeCloseTo(20, 5); // B * omega = 10 * 2 = 20
+		});
 	});
 
 	describe("Homogeneous Constants Solver", () => {
@@ -61,6 +79,27 @@ describe("LCC ODE Math Engine", () => {
 			// -2 C1 - 3 C2 = -7 => C1 = 2, C2 = 1
 			expect(Math.round(hs.C1)).toBe(2);
 			expect(Math.round(hs.C2)).toBe(1);
+			expect(hs.eval(0)).toBeCloseTo(3, 5);
+		});
+
+		it("solves C1, C2 for repeated real roots r1 = -2 with y(0+) = 3, y'(0+) = 2", () => {
+			const ode = solveCharacteristicEquation(4, 4);
+			const hs = solveHomogeneousConstants(ode, 3, 2);
+			// C1 = 3
+			// C2 = y'(0) - r*C1 = 2 - (-2)(3) = 8
+			expect(hs.C1).toBe(3);
+			expect(hs.C2).toBe(8);
+			expect(hs.eval(0)).toBeCloseTo(3, 5);
+		});
+
+		it("solves C1, C2 for complex conjugate roots sigma = -1, omega_d = 2 with y(0+) = 2, y'(0+) = 4", () => {
+			const ode = solveCharacteristicEquation(2, 5);
+			const hs = solveHomogeneousConstants(ode, 2, 4);
+			// C1 = 2
+			// C2 = (4 - (-1)(2)) / 2 = 3
+			expect(hs.C1).toBe(2);
+			expect(hs.C2).toBe(3);
+			expect(hs.eval(0)).toBeCloseTo(2, 5);
 		});
 	});
 
@@ -123,10 +162,32 @@ describe("LCC ODE Math Engine", () => {
 			expect(problem.itsData.step2.rootType).toBe(problem.params.rootType);
 			expect(problem.itsData.step3.correctTemplate).toBe(problem.params.rootType);
 			expect(problem.itsData.step4.options.length).toBeGreaterThanOrEqual(3);
+			expect(problem.solutions.y_p_latex).toBeDefined();
 			expect(problem.itsData.step6.expectedC1).toBeDefined();
 			expect(problem.itsData.step6.expectedC2).toBeDefined();
 			expect(problem.itsData.step7.expectedZI).toBeTruthy();
 			expect(problem.itsData.step7.expectedZS).toBeTruthy();
+		});
+
+		it("generates correct Step 5 particular solution data across forcing types", () => {
+			// Constant forcing
+			const constProb = generateOdeProblem("distinct_real", "constant");
+			expect(constProb.itsData.step5.expectedKp).toBeDefined();
+			expect(constProb.solutions.y_p_latex).not.toBe("");
+
+			// Exponential forcing
+			const expProb = generateOdeProblem("distinct_real", "exponential");
+			expect(expProb.itsData.step5.expectedKp).toBeDefined();
+			expect(expProb.solutions.y_p_latex).toContain("e^{");
+
+			// Sinusoidal forcing
+			const sinProb = generateOdeProblem("distinct_real", "sinusoid");
+			expect(sinProb.itsData.step5.expectedA).toBeDefined();
+			expect(sinProb.itsData.step5.expectedB).toBeDefined();
+			expect(
+				sinProb.solutions.y_p_latex.includes("\\cos") ||
+				sinProb.solutions.y_p_latex.includes("\\sin"),
+			).toBe(true);
 		});
 
 		it("omits unit 1 and -1 coefficients from odeLatex and characteristic equations", () => {
