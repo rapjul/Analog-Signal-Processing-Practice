@@ -142,20 +142,48 @@ export default defineConfig({
 	],
 	test: {
 		expect: { requireAssertions: true },
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "json", "html"],
+			exclude: [
+				"**/*.d.ts",
+				"**/*.config.*",
+				".svelte-kit/**",
+				"tests/**",
+				"build/**",
+				"static/**",
+			],
+		},
 		projects: [
 			{
 				extends: "./vite.config.ts",
 				test: {
-					name: "server",
+					name: "unit/node",
 					environment: "node",
 					include: [
 						"src/**/*.{test,spec}.{js,ts}",
-						"tests/unit/**/*.{test,spec}.{js,ts}",
+						"tests/unit/*.{test,spec}.{js,ts}",
 					],
 					exclude: [
 						"src/**/*.svelte.{test,spec}.{js,ts}",
+						"tests/unit/components/**",
 						"tests/e2e/**",
 					],
+				},
+			},
+			{
+				extends: "./vite.config.ts",
+				test: {
+					name: "unit/dom",
+					environment: "jsdom",
+					include: [
+						"tests/unit/components/**/*.{test,spec}.{js,ts}",
+						"src/**/*.svelte.{test,spec}.{js,ts}",
+					],
+					exclude: ["tests/e2e/**"],
+				},
+				resolve: {
+					conditions: ["browser"],
 				},
 			},
 		],
