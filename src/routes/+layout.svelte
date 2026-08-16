@@ -2,8 +2,36 @@
 	import { onMount } from "svelte";
 	import "../app.css";
 	import favicon from "$lib/assets/favicon.svg";
+	import UpdateToast from "$lib/components/ui/UpdateToast.svelte";
 
 	let { children } = $props();
+
+	let showToast = $state(false);
+	let toastMode = $state<"update" | "offline">("update");
+	let updateServiceWorker: ((reloadPage?: boolean) => Promise<void>) | null =
+		$state(null);
+
+	/**
+	 * Preserves the active route / path in sessionStorage prior to service worker refresh.
+	 */
+	function handleUpdateSW() {
+		if (typeof window !== "undefined") {
+			sessionStorage.setItem(
+				"signallab_last_active_path",
+				window.location.pathname,
+			);
+		}
+		if (updateServiceWorker) {
+			void updateServiceWorker(true);
+		}
+	}
+
+	/**
+	 * Dismisses the visible PWA toast notification.
+	 */
+	function handleDismissToast() {
+		showToast = false;
+	}
 
 	/**
 	 * Initializes and registers the PWA Service Worker via `virtual:pwa-register`
@@ -14,8 +42,22 @@
 	async function initServiceWorker(): Promise<void> {
 		if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 			const { registerSW } = await import("virtual:pwa-register");
-			registerSW({
+			updateServiceWorker = registerSW({
 				immediate: true,
+				/**
+				 * Callback fired when a new Service Worker version is installed and waiting.
+				 */
+				onNeedRefresh() {
+					toastMode = "update";
+					showToast = true;
+				},
+				/**
+				 * Callback fired when content is cached and ready for offline use.
+				 */
+				onOfflineReady() {
+					toastMode = "offline";
+					showToast = true;
+				},
 				/**
 				 * Callback fired when the Service Worker is successfully registered.
 				 *
@@ -57,3 +99,9 @@
 </svelte:head>
 
 {@render children()}
+<UpdateToast
+	show={showToast}
+	mode={toastMode}
+	onUpdate={handleUpdateSW}
+	onDismiss={handleDismissToast}
+/>
