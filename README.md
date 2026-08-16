@@ -1,42 +1,81 @@
-# sv
+# 🔬 SignalLab
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+An interactive, offline-first Intelligent Tutoring System (ITS) and practice laboratory for university-level **Analog Signal Processing & Linear Systems**.
 
-## Creating a project
+![SignalLab Home Dashboard](docs/assets/screenshots/dashboard-dark.png)
 
-If you're seeing this, you've probably already done this step. Congrats!
+---
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## ✨ Overview
 
-To recreate this project with the same configuration:
+**SignalLab** provides undergraduate and graduate engineering students with an interactive, step-by-step practice environment for mastering continuous-time signals and systems. Designed around cognitive tutoring principles, SignalLab breaks complex signal processing problems into structured sub-steps, evaluates student inputs with exact symbolic math normalization, and delivers real-time diagnostic feedback.
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add vitest="usages:unit" sveltekit-adapter="adapter:static" --install npm ./
-```
+### Key Capabilities
 
-## Developing
+- 🧩 **Zero-Guesswork Step Solvers**: Step-by-step problem workflows showing characteristic roots, differential trial ansatzes, systems of linear equations, and partial fraction expansions.
+- 📐 **Symbolic Math Normalization**: Powered by `@cortex-js/compute-engine` with AST normalization tolerant of student shorthand, equivalent algebraic groupings, and fractional forms.
+- 💡 **Adaptive Diagnostic Feedback**: Real-time syntax checking, multi-tiered hints, and step-specific error classification.
+- 📊 **Interactive Canvas Visualizers**: Dynamic canvas plots for Fourier harmonic series synthesis and continuous-time signal analysis.
+- 🔒 **100% Client-Side & Private**: PWA with IndexedDB persistence—runs entirely in the browser with zero external telemetry, tracking, or network dependencies.
+- 📱 **Fluid & Accessible**: Fully accessible via keyboard (`:focus-visible`), with responsive layouts verified down to $320\text{px}$ viewports (WCAG 2.1 Reflow).
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+---
 
-```sh
+## 📚 Practice Modules
+
+| Module                                | Core Topics & Capabilities                                                                                                                                  |                     Route                      |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------: |
+| **Differential Equations**            | Characteristic equation roots, zero-input response ($y_{ZI}$), zero-state response ($y_{ZS}$), total response ($y_{\text{total}}$), and BIBO stability.     |           [`/odes`](src/routes/odes)           |
+| **Continuous-Time Convolution**       | Graphical convolution, sliding window integration, interval partitioning, and composite piece-wise response computation.                                    |    [`/convolution`](src/routes/convolution)    |
+| **Fourier Series Representation**     | Trigonometric & compact exponential Fourier series, Dirichlet conditions, line spectra, and harmonic synthesis.                                             | [`/fourier-series`](src/routes/fourier-series) |
+| **Continuous-Time Fourier Transform** | Forward and inverse CTFT, spectral density $                                                                                                                |                   X(j\omega)                   | $, phase spectra, duality, modulation, and differentiation properties. | [`/fourier-transform`](src/routes/fourier-transform) |
+| **Laplace Transform & ROC**           | Unilateral/bilateral Laplace transforms, pole-zero constellations, Region of Convergence ($\text{ROC}$), and Partial Fraction Decomposition ($\text{PFD}$). |        [`/laplace`](src/routes/laplace)        |
+| **Analog Circuit Analysis**           | $s$-domain impedance equivalence, nodal/mesh analysis, transfer function $H(s)$ derivation, and transient step/impulse responses.                           |       [`/circuits`](src/routes/circuits)       |
+
+---
+
+## 📸 Visual Showcase
+
+|               Fourier Series Analysis & Live Harmonic Synthesis               |                 Second-Order ODE Response Solver                  |
+| :---------------------------------------------------------------------------: | :---------------------------------------------------------------: |
+| ![Fourier Series Solver](docs/assets/screenshots/fourier-series-practice.png) | ![ODE Response Solver](docs/assets/screenshots/odes-practice.png) |
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) `v20.0.0` or higher
+- `npm` `v10.0.0` or higher
+
+### Local Setup
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd "Analog Signal Processing Practice"
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Open [http://localhost:5173](http://localhost:5173) in your browser to start practicing.
 
-To create a production version of your app:
+---
 
-```sh
-npm run build
-```
+## 📖 Technical Documentation
 
-You can preview the production build with `npm run preview`.
+- 🛠️ **[Development & Testing Guide](docs/development-and-testing.md)** — Contributor setup, dual-runtime Vitest architecture (ADR `0025`), Playwright E2E suites, AST math testing, and formatting standards.
+- 📐 **[Terminology & Mathematical Standards](docs/terminology-standards.md)** — Canonical signal processing symbols, operator conventions, and notation rules.
+- 🏛️ **[Architectural Decision Records (ADRs)](docs/adrs/)** — Index of 25 ADRs recording foundational design, mathematical engine, and UI decisions.
+- 🤖 **[Workspace Agent Rules](.agents/AGENTS.md)** — Development guidelines for LaTeX math formatting, component styling, and code quality.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+---
+
+## 📄 License
+
+This project is licensed for **non-commercial educational use** under the [PolyForm Noncommercial License 1.0.0](LICENSE.md).
