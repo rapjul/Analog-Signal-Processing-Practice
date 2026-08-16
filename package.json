@@ -21,6 +21,7 @@
     "test:all": "npm test && npm run test:e2e"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.7",
     "@playwright/test": "^1.62.1",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.63.0",
