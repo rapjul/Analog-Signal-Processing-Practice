@@ -86,7 +86,7 @@
 				{#if isClickable}
 					<!-- Completed steps are navigable when a callback is provided -->
 					<button
-						id={`step-crumb-${step.number}`}
+						id="step-crumb-{step.number}"
 						type="button"
 						class="crumb-pill crumb-pill--{status}"
 						onclick={() => onSelectStep?.(step.number)}
@@ -106,7 +106,7 @@
 				{:else}
 					<!-- Active and locked steps are non-interactive -->
 					<div
-						id={`step-crumb-${step.number}`}
+						id="step-crumb-{step.number}"
 						class="crumb-pill crumb-pill--{status}"
 						role="listitem"
 						aria-label={`Step ${step.number}: ${step.shortTitle ?? step.title}${status === "active" ? " (Current)" : status === "locked" ? " (Locked)" : ""}`}

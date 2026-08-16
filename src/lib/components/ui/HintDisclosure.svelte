@@ -73,6 +73,14 @@
 	const allRevealed = $derived(hintTier >= maxTier);
 	/** Whether the trigger button should be disabled. */
 	const isButtonDisabled = $derived(disabled || allRevealed);
+
+	/**
+	 * Handles hint reveal button click defensively.
+	 */
+	function handleClick(): void {
+		if (isButtonDisabled) return;
+		onRevealNextHint();
+	}
 </script>
 
 <div class="hint-container hints-box">
@@ -81,7 +89,7 @@
 			id="hint-toggle-btn"
 			type="button"
 			class="btn-hint hint-toggle-btn"
-			onclick={onRevealNextHint}
+			onclick={handleClick}
 			disabled={isButtonDisabled}
 			aria-expanded={hintTier > 0}
 			aria-controls="hint-content-region"
