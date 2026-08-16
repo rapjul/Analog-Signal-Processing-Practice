@@ -239,12 +239,12 @@
 	}
 
 	.brand-icon {
-		font-size: 1.2rem;
+		font-size: var(--text-lg);
 	}
 
 	.brand-title {
 		font-weight: 700;
-		font-size: 1.15rem;
+		font-size: var(--text-lg);
 		letter-spacing: -0.02em;
 		background: linear-gradient(
 			135deg,
@@ -267,7 +267,7 @@
 	.nav-link {
 		text-decoration: none;
 		color: var(--text-secondary);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		padding: 0.35rem 0.65rem;
 		border-radius: var(--radius-sm);
@@ -307,7 +307,7 @@
 		color: var(--text-primary);
 		padding: 0.35rem 0.6rem;
 		border-radius: var(--radius-sm);
-		font-size: 1rem;
+		font-size: var(--text-base);
 		cursor: pointer;
 		line-height: 1;
 		transition: all 0.2s ease;
@@ -326,7 +326,7 @@
 		color: var(--accent-primary);
 		padding: 0.35rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.8rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		cursor: pointer;
 		display: flex;
@@ -352,7 +352,7 @@
 		color: var(--text-secondary);
 		padding: 0.35rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.8rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		transition: all 0.2s ease;
 		white-space: nowrap;
@@ -402,7 +402,7 @@
 			width: 100%;
 			text-align: left;
 			padding: 0.6rem 0.8rem;
-			font-size: 0.9rem;
+			font-size: var(--text-sm);
 		}
 	}
 
@@ -413,7 +413,7 @@
 		}
 
 		.brand-title {
-			font-size: 1.05rem;
+			font-size: var(--text-base);
 		}
 
 		.nav-actions {

@@ -41,6 +41,23 @@
 	--font-sans: var(--font-serif);
 	--font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 
+	/* Typography Size Scale */
+	--text-2xs: 0.7rem; /* 11.2px - Micro badges, keyboard legends, tiny metadata */
+	--text-xs: 0.75rem; /* 12px - Step badges, sub-labels, input hints, shortcut tips */
+	--text-sm: 0.875rem; /* 14px - Action buttons, secondary descriptions, drawer items */
+	--text-base: 1rem; /* 16px - Base body text, formula prompts, step instructions */
+	--text-lg: 1.125rem; /* 18px - Step titles, card subtitles, section headers */
+	--text-xl: 1.25rem; /* 20px - Problem card titles, modal & drawer headers */
+	--text-2xl: 1.5rem; /* 24px - Module section headers, completion banner titles */
+	--text-3xl: 1.75rem; /* 28px - Page hero headings */
+
+	/* Line Height Scale */
+	--leading-none: 1;
+	--leading-tight: 1.25;
+	--leading-snug: 1.375;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.625;
+
 	/* Shadows & Radius */
 	--radius-sm: 6px;
 	--radius-md: 10px;

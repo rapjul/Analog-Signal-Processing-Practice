@@ -153,7 +153,7 @@
 	}
 
 	.step-badge {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
 		background: rgba(6, 182, 212, 0.15);
@@ -165,14 +165,14 @@
 	}
 
 	.step-title {
-		font-size: 1rem;
+		font-size: var(--text-base);
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
 		overflow-wrap: anywhere;
 		word-break: break-word;
 		min-width: 0;
-		line-height: 1.3;
+		line-height: var(--leading-tight, 1.25);
 	}
 
 	/* ── Body ─────────────────────────────────────────────── */
@@ -192,7 +192,7 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.5rem;
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 

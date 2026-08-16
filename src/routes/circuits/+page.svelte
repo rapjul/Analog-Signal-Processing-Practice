@@ -183,13 +183,13 @@
 	}
 
 	.page-title {
-		font-size: 1.75rem;
+		font-size: var(--text-3xl);
 		font-weight: 800;
 		color: var(--text-primary);
 	}
 
 	.page-subtitle {
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -209,7 +209,7 @@
 	}
 
 	.control-label {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -220,7 +220,7 @@
 		color: var(--text-primary);
 		padding: 0.5rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.9rem;
+		font-size: var(--text-base);
 		max-width: 100%;
 		text-overflow: ellipsis;
 	}
@@ -282,7 +282,7 @@
 	}
 
 	.card-title {
-		font-size: 1.1rem;
+		font-size: var(--text-lg);
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
@@ -294,7 +294,7 @@
 		color: var(--text-primary);
 		padding: 0.35rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 	}
 
 	.slider-panel {
@@ -308,7 +308,7 @@
 	}
 
 	.panel-title {
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		color: var(--accent-primary);
 	}
@@ -317,7 +317,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 	}
 
 	.tf-output {

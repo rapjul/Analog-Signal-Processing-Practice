@@ -291,7 +291,7 @@
 
 	.input-label {
 		font-weight: 600;
-		font-size: 0.95rem;
+		font-size: var(--text-base);
 		color: var(--text-primary);
 	}
 
@@ -309,7 +309,7 @@
 		color: var(--text-muted);
 		border: none;
 		padding: 0.3rem 0.6rem;
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
@@ -342,13 +342,13 @@
 		border: 1px solid var(--border-color);
 		padding: 0.4rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		flex-wrap: wrap;
 	}
 
 	.picker-label {
 		color: var(--text-muted);
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 	}
 
@@ -364,7 +364,7 @@
 		border: 1px solid var(--border-color);
 		padding: 0.2rem 0.5rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.78rem;
+		font-size: var(--text-xs);
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}
@@ -395,7 +395,7 @@
 		border: 1px solid var(--border-color);
 		padding: 0.25rem 0.6rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-family: var(--font-mono);
 		transition: all 0.2s ease;
 		cursor: pointer;
@@ -419,7 +419,7 @@
 		padding: 0.75rem;
 		color: var(--text-primary);
 		font-family: var(--font-mono);
-		font-size: 0.95rem;
+		font-size: var(--text-base);
 		resize: vertical;
 		transition: border-color 0.2s ease;
 	}
@@ -452,7 +452,7 @@
 	}
 
 	.preview-tag {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--text-muted);
@@ -460,13 +460,13 @@
 	}
 
 	.preview-mode-tag {
-		font-size: 0.7rem;
+		font-size: var(--text-2xs);
 		color: var(--accent-primary);
 		font-weight: 600;
 	}
 
 	.preview-empty {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-muted);
 		font-style: italic;
 	}

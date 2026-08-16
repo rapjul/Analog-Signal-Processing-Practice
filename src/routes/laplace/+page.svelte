@@ -176,13 +176,13 @@
 	}
 
 	.page-title {
-		font-size: 1.75rem;
+		font-size: var(--text-3xl);
 		font-weight: 800;
 		color: var(--text-primary);
 	}
 
 	.page-subtitle {
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -214,7 +214,7 @@
 	}
 
 	.card-title {
-		font-size: 1.1rem;
+		font-size: var(--text-lg);
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
@@ -226,7 +226,7 @@
 		color: var(--text-primary);
 		padding: 0.35rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
@@ -265,7 +265,7 @@
 	}
 
 	.input-label {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -276,7 +276,7 @@
 		color: var(--text-primary);
 		padding: 0.5rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.9rem;
+		font-size: var(--text-base);
 	}
 
 	.math-text-input:focus {
@@ -300,6 +300,7 @@
 		border: none;
 		padding: 0.5rem 1rem;
 		border-radius: var(--radius-sm);
+		font-size: var(--text-sm);
 		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.2s ease;
@@ -318,6 +319,7 @@
 		color: var(--text-primary);
 		padding: 0.5rem 1rem;
 		border-radius: var(--radius-sm);
+		font-size: var(--text-sm);
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s ease;

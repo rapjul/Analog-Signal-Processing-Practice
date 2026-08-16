@@ -157,14 +157,14 @@
 	}
 
 	.page-title {
-		font-size: 1.75rem;
+		font-size: var(--text-3xl);
 		font-weight: 800;
 		letter-spacing: -0.025em;
 		color: var(--text-primary);
 	}
 
 	.page-subtitle {
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -184,9 +184,9 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 0.75rem 1.25rem;
+		padding: 0.75rem 12.5px;
 		cursor: pointer;
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-primary);
 		user-select: none;
@@ -214,7 +214,7 @@
 	}
 
 	.drill-badge {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--accent-primary);
 		background: rgba(6, 182, 212, 0.12);
@@ -241,7 +241,7 @@
 	}
 
 	.control-label {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -252,7 +252,7 @@
 		color: var(--text-primary);
 		padding: 0.4rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		max-width: 100%;
 		text-overflow: ellipsis;
 	}

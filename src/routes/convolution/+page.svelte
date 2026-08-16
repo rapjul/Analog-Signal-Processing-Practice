@@ -118,14 +118,14 @@
 	}
 
 	.page-title {
-		font-size: 1.75rem;
+		font-size: var(--text-3xl);
 		font-weight: 800;
 		letter-spacing: -0.025em;
 		color: var(--text-primary);
 	}
 
 	.page-subtitle {
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -148,7 +148,7 @@
 	}
 
 	.control-label {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -159,7 +159,7 @@
 		color: var(--text-primary);
 		padding: 0.4rem 0.75rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		max-width: 100%;
 		text-overflow: ellipsis;
 	}

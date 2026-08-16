@@ -138,7 +138,7 @@
 	}
 
 	.hero-tag {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -150,17 +150,17 @@
 	}
 
 	.hero-title {
-		font-size: 2.25rem;
+		font-size: var(--text-3xl);
 		font-weight: 800;
 		letter-spacing: -0.03em;
 		color: var(--text-primary);
-		line-height: 1.2;
+		line-height: var(--leading-tight, 1.25);
 	}
 
 	.hero-subtitle {
-		font-size: 1rem;
+		font-size: var(--text-base);
 		color: var(--text-secondary);
-		line-height: 1.6;
+		line-height: var(--leading-relaxed, 1.625);
 	}
 
 	.modules-grid {
@@ -215,7 +215,7 @@
 	}
 
 	.module-badge {
-		font-size: 0.7rem;
+		font-size: var(--text-2xs);
 		font-weight: 600;
 		background: var(--bg-card-hover);
 		color: var(--text-muted);
@@ -224,15 +224,15 @@
 	}
 
 	.module-title {
-		font-size: 1.1rem;
+		font-size: var(--text-lg);
 		font-weight: 700;
 		color: var(--text-primary);
 	}
 
 	.module-description {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
-		line-height: 1.5;
+		line-height: var(--leading-normal, 1.5);
 		flex-grow: 1;
 	}
 
@@ -243,7 +243,7 @@
 	}
 
 	.status-indicator {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-muted);
 	}

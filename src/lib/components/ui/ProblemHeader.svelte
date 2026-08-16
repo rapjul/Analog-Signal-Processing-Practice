@@ -132,7 +132,7 @@
 	}
 
 	.badge {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
 		text-transform: uppercase;
 		padding: 0.25rem 0.6rem;
@@ -172,13 +172,14 @@
 	/* ── Problem title ─────────────────────────────────────── */
 
 	.problem-title {
-		font-size: 1.35rem;
+		font-size: var(--text-xl);
 		font-weight: 800;
 		color: var(--text-primary);
 		margin: 0;
 		overflow-wrap: anywhere;
 		word-break: break-word;
 		min-width: 0;
+		line-height: var(--leading-snug, 1.375);
 	}
 
 	/* ── Next problem button ───────────────────────────────── */
@@ -189,7 +190,7 @@
 		color: var(--text-primary);
 		padding: 0.5rem 1rem;
 		border-radius: var(--radius-sm);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s ease;
@@ -216,7 +217,7 @@
 		}
 
 		.problem-title {
-			font-size: 1.15rem;
+			font-size: var(--text-lg);
 		}
 
 		.btn-next {
@@ -229,7 +230,7 @@
 
 	@media (max-width: 480px) {
 		.problem-title {
-			font-size: 1.2rem;
+			font-size: var(--text-lg);
 		}
 
 		.btn-next {

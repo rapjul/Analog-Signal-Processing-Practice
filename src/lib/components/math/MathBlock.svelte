@@ -219,7 +219,7 @@
 		align-items: center;
 		gap: 0.3rem;
 		padding: 0.15rem 0.45rem;
-		font-size: 0.72rem;
+		font-size: var(--text-2xs);
 		font-family: inherit;
 		color: var(--text-secondary, #a1a1aa);
 		background-color: transparent;

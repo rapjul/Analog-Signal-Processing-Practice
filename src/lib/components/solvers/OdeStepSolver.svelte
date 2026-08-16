@@ -1373,7 +1373,7 @@
 	}
 
 	.step-badge {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
 		background: rgba(6, 182, 212, 0.15);
@@ -1383,7 +1383,7 @@
 	}
 
 	.step-title {
-		font-size: 1rem;
+		font-size: var(--text-base);
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
@@ -1396,7 +1396,7 @@
 	}
 
 	.step-prompt {
-		font-size: 0.9rem;
+		font-size: var(--text-base);
 		color: var(--text-primary);
 		margin: 0;
 	}
@@ -1406,12 +1406,12 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
 	.shortcut-tip-note {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		color: var(--accent-primary);
 		opacity: 0.9;
 	}
@@ -1475,7 +1475,7 @@
 	}
 
 	.preview-label {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-muted, #94a3b8);
 		text-transform: uppercase;
@@ -1503,7 +1503,7 @@
 	}
 
 	.field-label {
-		font-size: 0.8rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text-secondary);
 	}
@@ -1628,7 +1628,7 @@
 		border: none;
 		border-radius: var(--radius-sm, 6px);
 		padding: 0.5rem 1rem;
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.15s ease;

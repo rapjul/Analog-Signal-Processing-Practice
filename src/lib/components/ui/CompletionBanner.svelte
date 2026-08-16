@@ -164,7 +164,7 @@
 	/* ── Title ────────────────────────────────────────────── */
 
 	.banner-title {
-		font-size: 1.15rem;
+		font-size: var(--text-lg);
 		font-weight: 800;
 		color: #10b981;
 		margin: 0;
@@ -174,10 +174,10 @@
 	/* ── Description ──────────────────────────────────────── */
 
 	.banner-description {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		margin: 0;
-		line-height: 1.5;
+		line-height: var(--leading-normal, 1.5);
 	}
 
 	/* ── Stats row ────────────────────────────────────────── */
@@ -197,7 +197,7 @@
 		border: 1px solid rgba(16, 185, 129, 0.25);
 		border-radius: 999px;
 		padding: 0.2rem 0.65rem;
-		font-size: 0.78rem;
+		font-size: var(--text-xs);
 	}
 
 	.stat-label {
@@ -232,7 +232,7 @@
 		}
 
 		.banner-title {
-			font-size: 1rem;
+			font-size: var(--text-base);
 		}
 	}
 
