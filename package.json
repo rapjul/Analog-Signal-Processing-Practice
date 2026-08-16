@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
+    "capture:screenshots": "node scripts/capture-readme-screenshots.ts",
     "test:all": "npm test && npm run test:e2e"
   },
   "devDependencies": {
