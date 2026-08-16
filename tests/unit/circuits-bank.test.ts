@@ -7,7 +7,9 @@ describe("Circuits Exam Problem Bank (circuits-bank.ts)", () => {
 	});
 
 	it("should cover all 6 circuit topologies", () => {
-		const topologies = new Set(CIRCUITS_EXAM_BANK.map((item) => item.topology));
+		const topologies = new Set(
+			CIRCUITS_EXAM_BANK.map((item) => item.topology),
+		);
 		expect(topologies.has("series-rlc")).toBe(true);
 		expect(topologies.has("parallel-rlc")).toBe(true);
 		expect(topologies.has("parallel-lc-series-r")).toBe(true);

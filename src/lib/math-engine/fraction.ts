@@ -196,7 +196,10 @@ export function parseNumericInput(input: string): number {
 	}
 
 	// Normalize LaTeX \frac{num}{den} into num / den
-	cleaned = cleaned.replace(/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, " $1 / $2 ");
+	cleaned = cleaned.replace(
+		/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g,
+		" $1 / $2 ",
+	);
 
 	// Normalize outer negative parenthesis e.g. -(11/3) -> outerSign = -1, cleaned = "11/3"
 	const { sign: outerSign, content: unwrapped } = stripOuterParens(cleaned);
@@ -227,6 +230,3 @@ export function parseNumericInput(input: string): number {
 
 	return outerSign * singleVal;
 }
-
-
-

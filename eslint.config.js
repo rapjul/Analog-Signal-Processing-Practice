@@ -4,9 +4,13 @@
  */
 export default [
 	{
-		files: ['src/**/*.{js,ts,svelte}', 'tests/**/*.{js,ts}', 'scripts/**/*.{js,ts}'],
+		files: [
+			"src/**/*.{js,ts,svelte}",
+			"tests/**/*.{js,ts}",
+			"scripts/**/*.{js,ts}",
+		],
 		rules: {
-			'prefer-exponentiation-operator': 'error',
+			"prefer-exponentiation-operator": "error",
 		},
 	},
 ];

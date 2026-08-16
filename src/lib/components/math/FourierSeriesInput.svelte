@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * FourierSeriesInput Svelte 5 Component.
+	 *
 	 * Structured Form Builder for Fourier Series representations.
 	 * Allows students and users to build Fourier coefficients (a0, an, bn, cn)
 	 * using intuitive Numerator/Denominator fraction inputs and Harmonics selectors
@@ -446,7 +447,10 @@
 				<!-- Live Rendered Coefficient Card -->
 				<div class="coeff-preview">
 					<span class="preview-title">Built Expression:</span>
-					<MathInline math={`a_n = ${anLatex}`} displayStyle />
+					<MathInline
+						math={`a_n = ${anLatex}`}
+						displayStyle
+					/>
 				</div>
 			</div>
 
@@ -571,7 +575,10 @@
 				<!-- Live Rendered Coefficient Card -->
 				<div class="coeff-preview">
 					<span class="preview-title">Built Expression:</span>
-					<MathInline math={`b_n = ${bnLatex}`} displayStyle />
+					<MathInline
+						math={`b_n = ${bnLatex}`}
+						displayStyle
+					/>
 				</div>
 			</div>
 		{:else}
@@ -698,7 +705,10 @@
 				<!-- Live Rendered Coefficient Card -->
 				<div class="coeff-preview">
 					<span class="preview-title">Built Expression:</span>
-					<MathInline math={`c_n = ${cnLatex}`} displayStyle />
+					<MathInline
+						math={`c_n = ${cnLatex}`}
+						displayStyle
+					/>
 				</div>
 			</div>
 		{/if}

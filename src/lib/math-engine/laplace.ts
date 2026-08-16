@@ -43,7 +43,11 @@ export interface LaplaceSolutionStep {
 }
 
 /** Supported archetype problem categories for s-domain practice */
-export type LaplaceProblemType = "inverse_pfd" | "inverse_direct" | "forward" | "roc_stability";
+export type LaplaceProblemType =
+	| "inverse_pfd" // Inverse Laplace via Partial Fraction Decomposition
+	| "inverse_direct" // Inverse Laplace via standard transform pairs
+	| "forward" // Forward Laplace transform calculation
+	| "roc_stability"; // Region of Convergence (ROC) and BIBO stability analysis
 
 /** Interface representing a dynamically generated Laplace practice problem */
 export interface LaplaceProblem {
@@ -66,7 +70,10 @@ export interface LaplaceProblem {
  * @param {number[]} poles Array of distinct real pole locations [p1, p2]
  * @returns {PfdResult} PfdResult object containing poles, residues, and inverse transform LaTeX
  */
-export function evaluatePfdResidues(numCoeffs: number[], poles: number[]): PfdResult {
+export function evaluatePfdResidues(
+	numCoeffs: number[],
+	poles: number[],
+): PfdResult {
 	const residues: number[] = [];
 
 	for (let i = 0; i < poles.length; i++) {
@@ -137,7 +144,9 @@ export function determineStability(
 		}
 		default: {
 			const _exhaustiveCheck: never = direction;
-			throw new Error(`Unsupported ROC direction: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported ROC direction: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }
@@ -148,10 +157,16 @@ export function determineStability(
  * @param {string} type Signal pair identifier
  * @returns {{ timeLatex: string; laplaceLatex: string }} LaTeX pair object
  */
-export function getLaplacePairLatex(type: string): { timeLatex: string; laplaceLatex: string } {
+export function getLaplacePairLatex(type: string): {
+	timeLatex: string;
+	laplaceLatex: string;
+} {
 	switch (type) {
 		case "exp":
-			return { timeLatex: "e^{-a t} u(t)", laplaceLatex: "\\frac{1}{s + a}" };
+			return {
+				timeLatex: "e^{-a t} u(t)",
+				laplaceLatex: "\\frac{1}{s + a}",
+			};
 		case "step":
 			return { timeLatex: "u(t)", laplaceLatex: "\\frac{1}{s}" };
 		case "delta":
@@ -167,7 +182,9 @@ export function getLaplacePairLatex(type: string): { timeLatex: string; laplaceL
  * @param {LaplaceProblemType} problemType Type of Laplace problem ('inverse_pfd' | 'inverse_direct' | 'forward' | 'roc_stability')
  * @returns {LaplaceProblem} LaplaceProblem object
  */
-export function generateLaplaceProblem(problemType: LaplaceProblemType = "inverse_pfd"): LaplaceProblem {
+export function generateLaplaceProblem(
+	problemType: LaplaceProblemType = "inverse_pfd",
+): LaplaceProblem {
 	const id = `laplace-${problemType}-${Date.now()}`;
 
 	switch (problemType) {
@@ -213,7 +230,8 @@ export function generateLaplaceProblem(problemType: LaplaceProblemType = "invers
 		}
 		case "inverse_direct": {
 			const directTypes = ["trig", "delay", "impulse"];
-			const chosen = directTypes[Math.floor(Math.random() * directTypes.length)];
+			const chosen =
+				directTypes[Math.floor(Math.random() * directTypes.length)];
 
 			if (chosen === "trig") {
 				const A = Math.floor(Math.random() * 4) + 1;
@@ -327,8 +345,13 @@ export function generateLaplaceProblem(problemType: LaplaceProblemType = "invers
 				p2 = polesList[Math.floor(Math.random() * polesList.length)];
 			}
 
-			const directions: ("right-sided" | "left-sided" | "two-sided")[] = ["right-sided", "left-sided", "two-sided"];
-			const direction = directions[Math.floor(Math.random() * directions.length)];
+			const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
+				"right-sided",
+				"left-sided",
+				"two-sided",
+			];
+			const direction =
+				directions[Math.floor(Math.random() * directions.length)];
 			const stability = determineStability([p1, p2], direction);
 
 			return {
@@ -354,7 +377,9 @@ export function generateLaplaceProblem(problemType: LaplaceProblemType = "invers
 		}
 		default: {
 			const _exhaustiveCheck: never = problemType;
-			throw new Error(`Unsupported Laplace problem type: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported Laplace problem type: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }

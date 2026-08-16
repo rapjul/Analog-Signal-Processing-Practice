@@ -48,7 +48,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			// y(t) = x * h is a triangle in [0, 4] peaking at t = 2 with max area 2
 			const result = solveRectRectConvolution(
 				{ tStart: 0, width: 2, height: 1 },
-				{ tStart: 0, width: 2, height: 1 }
+				{ tStart: 0, width: 2, height: 1 },
 			);
 
 			expect(result.eval(-1)).toBe(0);
@@ -65,7 +65,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			// y(t) increases 0->1 in [0, 1], plateaus at 1 in [1, 3], decreases 1->0 in [3, 4]
 			const result = solveRectRectConvolution(
 				{ tStart: 0, width: 1, height: 1 },
-				{ tStart: 0, width: 3, height: 1 }
+				{ tStart: 0, width: 3, height: 1 },
 			);
 
 			expect(result.eval(0.5)).toBe(0.5);
@@ -105,12 +105,15 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			// For t > 2: integral_{t-2}^t e^{-tau} dtau = e^{-(t-2)} - e^{-t}
 			const result = solveRectExpConvolution(
 				{ tStart: 0, width: 2, height: 1 },
-				{ a: 1, K: 1 }
+				{ a: 1, K: 1 },
 			);
 
 			expect(result.eval(-0.5)).toBe(0);
 			expect(result.eval(1.0)).toBeCloseTo(1 - Math.exp(-1), 4);
-			expect(result.eval(3.0)).toBeCloseTo(Math.exp(-1) - Math.exp(-3), 4);
+			expect(result.eval(3.0)).toBeCloseTo(
+				Math.exp(-1) - Math.exp(-3),
+				4,
+			);
 			expect(result.evalX).toBeDefined();
 			expect(result.evalH).toBeDefined();
 			expect(result.evalH(1)).toBeCloseTo(Math.exp(-1), 4);
@@ -121,7 +124,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			// y(t) = (e^{-t} - e^{-2t}) u(t)
 			const result = solveExpExpConvolution(
 				{ a: 1, K: 1 },
-				{ a: 2, K: 1 }
+				{ a: 2, K: 1 },
 			);
 
 			expect(result.eval(-1)).toBe(0);
@@ -185,4 +188,3 @@ describe("Continuous-Time Convolution Math Engine", () => {
 		});
 	});
 });
-

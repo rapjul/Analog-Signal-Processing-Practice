@@ -57,22 +57,26 @@ flowchart TD
 ### Technical Implementation Standards
 
 1. **Component Selection**:
-   - Use `<MathText>` for all user-facing prose, step prompts, card subtitles, button descriptive labels, table cells, and parameter inputs.
-   - Use `<MathBlock>` for multi-line or display-style centered derivations and equations.
-   - Reserve `<MathInline>` exclusively for standalone formula tokens that explicitly require click-to-copy behavior.
+    - Use `<MathText>` for all user-facing prose, step prompts, card subtitles, button descriptive labels, table cells, and parameter inputs.
+    - Use `<MathBlock>` for multi-line or display-style centered derivations and equations.
+    - Reserve `<MathInline>` exclusively for standalone formula tokens that explicitly require click-to-copy behavior.
 
 2. **Template Attribute Escaping with `String.raw`**:
-   - Any string containing LaTeX macros or backslashes (`\`) MUST be passed using `String.raw` template literals:
-     ```svelte
-     <MathText text={String.raw`$y_h(t) = e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`} />
-     <MathText text={String.raw`Fundamental Frequency $\omega_0 = \frac{2\pi}{T_0}$:`} />
-     ```
-   - For strings containing math without backslashes, wrap with JavaScript expression braces:
-     ```svelte
-     <MathText text={"Input Signal $x(t)$:"} />
-     <MathText text={"Constant ($a_0$):"} />
-     ```
-   - Never use raw double-quoted attributes `text="..."` with LaTeX containing curly braces `{...}`, as Svelte interprets them as template JavaScript expressions.
+    - Any string containing LaTeX macros or backslashes (`\`) MUST be passed using `String.raw` template literals:
+        ```svelte
+        <MathText
+        	text={String.raw`$y_h(t) = e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
+        />
+        <MathText
+        	text={String.raw`Fundamental Frequency $\omega_0 = \frac{2\pi}{T_0}$:`}
+        />
+        ```
+    - For strings containing math without backslashes, wrap with JavaScript expression braces:
+        ```svelte
+        <MathText text={"Input Signal $x(t)$:"} />
+        <MathText text={"Constant ($a_0$):"} />
+        ```
+    - Never use raw double-quoted attributes `text="..."` with LaTeX containing curly braces `{...}`, as Svelte interprets them as template JavaScript expressions.
 
 ## Consequences
 

@@ -25,7 +25,11 @@
 				 * @param {ServiceWorkerRegistration | undefined} registration - The registration instance.
 				 */
 				onRegisteredSW(swScriptUrl, registration) {
-					console.log("PWA Service Worker registered:", swScriptUrl, registration);
+					console.log(
+						"PWA Service Worker registered:",
+						swScriptUrl,
+						registration,
+					);
 				},
 				/**
 				 * Callback fired if the Service Worker registration encounters an error.
@@ -33,8 +37,11 @@
 				 * @param {unknown} error - The registration error.
 				 */
 				onRegisterError(error) {
-					console.error("PWA Service Worker registration error:", error);
-				}
+					console.error(
+						"PWA Service Worker registration error:",
+						error,
+					);
+				},
 			});
 		}
 	}
@@ -45,7 +52,10 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link
+		rel="icon"
+		href={favicon}
+	/>
 </svelte:head>
 
 {@render children()}

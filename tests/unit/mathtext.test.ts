@@ -81,7 +81,11 @@ function renderFormattedMathText(content: string): string {
 		.map((part) => {
 			if (!part) return "";
 
-			if (part.startsWith("$$") && part.endsWith("$$") && part.length >= 4) {
+			if (
+				part.startsWith("$$") &&
+				part.endsWith("$$") &&
+				part.length >= 4
+			) {
 				const math = part.slice(2, -2).trim();
 				try {
 					return katex.renderToString(math, {
@@ -93,7 +97,11 @@ function renderFormattedMathText(content: string): string {
 				}
 			}
 
-			if (part.startsWith("$") && part.endsWith("$") && part.length >= 2) {
+			if (
+				part.startsWith("$") &&
+				part.endsWith("$") &&
+				part.length >= 2
+			) {
 				const math = part.slice(1, -1).trim();
 				try {
 					return katex.renderToString(math, {
@@ -129,22 +137,27 @@ describe("MathText Parser and KaTeX Compilation", () => {
 	});
 
 	it("compiles inline LaTeX expressions enclosed in single dollar signs", () => {
-		const text = "Even signals mirror across the vertical axis ($x(-t) = x(t)$).";
+		const text =
+			"Even signals mirror across the vertical axis ($x(-t) = x(t)$).";
 		const rendered = renderFormattedMathText(text);
 		expect(rendered).toContain('class="katex"');
 		expect(rendered).not.toContain("$x(-t) = x(t)$");
-		expect(rendered).toContain("Even signals mirror across the vertical axis (");
+		expect(rendered).toContain(
+			"Even signals mirror across the vertical axis (",
+		);
 	});
 
 	it("compiles multiple inline math expressions in a single sentence", () => {
-		const text = "Check algebraically if $x(-t) = x(t)$ (even) or $x(-t) = -x(t)$ (odd).";
+		const text =
+			"Check algebraically if $x(-t) = x(t)$ (even) or $x(-t) = -x(t)$ (odd).";
 		const rendered = renderFormattedMathText(text);
 		const matches = rendered.match(/class="katex"/g);
 		expect(matches?.length).toBe(2);
 	});
 
 	it("escapes unsafe raw HTML inside plain text to prevent injection", () => {
-		const text = "Value must be <script>alert(1)</script> < 5 & > 2 with parameter $t = 0$.";
+		const text =
+			"Value must be <script>alert(1)</script> < 5 & > 2 with parameter $t = 0$.";
 		const rendered = renderFormattedMathText(text);
 		expect(rendered).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
 		expect(rendered).toContain("&lt; 5 &amp; &gt; 2");
@@ -180,7 +193,11 @@ describe("MathText Parser and KaTeX Compilation", () => {
 		const rendered = renderFormattedMathText(text);
 		const matches = rendered.match(/class="katex"/g);
 		expect(matches?.length).toBe(2);
-		expect(rendered).toContain('<span class="mord text"><span class="mord">s</span></span>');
-		expect(rendered).toContain('<span class="mord text"><span class="mord">rad/s</span></span>');
+		expect(rendered).toContain(
+			'<span class="mord text"><span class="mord">s</span></span>',
+		);
+		expect(rendered).toContain(
+			'<span class="mord text"><span class="mord">rad/s</span></span>',
+		);
 	});
 });

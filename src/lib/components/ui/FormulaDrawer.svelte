@@ -66,7 +66,10 @@
 		<div class="drawer-header">
 			<div class="header-title-group">
 				<span class="header-icon">📖</span>
-				<h2 id="drawer-title" class="drawer-title">
+				<h2
+					id="drawer-title"
+					class="drawer-title"
+				>
 					Formula Reference Sheet
 				</h2>
 			</div>
@@ -81,7 +84,10 @@
 		</div>
 
 		<!-- Tab Navigation -->
-		<div class="drawer-tabs" role="tablist">
+		<div
+			class="drawer-tabs"
+			role="tablist"
+		>
 			<button
 				type="button"
 				role="tab"
@@ -121,7 +127,10 @@
 					<h3 class="section-heading">
 						Characteristic Roots & Damping
 					</h3>
-					<MathBlock math={"s^2 + a_1 s + a_0 = 0"} compact={true} />
+					<MathBlock
+						math={"s^2 + a_1 s + a_0 = 0"}
+						compact={true}
+					/>
 					<ul class="ref-list">
 						<li>
 							<strong>Distinct Real Roots:</strong>

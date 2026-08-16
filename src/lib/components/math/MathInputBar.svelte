@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * MathInputBar Svelte 5 Component.
+	 *
 	 * Advanced math answer entry component with dual-mode support:
 	 * 1. Guided Form Builder (Piecewise, ODEs, Pole-Zero, Fourier Series, Phasors)
 	 * 2. Freehand LaTeX input with symbol shortcuts and live KaTeX preview
@@ -124,7 +125,10 @@
 <div class="math-input-container">
 	{#if label}
 		<div class="input-header">
-			<label class="input-label" for="latex-input">
+			<label
+				class="input-label"
+				for="latex-input"
+			>
 				{#each label.split(/(\$[^$]+\$)/g) as part}
 					{#if part.startsWith("$") && part.endsWith("$") && part.length > 2}
 						<MathInline math={part.slice(1, -1)} />
@@ -246,8 +250,7 @@
 			rows="2"
 			{placeholder}
 			{value}
-			oninput={handleInput}
-		></textarea>
+			oninput={handleInput}></textarea>
 	{/if}
 
 	<!-- Live KaTeX Preview -->

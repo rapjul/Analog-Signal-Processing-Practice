@@ -63,7 +63,8 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 
 	describe("validateLatexAnswer", () => {
 		it("validates a matching LaTeX answer against reference function", () => {
-			const refEval = (t: number): number => 2 * Math.exp(-t) + Math.sin(t);
+			const refEval = (t: number): number =>
+				2 * Math.exp(-t) + Math.sin(t);
 			const result = validateLatexAnswer("2e^{-t} + \\sin(t)", refEval);
 			expect(result.isCorrect).toBe(true);
 			expect(result.score).toBe(100);
@@ -83,12 +84,16 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			const emptyRes = validateLatexAnswer("", refEval);
 			expect(emptyRes.isCorrect).toBe(false);
 			expect(emptyRes.score).toBe(0);
-			expect(emptyRes.message).toBe("Please enter an answer before submitting.");
+			expect(emptyRes.message).toBe(
+				"Please enter an answer before submitting.",
+			);
 
 			const spaceRes = validateLatexAnswer("   ", refEval);
 			expect(spaceRes.isCorrect).toBe(false);
 			expect(spaceRes.score).toBe(0);
-			expect(spaceRes.message).toBe("Please enter an answer before submitting.");
+			expect(spaceRes.message).toBe(
+				"Please enter an answer before submitting.",
+			);
 		});
 	});
 
@@ -102,13 +107,21 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 				if (t <= 2) return 2 - t;
 				return 0;
 			};
-			const isAccurate = validateConvolutionResponse(piecewise, refEval, [-2, 4]);
+			const isAccurate = validateConvolutionResponse(
+				piecewise,
+				refEval,
+				[-2, 4],
+			);
 			expect(isAccurate).toBe(true);
 		});
 
 		it("rejects an incorrect convolution expression", () => {
 			const refEval = (t: number): number => (t >= 0 && t <= 2 ? 1 : 0);
-			const isAccurate = validateConvolutionResponse("5t + 2", refEval, [-2, 4]);
+			const isAccurate = validateConvolutionResponse(
+				"5t + 2",
+				refEval,
+				[-2, 4],
+			);
 			expect(isAccurate).toBe(false);
 		});
 

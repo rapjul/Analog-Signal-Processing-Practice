@@ -71,13 +71,22 @@
 	}
 </script>
 
-<nav class="step-breadcrumb" aria-label="Step Progression">
-	<ol class="breadcrumb-list" role="list">
+<nav
+	class="step-breadcrumb"
+	aria-label="Step Progression"
+>
+	<ol
+		class="breadcrumb-list"
+		role="list"
+	>
 		{#each steps as step (step.number)}
 			{@const status = getStatus(step.number)}
 			{@const isClickable = status === "completed" && onSelectStep}
 
-			<li class="breadcrumb-item" role="listitem">
+			<li
+				class="breadcrumb-item"
+				role="listitem"
+			>
 				{#if isClickable}
 					<!-- Completed steps are navigable when a callback is provided -->
 					<button
@@ -91,7 +100,10 @@
 						<span class="crumb-title">
 							<MathText text={step.shortTitle ?? step.title} />
 						</span>
-						<span class="crumb-icon" aria-hidden="true">
+						<span
+							class="crumb-icon"
+							aria-hidden="true"
+						>
 							{getIcon(status)}
 						</span>
 					</button>
@@ -109,7 +121,10 @@
 							<MathText text={step.shortTitle ?? step.title} />
 						</span>
 						{#if getIcon(status)}
-							<span class="crumb-icon" aria-hidden="true">
+							<span
+								class="crumb-icon"
+								aria-hidden="true"
+							>
 								{getIcon(status)}
 							</span>
 						{/if}
@@ -118,7 +133,10 @@
 
 				{#if step.number < totalSteps}
 					<!-- Separator arrow between steps; hidden from screen readers -->
-					<span class="crumb-sep" aria-hidden="true">›</span>
+					<span
+						class="crumb-sep"
+						aria-hidden="true">›</span
+					>
 				{/if}
 			</li>
 		{/each}

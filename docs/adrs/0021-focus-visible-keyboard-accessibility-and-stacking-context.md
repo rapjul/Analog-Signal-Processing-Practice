@@ -14,9 +14,9 @@ Keyboard navigation and visual focus indication are core accessibility requireme
 
 1. **Suppression of Focus Rings via `outline: none`**: Multiple custom math input components, route controls, solver text fields, and global button styles applied `outline: none;` without providing a companion `:focus-visible` outline. While mouse interactions appeared clean, keyboard users navigating with Tab / Shift+Tab received zero visual indication of which input or dropdown was currently active.
 2. **Clipping and Stacking Occlusion in Composite Controls**: In composite input groups (such as `.input-with-unit` pairing a text input with an attached unit `<select>`), two compounding visual bugs occurred:
-   - The parent container declared `overflow: hidden;` to clip square background corners to the wrapper's `border-radius`, which clipped off outer focus rings (`outline-offset > 0`).
-   - In normal DOM flow, the `<select class="unit-select">` rendered after `<input class="text-input">` with an opaque background (`background: var(--bg-secondary)`), painting over and occluding the right-hand edge and corners of the text input's focus outline.
-   - A floating `outline-offset: 2px` caused focus rings to protrude awkwardly outside composite borders.
+    - The parent container declared `overflow: hidden;` to clip square background corners to the wrapper's `border-radius`, which clipped off outer focus rings (`outline-offset > 0`).
+    - In normal DOM flow, the `<select class="unit-select">` rendered after `<input class="text-input">` with an opaque background (`background: var(--bg-secondary)`), painting over and occluding the right-hand edge and corners of the text input's focus outline.
+    - A floating `outline-offset: 2px` caused focus rings to protrude awkwardly outside composite borders.
 
 ## Decision Drivers
 
@@ -28,14 +28,14 @@ Keyboard navigation and visual focus indication are core accessibility requireme
 
 ## Considered Options
 
-- **Option 1: Browser-Native Default Outlines Only**: Remove all custom focus styles and rely entirely on native browser focus rings. *(Rejected: Default browser focus rings are inconsistent across platforms, clash with custom dark mode themes, and often fail color contrast ratios).*
-- **Option 2: Focus Highlighting via CSS `:focus` State**: Apply custom outline/border changes on `:focus` across all elements. *(Rejected: Triggers focus outlines during mouse clicks, creating visual noise and clutter for pointer users).*
-- **Option 3: Centralized `:focus-visible` Defaults with Stacking Context Elevation**: 
-  - Define global fallback `:focus-visible` rules in `src/app.css` for `a`, `button`, `input`, `select`, and `textarea` using `outline: 2px solid var(--accent-primary)`.
-  - Remove all occurrences of `outline: none` across the codebase.
-  - Remove `overflow: hidden` from composite containers and highlight the wrapper using `:focus-within`.
-  - Elevate focused composite children in the z-axis using `position: relative; z-index: 1;` so all 4 edges of the focus outline render cleanly above sibling controls.
-  - Set `outline-offset: 0;` on composite inputs for snug border alignment.
+- **Option 1: Browser-Native Default Outlines Only**: Remove all custom focus styles and rely entirely on native browser focus rings. _(Rejected: Default browser focus rings are inconsistent across platforms, clash with custom dark mode themes, and often fail color contrast ratios)._
+- **Option 2: Focus Highlighting via CSS `:focus` State**: Apply custom outline/border changes on `:focus` across all elements. _(Rejected: Triggers focus outlines during mouse clicks, creating visual noise and clutter for pointer users)._
+- **Option 3: Centralized `:focus-visible` Defaults with Stacking Context Elevation**:
+    - Define global fallback `:focus-visible` rules in `src/app.css` for `a`, `button`, `input`, `select`, and `textarea` using `outline: 2px solid var(--accent-primary)`.
+    - Remove all occurrences of `outline: none` across the codebase.
+    - Remove `overflow: hidden` from composite containers and highlight the wrapper using `:focus-within`.
+    - Elevate focused composite children in the z-axis using `position: relative; z-index: 1;` so all 4 edges of the focus outline render cleanly above sibling controls.
+    - Set `outline-offset: 0;` on composite inputs for snug border alignment.
 
 ## Decision Outcome
 
@@ -64,42 +64,43 @@ flowchart TD
 
 1. **Global `:focus-visible` Defaults**:
    In `src/app.css`, all interactive elements inherit consistent high-contrast focus rings:
-   ```css
-   a:focus-visible,
-   button:focus-visible,
-   input:focus-visible,
-   select:focus-visible,
-   textarea:focus-visible {
-       outline: 2px solid var(--border-focus);
-       outline-offset: 2px;
-   }
-   ```
+
+    ```css
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+    	outline: 2px solid var(--border-focus);
+    	outline-offset: 2px;
+    }
+    ```
 
 2. **Composite Input Groups (`.input-with-unit`)**:
-   - **No `overflow: hidden`**: The container must allow child outlines to paint freely outside boundaries without clipping.
-   - **Individual Corner Radii**: Left and right children receive explicit corner radii matching the container (`border-top-left-radius` / `border-top-right-radius`).
-   - **Stacking Elevation**: Focused children apply `position: relative; z-index: 1;` so their outline rectangle paints over adjacent sibling borders:
-     ```css
-     .text-input:focus-visible {
-         position: relative;
-         z-index: 1;
-         outline: 2px solid var(--accent-primary);
-         outline-offset: 0;
-     }
+    - **No `overflow: hidden`**: The container must allow child outlines to paint freely outside boundaries without clipping.
+    - **Individual Corner Radii**: Left and right children receive explicit corner radii matching the container (`border-top-left-radius` / `border-top-right-radius`).
+    - **Stacking Elevation**: Focused children apply `position: relative; z-index: 1;` so their outline rectangle paints over adjacent sibling borders:
+        ```css
+        .text-input:focus-visible {
+        	position: relative;
+        	z-index: 1;
+        	outline: 2px solid var(--accent-primary);
+        	outline-offset: 0;
+        }
 
-     .unit-select:focus-visible {
-         position: relative;
-         z-index: 1;
-         outline: 2px solid var(--accent-primary);
-         outline-offset: 0;
-     }
-     ```
-   - **Container Highlight via `:focus-within`**:
-     ```css
-     .input-with-unit:focus-within {
-         border-color: var(--accent-primary);
-     }
-     ```
+        .unit-select:focus-visible {
+        	position: relative;
+        	z-index: 1;
+        	outline: 2px solid var(--accent-primary);
+        	outline-offset: 0;
+        }
+        ```
+    - **Container Highlight via `:focus-within`**:
+        ```css
+        .input-with-unit:focus-within {
+        	border-color: var(--accent-primary);
+        }
+        ```
 
 ## Consequences
 

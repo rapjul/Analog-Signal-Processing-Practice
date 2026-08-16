@@ -94,7 +94,10 @@
 			💡 {getButtonLabel(hintTier, maxTier)}
 		</button>
 		{#if hintTier > 0}
-			<span class="tier-label" aria-live="polite">
+			<span
+				class="tier-label"
+				aria-live="polite"
+			>
 				{getTierLabel(hintTier)}
 			</span>
 		{/if}

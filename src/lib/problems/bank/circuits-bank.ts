@@ -11,7 +11,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-1",
 		topology: "series-rlc",
-		promptLatex: "\\text{Derive } H(s) = \\frac{V_R(s)}{V_{in}(s)} \\text{ for Series RLC with } R = 20\\Omega, L = 2\\text{H}, C = 0.05\\text{F}",
+		promptLatex:
+			"\\text{Derive } H(s) = \\frac{V_R(s)}{V_{in}(s)} \\text{ for Series RLC with } R = 20\\Omega, L = 2\\text{H}, C = 0.05\\text{F}",
 		referenceAnswerLatex: "\\frac{10 s}{s^2 + 10 s + 100}",
 		solutionSteps: [
 			{
@@ -27,7 +28,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-2",
 		topology: "series-rlc",
-		promptLatex: "\\text{Find } H(s) \\text{ for Series RLC Bandpass filter with } R = 4\\Omega, L = 1\\text{H}, C = 0.25\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Series RLC Bandpass filter with } R = 4\\Omega, L = 1\\text{H}, C = 0.25\\text{F}",
 		referenceAnswerLatex: "\\frac{4 s}{s^2 + 4 s + 4}",
 		solutionSteps: [
 			{
@@ -45,7 +47,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-3",
 		topology: "parallel-rlc",
-		promptLatex: "\\text{Derive } H(s) = \\frac{I_R(s)}{I_{in}(s)} \\text{ for Parallel RLC with } R = 5\\Omega, L = 2\\text{H}, C = 0.1\\text{F}",
+		promptLatex:
+			"\\text{Derive } H(s) = \\frac{I_R(s)}{I_{in}(s)} \\text{ for Parallel RLC with } R = 5\\Omega, L = 2\\text{H}, C = 0.1\\text{F}",
 		referenceAnswerLatex: "\\frac{2 s}{s^2 + 2 s + 5}",
 		solutionSteps: [
 			{
@@ -61,7 +64,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-4",
 		topology: "parallel-rlc",
-		promptLatex: "\\text{Find } H(s) \\text{ for Parallel RLC filter with } R = 10\\Omega, L = 1\\text{H}, C = 0.05\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Parallel RLC filter with } R = 10\\Omega, L = 1\\text{H}, C = 0.05\\text{F}",
 		referenceAnswerLatex: "\\frac{2 s}{s^2 + 2 s + 20}",
 		solutionSteps: [
 			{
@@ -79,7 +83,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-5",
 		topology: "parallel-lc-series-r",
-		promptLatex: "\\text{Find } H(s) \\text{ for Notch Filter with } R = 10\\Omega, L = 1\\text{H}, C = 0.01\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Notch Filter with } R = 10\\Omega, L = 1\\text{H}, C = 0.01\\text{F}",
 		referenceAnswerLatex: "\\frac{s^2 + 100}{s^2 + 10 s + 100}",
 		solutionSteps: [
 			{
@@ -95,7 +100,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-6",
 		topology: "parallel-lc-series-r",
-		promptLatex: "\\text{Find } H(s) \\text{ for Notch Filter with } R = 5\\Omega, L = 2\\text{H}, C = 0.02\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Notch Filter with } R = 5\\Omega, L = 2\\text{H}, C = 0.02\\text{F}",
 		referenceAnswerLatex: "\\frac{s^2 + 25}{s^2 + 10 s + 25}",
 		solutionSteps: [
 			{
@@ -113,7 +119,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-7",
 		topology: "parallel-rc-series-l",
-		promptLatex: "\\text{Find } H(s) \\text{ for Parallel RC in Series with L with } R = 10\\Omega, L = 1\\text{H}, C = 0.01\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Parallel RC in Series with L with } R = 10\\Omega, L = 1\\text{H}, C = 0.01\\text{F}",
 		referenceAnswerLatex: "\\frac{s^2 + 10 s}{s^2 + 10 s + 100}",
 		solutionSteps: [
 			{
@@ -129,7 +136,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-8",
 		topology: "parallel-rc-series-l",
-		promptLatex: "\\text{Find } H(s) \\text{ for Parallel RC in Series with L with } R = 20\\Omega, L = 2\\text{H}, C = 0.025\\text{F}",
+		promptLatex:
+			"\\text{Find } H(s) \\text{ for Parallel RC in Series with L with } R = 20\\Omega, L = 2\\text{H}, C = 0.025\\text{F}",
 		referenceAnswerLatex: "\\frac{s^2 + 2 s}{s^2 + 2 s + 20}",
 		solutionSteps: [
 			{
@@ -147,7 +155,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-9",
 		topology: "rc-lpf",
-		promptLatex: "\\text{Derive 1st-order RC LPF transfer function with } R = 1\\text{k}\\Omega, C = 1\\mu\\text{F}",
+		promptLatex:
+			"\\text{Derive 1st-order RC LPF transfer function with } R = 1\\text{k}\\Omega, C = 1\\mu\\text{F}",
 		referenceAnswerLatex: "\\frac{1000}{s + 1000}",
 		solutionSteps: [
 			{
@@ -163,7 +172,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-10",
 		topology: "rc-lpf",
-		promptLatex: "\\text{Find 3dB corner frequency } \\omega_c \\text{ for RC LPF with } R = 500\\Omega, C = 2\\mu\\text{F}",
+		promptLatex:
+			"\\text{Find 3dB corner frequency } \\omega_c \\text{ for RC LPF with } R = 500\\Omega, C = 2\\mu\\text{F}",
 		referenceAnswerLatex: "\\omega_c = 1000 \\text{ rad/s}",
 		solutionSteps: [
 			{
@@ -181,7 +191,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-11",
 		topology: "active-sallen-key",
-		promptLatex: "\\text{Derive 2nd-Order Sallen-Key LPF transfer function with } R = 100\\Omega, C = 100\\mu\\text{F}",
+		promptLatex:
+			"\\text{Derive 2nd-Order Sallen-Key LPF transfer function with } R = 100\\Omega, C = 100\\mu\\text{F}",
 		referenceAnswerLatex: "\\frac{100}{s^2 + 20 s + 100}",
 		solutionSteps: [
 			{
@@ -197,7 +208,8 @@ export const CIRCUITS_EXAM_BANK: CircuitProblem[] = [
 	{
 		id: "circuits-bank-12",
 		topology: "active-sallen-key",
-		promptLatex: "\\text{Derive 2nd-Order Sallen-Key LPF with } R = 50\\Omega, C = 400\\mu\\text{F}",
+		promptLatex:
+			"\\text{Derive 2nd-Order Sallen-Key LPF with } R = 50\\Omega, C = 400\\mu\\text{F}",
 		referenceAnswerLatex: "\\frac{2500}{s^2 + 100 s + 2500}",
 		solutionSteps: [
 			{

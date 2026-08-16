@@ -1,7 +1,7 @@
 import {
 	determineStability,
 	evaluatePfdResidues,
-	generateLaplaceProblem
+	generateLaplaceProblem,
 } from "$lib/math-engine/laplace";
 import { describe, expect, it } from "vitest";
 

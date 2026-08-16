@@ -40,7 +40,11 @@
 	);
 </script>
 
-<div class="steps-progress-bar" role="region" aria-label="Progress Tracker">
+<div
+	class="steps-progress-bar"
+	role="region"
+	aria-label="Progress Tracker"
+>
 	<div class="progress-info">
 		<span class="progress-title">{title}</span>
 		{#if activeStepTitle}
@@ -48,7 +52,11 @@
 		{/if}
 	</div>
 
-	<div class="progress-pills" role="list" aria-label="Step Progression">
+	<div
+		class="progress-pills"
+		role="list"
+		aria-label="Step Progression"
+	>
 		{#each stepIndices as s}
 			{#if onStepClick}
 				<button

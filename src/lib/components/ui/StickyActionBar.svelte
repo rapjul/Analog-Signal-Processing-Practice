@@ -34,7 +34,11 @@
 </script>
 
 {#if visible}
-	<div class="sticky-action-bar" role="toolbar" aria-label="Problem actions">
+	<div
+		class="sticky-action-bar"
+		role="toolbar"
+		aria-label="Problem actions"
+	>
 		<div class="action-bar-inner">
 			{#if children}
 				{@render children()}

@@ -11,10 +11,12 @@ informed: []
 ## Context and Problem Statement
 
 In the SignalLab application, pedagogical workflows decompose complex multi-part signal processing problems into sequential questions and interactive derivation checkpoints. Historically, two distinct terms were used interchangeably across the codebase, types, UI components, and documentation:
+
 1. **"Stage"**: Used in the initial ODEs ITS solver data models (`OdeItsStage1`..`OdeItsStage7`, `itsData.stage1`..`stage7`), state variables (`currentStage`), CSS selectors (`.stage-card`, `.stages-progress-bar`), and early architecture diagrams.
 2. **"Step"**: Used in the Fourier Series stepped solver (`FourierStepSolver.svelte`, `currentStep`), the granular backend algebraic derivation pipelines (`StepReveal.svelte`, `problem.steps`), and user-facing badges ("Step 1", "Step 2").
 
 This lexical divergence created cognitive dissonance:
+
 - **Developer Mental Model**: Developers and agents encountered inconsistent type and field naming between modules (e.g. `problem.itsData.stage1` in ODEs vs `currentStep` in Fourier Series).
 - **Learner Confusion**: Mixed terminology in headings, badges, progress trackers, and hints blurred the relationship between active question checkpoints and granular algebraic steps.
 - **Rule Enforcement**: Code conventions and styling rules lacked a single canonical noun for interactive problem milestones.
@@ -45,7 +47,7 @@ flowchart LR
         T3["UI Labels & Badges: 'Step 1 of 7', 'Step 1: Characteristic Equation'"]
         T4["CSS Architecture: .steps-progress-bar, .step-card, .step-badge, .step-body"]
         T5["Test Suites: 'generates valid 7-step ITS data', step1..step7 assertions"]
-        
+
         T1 --> T2
         T2 --> T3
         T3 --> T4
@@ -54,18 +56,18 @@ flowchart LR
 ```
 
 1. **Math Engine Types**:
-   - `OdeItsStage1`..`OdeItsStage7` are renamed to `OdeItsStep1`..`OdeItsStep7`.
-   - `OdeItsData` fields are standardized to `step1` through `step7`.
+    - `OdeItsStage1`..`OdeItsStage7` are renamed to `OdeItsStep1`..`OdeItsStep7`.
+    - `OdeItsData` fields are standardized to `step1` through `step7`.
 2. **Component State & Methods**:
-   - Solver components must track active progress using `currentStep`.
-   - Advancement methods must use `advanceToStep(nextStep: number)`.
-   - Step validation functions must follow the pattern `checkStep1()`, `checkStep2()`, etc.
+    - Solver components must track active progress using `currentStep`.
+    - Advancement methods must use `advanceToStep(nextStep: number)`.
+    - Step validation functions must follow the pattern `checkStep1()`, `checkStep2()`, etc.
 3. **UI Elements & CSS Class Names**:
-   - Progress trackers must use `.steps-progress-bar` and `.progress-pills`.
-   - Interactive checkpoint cards must use `.step-card`, `.step-header`, `.step-badge`, `.step-title`, `.step-body`, `.step-prompt`, `.step-summary`, and `.step-actions`.
-   - UI badges must render as `"Step X"`.
+    - Progress trackers must use `.steps-progress-bar` and `.progress-pills`.
+    - Interactive checkpoint cards must use `.step-card`, `.step-header`, `.step-badge`, `.step-title`, `.step-body`, `.step-prompt`, `.step-summary`, and `.step-actions`.
+    - UI badges must render as `"Step X"`.
 4. **Zero Tolerance for "Stage"**:
-   - The term "stage" is deprecated and prohibited in new components, types, comments, tests, and user-facing text.
+    - The term "stage" is deprecated and prohibited in new components, types, comments, tests, and user-facing text.
 
 ## Pros and Cons of the Options
 

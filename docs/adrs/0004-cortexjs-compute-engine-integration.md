@@ -33,8 +33,10 @@ Chosen Option: **Option 3**, because `@cortex-js/compute-engine` provides specia
 ### Consequences
 
 #### Good
+
 - Algebraically equivalent user responses (e.g., simplified vs unsimplified fractions) are scored correctly.
 - Provides a strong foundation for future computer algebra system (CAS) features in SignalLab.
 
 #### Bad
+
 - Increases bundle size slightly (`@cortex-js/compute-engine` dependency).

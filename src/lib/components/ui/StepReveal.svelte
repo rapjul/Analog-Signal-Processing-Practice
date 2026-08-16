@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * StepReveal Svelte 5 Component.
+	 *
 	 * Provides interactive collapsible progressive step breakdowns
 	 * for zero-guesswork math solutions.
 	 */
@@ -50,7 +51,11 @@
 		</h3>
 		<div class="step-controls">
 			{#if revealedCount < steps.length}
-				<button type="button" class="btn-step" onclick={revealNextStep}>
+				<button
+					type="button"
+					class="btn-step"
+					onclick={revealNextStep}
+				>
 					Reveal Step {revealedCount + 1}
 				</button>
 				<button

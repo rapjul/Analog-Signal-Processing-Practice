@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * SignalLab Main Course Dashboard & Module Launcher (/).
+	 *
 	 * Provides a course overview for UIUC ECE 210 with module launcher cards.
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
@@ -91,7 +92,10 @@
 	<!-- Module Grid -->
 	<div class="modules-grid">
 		{#each modules as mod}
-			<a href={mod.link} class="module-card">
+			<a
+				href={mod.link}
+				class="module-card"
+			>
 				<div class="module-header">
 					<span class="module-icon">{mod.icon}</span>
 					<span class="module-badge">{mod.badge}</span>

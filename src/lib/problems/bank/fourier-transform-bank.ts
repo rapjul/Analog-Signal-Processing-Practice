@@ -10,8 +10,10 @@ import type { CtftProblem } from "../../math-engine/fourier-transform";
 export const CTFT_EXAM_BANK: CtftProblem[] = [
 	{
 		id: "ctft-bank-1",
-		promptLatex: "\\text{Calculate the CTFT } X(\\omega) \\text{ of } x(t) = \\operatorname{rect}\\left(\\frac{t - 3}{4}\\right)",
-		referenceAnswerLatex: "4 \\operatorname{sinc}\\left(\\frac{2 \\omega}{\\pi}\\right) e^{-j 3 \\omega}",
+		promptLatex:
+			"\\text{Calculate the CTFT } X(\\omega) \\text{ of } x(t) = \\operatorname{rect}\\left(\\frac{t - 3}{4}\\right)",
+		referenceAnswerLatex:
+			"4 \\operatorname{sinc}\\left(\\frac{2 \\omega}{\\pi}\\right) e^{-j 3 \\omega}",
 		solutionSteps: [
 			{
 				title: "Step 1: Identify Base Rectangular Transform Pair",
@@ -29,7 +31,8 @@ export const CTFT_EXAM_BANK: CtftProblem[] = [
 	},
 	{
 		id: "ctft-bank-2",
-		promptLatex: "\\text{Find the inverse CTFT } x(t) \\text{ of } X(\\omega) = \\frac{1}{4 + j\\omega} e^{-j 2 \\omega}",
+		promptLatex:
+			"\\text{Find the inverse CTFT } x(t) \\text{ of } X(\\omega) = \\frac{1}{4 + j\\omega} e^{-j 2 \\omega}",
 		referenceAnswerLatex: "e^{-4 (t - 2)} u(t - 2)",
 		solutionSteps: [
 			{
@@ -44,7 +47,8 @@ export const CTFT_EXAM_BANK: CtftProblem[] = [
 	},
 	{
 		id: "ctft-bank-3",
-		promptLatex: "\\text{Compute the 3dB Energy Bandwidth } \\omega_{3dB} \\text{ for } x(t) = e^{-3 t} u(t)",
+		promptLatex:
+			"\\text{Compute the 3dB Energy Bandwidth } \\omega_{3dB} \\text{ for } x(t) = e^{-3 t} u(t)",
 		referenceAnswerLatex: "\\omega_{3dB} = 3 \\text{ rad/s}",
 		solutionSteps: [
 			{

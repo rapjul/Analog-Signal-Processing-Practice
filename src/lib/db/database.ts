@@ -46,10 +46,15 @@ export function recordAttempt(attempt: ProblemAttempt): ProblemAttempt {
  * @returns ModuleProgress object
  */
 export function getModuleProgress(moduleId: string): ModuleProgress {
-	const moduleAttempts = inMemoryAttempts.filter((a) => a.moduleId === moduleId);
+	const moduleAttempts = inMemoryAttempts.filter(
+		(a) => a.moduleId === moduleId,
+	);
 	const attemptsCount = moduleAttempts.length;
 	const correctCount = moduleAttempts.filter((a) => a.isCorrect).length;
-	const masteryPercent = attemptsCount > 0 ? Math.round((correctCount / attemptsCount) * 100) : 0;
+	const masteryPercent =
+		attemptsCount > 0
+			? Math.round((correctCount / attemptsCount) * 100)
+			: 0;
 
 	return {
 		moduleId,

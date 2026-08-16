@@ -13,6 +13,7 @@ informed: []
 In an Analog Signal Processing (ASP) practice web application, mathematical expressions (integrals, frequencies, transfer functions, vectors, and complex numbers) are central to the user interface. Previously, mathematical symbols were rendered inconsistently using a mix of raw Unicode characters ($\omega, \pi, \int, \le$) in raw HTML text and LaTeX expressions in selected problem cards.
 
 This caused several issues:
+
 - Uneven typographic styling and misaligned baselines between Unicode text and rendered formulas.
 - Accessibility issues with screen readers attempting to pronounce raw Unicode math characters.
 - Copy-paste inconsistency and formatting breaks on mobile viewports.
@@ -37,12 +38,15 @@ Chosen Option: **Option 3**, because explicit `<MathInline>` / `<MathBlock>` Sve
 ### Consequences
 
 #### Good
+
 - Consistent typography and math styling across the entire web app.
 - Centralized rendering logic inside Svelte components (`<MathInline>` and `<MathBlock>`).
 - Clear rule enforced for agents and contributors via workspace rules (`.agents/math-rendering.md`).
 
 #### Bad
+
 - Developers cannot paste quick Unicode symbols into button text or labels; every variable or formula must pass through `<MathInline>`.
 
 #### Neutral
+
 - Small dependency on `katex` NPM package under the hood.

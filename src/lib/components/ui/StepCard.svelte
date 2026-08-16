@@ -62,7 +62,12 @@
 >
 	<!-- ── Step Header ── -->
 	<div class="step-header">
-		<div class="step-badge" aria-hidden="true">Step {stepNumber}</div>
+		<div
+			class="step-badge"
+			aria-hidden="true"
+		>
+			Step {stepNumber}
+		</div>
 		<h3 class="step-title">
 			<MathText text={title} />
 		</h3>
@@ -77,8 +82,14 @@
 
 	<!-- ── Summary: Completed state ── -->
 	{#if status === "completed"}
-		<div class="step-summary" aria-label={`Step ${stepNumber} completed`}>
-			<span class="check-icon" aria-hidden="true">✓</span>
+		<div
+			class="step-summary"
+			aria-label={`Step ${stepNumber} completed`}
+		>
+			<span
+				class="check-icon"
+				aria-hidden="true">✓</span
+			>
 			{#if summarySnippet}
 				{@render summarySnippet()}
 			{:else if summaryLatex}

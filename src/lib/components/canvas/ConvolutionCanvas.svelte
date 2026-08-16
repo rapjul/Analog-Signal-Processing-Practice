@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * ConvolutionCanvas Svelte 5 Component.
+	 *
 	 * Interactive dual-plot graphical convolution animator displaying:
 	 * 1. Upper Plot: Fixed signal x(tau) (blue) and flipped & shifted signal h(t - tau) (orange)
 	 *    with shaded green product region x(tau)*h(t - tau).
@@ -284,13 +285,20 @@
 		<div class="panel-header panel-lower">
 			Lower: Convolved Output <MathInline math={"y(t) = (x * h)(t)"} />
 		</div>
-		<canvas bind:this={canvasEl} class="anim-canvas" aria-label={title}
+		<canvas
+			bind:this={canvasEl}
+			class="anim-canvas"
+			aria-label={title}
 		></canvas>
 	</div>
 
 	<!-- Interactive Shift Controls -->
 	<div class="controls-bar">
-		<button type="button" class="btn-play" onclick={togglePlay}>
+		<button
+			type="button"
+			class="btn-play"
+			onclick={togglePlay}
+		>
 			{isPlaying ? "⏸ Pause Shift" : "▶ Animate Shift"}
 		</button>
 		<div class="slider-group">

@@ -49,7 +49,9 @@ export const FEEDBACK_META: Record<
  * @param {T} customFields - Initial custom field values for the step.
  * @returns {T & BaseStepState} The combined step state with initialized validation fields.
  */
-export function createStepState<T extends object>(customFields: T): T & BaseStepState {
+export function createStepState<T extends object>(
+	customFields: T,
+): T & BaseStepState {
 	return {
 		...customFields,
 		feedback: null,
@@ -242,7 +244,10 @@ export abstract class BaseStepSolverState {
 		if (selection === correctValue) {
 			this.setPassed(step, nextStep);
 		} else {
-			this.setMisconception(step, misconceptions[selection] ?? fallbackFeedback);
+			this.setMisconception(
+				step,
+				misconceptions[selection] ?? fallbackFeedback,
+			);
 		}
 	}
 
@@ -256,7 +261,9 @@ export abstract class BaseStepSolverState {
 	 * @param {string} [validationMsg] - Validation message if option is unselected.
 	 * @param {number} [nextStep] - Step to advance to upon success.
 	 */
-	checkOptionCardStep<T extends { id: string; isCorrect: boolean; feedback?: string }>(
+	checkOptionCardStep<
+		T extends { id: string; isCorrect: boolean; feedback?: string },
+	>(
 		step: BaseStepState & { selected: string | null },
 		option: T | null,
 		fallbackFeedback: string,

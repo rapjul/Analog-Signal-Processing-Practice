@@ -68,9 +68,16 @@
 	}: Props = $props();
 </script>
 
-<div class="completion-banner" role="status" aria-live="polite">
+<div
+	class="completion-banner"
+	role="status"
+	aria-live="polite"
+>
 	<!-- ── Icon ── -->
-	<span class="banner-icon" aria-hidden="true">{icon}</span>
+	<span
+		class="banner-icon"
+		aria-hidden="true">{icon}</span
+	>
 
 	<!-- ── Text content ── -->
 	<div class="banner-body">
@@ -85,7 +92,10 @@
 		{/if}
 
 		{#if stats.length > 0}
-			<div class="banner-stats" aria-label="Completion statistics">
+			<div
+				class="banner-stats"
+				aria-label="Completion statistics"
+			>
 				{#each stats as stat (stat.label)}
 					<span class="stat-pill">
 						<span class="stat-label">{stat.label}</span>

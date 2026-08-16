@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Continuous-Time Convolution Practice Module Route (/convolution).
+	 *
 	 * Implements graphical flip-and-shift animation canvas, piecewise analytical integration,
 	 * interactive interval input, and formula reference.
 	 */
@@ -60,7 +61,10 @@
 	<!-- Control Bar: Signal Pair Customization -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="pair-type-select" class="control-label">
+			<label
+				for="pair-type-select"
+				class="control-label"
+			>
 				Signal Pair Category:
 			</label>
 			<select

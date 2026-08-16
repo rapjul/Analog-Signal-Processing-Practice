@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * SignalLab 404 & Global Error Page Component.
+	 *
 	 * Renders when a requested path is not found or when a requested practice module is under development.
 	 */
 	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
@@ -86,11 +87,11 @@
 </script>
 
 <svelte:head>
-	<title
-		>{isModuleUnimplemented(page.url.pathname)
+	<title>
+		{isModuleUnimplemented(page.url.pathname)
 			? "Module Coming Soon"
-			: page.status || 404} — SignalLab</title
-	>
+			: page.status || 404} — SignalLab
+	</title>
 </svelte:head>
 
 <Navigation activeRoute="" />
@@ -101,16 +102,16 @@
 			class="error-badge"
 			class:coming-soon={isModuleUnimplemented(page.url.pathname)}
 		>
-			<span class="status-code"
-				>{isModuleUnimplemented(page.url.pathname)
+			<span class="status-code">
+				{isModuleUnimplemented(page.url.pathname)
 					? "ASP"
-					: page.status || 404}</span
-			>
-			<span class="badge-label"
-				>{isModuleUnimplemented(page.url.pathname)
+					: page.status || 404}
+			</span>
+			<span class="badge-label">
+				{isModuleUnimplemented(page.url.pathname)
 					? "Coming Soon"
-					: "Error Response"}</span
-			>
+					: "Error Response"}
+			</span>
 		</div>
 
 		<div class="math-banner">
@@ -128,14 +129,28 @@
 		<div class="available-modules-notice">
 			<span class="notice-heading">Practice Ready Modules:</span>
 			<div class="module-quick-links">
-				<a href="/odes" class="quick-link">LCC ODEs</a>
-				<a href="/convolution" class="quick-link">Convolution</a>
-				<a href="/fourier-series" class="quick-link">Fourier Series</a>
+				<a
+					href="/odes"
+					class="quick-link">LCC ODEs</a
+				>
+				<a
+					href="/convolution"
+					class="quick-link">Convolution</a
+				>
+				<a
+					href="/fourier-series"
+					class="quick-link">Fourier Series</a
+				>
 			</div>
 		</div>
 
 		<div class="action-buttons">
-			<a href="/" class="home-button"> Return to Main Dashboard </a>
+			<a
+				href="/"
+				class="home-button"
+			>
+				Return to Main Dashboard
+			</a>
 		</div>
 	</div>
 </main>

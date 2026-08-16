@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { FourierStepSolverState } from "../../src/lib/components/solvers/fourier-step-solver.svelte";
-import {
-	generateFourierSeriesProblem
-} from "../../src/lib/math-engine/fourier-series";
+import { generateFourierSeriesProblem } from "../../src/lib/math-engine/fourier-series";
 
 describe("FourierStepSolverState Reactive Controller", () => {
 	it("initializes in pristine state on Step 1", () => {
@@ -242,8 +240,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("=") ||
-				opt.latex.includes("\\int") ||
-				opt.latex.includes("0"),
+					opt.latex.includes("\\int") ||
+					opt.latex.includes("0"),
 			).toBe(true);
 		}
 
@@ -253,8 +251,8 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("x(t)") ||
-				opt.latex.includes("\\sin") ||
-				opt.latex.includes("\\cos"),
+					opt.latex.includes("\\sin") ||
+					opt.latex.includes("\\cos"),
 			).toBe(true);
 		}
 	});

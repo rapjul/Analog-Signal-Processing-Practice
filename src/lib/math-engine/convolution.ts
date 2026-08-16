@@ -57,15 +57,15 @@ export interface ConvolutionResult {
  * Covers combinations of rectangular pulses, exponential decays, unit steps, and triangular signals.
  */
 export type ConvolutionPairType =
-	| "rect_rect"
-	| "rect_shifted_rect"
-	| "multi_rect"
-	| "rect_exp"
-	| "exp_exp"
-	| "tri_rect"
-	| "step_exp"
-	| "step_rect"
-	| "bilateral_exp_rect";
+	| "rect_rect" // Rectangular pulse * Rectangular pulse
+	| "rect_shifted_rect" // Shifted rectangular pulse * Rectangular pulse
+	| "multi_rect" // Multiple piecewise rectangular pulses
+	| "rect_exp" // Rectangular pulse * Exponential decay
+	| "exp_exp" // Exponential decay * Exponential decay
+	| "tri_rect" // Triangular pulse * Rectangular pulse
+	| "step_exp" // Unit step * Exponential decay
+	| "step_rect" // Unit step * Rectangular pulse
+	| "bilateral_exp_rect"; // Bilateral exponential * Rectangular pulse
 
 /** Convolution problem metadata and evaluation */
 export interface ConvolutionProblem {
@@ -188,7 +188,6 @@ export function solveStepRectConvolution(width: number): ConvolutionResult {
 export function generateConvolutionProblem(
 	pairType: ConvolutionPairType = "rect_rect",
 ): ConvolutionProblem {
-
 	const id = `conv_${pairType}_${Date.now()}`;
 
 	switch (pairType) {
@@ -217,7 +216,8 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Identify Region 1 (No Overlap)",
-					description: "For $t < 0$, there is zero signal overlap area.",
+					description:
+						"For $t < 0$, there is zero signal overlap area.",
 					latex: "y(t) = 0 \\quad (t < 0)",
 				},
 				{
@@ -308,7 +308,8 @@ export function generateConvolutionProblem(
 			const res = solveMultiRectConvolution();
 			const xLatex =
 				"\\operatorname{rect}\\left(t - 0.5\\right) + \\operatorname{rect}\\left(t - 3.5\\right)";
-			const hLatex = "\\operatorname{rect}\\left(\\frac{t - 1}{2}\\right)";
+			const hLatex =
+				"\\operatorname{rect}\\left(\\frac{t - 1}{2}\\right)";
 
 			const steps: SolutionStep[] = [
 				{
@@ -363,7 +364,8 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Region 1 (t < 0)",
-					description: "No overlap between pulse and exponential decay.",
+					description:
+						"No overlap between pulse and exponential decay.",
 					latex: "y(t) = 0",
 				},
 				{
@@ -405,7 +407,8 @@ export function generateConvolutionProblem(
 			const steps: SolutionStep[] = [
 				{
 					title: "Integral Setup",
-					description: "Set up the convolution integral for $t \\ge 0$.",
+					description:
+						"Set up the convolution integral for $t \\ge 0$.",
 					latex: `y(t) = \\int_0^t e^{-${a1}\\tau} e^{-${a2}(t - \\tau)} d\\tau`,
 				},
 				{
@@ -512,7 +515,8 @@ export function generateConvolutionProblem(
 				solutionSteps: [
 					{
 						title: "Piecewise Convolution Setup",
-						description: "Integrate overlapping triangular and rectangular pulse regions.",
+						description:
+							"Integrate overlapping triangular and rectangular pulse regions.",
 						latex: "y(t) = (\\operatorname{tri} * \\operatorname{rect})(t)",
 					},
 				],
@@ -529,7 +533,6 @@ export function generateConvolutionProblem(
 		}
 	}
 }
-
 
 /**
  * Evaluates rectangular pulse signal rect( (t - tStart - width/2) / width ).
@@ -662,8 +665,10 @@ export function solveRectRectConvolution(
 		pairType: "rect_rect",
 		intervals,
 		eval: evalFn,
-		evalX: (tau: number) => evalRect(tau, rect1.tStart, rect1.width, rect1.height),
-		evalH: (tau: number) => evalRect(tau, rect2.tStart, rect2.width, rect2.height),
+		evalX: (tau: number) =>
+			evalRect(tau, rect1.tStart, rect1.width, rect1.height),
+		evalH: (tau: number) =>
+			evalRect(tau, rect2.tStart, rect2.width, rect2.height),
 	};
 }
 
@@ -740,8 +745,10 @@ export function solveShiftedRectConvolution(
 		pairType: "rect_shifted_rect",
 		intervals,
 		eval: evalFn,
-		evalX: (tau: number) => evalRect(tau, rect1.tStart, rect1.width, rect1.height),
-		evalH: (tau: number) => evalRect(tau, rect2.tStart, rect2.width, rect2.height),
+		evalX: (tau: number) =>
+			evalRect(tau, rect1.tStart, rect1.width, rect1.height),
+		evalH: (tau: number) =>
+			evalRect(tau, rect2.tStart, rect2.width, rect2.height),
 	};
 }
 
@@ -752,7 +759,8 @@ export function solveShiftedRectConvolution(
 export function solveMultiRectConvolution(): ConvolutionResult {
 	// x(t) = rect in [0, 1] + rect in [3, 4]
 	// h(t) = rect in [0, 2]
-	const evalX = (tau: number) => evalRect(tau, 0, 1, 1) + evalRect(tau, 3, 1, 1);
+	const evalX = (tau: number) =>
+		evalRect(tau, 0, 1, 1) + evalRect(tau, 3, 1, 1);
 	const evalH = (tau: number) => evalRect(tau, 0, 2, 1);
 
 	// y(t) = (rect[0,1] * rect[0,2]) + (rect[3,4] * rect[0,2])
@@ -893,7 +901,8 @@ export function solveRectExpConvolution(
 		pairType: "rect_exp",
 		intervals,
 		eval: evalFn,
-		evalX: (tau: number) => evalRect(tau, rect.tStart, rect.width, rect.height),
+		evalX: (tau: number) =>
+			evalRect(tau, rect.tStart, rect.width, rect.height),
 		evalH: (tau: number) => evalExpDecay(tau, expSignal.a, expSignal.K),
 	};
 }
@@ -913,7 +922,8 @@ export function solveExpExpConvolution(
 	const K = exp1.K * exp2.K;
 
 	if (a1 === a2) {
-		const evalFn = (t: number): number => (t < 0 ? 0 : K * t * Math.exp(-a1 * t));
+		const evalFn = (t: number): number =>
+			t < 0 ? 0 : K * t * Math.exp(-a1 * t);
 		return {
 			pairType: "exp_exp",
 			intervals: [

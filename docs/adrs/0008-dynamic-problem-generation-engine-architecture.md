@@ -41,17 +41,19 @@ Every math engine module (`odes.ts`, `laplace.ts`, `fourier-transform.ts`, `circ
 1. **Parameter Synthesizer**: Randomizes coefficients, frequencies, poles, component values, or waveform parameters within well-behaved ECE 210 bounds (e.g., distinct integer poles $p_i \in [-5, -1]$, clean corner frequencies $\omega_c$, or standard pulse widths).
 2. **Analytical Derivation**: Invokes symbolic solvers (`evaluatePfdResidues`, `evaluateTransferFunction`, `computeFourierCoefficients`, etc.) to derive exact reference answer strings and solution steps.
 3. **Dual Representation**:
-   - `promptLatex` & `referenceAnswerLatex` formatted for KaTeX.
-   - `eval(t)` numerical closures for live graph rendering.
+    - `promptLatex` & `referenceAnswerLatex` formatted for KaTeX.
+    - `eval(t)` numerical closures for live graph rendering.
 4. **Historical Bank Preservation**: Handcrafted exam problems remain in `*_EXAM_BANK` as curated reference suites.
 
 ## Consequences
 
 ### Good
+
 - **Endless Student Practice**: Users can click "Generate Next Problem" infinitely across all 6 core SignalLab topic modules.
 - **Single Source of Truth**: Eliminates duplication between static step text and engine calculations.
 - **Full Alignment with ECE 210 Standards**: All step derivations follow exact symbolic formatting ($\frac{a}{b}$, $\operatorname{rect}$, $\operatorname{sinc}$, $\operatorname{Re}$) per ADR 0005 and ADR 0007.
 
 ### Trade-offs & Considerations
+
 - **Parameter Bounds Validation**: Parameter generators must be carefully constrained to avoid ill-conditioned numerical scenarios (e.g., divide-by-zero, overlapping poles in single-pole PFD routines).
 - **Refactoring Scope**: Requires updating generator functions in `laplace.ts`, `fourier-transform.ts`, `circuits.ts`, `convolution.ts`, and `fourier-series.ts`.

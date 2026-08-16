@@ -8,15 +8,15 @@ import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 
 /** Supported classic periodic waveform categories */
 export type FourierWaveformType =
-	| "square"
-	| "square_odd"
-	| "square_even"
-	| "triangle"
-	| "triangle_odd"
-	| "triangle_even"
-	| "sawtooth"
-	| "half_wave_sine"
-	| "full_wave_sine";
+	| "square" // Standard square wave
+	| "square_odd" // Odd-symmetric square wave
+	| "square_even" // Even-symmetric square wave
+	| "triangle" // Standard triangle wave
+	| "triangle_odd" // Odd-symmetric triangle wave
+	| "triangle_even" // Even-symmetric triangle wave
+	| "sawtooth" // Sawtooth waveform
+	| "half_wave_sine" // Half-wave rectified sine
+	| "full_wave_sine"; // Full-wave rectified sine
 
 /** Waveform symmetry classification */
 export type SignalSymmetry = "even" | "odd" | "half_wave" | "none";
@@ -352,7 +352,9 @@ export function computeFourierCoefficients(
 		}
 		default: {
 			const _exhaustiveCheck: never = waveformType;
-			throw new Error(`Unsupported waveform type: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }
@@ -513,7 +515,8 @@ export function generateFourierItsData(
 			even: "Even signals mirror across the vertical axis ($x(-t) = x(t)$).",
 			odd: "Odd signals reflect across the origin ($x(-t) = -x(t)$).",
 			none: "Check symmetry around $t=0$. Notice if the left and right halves mirror or invert.",
-			half_wave: "Half-wave odd symmetry requires $x(t - T_0/2) = -x(t)$.",
+			half_wave:
+				"Half-wave odd symmetry requires $x(t - T_0/2) = -x(t)$.",
 		},
 	};
 
@@ -582,93 +585,94 @@ export function generateFourierItsData(
 	const step5OptionsRaw: FourierItsOption[] =
 		symmetry === "odd"
 			? [
-				{
-					id: "c1",
-					latex: `b_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-					isCorrect: true,
-				},
-				{
-					id: "d1",
-					latex: `b_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-					isCorrect: false,
-					feedback:
-						"Misconception: You used $1/T_0$. Trigonometric coefficients require a scaling factor of $2/T_0$.",
-				},
-				{
-					id: "d2",
-					latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
-					isCorrect: false,
-					feedback:
-						"Misconception: You are setting up the integral for $a_n$ (cosine), but we already determined $a_n=0$ due to odd symmetry!",
-				},
-				{
-					id: "d3",
-					latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
-					isCorrect: false,
-					feedback:
-						"Sign Error: Exponential Fourier coefficients require $e^{-j n \\omega_0 t}$ with a negative exponent.",
-				},
-			]
-			: symmetry === "even"
-				? [
 					{
 						id: "c1",
-						latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
+						latex: `b_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
 						isCorrect: true,
 					},
 					{
 						id: "d1",
-						latex: `a_n = \\frac{1}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
+						latex: `b_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
 						isCorrect: false,
 						feedback:
-							"Misconception: You used $1/T_0$. Trigonometric Fourier coefficients require $2/T_0$.",
+							"Misconception: You used $1/T_0$. Trigonometric coefficients require a scaling factor of $2/T_0$.",
 					},
 					{
 						id: "d2",
-						latex: `b_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-						isCorrect: false,
-						feedback:
-							"Misconception: You are setting up the integral for $b_n$ (sine), but $b_n=0$ for even symmetry!",
-					},
-					{
-						id: "d3",
-						latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos(2 n \\pi t) dt`,
-						isCorrect: false,
-						feedback:
-							"Frequency Error: Fundamental frequency must be $\\omega_0 = \\frac{2\\pi}{T_0}$, not $2\\pi$.",
-					},
-				]
-				: [
-					{
-						id: "c1",
-						latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
-						isCorrect: true,
-					},
-					{
-						id: "d1",
-						latex: `c_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
-						isCorrect: false,
-						feedback:
-							"Misconception: You used $2/T_0$. Exponential coefficients require a factor of $1/T_0$.",
-					},
-					{
-						id: "d2",
-						latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
-						isCorrect: false,
-						feedback:
-							"Sign Error: The exponential transform kernel requires $e^{-j n \\omega_0 t}$ with a negative sign.",
-					},
-					{
-						id: "d3",
 						latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
 						isCorrect: false,
 						feedback:
-							"Without symmetry, using Trigonometric form requires evaluating both $a_n$ and $b_n$. Exponential form $c_n$ is preferred.",
+							"Misconception: You are setting up the integral for $a_n$ (cosine), but we already determined $a_n=0$ due to odd symmetry!",
 					},
-				];
+					{
+						id: "d3",
+						latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
+						isCorrect: false,
+						feedback:
+							"Sign Error: Exponential Fourier coefficients require $e^{-j n \\omega_0 t}$ with a negative exponent.",
+					},
+				]
+			: symmetry === "even"
+				? [
+						{
+							id: "c1",
+							latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
+							isCorrect: true,
+						},
+						{
+							id: "d1",
+							latex: `a_n = \\frac{1}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
+							isCorrect: false,
+							feedback:
+								"Misconception: You used $1/T_0$. Trigonometric Fourier coefficients require $2/T_0$.",
+						},
+						{
+							id: "d2",
+							latex: `b_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
+							isCorrect: false,
+							feedback:
+								"Misconception: You are setting up the integral for $b_n$ (sine), but $b_n=0$ for even symmetry!",
+						},
+						{
+							id: "d3",
+							latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos(2 n \\pi t) dt`,
+							isCorrect: false,
+							feedback:
+								"Frequency Error: Fundamental frequency must be $\\omega_0 = \\frac{2\\pi}{T_0}$, not $2\\pi$.",
+						},
+					]
+				: [
+						{
+							id: "c1",
+							latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
+							isCorrect: true,
+						},
+						{
+							id: "d1",
+							latex: `c_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
+							isCorrect: false,
+							feedback:
+								"Misconception: You used $2/T_0$. Exponential coefficients require a factor of $1/T_0$.",
+						},
+						{
+							id: "d2",
+							latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
+							isCorrect: false,
+							feedback:
+								"Sign Error: The exponential transform kernel requires $e^{-j n \\omega_0 t}$ with a negative sign.",
+						},
+						{
+							id: "d3",
+							latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
+							isCorrect: false,
+							feedback:
+								"Without symmetry, using Trigonometric form requires evaluating both $a_n$ and $b_n$. Exponential form $c_n$ is preferred.",
+						},
+					];
 
 	const step5: FourierItsStep5 = {
-		successMsg: "Correct Integral Formulation! Notice the scaling constant and kernel match the symmetry.",
+		successMsg:
+			"Correct Integral Formulation! Notice the scaling constant and kernel match the symmetry.",
 		options: shuffleArray(step5OptionsRaw),
 		hints: [
 			"Identify the standard definition for your chosen coefficient type ($a_n, b_n$, or $c_n$).",
@@ -681,38 +685,9 @@ export function generateFourierItsData(
 	const step6OptionsRaw: FourierItsOption[] =
 		symmetry === "odd"
 			? [
-				{
-					id: "c1",
-					latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-					isCorrect: true,
-				},
-				{
-					id: "d1",
-					latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
-					isCorrect: false,
-					feedback:
-						"Trigonometric Mismatch: Odd signals must evaluate to sine harmonics, not cosines.",
-				},
-				{
-					id: "d2",
-					latex: `x(t) = \\frac{${A}}{2} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-					isCorrect: false,
-					feedback:
-						"DC Offset Error: Odd signals have zero average area, so $a_0 = 0$.",
-				},
-				{
-					id: "d3",
-					latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-					isCorrect: false,
-					feedback:
-						"Scale Factor Error: Missed a factor of 2 in coefficient integration evaluation.",
-				},
-			]
-			: symmetry === "even"
-				? [
 					{
 						id: "c1",
-						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\cos\\left(n ${w0Latex} t\\right)`,
+						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
 						isCorrect: true,
 					},
 					{
@@ -720,51 +695,80 @@ export function generateFourierItsData(
 						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
 						isCorrect: false,
 						feedback:
-							"Harmonic Sign Error: Missing the alternating $\\sin(n\\pi/2)$ factor that alternates signs for odd $n$.",
+							"Trigonometric Mismatch: Odd signals must evaluate to sine harmonics, not cosines.",
 					},
 					{
 						id: "d2",
-						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\sin\\left(n ${w0Latex} t\\right)`,
+						latex: `x(t) = \\frac{${A}}{2} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
 						isCorrect: false,
 						feedback:
-							"Trigonometric Mismatch: Even signals must be composed of cosine terms, not sines.",
+							"DC Offset Error: Odd signals have zero average area, so $a_0 = 0$.",
 					},
 					{
 						id: "d3",
-						latex: `x(t) = ${A} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
+						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
 						isCorrect: false,
 						feedback:
-							"Multiple Errors: Check DC offset $a_0$ and the integration scaling factor.",
+							"Scale Factor Error: Missed a factor of 2 in coefficient integration evaluation.",
 					},
 				]
+			: symmetry === "even"
+				? [
+						{
+							id: "c1",
+							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: true,
+						},
+						{
+							id: "d1",
+							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"Harmonic Sign Error: Missing the alternating $\\sin(n\\pi/2)$ factor that alternates signs for odd $n$.",
+						},
+						{
+							id: "d2",
+							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\sin\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"Trigonometric Mismatch: Even signals must be composed of cosine terms, not sines.",
+						},
+						{
+							id: "d3",
+							latex: `x(t) = ${A} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"Multiple Errors: Check DC offset $a_0$ and the integration scaling factor.",
+						},
+					]
 				: [
-					{
-						id: "c1",
-						latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-						isCorrect: true,
-					},
-					{
-						id: "d1",
-						latex: `x(t) = \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"DC Offset Error: Rectified sines have a non-zero average DC value $a_0 = A/\\pi$.",
-					},
-					{
-						id: "d2",
-						latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 + n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"Denominator Sign Error: Check the $(1 - n^2)$ term from integration by parts.",
-					},
-					{
-						id: "d3",
-						latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\sin\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"Harmonic Mismatch: Even harmonics of rectified waveforms appear with cosine basis functions.",
-					},
-				];
+						{
+							id: "c1",
+							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: true,
+						},
+						{
+							id: "d1",
+							latex: `x(t) = \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"DC Offset Error: Rectified sines have a non-zero average DC value $a_0 = A/\\pi$.",
+						},
+						{
+							id: "d2",
+							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 + n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"Denominator Sign Error: Check the $(1 - n^2)$ term from integration by parts.",
+						},
+						{
+							id: "d3",
+							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\sin\\left(n ${w0Latex} t\\right)`,
+							isCorrect: false,
+							feedback:
+								"Harmonic Mismatch: Even harmonics of rectified waveforms appear with cosine basis functions.",
+						},
+					];
 
 	const step6: FourierItsStep6 = {
 		options: shuffleArray(step6OptionsRaw),
@@ -826,16 +830,23 @@ export function generateFourierSeriesProblem(
 		{
 			title: "Step 3: Vanishing Coefficients",
 			description: `Identify vanishing harmonics based on symmetry shortcuts.`,
-			latex: coeffs.symmetry === "odd" ? "a_0 = 0, \\; a_n = 0 \\quad (\\text{sine harmonics only})" : coeffs.symmetry === "even" ? "b_n = 0 \\quad (\\text{cosine harmonics only})" : "\\text{All coefficients must be computed.}",
+			latex:
+				coeffs.symmetry === "odd"
+					? "a_0 = 0, \\; a_n = 0 \\quad (\\text{sine harmonics only})"
+					: coeffs.symmetry === "even"
+						? "b_n = 0 \\quad (\\text{cosine harmonics only})"
+						: "\\text{All coefficients must be computed.}",
 		},
 		{
 			title: "Step 4: Calculate Coefficients",
-			description: "Calculate non-zero harmonic coefficients over one period.",
+			description:
+				"Calculate non-zero harmonic coefficients over one period.",
 			latex: `a_n = ${coeffs.symmetry === "odd" ? "0" : `\\frac{4(${A})}{\\pi n}`}, \\quad b_n = ${coeffs.symmetry === "even" ? "0" : `\\frac{4(${A})}{\\pi n}`}`,
 		},
 		{
 			title: "Step 5: Convert to Exponential Series (cn)",
-			description: "Exponential series coefficient relationship c_n = (a_n - j b_n)/2.",
+			description:
+				"Exponential series coefficient relationship c_n = (a_n - j b_n)/2.",
 			latex: `c_n = \\frac{${A}}{\\pi n}`,
 		},
 	];
@@ -866,4 +877,3 @@ export function generateFourierSeriesProblem(
 		itsData,
 	};
 }
-

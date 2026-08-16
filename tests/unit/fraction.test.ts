@@ -86,4 +86,3 @@ describe("parseNumericInput", () => {
 		expect(Number.isNaN(parseNumericInput("++5"))).toBe(true);
 	});
 });
-

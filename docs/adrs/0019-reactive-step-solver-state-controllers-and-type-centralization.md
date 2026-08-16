@@ -46,7 +46,7 @@ flowchart TD
         BaseState["BaseStepSolverState\n(currentStep, hintTier, isCompleted, advanceToStep)"]
         FourierState["FourierStepSolverState\n(Step 1-6 validations, units, symmetries)"]
         OdeState["OdeStepSolverState\n(Step 1-7 validations, roots, ansatz, previewCharEq)"]
-        
+
         BaseState --> FourierState
         BaseState --> OdeState
     end
@@ -64,24 +64,24 @@ flowchart TD
 ### Architectural & Implementation Details
 
 1. **Shared ITS Data Contracts**:
-   - `ItsOption` and `BaseItsStep` are exported from [`src/lib/math-engine/types.ts`](../../src/lib/math-engine/types.ts).
-   - Domain step interfaces (`OdeItsStep1`..`OdeItsStep7`, `FourierItsStep1`..`FourierItsStep6`) extend `BaseItsStep`.
-   - `OdeItsOption` and `FourierItsOption` are unified as type aliases to `ItsOption`.
+    - `ItsOption` and `BaseItsStep` are exported from [`src/lib/math-engine/types.ts`](../../src/lib/math-engine/types.ts).
+    - Domain step interfaces (`OdeItsStep1`..`OdeItsStep7`, `FourierItsStep1`..`FourierItsStep6`) extend `BaseItsStep`.
+    - `OdeItsOption` and `FourierItsOption` are unified as type aliases to `ItsOption`.
 
 2. **Universal Stepper Base Controller**:
-   - [`BaseStepSolverState`](../../src/lib/components/solvers/base-step-solver.svelte.ts) manages `currentStep`, `isCompleted`, `hintTier` (3-tier cap), `advanceToStep()`, `revealNextHint()`, and completion callback execution.
+    - [`BaseStepSolverState`](../../src/lib/components/solvers/base-step-solver.svelte.ts) manages `currentStep`, `isCompleted`, `hintTier` (3-tier cap), `advanceToStep()`, `revealNextHint()`, and completion callback execution.
 
 3. **Reactive Getter Closure Pattern**:
-   - Class constructors accept a closure getter (`getProblem: () => ProblemType`).
-   - Classes expose `get problem(): ProblemType { return this.getProblem(); }`.
-   - Derived calculations (`$derived.by`) reading `this.problem` automatically subscribe to parent component props, ensuring zero stale state and zero `state_referenced_locally` warnings.
+    - Class constructors accept a closure getter (`getProblem: () => ProblemType`).
+    - Classes expose `get problem(): ProblemType { return this.getProblem(); }`.
+    - Derived calculations (`$derived.by`) reading `this.problem` automatically subscribe to parent component props, ensuring zero stale state and zero `state_referenced_locally` warnings.
 
 4. **Step Derivations Encapsulation**:
-   - Derived mathematical expressions (such as `previewCharEq` and `correctAnsatz` in `OdeStepSolverState`) are declared as `$derived.by` fields directly on the controller class, keeping mathematical derivations cohesive and testable.
+    - Derived mathematical expressions (such as `previewCharEq` and `correctAnsatz` in `OdeStepSolverState`) are declared as `$derived.by` fields directly on the controller class, keeping mathematical derivations cohesive and testable.
 
 5. **Lean Presentation Components**:
-   - `.svelte` components instantiate a single controller instance (`const solver = new OdeStepSolverState(() => problem, () => onComplete)`).
-   - Component `<script>` sections are reduced to ~25 lines with zero `biome-ignore` comments.
+    - `.svelte` components instantiate a single controller instance (`const solver = new OdeStepSolverState(() => problem, () => onComplete)`).
+    - Component `<script>` sections are reduced to ~25 lines with zero `biome-ignore` comments.
 
 ---
 

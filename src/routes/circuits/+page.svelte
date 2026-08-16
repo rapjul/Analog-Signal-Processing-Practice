@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Circuit Analysis & Transfer Functions H(s) Module Route (/circuits).
+	 *
 	 * Implements 6 topology selection, dynamic component value sliders (R, L, C),
 	 * transfer function H(s) derivation, and Bode plot calculation.
 	 */
@@ -56,7 +57,10 @@
 	<!-- Topology Bar -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="topology-select" class="control-label">
+			<label
+				for="topology-select"
+				class="control-label"
+			>
 				Circuit Topology:
 			</label>
 			<select
@@ -151,7 +155,10 @@
 				{#each currentProblem.solutionSteps as step}
 					<div class="step-card">
 						<h4 class="step-heading">{step.title}</h4>
-						<MathBlock math={step.latex} compact={true} />
+						<MathBlock
+							math={step.latex}
+							compact={true}
+						/>
 					</div>
 				{/each}
 			</div>

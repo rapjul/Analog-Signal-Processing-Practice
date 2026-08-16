@@ -49,9 +49,10 @@ function checkMathLabels(): void {
 		while ((match = mathFormulaRegex.exec(content)) !== null) {
 			const tagAttributes = match[1];
 			// Check if label attribute exists inside the tag attributes
-			const hasLabel = /\blabel\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/i.test(
-				tagAttributes,
-			);
+			const hasLabel =
+				/\blabel\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/i.test(
+					tagAttributes,
+				);
 
 			if (!hasLabel) {
 				// Find line number of the match

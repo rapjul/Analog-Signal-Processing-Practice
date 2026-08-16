@@ -41,7 +41,10 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 	});
 
 	it("generates valid ITS step data for even square wave", () => {
-		const coeffs = computeFourierCoefficients("square_even", { A: 1, T0: 4 });
+		const coeffs = computeFourierCoefficients("square_even", {
+			A: 1,
+			T0: 4,
+		});
 		const itsData = generateFourierItsData(coeffs);
 
 		expect(itsData.step1.expectedT).toBe(4);

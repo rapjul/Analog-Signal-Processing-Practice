@@ -6,11 +6,11 @@
 
 /** Available CTFT transform signal types */
 export type CtftSignalType =
-	| "rect"
-	| "exponential"
-	| "gaussian"
-	| "delta"
-	| "cos";
+	| "rect" // Rectangular pulse rect(t/T)
+	| "exponential" // One-sided exponential decay e^(-at) u(t)
+	| "gaussian" // Gaussian pulse e^(-at^2)
+	| "delta" // Dirac delta function delta(t)
+	| "cos"; // Cosine sinusoidal modulation
 
 /** Interface representing a CTFT transform pair LaTeX output */
 export interface CtftPair {
@@ -99,7 +99,9 @@ export function getCtftPairLatex(
 		}
 		default: {
 			const _exhaustiveCheck: never = type;
-			throw new Error(`Unsupported CTFT signal type: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported CTFT signal type: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }
@@ -140,7 +142,8 @@ export function evaluateCtftSpectrum(
 		}
 		case "gaussian": {
 			const a = params.a ?? 1;
-			const val = Math.sqrt(Math.PI / a) * Math.exp(-(omega * omega) / (4 * a));
+			const val =
+				Math.sqrt(Math.PI / a) * Math.exp(-(omega * omega) / (4 * a));
 			return { omega, magnitude: val, phase: 0 };
 		}
 		case "delta": {
@@ -153,7 +156,9 @@ export function evaluateCtftSpectrum(
 		}
 		default: {
 			const _exhaustiveCheck: never = type;
-			throw new Error(`Unsupported spectrum signal type: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported spectrum signal type: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }
@@ -190,7 +195,9 @@ export function evaluateEnergySpectrum(
  * @param {CtftSignalType} type Target signal type key
  * @returns {CtftProblem} CtftProblem object containing LaTeX prompt, reference answer, and steps
  */
-export function generateCtftProblem(type: CtftSignalType = "exponential"): CtftProblem {
+export function generateCtftProblem(
+	type: CtftSignalType = "exponential",
+): CtftProblem {
 	const aValues = [1, 2, 3, 4, 5];
 	const tValues = [1, 2, 4, 6];
 	const w0Values = [2, 3, 4, 5, 10];
@@ -208,11 +215,12 @@ export function generateCtftProblem(type: CtftSignalType = "exponential"): CtftP
 	const hasShift = Math.random() < 0.4 && type !== "delta";
 
 	if (hasShift) {
-		const shiftedTimeLatex = type === "rect"
-			? `\\operatorname{rect}\\left(\\frac{t - ${t0}}{${T}}\\right)`
-			: type === "exponential"
-				? `e^{-${a}(t - ${t0})} u(t - ${t0})`
-				: `${pair.timeLatex.replace("t", `(t - ${t0})`)}`;
+		const shiftedTimeLatex =
+			type === "rect"
+				? `\\operatorname{rect}\\left(\\frac{t - ${t0}}{${T}}\\right)`
+				: type === "exponential"
+					? `e^{-${a}(t - ${t0})} u(t - ${t0})`
+					: `${pair.timeLatex.replace("t", `(t - ${t0})`)}`;
 
 		const shiftedFreqLatex = `${pair.freqLatex} e^{-j ${t0} \\omega}`;
 
@@ -253,5 +261,3 @@ export function generateCtftProblem(type: CtftSignalType = "exponential"): CtftP
 		],
 	};
 }
-
-

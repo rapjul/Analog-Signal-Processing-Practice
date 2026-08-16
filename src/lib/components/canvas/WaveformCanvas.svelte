@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * WaveformCanvas Svelte 5 Component.
+	 *
 	 * Renders high-DPI responsive time-domain signal plots for ODE responses, transients, and convolutions.
 	 */
 
@@ -190,12 +191,17 @@
 			<MathText text={title} />
 		{/if}
 	</div>
-	<canvas bind:this={canvasEl} class="response-canvas" aria-label={title}
+	<canvas
+		bind:this={canvasEl}
+		class="response-canvas"
+		aria-label={title}
 	></canvas>
 	<div class="legend">
 		{#each curves as c}
 			<div class="legend-item">
-				<span class="legend-dot" style="background-color: {c.color}"
+				<span
+					class="legend-dot"
+					style="background-color: {c.color}"
 				></span>
 				<span class="legend-label">
 					{#if c.math}

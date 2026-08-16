@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Laplace Transform & S-Domain Module Route (/laplace).
+	 *
 	 * Implements Bilateral/Unilateral Laplace inverse transforms, PFD breakdown,
 	 * ROC analysis, and pole-zero stability checks.
 	 */
@@ -89,7 +90,10 @@
 			</div>
 
 			<div class="input-section">
-				<label for="laplace-input" class="input-label">
+				<label
+					for="laplace-input"
+					class="input-label"
+				>
 					<MathText text={"Enter $x(t)$ in LaTeX:"} />
 				</label>
 				<input
@@ -144,7 +148,10 @@
 				{#each currentProblem.solutionSteps as step}
 					<div class="step-card">
 						<h4 class="step-heading">{step.title}</h4>
-						<MathBlock math={step.latex} compact={true} />
+						<MathBlock
+							math={step.latex}
+							compact={true}
+						/>
 					</div>
 				{/each}
 			</div>

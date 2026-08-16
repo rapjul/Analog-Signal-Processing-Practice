@@ -10,7 +10,7 @@ informed: []
 
 ## Context and Problem Statement
 
-Users practicing Analog Signal Processing concepts on web and mobile devices need to input complex mathematical answers (such as ODE response terms, piecewise interval definitions, pole/zero coordinates, and phasor representations). 
+Users practicing Analog Signal Processing concepts on web and mobile devices need to input complex mathematical answers (such as ODE response terms, piecewise interval definitions, pole/zero coordinates, and phasor representations).
 
 Requiring users to type raw LaTeX strings (e.g. `\frac{1}{2} e^{-2t} u(t)` or `\begin{cases} ... \end{cases}`) introduces severe user friction, high syntax error rates, and mobile keyboard entry difficulties.
 
@@ -34,9 +34,11 @@ Chosen Option: **Option 3**, because domain-specific guided forms present intuit
 ### Consequences
 
 #### Good
+
 - Users submit answers easily without needing to remember LaTeX commands.
 - Built-in client-side validation prevents invalid mathematical inputs before submission.
 - UI components (`PiecewiseIntervalInput`, `OdeResponseInput`, `PhasorInput`, `PoleZeroInput`) are reusable across practice problem types.
 
 #### Bad
+
 - Custom input UI components must be designed and maintained for each ASP domain input pattern.

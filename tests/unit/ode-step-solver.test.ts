@@ -58,7 +58,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.correctAnsatz.length).toBeGreaterThan(0);
 		expect(
 			solver.correctAnsatz.includes("y_p(t)") ||
-			solver.correctAnsatz.includes("="),
+				solver.correctAnsatz.includes("="),
 		).toBe(true);
 	});
 
@@ -561,9 +561,10 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		}
 
 		// Phase 3: Correct conceptual option
-		const correctOption = problem.itsData.step7.conceptQuestion.options.find(
-			(o) => o.isCorrect,
-		);
+		const correctOption =
+			problem.itsData.step7.conceptQuestion.options.find(
+				(o) => o.isCorrect,
+			);
 		expect(correctOption).toBeDefined();
 		solver.step7.selectedConcept = correctOption?.id ?? "";
 		solver.checkStep7Concept();
@@ -611,9 +612,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("y_p") ||
-				opt.latex.includes("e^{") ||
-				opt.latex.includes("\\cos") ||
-				opt.latex.includes("="),
+					opt.latex.includes("e^{") ||
+					opt.latex.includes("\\cos") ||
+					opt.latex.includes("="),
 			).toBe(true);
 		}
 	});

@@ -1,4 +1,8 @@
-import { formatAttemptHistory, getModuleProgress, recordAttempt } from "$lib/db/database";
+import {
+	formatAttemptHistory,
+	getModuleProgress,
+	recordAttempt,
+} from "$lib/db/database";
 import { describe, expect, it } from "vitest";
 
 describe("IndexedDB & Progress Tracker (database.ts)", () => {

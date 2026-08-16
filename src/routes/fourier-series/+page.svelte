@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Fourier Series Practice Module Route (/fourier-series).
+	 *
 	 * Implements Trigonometric & Exponential Fourier Series coefficient derivation,
 	 * harmonic spectrum analysis, Gibbs phenomenon visualizer, and formula reference.
 	 */
@@ -60,7 +61,10 @@
 	<!-- Control Bar: Waveform Customization -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="waveform-select" class="control-label">
+			<label
+				for="waveform-select"
+				class="control-label"
+			>
 				Periodic Waveform Category:
 			</label>
 			<select

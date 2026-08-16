@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * FourierCanvas Svelte 5 Component.
+	 *
 	 * Dual-panel visualizer displaying:
 	 * 1. Time Domain: Ideal signal x(t) (dashed) vs. N-harmonic partial sum S_N(t) (cyan),
 	 *    demonstrating Gibbs phenomenon overshoot at discontinuities.
@@ -235,11 +236,13 @@
 			const padX = widthLower < 500 ? 15 : 30;
 
 			// Cap max stepX spacing to 36px per harmonic on wide screens
-			const rawStepX = (widthLower - padX * 2) / Math.max(1, currentDisplayN);
+			const rawStepX =
+				(widthLower - padX * 2) / Math.max(1, currentDisplayN);
 			const stepX = Math.min(36, rawStepX);
 			const spectrumContentW = stepX * Math.max(1, currentDisplayN);
 			// Center the spectrum plot horizontally if stepX was capped
-			const startX = padX + (widthLower - padX * 2 - spectrumContentW) / 2;
+			const startX =
+				padX + (widthLower - padX * 2 - spectrumContentW) / 2;
 
 			// Scale bar width generously (takes 70% of stepX on small screens, clamped between 3px and 22px)
 			const barWidth = Math.min(22, Math.max(3, stepX * 0.7));
@@ -440,7 +443,10 @@
 	<!-- Interactive Slider for Harmonic Count N -->
 	<div class="controls-bar">
 		<div class="slider-group">
-			<label for="harmonic-slider" class="slider-label">
+			<label
+				for="harmonic-slider"
+				class="slider-label"
+			>
 				Harmonic Limit:
 			</label>
 			<input

@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Navigation Header Svelte 5 Component.
+	 *
 	 * Displays SignalLab brand, module selector links, and theme toggle.
 	 */
 
@@ -96,13 +97,20 @@
 
 <header class="navbar">
 	<div class="nav-brand">
-		<a href="/" class="brand-link" onclick={closeMenu}>
+		<a
+			href="/"
+			class="brand-link"
+			onclick={closeMenu}
+		>
 			<span class="brand-icon">⚡</span>
 			<span class="brand-title">SignalLab</span>
 		</a>
 	</div>
 
-	<nav class="nav-links" class:open={isMenuOpen}>
+	<nav
+		class="nav-links"
+		class:open={isMenuOpen}
+	>
 		<a
 			href="/odes"
 			class="nav-link"
@@ -190,7 +198,10 @@
 	</div>
 </header>
 
-<FormulaDrawer isOpen={isFormulaDrawerOpen} onClose={closeFormulaDrawer} />
+<FormulaDrawer
+	isOpen={isFormulaDrawerOpen}
+	onClose={closeFormulaDrawer}
+/>
 
 <style>
 	.navbar {

@@ -30,9 +30,11 @@ Chosen Option: **Option 2**, because compiling the application as a pre-rendered
 ### Consequences
 
 #### Good
+
 - App can be installed as a PWA on mobile and desktop devices.
 - Zero server maintenance overhead or database costs.
 - All math calculations execute instantaneously in the browser.
 
 #### Bad
+
 - Server-side dynamic database storage is not available; local progress must be saved using IndexedDB (`idb`) or Web Storage.

@@ -244,7 +244,9 @@ export function evaluateTransferFunction(
 		}
 		default: {
 			const _exhaustiveCheck: never = topology;
-			throw new Error(`Unsupported topology: ${String(_exhaustiveCheck)}`);
+			throw new Error(
+				`Unsupported topology: ${String(_exhaustiveCheck)}`,
+			);
 		}
 	}
 }
@@ -256,7 +258,10 @@ export function evaluateTransferFunction(
  * @param {number} omega Frequency in rad/s
  * @returns {{ re: number; im: number }} Complex evaluation { re, im }
  */
-function evalPolyJw(coeffs: number[], omega: number): { re: number; im: number } {
+function evalPolyJw(
+	coeffs: number[],
+	omega: number,
+): { re: number; im: number } {
 	let re = 0;
 	let im = 0;
 	const n = coeffs.length - 1;
@@ -320,7 +325,9 @@ export function evaluateBodePoint(
  * @param {CircuitTopology} topology Target circuit topology key
  * @returns {CircuitProblem} CircuitProblem object containing LaTeX prompt, reference answer, and steps
  */
-export function generateCircuitProblem(topology: CircuitTopology = "series-rlc"): CircuitProblem {
+export function generateCircuitProblem(
+	topology: CircuitTopology = "series-rlc",
+): CircuitProblem {
 	// Discrete component value sets chosen to yield clean integer/rational coefficients in H(s)
 	const rValues = [10, 20, 50, 100, 200];
 	const lValues = [0.5, 1, 2, 5];

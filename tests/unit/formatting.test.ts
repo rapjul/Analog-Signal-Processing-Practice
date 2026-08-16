@@ -11,8 +11,12 @@ describe("formatCoefficientTerm", () => {
 	it("omits unit coefficient 1 for non-empty symbols", () => {
 		expect(formatCoefficientTerm(1, "y(t)", false)).toBe("+ y(t)");
 		expect(formatCoefficientTerm(1, "y(t)", true)).toBe("y(t)");
-		expect(formatCoefficientTerm(1, "\\frac{dy}{dt}", false)).toBe("+ \\frac{dy}{dt}");
-		expect(formatCoefficientTerm(1, "\\frac{d^2 y}{dt^2}", true)).toBe("\\frac{d^2 y}{dt^2}");
+		expect(formatCoefficientTerm(1, "\\frac{dy}{dt}", false)).toBe(
+			"+ \\frac{dy}{dt}",
+		);
+		expect(formatCoefficientTerm(1, "\\frac{d^2 y}{dt^2}", true)).toBe(
+			"\\frac{d^2 y}{dt^2}",
+		);
 		expect(formatCoefficientTerm(1, "s", false)).toBe("+ s");
 		expect(formatCoefficientTerm(1, "s", true)).toBe("s");
 	});
@@ -20,7 +24,9 @@ describe("formatCoefficientTerm", () => {
 	it("omits unit coefficient -1 for non-empty symbols with correct negative sign", () => {
 		expect(formatCoefficientTerm(-1, "y(t)", false)).toBe("- y(t)");
 		expect(formatCoefficientTerm(-1, "y(t)", true)).toBe("-y(t)");
-		expect(formatCoefficientTerm(-1, "\\frac{dy}{dt}", false)).toBe("- \\frac{dy}{dt}");
+		expect(formatCoefficientTerm(-1, "\\frac{dy}{dt}", false)).toBe(
+			"- \\frac{dy}{dt}",
+		);
 		expect(formatCoefficientTerm(-1, "s", false)).toBe("- s");
 		expect(formatCoefficientTerm(-1, "s", true)).toBe("-s");
 	});
@@ -28,8 +34,12 @@ describe("formatCoefficientTerm", () => {
 	it("includes numerical coefficient for values not equal to +/- 1", () => {
 		expect(formatCoefficientTerm(2, "y(t)", false)).toBe("+ 2 y(t)");
 		expect(formatCoefficientTerm(2, "y(t)", true)).toBe("2 y(t)");
-		expect(formatCoefficientTerm(-3, "\\frac{dy}{dt}", false)).toBe("- 3 \\frac{dy}{dt}");
-		expect(formatCoefficientTerm(-3, "\\frac{dy}{dt}", true)).toBe("-3 \\frac{dy}{dt}");
+		expect(formatCoefficientTerm(-3, "\\frac{dy}{dt}", false)).toBe(
+			"- 3 \\frac{dy}{dt}",
+		);
+		expect(formatCoefficientTerm(-3, "\\frac{dy}{dt}", true)).toBe(
+			"-3 \\frac{dy}{dt}",
+		);
 		expect(formatCoefficientTerm(4, "s", false)).toBe("+ 4 s");
 	});
 
@@ -112,20 +122,36 @@ describe("formatQuadraticPolynomial", () => {
 	});
 
 	it("formats characteristic equations with custom variable s", () => {
-		expect(formatQuadraticPolynomial(1, 2, 1, "s")).toBe("s^2 + 2 s + 1 = 0");
+		expect(formatQuadraticPolynomial(1, 2, 1, "s")).toBe(
+			"s^2 + 2 s + 1 = 0",
+		);
 		expect(formatQuadraticPolynomial(1, 1, 1, "s")).toBe("s^2 + s + 1 = 0");
-		expect(formatQuadraticPolynomial(1, -1, -1, "s")).toBe("s^2 - s - 1 = 0");
-		expect(formatQuadraticPolynomial(1, 4, 13, "s")).toBe("s^2 + 4 s + 13 = 0");
-		expect(formatQuadraticPolynomial(1, -6, 9, "s")).toBe("s^2 - 6 s + 9 = 0");
+		expect(formatQuadraticPolynomial(1, -1, -1, "s")).toBe(
+			"s^2 - s - 1 = 0",
+		);
+		expect(formatQuadraticPolynomial(1, 4, 13, "s")).toBe(
+			"s^2 + 4 s + 13 = 0",
+		);
+		expect(formatQuadraticPolynomial(1, -6, 9, "s")).toBe(
+			"s^2 - 6 s + 9 = 0",
+		);
 	});
 });
 
 describe("formatOdeLhs", () => {
 	it("formats ODE left-hand side omitting unit 1 and -1 coefficients", () => {
-		expect(formatOdeLhs(1, 2, 1)).toBe("\\frac{d^2 y}{dt^2} + 2 \\frac{dy}{dt} + y(t)");
-		expect(formatOdeLhs(1, 1, 1)).toBe("\\frac{d^2 y}{dt^2} + \\frac{dy}{dt} + y(t)");
-		expect(formatOdeLhs(1, -1, -1)).toBe("\\frac{d^2 y}{dt^2} - \\frac{dy}{dt} - y(t)");
-		expect(formatOdeLhs(1, 3, 2)).toBe("\\frac{d^2 y}{dt^2} + 3 \\frac{dy}{dt} + 2 y(t)");
+		expect(formatOdeLhs(1, 2, 1)).toBe(
+			"\\frac{d^2 y}{dt^2} + 2 \\frac{dy}{dt} + y(t)",
+		);
+		expect(formatOdeLhs(1, 1, 1)).toBe(
+			"\\frac{d^2 y}{dt^2} + \\frac{dy}{dt} + y(t)",
+		);
+		expect(formatOdeLhs(1, -1, -1)).toBe(
+			"\\frac{d^2 y}{dt^2} - \\frac{dy}{dt} - y(t)",
+		);
+		expect(formatOdeLhs(1, 3, 2)).toBe(
+			"\\frac{d^2 y}{dt^2} + 3 \\frac{dy}{dt} + 2 y(t)",
+		);
 	});
 });
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * PiecewiseIntervalInput Svelte 5 Component.
+	 *
 	 * Provides a structured form builder for defining piecewise signals and convolution intervals,
 	 * auto-synthesizing canonical LaTeX for the math engine.
 	 */
@@ -168,7 +169,11 @@
 		<span class="builder-title">
 			Interval Builder (Piecewise / Convolution)
 		</span>
-		<button type="button" class="add-row-btn" onclick={addInterval}>
+		<button
+			type="button"
+			class="add-row-btn"
+			onclick={addInterval}
+		>
 			+ Add Interval
 		</button>
 	</div>
@@ -194,7 +199,10 @@
 				</div>
 
 				<!-- Dynamic Boundary Inputs -->
-				<div class="section-divider" aria-hidden="true"></div>
+				<div
+					class="section-divider"
+					aria-hidden="true"
+				></div>
 
 				{#if row.conditionType === "t_less"}
 					<div class="field-group">
@@ -250,7 +258,10 @@
 				{/if}
 
 				<!-- Expression Input -->
-				<div class="section-divider" aria-hidden="true"></div>
+				<div
+					class="section-divider"
+					aria-hidden="true"
+				></div>
 
 				<div class="field-group flex-grow">
 					<label for="expr-{row.id}">Expression:</label>

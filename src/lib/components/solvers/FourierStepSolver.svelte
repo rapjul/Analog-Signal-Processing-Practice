@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * FourierStepSolver Svelte 5 Component.
+	 *
 	 * 6-Step Intelligent Tutoring System (ITS) for Fourier Series.
 	 * Guides students sequentially through period/frequency, symmetry classification,
 	 * vanishing shortcuts, form selection, integral setup, and final series evaluation.
@@ -90,7 +91,10 @@
 {/snippet}
 
 <div class="fourier-step-solver">
-	<Progress currentStep={solver.currentStep} totalSteps={solver.totalSteps} />
+	<Progress
+		currentStep={solver.currentStep}
+		totalSteps={solver.totalSteps}
+	/>
 
 	<!-- Step 1: Period and Frequency -->
 	<div
@@ -112,7 +116,10 @@
 				</p>
 				<div class="input-row-grid">
 					<div class="input-pair">
-						<label for="fourier-period-input" class="field-label">
+						<label
+							for="fourier-period-input"
+							class="field-label"
+						>
 							<MathText text={"Period $T_0$:"} />
 						</label>
 						<div class="input-with-unit">
@@ -137,7 +144,10 @@
 					</div>
 
 					<div class="input-pair">
-						<label for="fourier-freq-input" class="field-label">
+						<label
+							for="fourier-freq-input"
+							class="field-label"
+						>
 							<MathText
 								text={String.raw`Fundamental Freq $\omega_0$:`}
 							/>

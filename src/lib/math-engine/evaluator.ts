@@ -105,7 +105,8 @@ export function validateLatexAnswer(
 			isCorrect: false,
 			score: 0,
 			maxDifference: maxDiff,
-			message: "Incorrect. Check your roots, coefficients, or particular solution terms.",
+			message:
+				"Incorrect. Check your roots, coefficients, or particular solution terms.",
 		};
 	}
 
@@ -137,7 +138,9 @@ function evaluateCondition(cond: string, t: number): boolean {
 		.trim();
 
 	// Match between: a <= t <= b or a <= t < b or a < t < b
-	const betweenMatch = cleaned.match(/^(-?\d+(?:\.\d+)?)\s*(<=|<)\s*t\s*(<=|<)\s*(-?\d+(?:\.\d+)?)$/);
+	const betweenMatch = cleaned.match(
+		/^(-?\d+(?:\.\d+)?)\s*(<=|<)\s*t\s*(<=|<)\s*(-?\d+(?:\.\d+)?)$/,
+	);
 	if (betweenMatch) {
 		const lower = Number.parseFloat(betweenMatch[1]);
 		const op1 = betweenMatch[2];

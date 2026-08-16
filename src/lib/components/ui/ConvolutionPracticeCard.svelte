@@ -156,7 +156,11 @@
 		/>
 
 		<div class="action-bar">
-			<button type="button" class="btn-submit" onclick={handleSubmit}>
+			<button
+				type="button"
+				class="btn-submit"
+				onclick={handleSubmit}
+			>
 				✓ Submit & Validate Convolution
 			</button>
 		</div>

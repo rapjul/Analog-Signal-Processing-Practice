@@ -106,7 +106,10 @@
 				text={String.raw`Solve the following linear constant-coefficient ordinary differential equation for $t \ge 0$:`}
 			/>
 		</p>
-		<MathBlock math={problem.odeLatex} compact={true} />
+		<MathBlock
+			math={problem.odeLatex}
+			compact={true}
+		/>
 		<div class="initial-conditions">
 			<MathText
 				text={String.raw`<strong>Initial Conditions:</strong> $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$`}
@@ -116,7 +119,10 @@
 
 	<!-- Intelligent Tutoring Stepped Solver -->
 	<div class="solver-container">
-		<OdeStepSolver {problem} onComplete={handleProblemCompleted} />
+		<OdeStepSolver
+			{problem}
+			onComplete={handleProblemCompleted}
+		/>
 	</div>
 
 	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all steps) -->

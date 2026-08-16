@@ -94,7 +94,10 @@
 
 	<!-- Intelligent Tutoring Stepped Solver -->
 	<div class="solver-container">
-		<FourierStepSolver {problem} onComplete={handleProblemCompleted} />
+		<FourierStepSolver
+			{problem}
+			onComplete={handleProblemCompleted}
+		/>
 	</div>
 
 	<!-- Post-Solve Verification & Visualizers (Revealed upon completing all steps) -->

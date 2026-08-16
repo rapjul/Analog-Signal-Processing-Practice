@@ -1,9 +1,5 @@
 import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
-import type {
-	OdeItsOption,
-	OdeProblem,
-	RootType,
-} from "$lib/math-engine/odes";
+import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
@@ -228,7 +224,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				if (n1 === 1) term1 = "+ s";
 				else if (n1 === -1) term1 = "- s";
 				else if (n1 >= 0) term1 = `+ ${a1Str}s`;
-				else term1 = `- ${a1Str.startsWith("-") ? a1Str.slice(1).trim() : Math.abs(n1)}s`;
+				else
+					term1 = `- ${a1Str.startsWith("-") ? a1Str.slice(1).trim() : Math.abs(n1)}s`;
 			} else {
 				term1 = `+ ${a1Str}s`;
 			}
@@ -241,7 +238,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const n0 = parseNumericInput(a0Str);
 			if (!Number.isNaN(n0)) {
 				if (n0 >= 0) term0 = `+ ${a0Str}`;
-				else term0 = `- ${a0Str.startsWith("-") ? a0Str.slice(1).trim() : Math.abs(n0)}`;
+				else
+					term0 = `- ${a0Str.startsWith("-") ? a0Str.slice(1).trim() : Math.abs(n0)}`;
 			} else {
 				term0 = `+ ${a0Str}`;
 			}
@@ -322,7 +320,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			Math.abs(vA0 - this.problem.forcing.K) < 0.05 &&
 			Math.abs(vA0 - s1Data.expectedA0) >= 0.05
 		) {
-			this.setMisconception(this.step1, s1Data.misconceptions.forcing_rhs);
+			this.setMisconception(
+				this.step1,
+				s1Data.misconceptions.forcing_rhs,
+			);
 			return;
 		}
 
@@ -355,9 +356,13 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	previewComplexRoots = $derived.by((): string => {
 		const sig =
-			this.step2.sigma.trim() !== "" ? this.step2.sigma.trim() : "\\sigma";
+			this.step2.sigma.trim() !== ""
+				? this.step2.sigma.trim()
+				: "\\sigma";
 		const om =
-			this.step2.omegaD.trim() !== "" ? this.step2.omegaD.trim() : "\\omega_d";
+			this.step2.omegaD.trim() !== ""
+				? this.step2.omegaD.trim()
+				: "\\omega_d";
 		return String.raw`s = ${sig} \pm j ${om}`;
 	});
 
@@ -868,10 +873,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const expC1 = s7Data.ziConstants.C1;
 		const expC2 = s7Data.ziConstants.C2;
 
-		if (
-			Math.abs(vC1 - expC1) < 0.05 &&
-			Math.abs(vC2 - expC2) < 0.05
-		) {
+		if (Math.abs(vC1 - expC1) < 0.05 && Math.abs(vC2 - expC2) < 0.05) {
 			this.step7.ziZsPassed = true;
 			this.step7.subStep = "tr_ss";
 			this.clearFeedback();

@@ -13,14 +13,15 @@ informed: []
 In the initial SignalLab interface, heavy interactive canvas visualizers (such as `FourierCanvas` with live partial sums and harmonic power spectrum bars, or `WaveformCanvas` with multi-curve ODE response plots) were rendered at the top of the practice card or immediately below the problem statement.
 
 Rendering complex analytical visualizers upfront caused several issues:
+
 1. **Sensory & Visual Distraction**: Students confronted busy graphs and interactive sliders before they had even identified the signal's period, symmetry, or characteristic roots.
-2. **Cognitive Inversion**: In analog signal processing, physical simulations and frequency spectra are the *outcome* and *verification* of mathematical derivation, not the starting point.
+2. **Cognitive Inversion**: In analog signal processing, physical simulations and frequency spectra are the _outcome_ and _verification_ of mathematical derivation, not the starting point.
 3. **Diminished Completion Reward**: When graphs are already visible upfront, solving the mathematical steps provides no visual payoff or satisfying conclusion.
 
 ## Decision Drivers
 
 - Maintain student focus on the active algebraic and conceptual derivation steps.
-- Distinguish between *essential problem-definition figures* (e.g. circuit schematics, piece-wise waveform definitions) and *analytical solution visualizers* (e.g. harmonic spectra, complete response curves, Gibbs phenomenon overshoot).
+- Distinguish between _essential problem-definition figures_ (e.g. circuit schematics, piece-wise waveform definitions) and _analytical solution visualizers_ (e.g. harmonic spectra, complete response curves, Gibbs phenomenon overshoot).
 - Reward successful problem completion with interactive, high-fidelity physical simulations.
 
 ## Considered Options
@@ -46,12 +47,15 @@ Chosen Option: **Option 3**, because it aligns visual feedback with the natural 
 ## Consequences
 
 ### Positive
+
 - Greatly reduces visual clutter and cognitive noise at the start of practice problems.
 - Creates engaging "completion reward" when the student finishes the mathematical derivation.
 - Keeps canvas rendering and animation overhead out of the initial page mount cycle.
 
 ### Negative / Trade-offs
+
 - Students who want to visually explore the waveform response before solving must finish the derivation or use a separate sandbox mode.
 
 ### Neutral
+
 - Canvas performance and WebGL/HTML5 2D context rendering logic remain unchanged.

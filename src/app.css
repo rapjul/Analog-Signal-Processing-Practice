@@ -35,7 +35,8 @@
 	--color-info-bg: rgba(59, 130, 246, 0.15);
 
 	/* Typography */
-	--font-serif: "KaTeX_Main", "Georgia", "Cambria", "Times New Roman", Times, serif;
+	--font-serif:
+		"KaTeX_Main", "Georgia", "Cambria", "Times New Roman", Times, serif;
 	--font-sans: var(--font-serif);
 	--font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 

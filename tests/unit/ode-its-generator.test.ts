@@ -20,11 +20,15 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 
 		// Step 3: Homogeneous Form
 		expect(problem.itsData.step3.correctTemplate).toBe("distinct_real");
-		expect(problem.itsData.step3.misconceptions.repeated_real).toBeDefined();
+		expect(
+			problem.itsData.step3.misconceptions.repeated_real,
+		).toBeDefined();
 
 		// Step 4: Particular Solution Ansatz
 		expect(problem.itsData.step4.options.length).toBe(4);
-		const correctAnsatz = problem.itsData.step4.options.find((o) => o.isCorrect);
+		const correctAnsatz = problem.itsData.step4.options.find(
+			(o) => o.isCorrect,
+		);
 		expect(correctAnsatz).toBeDefined();
 		expect(correctAnsatz?.latex).toContain("K_p");
 
@@ -44,11 +48,21 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		expect(problem.itsData.step7.zsConstants.C2).toBeDefined();
 		expect(problem.itsData.step7.y_tr_latex).toBeDefined();
 		expect(problem.itsData.step7.y_ss_latex).toBeDefined();
-		expect(problem.itsData.step7.transientOptions.length).toBeGreaterThanOrEqual(2);
-		expect(problem.itsData.step7.steadyStateOptions.length).toBeGreaterThanOrEqual(2);
+		expect(
+			problem.itsData.step7.transientOptions.length,
+		).toBeGreaterThanOrEqual(2);
+		expect(
+			problem.itsData.step7.steadyStateOptions.length,
+		).toBeGreaterThanOrEqual(2);
 		expect(problem.itsData.step7.conceptQuestion).toBeDefined();
-		expect(problem.itsData.step7.conceptQuestion.options.some((o) => o.isCorrect)).toBe(true);
-		expect(problem.itsData.step7.conceptQuestion.explanation.length).toBeGreaterThan(10);
+		expect(
+			problem.itsData.step7.conceptQuestion.options.some(
+				(o) => o.isCorrect,
+			),
+		).toBe(true);
+		expect(
+			problem.itsData.step7.conceptQuestion.explanation.length,
+		).toBeGreaterThan(10);
 	});
 
 	it("generates valid 7-step ITS data for complex conjugate roots with sinusoidal forcing", () => {
@@ -66,7 +80,9 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		expect(problem.itsData.step3.correctTemplate).toBe("complex_conjugate");
 
 		// Step 4
-		const correctAnsatz = problem.itsData.step4.options.find((o) => o.isCorrect);
+		const correctAnsatz = problem.itsData.step4.options.find(
+			(o) => o.isCorrect,
+		);
 		expect(correctAnsatz?.latex).toContain("\\cos");
 		expect(correctAnsatz?.latex).toContain("\\sin");
 
@@ -77,6 +93,8 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		// Step 7
 		expect(problem.itsData.step7.ziConstants).toBeDefined();
 		expect(problem.itsData.step7.zsConstants).toBeDefined();
-		expect(problem.itsData.step7.conceptQuestion.options.length).toBeGreaterThanOrEqual(2);
+		expect(
+			problem.itsData.step7.conceptQuestion.options.length,
+		).toBeGreaterThanOrEqual(2);
 	});
 });

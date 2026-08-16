@@ -13,6 +13,7 @@ informed: []
 SignalLab is an interactive, browser-based analog signal processing workbench used across diverse devices and viewport configurations, ranging from ultra-wide desktop monitors to compact mobile smartphones, foldables, and narrow multi-window split panes (such as 320px–360px viewport widths).
 
 An automated responsive audit across all application routes (`/`, `/odes`, `/convolution`, `/fourier-series`, `/fourier-transform`, `/laplace`, `/circuits`) revealed several critical layout overflow failure modes when rendered on narrow screens ($< 360\text{px}$, down to the $320\text{px}$ WCAG reflow baseline):
+
 1. **Global Navigation Overflow**: The navigation bar displayed three full-label action buttons (`📖 Formulas`, `☰`, `🌙 Dark`) side-by-side with the brand title (`⚡ SignalLab`), requiring $\ge 451\text{px}$ of horizontal width and forcing a global horizontal scrollbar on every page.
 2. **Unwrapped Control Groups and Long Dropdowns**: Control bars pairing long text labels with descriptive `<select>` options (e.g. `Rectangular Pulse * Rectangular Pulse...`) lacked flex wrapping, projecting up to $715\text{px}$ wide.
 3. **Solver Card and Progress Bar Clipping**: Stepped solvers featured fixed-width progress pills (e.g. 6 pills spanning $> 208\text{px}$ + card padding), non-wrapping step headers, and primary action buttons styled with `justify-content: flex-end` that pushed overflowing button bounds outside the left edge of step cards.
@@ -76,13 +77,16 @@ flowchart TD
 ## Consequences
 
 ### Positive
+
 - Prevents horizontal layout overflow and unwanted scrollbars across all 7 routes at narrow viewports ($320\text{px} \le \text{width} \le 375\text{px}$).
 - Touch targets and action buttons remain large, legible, and easily clickable on mobile devices.
 - Single-source maintenance: desktop and mobile share identical Svelte component markup and state logic.
 
 ### Negative / Trade-offs
+
 - Requires careful handling of multi-line button labels and flex alignment rules across stepped solvers.
 - Narrow mobile screens display truncated select option labels via `text-overflow: ellipsis` when closed.
 
 ### Neutral
+
 - Standard CI and routine test suites target the $320\text{px}$ WCAG reflow baseline and standard mobile viewports ($375\text{px}$), providing 100% real-world mobile coverage without maintenance overhead for sub-300px edge devices.

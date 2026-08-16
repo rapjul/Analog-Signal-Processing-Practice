@@ -13,6 +13,7 @@ informed: []
 In SignalLab, step-by-step solution breakdowns (such as 2nd-order ODE responses, Fourier Series coefficients, and continuous convolution intervals) previously evaluated intermediate numerical values into decimal approximations (e.g., `-1.167` or `0.167`).
 
 This caused several issues:
+
 - Loss of mathematical rigor and exactness in practice problem step breakdowns.
 - Confusion for students attempting to match symbolic homework answers (e.g., $-\frac{7}{6} e^{-2t}$ or $\frac{1}{6} e^{-2t}$) with rounded decimal strings.
 - Inconsistent rounding representation across different fractions (e.g., $1/3$, $1/6$, $1/9$).
@@ -36,12 +37,15 @@ Chosen Option: **Option 3**, because it preserves exact mathematical representat
 ### Consequences
 
 #### Good
+
 - Exact, clean LaTeX step output (e.g., $y_{ZI}(t) = \frac{1}{6}e^{-2t} - \frac{1}{6}e^{-8t}$) that matches textbook standard solutions.
 - No added bundle weight or runtime latency from external CAS engines.
 - Standardized universal workspace rule added to `.agents/AGENTS.md`.
 
 #### Bad
+
 - Math engines must maintain both LaTeX string formatting logic and floating-point evaluation functions (`eval(t)`) for plotting.
 
 #### Neutral
+
 - Unit test assertions must be updated to expect exact LaTeX fraction strings.

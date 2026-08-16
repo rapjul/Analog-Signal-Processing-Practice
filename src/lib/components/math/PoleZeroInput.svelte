@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * PoleZeroInput Svelte 5 Component.
+	 *
 	 * Form builder for Laplace transform transfer functions H(s), s-plane poles/zeros,
 	 * and partial fraction decomposition expressions.
 	 */
@@ -294,7 +295,11 @@
 		<div class="pfd-section">
 			<div class="section-top">
 				<span class="section-title">Partial Fraction Terms</span>
-				<button type="button" class="add-term-btn" onclick={addPfdTerm}>
+				<button
+					type="button"
+					class="add-term-btn"
+					onclick={addPfdTerm}
+				>
 					+ Add Term
 				</button>
 			</div>

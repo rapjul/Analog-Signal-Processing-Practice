@@ -8,7 +8,11 @@ import { describe, expect, it } from "vitest";
 describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () => {
 	describe("Expanded Circuit Topologies Transfer Functions H(s)", () => {
 		it("should calculate Series RLC Bandpass transfer function H(s)", () => {
-			const tf = evaluateTransferFunction("series-rlc", { R: 10, L: 1, C: 0.01 });
+			const tf = evaluateTransferFunction("series-rlc", {
+				R: 10,
+				L: 1,
+				C: 0.01,
+			});
 			expect(tf.numCoeffs).toEqual([10, 0]);
 			expect(tf.denCoeffs).toEqual([1, 10, 100]);
 		});
@@ -26,7 +30,10 @@ describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () =
 		});
 
 		it("should calculate Active Op-Amp Integrator transfer function H(s)", () => {
-			const tf = evaluateTransferFunction("active-integrator", { R: 1000, C: 1e-6 });
+			const tf = evaluateTransferFunction("active-integrator", {
+				R: 1000,
+				C: 1e-6,
+			});
 			expect(tf.numCoeffs).toEqual([-1000]);
 			expect(tf.denCoeffs).toEqual([1, 0]);
 			expect(tf.hLatex).toContain("-\\frac{1000}{s}");
@@ -35,7 +42,11 @@ describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () =
 
 	describe("Bode Plot Magnitude |H(jw)| dB & Phase Angle Evaluation", () => {
 		it("should evaluate Bode magnitude and phase for RC LPF at corner frequency w_c = 1000 rad/s", () => {
-			const point = evaluateBodePoint("rc-lpf", { R: 1000, C: 1e-6 }, 1000);
+			const point = evaluateBodePoint(
+				"rc-lpf",
+				{ R: 1000, C: 1e-6 },
+				1000,
+			);
 			expect(point.magnitudeDb).toBeCloseTo(-3.01, 1);
 			expect(point.phaseDeg).toBeCloseTo(-45, 1);
 		});
@@ -55,4 +66,3 @@ describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () =
 		});
 	});
 });
-

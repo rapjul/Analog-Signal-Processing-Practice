@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * LCC ODEs Practice Module Route (/odes).
+	 *
 	 * Implements 1st and 2nd-order Linear Constant Coefficient ODE practice engine
 	 * with blind exam-mode problem generation by default, optional collapsible targeted filters,
 	 * 7-step ITS diagnostic solver, and verified waveform plotting.
@@ -77,7 +78,10 @@
 
 		<div class="drill-controls">
 			<div class="control-group">
-				<label for="root-type-select" class="control-label">
+				<label
+					for="root-type-select"
+					class="control-label"
+				>
 					Root Classification:
 				</label>
 				<select
@@ -100,7 +104,10 @@
 			</div>
 
 			<div class="control-group">
-				<label for="forcing-type-select" class="control-label">
+				<label
+					for="forcing-type-select"
+					class="control-label"
+				>
 					<MathText text={String.raw`Forcing Function $x(t)$:`} />
 				</label>
 				<select

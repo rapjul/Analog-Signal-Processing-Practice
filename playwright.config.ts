@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright E2E Testing Configuration for SignalLab.
@@ -7,14 +7,14 @@ import { defineConfig, devices } from '@playwright/test';
  * viewport profiles for Desktop, Laptop, Tablet, and Mobile, and trace/screenshot artifacts.
  */
 export default defineConfig({
-	testDir: './tests/e2e',
+	testDir: "./tests/e2e",
 	/* Maximum time one test can run for */
 	timeout: 30 * 1000,
 	expect: {
 		/**
 		 * Maximum time expect() should wait for the condition to be met.
 		 */
-		timeout: 5000
+		timeout: 5000,
 	},
 	/* Run tests in files in parallel */
 	fullyParallel: true,
@@ -25,63 +25,66 @@ export default defineConfig({
 	/* Opt out of parallel tests on CI if needed */
 	workers: process.env.CI ? 1 : undefined,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
-	reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+	reporter: [
+		["list"],
+		["html", { open: "never", outputFolder: "playwright-report" }],
+	],
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL to use in actions like `await page.goto('/')`. */
-		baseURL: 'http://127.0.0.1:33210',
+		baseURL: "http://127.0.0.1:33210",
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-		trace: 'on-first-retry',
-		screenshot: 'only-on-failure'
+		trace: "on-first-retry",
+		screenshot: "only-on-failure",
 	},
 
 	/* Configure projects for major browsers and viewport sizes */
 	projects: [
 		{
-			name: 'Desktop-Chrome',
-			testIgnore: '**/visual-screenshots.spec.ts',
+			name: "Desktop-Chrome",
+			testIgnore: "**/visual-screenshots.spec.ts",
 			use: {
-				...devices['Desktop Chrome'],
-				viewport: { width: 1920, height: 1080 }
-			}
+				...devices["Desktop Chrome"],
+				viewport: { width: 1920, height: 1080 },
+			},
 		},
 		{
-			name: 'Laptop-Standard',
-			testIgnore: '**/visual-screenshots.spec.ts',
+			name: "Laptop-Standard",
+			testIgnore: "**/visual-screenshots.spec.ts",
 			use: {
-				...devices['Desktop Chrome'],
-				viewport: { width: 1280, height: 800 }
-			}
+				...devices["Desktop Chrome"],
+				viewport: { width: 1280, height: 800 },
+			},
 		},
 		{
-			name: 'Tablet-iPad',
-			testIgnore: '**/visual-screenshots.spec.ts',
+			name: "Tablet-iPad",
+			testIgnore: "**/visual-screenshots.spec.ts",
 			use: {
-				...devices['iPad Pro 11']
-			}
+				...devices["iPad Pro 11"],
+			},
 		},
 		{
-			name: 'Mobile-iPhone',
-			testIgnore: '**/visual-screenshots.spec.ts',
+			name: "Mobile-iPhone",
+			testIgnore: "**/visual-screenshots.spec.ts",
 			use: {
-				...devices['iPhone 13']
-			}
+				...devices["iPhone 13"],
+			},
 		},
 		{
-			name: 'Visual-Screenshots',
-			testMatch: '**/visual-screenshots.spec.ts',
+			name: "Visual-Screenshots",
+			testMatch: "**/visual-screenshots.spec.ts",
 			use: {
-				...devices['Desktop Chrome']
-			}
-		}
+				...devices["Desktop Chrome"],
+			},
+		},
 	],
 
 	/* Run your local dev server before starting the tests */
 	webServer: {
-		command: 'npm run dev -- --host 127.0.0.1 --port 33210',
-		url: 'http://127.0.0.1:33210',
+		command: "npm run dev -- --host 127.0.0.1 --port 33210",
+		url: "http://127.0.0.1:33210",
 		reuseExistingServer: !process.env.CI,
-		timeout: 120 * 1000
-	}
+		timeout: 120 * 1000,
+	},
 });

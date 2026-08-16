@@ -110,9 +110,9 @@ describe("LCC ODE Math Engine", () => {
 
 			// Verify completeness of evaluation functions at t = 0
 			const yComplete0 = problem.evalComplete(0);
-			expect(Math.abs(yComplete0 - problem.initialConditions.y0)).toBeLessThan(
-				1e-2,
-			);
+			expect(
+				Math.abs(yComplete0 - problem.initialConditions.y0),
+			).toBeLessThan(1e-2);
 		});
 
 		it("generates a valid ODE problem with complex conjugate roots and sinusoidal forcing", () => {
@@ -132,36 +132,52 @@ describe("LCC ODE Math Engine", () => {
 		it("generates instantiated homogeneous formulas in Step 3 across root types", () => {
 			// Distinct real
 			const odeDistinct = generateOdeProblem("distinct_real");
-			expect(odeDistinct.itsData.step3.correctTemplate).toBe("distinct_real");
+			expect(odeDistinct.itsData.step3.correctTemplate).toBe(
+				"distinct_real",
+			);
 			expect(odeDistinct.itsData.step3.formLatex).toContain("C_1 e^{");
 			expect(odeDistinct.itsData.step3.formLatex).toContain("C_2 e^{");
 
 			// Repeated real
 			const odeRepeated = generateOdeProblem("repeated_real");
-			expect(odeRepeated.itsData.step3.correctTemplate).toBe("repeated_real");
-			expect(odeRepeated.itsData.step3.formLatex).toContain("(C_1 + C_2 t) e^{");
+			expect(odeRepeated.itsData.step3.correctTemplate).toBe(
+				"repeated_real",
+			);
+			expect(odeRepeated.itsData.step3.formLatex).toContain(
+				"(C_1 + C_2 t) e^{",
+			);
 
 			// Complex conjugate
 			const odeComplex = generateOdeProblem("complex_conjugate");
-			expect(odeComplex.itsData.step3.correctTemplate).toBe("complex_conjugate");
+			expect(odeComplex.itsData.step3.correctTemplate).toBe(
+				"complex_conjugate",
+			);
 			expect(odeComplex.itsData.step3.formLatex).toContain("\\cos(");
 			expect(odeComplex.itsData.step3.formLatex).toContain("\\sin(");
 		});
 
 		it("generates a random ODE problem with valid 7-step itsData", () => {
 			const problem = generateOdeProblem("random", "random");
-			expect(["distinct_real", "repeated_real", "complex_conjugate"]).toContain(
-				problem.params.rootType,
-			);
+			expect([
+				"distinct_real",
+				"repeated_real",
+				"complex_conjugate",
+			]).toContain(problem.params.rootType);
 			expect(["constant", "exponential", "sinusoid"]).toContain(
 				problem.forcing.type,
 			);
 			expect(problem.itsData.step1.expectedA2).toBe(1);
 			expect(problem.itsData.step1.expectedA1).toBe(problem.params.a1);
 			expect(problem.itsData.step1.expectedA0).toBe(problem.params.a0);
-			expect(problem.itsData.step2.rootType).toBe(problem.params.rootType);
-			expect(problem.itsData.step3.correctTemplate).toBe(problem.params.rootType);
-			expect(problem.itsData.step4.options.length).toBeGreaterThanOrEqual(3);
+			expect(problem.itsData.step2.rootType).toBe(
+				problem.params.rootType,
+			);
+			expect(problem.itsData.step3.correctTemplate).toBe(
+				problem.params.rootType,
+			);
+			expect(problem.itsData.step4.options.length).toBeGreaterThanOrEqual(
+				3,
+			);
 			expect(problem.solutions.y_p_latex).toBeDefined();
 			expect(problem.itsData.step6.expectedC1).toBeDefined();
 			expect(problem.itsData.step6.expectedC2).toBeDefined();
@@ -186,7 +202,7 @@ describe("LCC ODE Math Engine", () => {
 			expect(sinProb.itsData.step5.expectedB).toBeDefined();
 			expect(
 				sinProb.solutions.y_p_latex.includes("\\cos") ||
-				sinProb.solutions.y_p_latex.includes("\\sin"),
+					sinProb.solutions.y_p_latex.includes("\\sin"),
 			).toBe(true);
 		});
 
@@ -197,23 +213,36 @@ describe("LCC ODE Math Engine", () => {
 				expect(problem.odeLatex).not.toMatch(/[+-]\s*1\s*y\(t\)/);
 				expect(problem.odeLatex).not.toMatch(/[+-]\s*1\s*\\frac\{dy\}/);
 				expect(problem.itsData.step1.latex).not.toMatch(/[+-]\s*1s\b/);
-				expect(problem.itsData.step1.latex).not.toMatch(/[+-]\s*1\s*s\b/);
+				expect(problem.itsData.step1.latex).not.toMatch(
+					/[+-]\s*1\s*s\b/,
+				);
 			}
 		});
 
 		it("generates correct factoredFormLatex for factorable roots and undefined for complex roots", () => {
 			const distinctProblem = generateOdeProblem("distinct_real");
-			expect(distinctProblem.itsData.step2.factoredFormLatex).toBeDefined();
-			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain("(s");
-			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain("= 0");
+			expect(
+				distinctProblem.itsData.step2.factoredFormLatex,
+			).toBeDefined();
+			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain(
+				"(s",
+			);
+			expect(distinctProblem.itsData.step2.factoredFormLatex).toContain(
+				"= 0",
+			);
 
 			const repeatedProblem = generateOdeProblem("repeated_real");
-			expect(repeatedProblem.itsData.step2.factoredFormLatex).toBeDefined();
-			expect(repeatedProblem.itsData.step2.factoredFormLatex).toContain("^2 = 0");
+			expect(
+				repeatedProblem.itsData.step2.factoredFormLatex,
+			).toBeDefined();
+			expect(repeatedProblem.itsData.step2.factoredFormLatex).toContain(
+				"^2 = 0",
+			);
 
 			const complexProblem = generateOdeProblem("complex_conjugate");
-			expect(complexProblem.itsData.step2.factoredFormLatex).toBeUndefined();
+			expect(
+				complexProblem.itsData.step2.factoredFormLatex,
+			).toBeUndefined();
 		});
 	});
 });
-

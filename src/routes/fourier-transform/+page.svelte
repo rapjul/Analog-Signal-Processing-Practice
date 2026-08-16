@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Continuous-Time Fourier Transform (CTFT) Practice Module Route (/fourier-transform).
+	 *
 	 * Implements CTFT forward & inverse transform practice, operational properties,
 	 * spectral magnitude/phase plots, and ECE 210 exam formula sheets.
 	 */
@@ -63,7 +64,10 @@
 	<!-- Selector Bar -->
 	<div class="control-bar">
 		<div class="control-group">
-			<label for="signal-type-select" class="control-label">
+			<label
+				for="signal-type-select"
+				class="control-label"
+			>
 				Signal Category:
 			</label>
 			<select
@@ -95,7 +99,10 @@
 			</div>
 
 			<div class="input-section">
-				<label for="ctft-input" class="input-label">
+				<label
+					for="ctft-input"
+					class="input-label"
+				>
 					<MathText text={String.raw`Enter $X(\omega)$ in LaTeX:`} />
 				</label>
 				<input
@@ -151,7 +158,10 @@
 				{#each currentProblem.solutionSteps as step}
 					<div class="step-card">
 						<h4 class="step-heading">{step.title}</h4>
-						<MathBlock math={step.latex} compact={true} />
+						<MathBlock
+							math={step.latex}
+							compact={true}
+						/>
 					</div>
 				{/each}
 			</div>

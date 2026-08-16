@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * OdeResponseInput Svelte 5 Component.
+	 *
 	 * Structured form builder for linear constant-coefficient differential equation solutions.
 	 * Allows users to choose the damping mode template and input numerical/symbolic coefficients.
 	 */
@@ -9,10 +10,10 @@
 	import MathText from "./MathText.svelte";
 
 	export type ResponseMode =
-		| "overdamped"
-		| "critically_damped"
-		| "underdamped"
-		| "first_order";
+		| "overdamped" // Distinct real roots
+		| "critically_damped" // Repeated real roots
+		| "underdamped" // Complex conjugate roots
+		| "first_order"; // First-order transient
 
 	interface Props {
 		/** Initial or current LaTeX string */

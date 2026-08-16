@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * OdeStepSolver Svelte 5 Component.
+	 *
 	 * 7-Step Intelligent Tutoring System (ITS) for Linear Constant-Coefficient ODEs.
 	 * Guides students sequentially through characteristic equation formulation, characteristic roots,
 	 * homogeneous form selection, particular ansatz guess, undetermined coefficients,
@@ -93,7 +94,10 @@
 {/snippet}
 
 <div class="ode-step-solver">
-	<Progress currentStep={solver.currentStep} totalSteps={solver.totalSteps} />
+	<Progress
+		currentStep={solver.currentStep}
+		totalSteps={solver.totalSteps}
+	/>
 
 	<!-- Step 1: Characteristic Equation Setup -->
 	<div
@@ -117,7 +121,10 @@
 				<div class="char-eq-interactive-box">
 					<div class="coeff-inputs-row">
 						<div class="coeff-group">
-							<label for="ode-a2-input" class="coeff-label">
+							<label
+								for="ode-a2-input"
+								class="coeff-label"
+							>
 								<MathText text={"$s^2$ Coeff ($a_2$):"} />
 							</label>
 							<input
@@ -132,7 +139,10 @@
 						</div>
 						<span class="plus-symbol">+</span>
 						<div class="coeff-group">
-							<label for="ode-a1-input" class="coeff-label">
+							<label
+								for="ode-a1-input"
+								class="coeff-label"
+							>
 								<MathText text={"$s$ Coeff ($a_1$):"} />
 							</label>
 							<input
@@ -147,7 +157,10 @@
 						</div>
 						<span class="plus-symbol">+</span>
 						<div class="coeff-group">
-							<label for="ode-a0-input" class="coeff-label">
+							<label
+								for="ode-a0-input"
+								class="coeff-label"
+							>
 								<MathText text={"Constant ($a_0$):"} />
 							</label>
 							<input
@@ -257,8 +270,14 @@
 				{:else if solver.step2.strategy === "factoring"}
 					<!-- Factoring Path -->
 					{#if problem.itsData.step2.rootType === "repeated_real"}
-						<div class="input-pair" style="max-width: 260px;">
-							<label for="ode-r-rep-input" class="field-label">
+						<div
+							class="input-pair"
+							style="max-width: 260px;"
+						>
+							<label
+								for="ode-r-rep-input"
+								class="field-label"
+							>
 								<MathText
 									text={"Repeated Root $r = r_1 = r_2$:"}
 								/>
@@ -276,7 +295,10 @@
 					{:else}
 						<div class="input-row-grid">
 							<div class="input-pair">
-								<label for="ode-r1-input" class="field-label">
+								<label
+									for="ode-r1-input"
+									class="field-label"
+								>
 									<MathText text={"Root $r_1$:"} />
 								</label>
 								<input
@@ -291,7 +313,10 @@
 								/>
 							</div>
 							<div class="input-pair">
-								<label for="ode-r2-input" class="field-label">
+								<label
+									for="ode-r2-input"
+									class="field-label"
+								>
 									<MathText text={"Root $r_2$:"} />
 								</label>
 								<input
@@ -763,7 +788,10 @@
 				{#if problem.forcing.type === "sinusoid"}
 					<div class="input-row-grid">
 						<div class="input-pair">
-							<label for="ode-a-input" class="field-label">
+							<label
+								for="ode-a-input"
+								class="field-label"
+							>
 								<MathText
 									text={String.raw`Coefficient $A$ ($\cos$ term):`}
 								/>
@@ -779,7 +807,10 @@
 							/>
 						</div>
 						<div class="input-pair">
-							<label for="ode-b-input" class="field-label">
+							<label
+								for="ode-b-input"
+								class="field-label"
+							>
 								<MathText
 									text={String.raw`Coefficient $B$ ($\sin$ term):`}
 								/>
@@ -796,8 +827,14 @@
 						</div>
 					</div>
 				{:else}
-					<div class="input-pair" style="max-width: 260px;">
-						<label for="ode-kp-input" class="field-label">
+					<div
+						class="input-pair"
+						style="max-width: 260px;"
+					>
+						<label
+							for="ode-kp-input"
+							class="field-label"
+						>
 							<MathText text={"Particular Amplitude $K_p$:"} />
 						</label>
 						<input
@@ -861,7 +898,10 @@
 
 				<div class="input-row-grid">
 					<div class="input-pair">
-						<label for="ode-c1-input" class="field-label">
+						<label
+							for="ode-c1-input"
+							class="field-label"
+						>
 							<MathText text={"Constant $C_1$:"} />
 						</label>
 						<input
@@ -875,7 +915,10 @@
 						/>
 					</div>
 					<div class="input-pair">
-						<label for="ode-c2-input" class="field-label">
+						<label
+							for="ode-c2-input"
+							class="field-label"
+						>
 							<MathText text={"Constant $C_2$:"} />
 						</label>
 						<input
@@ -969,7 +1012,10 @@
 
 						<div class="input-row-grid">
 							<div class="input-pair">
-								<label for="ode-zic1-input" class="field-label">
+								<label
+									for="ode-zic1-input"
+									class="field-label"
+								>
 									<MathText
 										text={"Zero-Input Constant $C_{1,ZI}$:"}
 									/>
@@ -986,7 +1032,10 @@
 								/>
 							</div>
 							<div class="input-pair">
-								<label for="ode-zic2-input" class="field-label">
+								<label
+									for="ode-zic2-input"
+									class="field-label"
+								>
 									<MathText
 										text={"Zero-Input Constant $C_{2,ZI}$:"}
 									/>

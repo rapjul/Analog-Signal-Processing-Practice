@@ -298,7 +298,6 @@ export interface OdeProblem {
 	itsData: OdeItsData;
 }
 
-
 /**
  * Solves a 2nd order characteristic equation s^2 + a1*s + a0 = 0.
  * @param {number} a1 Coefficient of s
@@ -377,7 +376,8 @@ export function computeParticularSolution(
 			// Check if p is a characteristic root
 			const isRoot =
 				rootType === "distinct_real" &&
-				(Math.abs(p - roots.r1) < 1e-6 || Math.abs(p - (roots.r2 ?? 0)) < 1e-6);
+				(Math.abs(p - roots.r1) < 1e-6 ||
+					Math.abs(p - (roots.r2 ?? 0)) < 1e-6);
 
 			if (!isRoot) {
 				const denom = p * p + a1 * p + a0;
@@ -396,7 +396,8 @@ export function computeParticularSolution(
 					formDescription: "y_p(t) = K_p t e^{p t}",
 					latex: `${toFractionLatex(Kp)} t e^{${p} t}`,
 					eval: (t: number) => Kp * t * Math.exp(p * t),
-					evalDeriv: (t: number) => Kp * (1 + p * t) * Math.exp(p * t),
+					evalDeriv: (t: number) =>
+						Kp * (1 + p * t) * Math.exp(p * t),
 					coeffs: { Kp },
 				};
 			}
@@ -425,11 +426,13 @@ export function computeParticularSolution(
 			let latexStr = "";
 			if (Math.abs(A) > 1e-6) latexStr += `${latexA} \\cos(${w}t)`;
 			if (B > 1e-6) latexStr += ` + ${latexB} \\sin(${w}t)`;
-			else if (B < -1e-6) latexStr += ` - ${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
+			else if (B < -1e-6)
+				latexStr += ` - ${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
 			if (!latexStr) latexStr = "0";
 
 			return {
-				formDescription: "y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
+				formDescription:
+					"y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
 				latex: latexStr,
 				eval: (t: number) => A * Math.cos(w * t) + B * Math.sin(w * t),
 				evalDeriv: (t: number) =>
@@ -474,14 +477,16 @@ export function solveHomogeneousConstants(
 			let latex = "";
 			if (Math.abs(C1) > 1e-6) latex += `${c1Str} e^{${r1}t}`;
 			if (C2 > 1e-6) latex += ` + ${c2Str} e^{${r2}t}`;
-			else if (C2 < -1e-6) latex += ` - ${toFractionLatex(Math.abs(C2))} e^{${r2}t}`;
+			else if (C2 < -1e-6)
+				latex += ` - ${toFractionLatex(Math.abs(C2))} e^{${r2}t}`;
 			if (!latex) latex = "0";
 
 			return {
 				latex,
 				C1,
 				C2,
-				eval: (t: number) => C1 * Math.exp(r1 * t) + C2 * Math.exp(r2 * t),
+				eval: (t: number) =>
+					C1 * Math.exp(r1 * t) + C2 * Math.exp(r2 * t),
 			};
 		}
 		case "repeated_real": {
@@ -498,7 +503,8 @@ export function solveHomogeneousConstants(
 			let inner = "";
 			if (Math.abs(C1) > 1e-6) inner += `${c1Str}`;
 			if (C2 > 1e-6) inner += ` + ${c2Str}t`;
-			else if (C2 < -1e-6) inner += ` - ${toFractionLatex(Math.abs(C2))}t`;
+			else if (C2 < -1e-6)
+				inner += ` - ${toFractionLatex(Math.abs(C2))}t`;
 
 			const latex = inner ? `(${inner}) e^{${r}t}` : "0";
 
@@ -531,7 +537,8 @@ export function solveHomogeneousConstants(
 			else if (C2 < -1e-6)
 				inner += ` - ${toFractionLatex(Math.abs(C2))} \\sin(${toFractionLatex(omega_d)}t)`;
 
-			const sigmaStr = sigma !== 0 ? `e^{${toFractionLatex(sigma)}t}` : "";
+			const sigmaStr =
+				sigma !== 0 ? `e^{${toFractionLatex(sigma)}t}` : "";
 			const latex = inner ? `${sigmaStr} [ ${inner} ]` : "0";
 
 			return {
@@ -837,7 +844,9 @@ export function generateOdeProblem(
 			break;
 		}
 		default: {
-			throw new Error(`Unhandled forcing type in step 4: ${forcing.type}`);
+			throw new Error(
+				`Unhandled forcing type in step 4: ${forcing.type}`,
+			);
 		}
 	}
 
@@ -977,8 +986,7 @@ export function generateOdeProblem(
 						"Initial conditions dictate the starting values at $t=0$, not the asymptotic limit at $t \\to \\infty$.",
 				},
 			],
-			explanation:
-				String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\lim_{t \to \infty} y_{tr}(t) = 0$.`,
+			explanation: String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\lim_{t \to \infty} y_{tr}(t) = 0$.`,
 		},
 		{
 			prompt: String.raw`If the forcing function $x(t)$ is replaced by a different input signal $\tilde{x}(t)$, which response component is guaranteed to remain strictly identical?`,
@@ -1018,7 +1026,7 @@ export function generateOdeProblem(
 	// Pick a concept question
 	const selectedConceptQ =
 		conceptQuestionsPool[
-		Math.floor(Math.random() * conceptQuestionsPool.length)
+			Math.floor(Math.random() * conceptQuestionsPool.length)
 		];
 
 	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
@@ -1120,7 +1128,7 @@ export function generateOdeProblem(
 				forcing.type === "constant"
 					? `Substitute $y_p = K_p, y_p'=0, y_p''=0$: $0 + 0 + ${a0} K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
 					: forcing.type === "exponential"
-						? `Substitute $y_p = K_p e^{${forcing.p}t}$: $(${((forcing.p ?? 0) ** 2) + a1 * (forcing.p ?? 0) + a0}) K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
+						? `Substitute $y_p = K_p e^{${forcing.p}t}$: $(${(forcing.p ?? 0) ** 2 + a1 * (forcing.p ?? 0) + a0}) K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
 						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
 			],
 		},
@@ -1167,9 +1175,11 @@ export function generateOdeProblem(
 	const evalZS = (t: number) => homogeneousZS.eval(t) + particular.eval(t);
 
 	const difficulty: "easy" | "medium" | "hard" =
-		resolvedRootType === "distinct_real" && resolvedForcingType === "constant"
+		resolvedRootType === "distinct_real" &&
+		resolvedForcingType === "constant"
 			? "easy"
-			: resolvedRootType === "complex_conjugate" || resolvedForcingType === "sinusoid"
+			: resolvedRootType === "complex_conjugate" ||
+				  resolvedForcingType === "sinusoid"
 				? "hard"
 				: "medium";
 

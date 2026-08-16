@@ -10,9 +10,10 @@ informed: []
 
 ## Context and Problem Statement
 
-SignalLab originally embedded a permanent static "Formula Sheet" card in a side-by-side $2$-column layout across practice routes (`/odes`, `/fourier-series`, `/circuits`, `/convolution`). 
+SignalLab originally embedded a permanent static "Formula Sheet" card in a side-by-side $2$-column layout across practice routes (`/odes`, `/fourier-series`, `/circuits`, `/convolution`).
 
 This permanent sidebar layout created severe layout and usability drawbacks:
+
 1. **Viewport Compression**: The sidebar occupied approximately $25\%$ of horizontal screen width at all times, compressing the primary problem workspace, math input controls, and canvas visualizers into a cramped column.
 2. **Mobile and Tablet Degradation**: On smaller viewports, the $2$-column grid broke into an awkward stacked layout where formula sheets were pushed to the bottom of the screen.
 3. **Redundant Visual Clutter**: Once a student was familiar with standard formulas, the static sheet continued to compete for visual attention without providing active utility.
@@ -41,20 +42,23 @@ Chosen Option: **Option 4**, because it eliminates persistent screen clutter, re
 2. **Mobile / Narrow Viewports**: The drawer expands to full ($100\%$) viewport width with a dedicated top close bar for frictionless thumb navigation.
 3. **Global Header Trigger**: Accessible via a high-contrast `📖 Formula Reference` button in `Navigation.svelte`, accompanied by full keyboard shortcuts (`Esc` to dismiss, focus trapping within the active drawer).
 4. **Domain Tabs**: Organized into clean tabbed sections:
-	- *ODEs*: Roots, homogeneous templates, undetermined coefficients ansatz table, resonance rules, ZI/ZS definitions.
-	- *Fourier Series*: Complex & trig formulas, symmetry vanishing shortcuts, Parseval power, Gibbs phenomenon.
-	- *Transforms & Circuits*: Laplace transform tables, Fourier transform pairs, phasor relationships.
+    - _ODEs_: Roots, homogeneous templates, undetermined coefficients ansatz table, resonance rules, ZI/ZS definitions.
+    - _Fourier Series_: Complex & trig formulas, symmetry vanishing shortcuts, Parseval power, Gibbs phenomenon.
+    - _Transforms & Circuits_: Laplace transform tables, Fourier transform pairs, phasor relationships.
 
 ## Consequences
 
 ### Positive
+
 - Reclaims full screen width for the primary interactive solver cards.
 - Solves horizontal wrapping issues on complex mathematical expressions and multi-stage input grids.
 - Provides a consistent, unified formula reference experience across all application modules.
 
 ### Negative / Trade-offs
+
 - Formulas are no longer visible simultaneously alongside the problem without opening the drawer overlay.
 - Requires maintaining focus trapping and accessibility states for the modal drawer.
 
 ### Neutral
+
 - Mathematical equations inside the drawer continue to be rendered via `<MathBlock>` and `<MathInline>` with KaTeX.

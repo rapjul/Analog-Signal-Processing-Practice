@@ -7,7 +7,12 @@ describe("Laplace Exam Problem Bank (laplace-bank.ts)", () => {
 	});
 
 	it("should include problemType property on every bank problem", () => {
-		const validTypes = new Set(["inverse_pfd", "inverse_direct", "forward", "roc_stability"]);
+		const validTypes = new Set([
+			"inverse_pfd",
+			"inverse_direct",
+			"forward",
+			"roc_stability",
+		]);
 		for (const item of LAPLACE_EXAM_BANK) {
 			expect(item.problemType).toBeDefined();
 			expect(validTypes.has(item.problemType)).toBe(true);

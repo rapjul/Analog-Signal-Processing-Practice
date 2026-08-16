@@ -13,6 +13,7 @@ informed: []
 In SignalLab's ordinary differential equation (ODE) practice modules, solution expressions and step headers previously used inconsistent terms such as "Complete Solution" and "Complete Response" interchangeably when referring to the full system response $y(t) = y_h(t) + y_p(t)$.
 
 In UIUC ECE 210 (Analog Signal Processing), standard course terminology strictly defines:
+
 - **Total Response**: The overall solution $y(t) = y_h(t) + y_p(t)$ combining the **Homogeneous Solution** (natural response $y_h(t)$) and the **Particular Solution** (forced response $y_p(t)$).
 - **Zero-Input Response ($y_{ZI}(t)$)**: The response due solely to initial energy / initial conditions $y(0^-), y'(0^-)$ with zero forcing input.
 - **Zero-State Response ($y_{ZS}(t)$)**: The response due solely to forcing input with zero initial state ($y(0^-)=0, y'(0^-)=0$).
@@ -37,18 +38,20 @@ Chosen Option: **Option 2**, because standardizing on "Total Response" ensures f
 ### Changes Implemented
 
 1. **Terminology Standardization**:
-   - Updated UI stage headers in `PracticeCard.svelte` to read `Stage 2: Total Response y(t)`.
-   - Updated solution pipeline step titles and descriptions in `odes.ts` (e.g. *Step 6: Total Response Form*, *Step 8: Solve Constants & Total Response Equation*, and *Step 9: Separation of Responses*) to refer exclusively to the "total response".
+    - Updated UI stage headers in `PracticeCard.svelte` to read `Stage 2: Total Response y(t)`.
+    - Updated solution pipeline step titles and descriptions in `odes.ts` (e.g. _Step 6: Total Response Form_, _Step 8: Solve Constants & Total Response Equation_, and _Step 9: Separation of Responses_) to refer exclusively to the "total response".
 2. **Multi-Stage UI Alignment**:
-   - `Stage 1: Characteristic Roots (r1, r2)` maps directly to *Step 1: Characteristic Equation & Roots*.
-   - `Stage 2: Total Response y(t)` maps directly to *Step 8 & 9: Total Response & Response Separation*.
+    - `Stage 1: Characteristic Roots (r1, r2)` maps directly to _Step 1: Characteristic Equation & Roots_.
+    - `Stage 2: Total Response y(t)` maps directly to _Step 8 & 9: Total Response & Response Separation_.
 
 ### Consequences
 
 #### Good
+
 - **Strict Curriculum Fidelity**: Matches UIUC ECE 210 course lecture notes, exam problems, and homework solutions.
 - **Unified Learner Mental Model**: Students encounter identical mathematical terms across interactive stage inputs, step breakdown walkthroughs, and plot legends.
 - **Seamless Multi-Stage Guidance**: The interactive input stages directly correspond to key milestones in the 9-step solution breakdown.
 
 #### Trade-offs & Considerations
+
 - None.

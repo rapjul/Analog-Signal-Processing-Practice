@@ -9,7 +9,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-1",
 		problemType: "inverse_pfd",
-		promptLatex: "\\text{Solve for } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{2s + 10}{s^2 + 6s + 8}\\right\\}",
+		promptLatex:
+			"\\text{Solve for } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{2s + 10}{s^2 + 6s + 8}\\right\\}",
 		referenceAnswerLatex: "3 e^{-2t} u(t) - e^{-4t} u(t)",
 		solutionSteps: [
 			{
@@ -29,7 +30,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-2",
 		problemType: "inverse_pfd",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{s + 7}{(s + 1)(s + 3)}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{s + 7}{(s + 1)(s + 3)}\\right\\}",
 		referenceAnswerLatex: "3 e^{-t} u(t) - 2 e^{-3t} u(t)",
 		solutionSteps: [
 			{
@@ -49,7 +51,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-3",
 		problemType: "inverse_pfd",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{5s + 13}{s^2 + 5s + 6}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{5s + 13}{s^2 + 5s + 6}\\right\\}",
 		referenceAnswerLatex: "3 e^{-2t} u(t) + 2 e^{-3t} u(t)",
 		solutionSteps: [
 			{
@@ -69,8 +72,10 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-4",
 		problemType: "inverse_pfd",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{4s + 18}{s^2 + 7s + 10}\\right\\}",
-		referenceAnswerLatex: "\\frac{10}{3} e^{-2t} u(t) + \\frac{2}{3} e^{-5t} u(t)",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{4s + 18}{s^2 + 7s + 10}\\right\\}",
+		referenceAnswerLatex:
+			"\\frac{10}{3} e^{-2t} u(t) + \\frac{2}{3} e^{-5t} u(t)",
 		solutionSteps: [
 			{
 				title: "Step 1: Factor Denominator",
@@ -91,7 +96,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-13",
 		problemType: "inverse_direct",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{3s + 8}{s^2 + 16}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{3s + 8}{s^2 + 16}\\right\\}",
 		referenceAnswerLatex: "(3 \\cos(4t) + 2 \\sin(4t)) u(t)",
 		solutionSteps: [
 			{
@@ -111,7 +117,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-14",
 		problemType: "inverse_direct",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{s + 3}{(s + 3)^2 + 25}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{s + 3}{(s + 3)^2 + 25}\\right\\}",
 		referenceAnswerLatex: "e^{-3t} \\cos(5t) u(t)",
 		solutionSteps: [
 			{
@@ -131,7 +138,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-15",
 		problemType: "inverse_direct",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{4 e^{-2s}}{s + 5}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{4 e^{-2s}}{s + 5}\\right\\}",
 		referenceAnswerLatex: "4 e^{-5(t-2)} u(t-2)",
 		solutionSteps: [
 			{
@@ -151,7 +159,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-16",
 		problemType: "inverse_direct",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{6}{(s + 4)^4}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{6}{(s + 4)^4}\\right\\}",
 		referenceAnswerLatex: "t^3 e^{-4t} u(t)",
 		solutionSteps: [
 			{
@@ -171,7 +180,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-17",
 		problemType: "inverse_direct",
-		promptLatex: "\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{5 + \\frac{6}{s + 2}\\right\\}",
+		promptLatex:
+			"\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{5 + \\frac{6}{s + 2}\\right\\}",
 		referenceAnswerLatex: "5 \\delta(t) + 6 e^{-2t} u(t)",
 		solutionSteps: [
 			{
@@ -193,7 +203,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-5",
 		problemType: "forward",
-		promptLatex: "\\text{Compute } X(s) = \\mathcal{L}\\{(4 e^{-3t} + 2 e^{-5t}) u(t)\\}",
+		promptLatex:
+			"\\text{Compute } X(s) = \\mathcal{L}\\{(4 e^{-3t} + 2 e^{-5t}) u(t)\\}",
 		referenceAnswerLatex: "\\frac{6s + 26}{s^2 + 8s + 15}",
 		solutionSteps: [
 			{
@@ -209,7 +220,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-6",
 		problemType: "forward",
-		promptLatex: "\\text{Compute } X(s) = \\mathcal{L}\\{(e^{-t} - e^{-4t}) u(t)\\}",
+		promptLatex:
+			"\\text{Compute } X(s) = \\mathcal{L}\\{(e^{-t} - e^{-4t}) u(t)\\}",
 		referenceAnswerLatex: "\\frac{3}{s^2 + 5s + 4}",
 		solutionSteps: [
 			{
@@ -225,7 +237,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-7",
 		problemType: "forward",
-		promptLatex: "\\text{Compute } X(s) = \\mathcal{L}\\{(3 + 2 e^{-2t}) u(t)\\}",
+		promptLatex:
+			"\\text{Compute } X(s) = \\mathcal{L}\\{(3 + 2 e^{-2t}) u(t)\\}",
 		referenceAnswerLatex: "\\frac{5s + 6}{s(s + 2)}",
 		solutionSteps: [
 			{
@@ -241,7 +254,8 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-8",
 		problemType: "forward",
-		promptLatex: "\\text{Compute } X(s) = \\mathcal{L}\\{(\\delta(t) + 4 e^{-2t}) u(t)\\}",
+		promptLatex:
+			"\\text{Compute } X(s) = \\mathcal{L}\\{(\\delta(t) + 4 e^{-2t}) u(t)\\}",
 		referenceAnswerLatex: "\\frac{s + 6}{s + 2}",
 		solutionSteps: [
 			{
@@ -259,8 +273,10 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-9",
 		problemType: "roc_stability",
-		promptLatex: "\\text{Determine ROC and BIBO stability for causal system } X(s) = \\frac{s+1}{(s+2)(s+5)}",
-		referenceAnswerLatex: "\\operatorname{Re}(s) > -2, \\quad \\text{BIBO Stable}",
+		promptLatex:
+			"\\text{Determine ROC and BIBO stability for causal system } X(s) = \\frac{s+1}{(s+2)(s+5)}",
+		referenceAnswerLatex:
+			"\\operatorname{Re}(s) > -2, \\quad \\text{BIBO Stable}",
 		solutionSteps: [
 			{
 				title: "Step 1: Find Poles",
@@ -279,8 +295,10 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-10",
 		problemType: "roc_stability",
-		promptLatex: "\\text{Determine ROC and BIBO stability for anti-causal system } X(s) = \\frac{1}{s - 3}",
-		referenceAnswerLatex: "\\operatorname{Re}(s) < 3, \\quad \\text{BIBO Stable}",
+		promptLatex:
+			"\\text{Determine ROC and BIBO stability for anti-causal system } X(s) = \\frac{1}{s - 3}",
+		referenceAnswerLatex:
+			"\\operatorname{Re}(s) < 3, \\quad \\text{BIBO Stable}",
 		solutionSteps: [
 			{
 				title: "Step 1: Find Pole",
@@ -299,8 +317,10 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-11",
 		problemType: "roc_stability",
-		promptLatex: "\\text{Determine ROC and BIBO stability for causal system } X(s) = \\frac{1}{s - 2}",
-		referenceAnswerLatex: "\\operatorname{Re}(s) > 2, \\quad \\text{Unstable}",
+		promptLatex:
+			"\\text{Determine ROC and BIBO stability for causal system } X(s) = \\frac{1}{s - 2}",
+		referenceAnswerLatex:
+			"\\operatorname{Re}(s) > 2, \\quad \\text{Unstable}",
 		solutionSteps: [
 			{
 				title: "Step 1: Find Pole",
@@ -319,8 +339,10 @@ export const LAPLACE_EXAM_BANK: LaplaceProblem[] = [
 	{
 		id: "laplace-bank-12",
 		problemType: "roc_stability",
-		promptLatex: "\\text{Determine ROC and BIBO stability for two-sided system } X(s) = \\frac{1}{(s+2)(s-4)} \\text{ with } -2 < \\operatorname{Re}(s) < 4",
-		referenceAnswerLatex: "-2 < \\operatorname{Re}(s) < 4, \\quad \\text{BIBO Stable}",
+		promptLatex:
+			"\\text{Determine ROC and BIBO stability for two-sided system } X(s) = \\frac{1}{(s+2)(s-4)} \\text{ with } -2 < \\operatorname{Re}(s) < 4",
+		referenceAnswerLatex:
+			"-2 < \\operatorname{Re}(s) < 4, \\quad \\text{BIBO Stable}",
 		solutionSteps: [
 			{
 				title: "Step 1: Identify Poles",
