@@ -2,11 +2,49 @@ import { describe, expect, it } from "vitest";
 import {
 	evaluateLatexAt,
 	evaluatePiecewiseLatexAt,
+	normalizeMathLatex,
 	validateConvolutionResponse,
 	validateLatexAnswer,
 } from "$lib/math-engine/evaluator";
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
+	describe("normalizeMathLatex", () => {
+		it("normalizes bare math function names to LaTeX syntax", () => {
+			expect(normalizeMathLatex("cos(2t) + sin(3t)")).toBe(
+				String.raw`\cos(2t) + \sin(3t)`,
+			);
+			expect(normalizeMathLatex("exp(-2t) + tan(t)")).toBe(
+				String.raw`\exp(-2t) + \tan(t)`,
+			);
+			expect(normalizeMathLatex("sqrt(s^2 + 4)")).toBe(
+				String.raw`\sqrt(s^2 + 4)`,
+			);
+		});
+
+		it("normalizes bare pi and pi-variable collisions", () => {
+			expect(normalizeMathLatex("5cos(100pi t)")).toBe(
+				String.raw`5\cos(100\pi t)`,
+			);
+			expect(normalizeMathLatex("5cos(100pit)")).toBe(
+				String.raw`5\cos(100\pi t)`,
+			);
+			expect(normalizeMathLatex("2*pi*f")).toBe(String.raw`2*\pi*f`);
+			expect(normalizeMathLatex("pit")).toBe(String.raw`\pi t`);
+		});
+
+		it("replaces LaTeX multiplication symbols with arithmetic operator", () => {
+			expect(normalizeMathLatex(String.raw`2 \cdot t + 3 \times s`)).toBe(
+				"2  *  t + 3  *  s",
+			);
+		});
+
+		it("removes LaTeX sizing delimiters", () => {
+			expect(
+				normalizeMathLatex(String.raw`\left( \frac{1}{2} \right)`),
+			).toBe(String.raw`( \frac{1}{2} )`);
+		});
+	});
+
 	describe("evaluateLatexAt", () => {
 		it("evaluates basic algebraic expressions at point t", () => {
 			const val = evaluateLatexAt("2t + 5", 3);
@@ -14,21 +52,56 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 		});
 
 		it("evaluates exponential and trigonometric expressions", () => {
-			const val = evaluateLatexAt("e^{-2t} + \\cos(3t)", 0);
+			const val = evaluateLatexAt(String.raw`e^{-2t} + \cos(3t)`, 0);
 			expect(val).toBeCloseTo(2, 5);
 		});
 
+		it("evaluates bare function and bare pi inputs identically to LaTeX syntax", () => {
+			const latexVal = evaluateLatexAt(String.raw`5\cos(100\pi t)`, 0.01);
+			const bareVal1 = evaluateLatexAt("5cos(100pi t)", 0.01);
+			const bareVal2 = evaluateLatexAt("5cos(100pit)", 0.01);
+			const expected = 5 * Math.cos(100 * Math.PI * 0.01);
+
+			expect(latexVal).toBeCloseTo(expected, 4);
+			expect(bareVal1).toBeCloseTo(expected, 4);
+			expect(bareVal2).toBeCloseTo(expected, 4);
+		});
+
 		it("evaluates expressions containing unit step functions u(t)", () => {
-			const val = evaluateLatexAt("5 e^{-t} u(t)", 1);
+			const val = evaluateLatexAt(String.raw`5 e^{-t} u(t)`, 1);
 			expect(val).toBeCloseTo(5 * Math.exp(-1), 4);
 
-			const shiftedVal = evaluateLatexAt("3 e^{-2(t-1)} u(t-1)", 2);
+			const shiftedVal = evaluateLatexAt(
+				String.raw`3 e^{-2(t-1)} u(t-1)`,
+				2,
+			);
 			expect(shiftedVal).toBeCloseTo(3 * Math.exp(-2), 4);
 		});
 
 		it("evaluates fractions formatted with \\frac", () => {
-			const val = evaluateLatexAt("\\frac{3}{4} t + \\frac{1}{2}", 2);
+			const val = evaluateLatexAt(
+				String.raw`\frac{3}{4} t + \frac{1}{2}`,
+				2,
+			);
 			expect(val).toBeCloseTo(2, 5);
+		});
+
+		it("evaluates complex rational expressions for transfer functions", () => {
+			// H(s) = (s + 3) / (s^2 + 4s + 13) at s = 2
+			const val = evaluateLatexAt(
+				String.raw`\frac{s + 3}{s^2 + 4s + 13}`,
+				2,
+			);
+			const expected = (2 + 3) / (4 + 8 + 13); // 5 / 25 = 0.2
+			expect(val).toBeCloseTo(expected, 5);
+		});
+
+		it("evaluates square root and power expressions", () => {
+			const sqrtVal = evaluateLatexAt(String.raw`\sqrt{s^2 + 16}`, 3);
+			expect(sqrtVal).toBeCloseTo(5, 5);
+
+			const powerVal = evaluateLatexAt("(t + 2)^3", 1);
+			expect(powerVal).toBe(27);
 		});
 
 		it("returns 0 gracefully on unparseable / malformed syntax", () => {
@@ -39,17 +112,22 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 
 	describe("evaluatePiecewiseLatexAt", () => {
 		it("evaluates piecewise interval expressions with & separators", () => {
-			const piecewise =
-				"\\begin{cases} 0, & t < 0 \\\\ t, & 0 \\le t < 1 \\\\ 2 - t, & 1 \\le t \\le 2 \\\\ 0, & t \\ge 2 \\end{cases}";
+			const piecewise = String.raw`\begin{cases} 0, & t < 0 \\ t, & 0 \le t < 1 \\ 2 - t, & 1 \le t \le 2 \\ 0, & t \ge 2 \end{cases}`;
 			expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
 			expect(evaluatePiecewiseLatexAt(piecewise, 0.5)).toBe(0.5);
 			expect(evaluatePiecewiseLatexAt(piecewise, 1.5)).toBe(0.5);
 			expect(evaluatePiecewiseLatexAt(piecewise, 3)).toBe(0);
 		});
 
+		it("evaluates piecewise interval expressions with \\leq and \\geq variants", () => {
+			const piecewise = String.raw`\begin{cases} 0, & t < 0 \\ 2t, & 0 \leq t < 2 \\ 4, & t \geq 2 \end{cases}`;
+			expect(evaluatePiecewiseLatexAt(piecewise, -0.5)).toBe(0);
+			expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(2);
+			expect(evaluatePiecewiseLatexAt(piecewise, 3)).toBe(4);
+		});
+
 		it("evaluates piecewise interval expressions with \\text{for} syntax", () => {
-			const piecewise =
-				"\\begin{cases} 0 \\quad \\text{for} \\quad t < 0 \\\\ 3t \\quad \\text{for} \\quad 0 \\le t < 2 \\\\ 6 \\quad \\text{for} \\quad t \\ge 2 \\end{cases}";
+			const piecewise = String.raw`\begin{cases} 0 \quad \text{for} \quad t < 0 \\ 3t \quad \text{for} \quad 0 \le t < 2 \\ 6 \quad \text{for} \quad t \ge 2 \end{cases}`;
 			expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
 			expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(3);
 			expect(evaluatePiecewiseLatexAt(piecewise, 4)).toBe(6);
@@ -65,10 +143,20 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 		it("validates a matching LaTeX answer against reference function", () => {
 			const refEval = (t: number): number =>
 				2 * Math.exp(-t) + Math.sin(t);
-			const result = validateLatexAnswer("2e^{-t} + \\sin(t)", refEval);
+			const result = validateLatexAnswer(
+				String.raw`2e^{-t} + \sin(t)`,
+				refEval,
+			);
 			expect(result.isCorrect).toBe(true);
 			expect(result.score).toBe(100);
 			expect(result.message).toContain("Correct");
+		});
+
+		it("validates student answers using bare syntax (cos without backslash)", () => {
+			const refEval = (t: number): number => 3 * Math.cos(2 * t);
+			const result = validateLatexAnswer("3cos(2t)", refEval);
+			expect(result.isCorrect).toBe(true);
+			expect(result.score).toBe(100);
 		});
 
 		it("rejects an incorrect LaTeX answer", () => {
@@ -99,8 +187,7 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 
 	describe("validateConvolutionResponse", () => {
 		it("validates a matching piecewise convolution solution", () => {
-			const piecewise =
-				"\\begin{cases} 0, & t < 0 \\\\ t, & 0 \\le t < 1 \\\\ 2 - t, & 1 \\le t \\le 2 \\\\ 0, & t \\ge 2 \\end{cases}";
+			const piecewise = String.raw`\begin{cases} 0, & t < 0 \\ t, & 0 \le t < 1 \\ 2 - t, & 1 \le t \le 2 \\ 0, & t \ge 2 \end{cases}`;
 			const refEval = (t: number): number => {
 				if (t < 0) return 0;
 				if (t < 1) return t;

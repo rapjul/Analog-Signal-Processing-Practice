@@ -159,6 +159,36 @@ function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
 }
 
 /**
+ * Normalizes student or system LaTeX strings for robust MathJSON parsing.
+ * Converts bare function names (cos, sin, exp) to LaTeX syntax (\cos, \sin, \exp)
+ * and resolves common constant tokenizations such as 'pi' and 'pit' -> '\pi t'.
+ * @param {string} latex Raw input LaTeX or mathematical string
+ * @returns {string} Normalized LaTeX string
+ */
+export function normalizeMathLatex(latex: string): string {
+	if (!latex) return "";
+
+	return (
+		latex
+			.replace(/\\left/g, "")
+			.replace(/\\right/g, "")
+			.replace(/\\cdot/g, " * ")
+			.replace(/\\times/g, " * ")
+			.replace(/u\(t\)/g, "1") // step function assumed positive t > 0
+			.replace(/u\(t-[^)]+\)/g, "1")
+			// Convert bare 'pi' followed by a variable (e.g. 100pit -> 100\pi t, pit -> \pi t)
+			.replace(/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g, "$1\\pi $2")
+			// Convert standalone bare 'pi' (e.g. 100pi t -> 100\pi t, 2*pi -> 2*\pi)
+			.replace(/(^|[^a-zA-Z\\])pi(?=[^a-zA-Z]|$)/g, "$1\\pi")
+			// Convert bare functions without leading backslash (e.g. cos, sin, tan, exp, sqrt, ln, log)
+			.replace(
+				/(^|[^a-zA-Z\\])(cos|sin|tan|exp|sqrt|ln|log)(?=[^a-zA-Z]|$)/g,
+				"$1\\$2",
+			)
+	);
+}
+
+/**
  * Parses LaTeX string and evaluates at numerical point t.
  *
  * Evaluates via MathJSON AST parsed from the standalone LaTeX syntax subpath.
@@ -168,12 +198,8 @@ function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
  */
 export function evaluateLatexAt(latex: string, t: number): number {
 	try {
-		// Clean common LaTeX notation
-		const cleaned = latex
-			.replace(/\\left/g, "")
-			.replace(/\\right/g, "")
-			.replace(/u\(t\)/g, "1") // step function assumed positive t > 0
-			.replace(/u\(t-[^)]+\)/g, "1");
+		// Clean and normalize LaTeX notation
+		const cleaned = normalizeMathLatex(latex);
 
 		// Parse into MathJSON AST via standalone LaTeX syntax subpath
 		const mathJson = parse(cleaned);
@@ -256,10 +282,10 @@ export function validateLatexAnswer(
  */
 function evaluateCondition(cond: string, t: number): boolean {
 	const cleaned = cond
-		.replace(/\\le/g, "<=")
-		.replace(/\\ge/g, ">=")
 		.replace(/\\leq/g, "<=")
 		.replace(/\\geq/g, ">=")
+		.replace(/\\le/g, "<=")
+		.replace(/\\ge/g, ">=")
 		.replace(/\\lt/g, "<")
 		.replace(/\\gt/g, ">")
 		.replace(/\\text\{for\}/g, "")

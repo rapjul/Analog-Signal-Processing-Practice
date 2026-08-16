@@ -91,7 +91,7 @@
 
 		// Match $$...$$ (display), $...$ (inline), or standalone LaTeX commands
 		const parts = content.split(
-			/(\$\$[\s\S]+?\$\$|\$(?:\\\$|[^$\n])+?\$|\\(?:text|mathrm|operatorname|mathbf|frac)\{[^}]*\}(?:\{[^}]*\})?|\\(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|tau|phi|omega|Omega|Gamma|Delta|Theta|Lambda|Sigma|Phi|Psi|int|sum|prod|pm|mp|cdot|times|infty)\b(?:_[a-zA-Z0-9]+|\^[a-zA-Z0-9]+)?)/g,
+			/(\$\$[\s\S]+?\$\$|\$(?:\\\$|[^$\n])+?\$|\\(?:text|mathrm|operatorname|mathbf|frac)\{[^}]*\}(?:\{[^}]*\})?|\\(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|tau|phi|omega|Omega|Gamma|Delta|Theta|Lambda|Sigma|Phi|Psi|int|sum|prod|pm|mp|cdot|times|infty)(?:_[a-zA-Z0-9]+|\^[a-zA-Z0-9]+|(?=[^a-zA-Z]|$)))/g,
 		);
 
 		return parts
