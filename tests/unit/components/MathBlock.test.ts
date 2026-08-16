@@ -3,12 +3,14 @@
  */
 
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
+import katex from "katex";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MathBlock from "$lib/components/math/MathBlock.svelte";
 
 describe("MathBlock.svelte Component", () => {
 	afterEach(() => {
 		cleanup();
+		vi.useRealTimers();
 		vi.restoreAllMocks();
 	});
 
@@ -68,6 +70,34 @@ describe("MathBlock.svelte Component", () => {
 		expect(katex).toBeTruthy();
 	});
 
+	it("wraps expressions in gathered environment when gathered prop is true", () => {
+		const { container } = render(MathBlock, {
+			props: {
+				math: "a = b \\\\\n c = d",
+				gathered: true,
+			},
+		});
+
+		const katex = container.querySelector(".katex-display");
+		expect(katex).toBeTruthy();
+	});
+
+	it("renders fallback span when KaTeX throws an error", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new Error("KaTeX error");
+		});
+
+		const { container } = render(MathBlock, {
+			props: {
+				math: "\\broken{math}",
+			},
+		});
+
+		const errorSpan = container.querySelector(".katex-error");
+		expect(errorSpan).toBeTruthy();
+		expect(errorSpan?.textContent).toBe("\\broken{math}");
+	});
+
 	it("hides header bar when hideHeader is true", () => {
 		const { container } = render(MathBlock, {
 			props: {
@@ -96,7 +126,8 @@ describe("MathBlock.svelte Component", () => {
 		expect(block?.classList.contains("custom-formula-class")).toBe(true);
 	});
 
-	it("copies formatted LaTeX code to clipboard on button click", async () => {
+	it("copies formatted LaTeX code to clipboard on button click and resets copied state after timer", async () => {
+		vi.useFakeTimers();
 		const writeTextMock = vi.fn().mockResolvedValue(undefined);
 		Object.assign(navigator, {
 			clipboard: {
@@ -119,6 +150,10 @@ describe("MathBlock.svelte Component", () => {
 				"c_1 e^{-t} + c_2 e^{-3t}",
 			);
 			expect(copyBtn.textContent).toContain("Copied!");
+
+			// Advance timers and flush microtask queue to trigger copied = false reset
+			await vi.advanceTimersByTimeAsync(1500);
+			expect(copyBtn.textContent).toContain("LaTeX");
 		}
 	});
 

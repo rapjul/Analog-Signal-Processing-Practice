@@ -3,12 +3,14 @@
  */
 
 import { cleanup, render } from "@testing-library/svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import katex from "katex";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import MathText from "$lib/components/math/MathText.svelte";
 
 describe("MathText.svelte Component", () => {
 	afterEach(() => {
 		cleanup();
+		vi.restoreAllMocks();
 	});
 
 	it("renders plain text without math delimiters", () => {
@@ -51,6 +53,54 @@ describe("MathText.svelte Component", () => {
 		expect(container.textContent).toContain("The final total response is:");
 	});
 
+	it("renders fallback span when KaTeX throws on display math", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new Error("KaTeX display error");
+		});
+
+		const { container } = render(MathText, {
+			props: {
+				text: "$$\\broken{display}$$",
+			},
+		});
+
+		const errorSpan = container.querySelector(".katex-error");
+		expect(errorSpan).toBeTruthy();
+		expect(errorSpan?.textContent).toBe("\\broken{display}");
+	});
+
+	it("renders fallback span when KaTeX throws on inline math", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new Error("KaTeX inline error");
+		});
+
+		const { container } = render(MathText, {
+			props: {
+				text: "Inline $\\broken{inline}$ math",
+			},
+		});
+
+		const errorSpan = container.querySelector(".katex-error");
+		expect(errorSpan).toBeTruthy();
+		expect(errorSpan?.textContent).toBe("\\broken{inline}");
+	});
+
+	it("renders fallback span when KaTeX throws on standalone macros", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new Error("KaTeX macro error");
+		});
+
+		const { container } = render(MathText, {
+			props: {
+				text: "Macro \\omega_0 symbol",
+			},
+		});
+
+		const errorSpan = container.querySelector(".katex-error");
+		expect(errorSpan).toBeTruthy();
+		expect(errorSpan?.textContent).toBe("\\omega_0");
+	});
+
 	it("renders markdown bold, italic, inline code, and safe HTML tags", () => {
 		const { container } = render(MathText, {
 			props: {
@@ -87,6 +137,18 @@ describe("MathText.svelte Component", () => {
 
 		const katexElement = container.querySelector(".katex");
 		expect(katexElement).toBeTruthy();
+	});
+
+	it("renders empty string without errors when text is empty", () => {
+		const { container } = render(MathText, {
+			props: {
+				text: "",
+			},
+		});
+
+		const span = container.querySelector("span.math-text");
+		expect(span).toBeTruthy();
+		expect(span?.textContent).toBe("");
 	});
 
 	it("applies optional custom class names to wrapper span", () => {
