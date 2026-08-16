@@ -35,4 +35,33 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 ### 5. Fourier Series: Convert to Trigonometric/Exponential/Compact Forms
 
 - Convert all sin/cos series solutions to compact exponential form.
-- Add a new problem type where the Fourier series is given and then the user needs to convert to another form.
+- Add a new problem type where the Fourier series is given, and then the user needs to convert to another form.
+
+## Learning Experience & UX Enhancements
+
+### 6. Session & ITS Solver State Persistence
+
+- **Context:** If a student refreshes mid-problem, all interactive progress is lost.
+- **Improvement Idea:**
+    - Save active ITS solver state, entered inputs, and revealed steps to `sessionStorage` or IndexedDB.
+    - Restore in-progress problem states seamlessly upon browser reload or accidental navigation.
+
+### 7. Adaptive Difficulty & Spaced Repetition Progression
+
+- **Context:** All problems are currently randomly generated without difficulty progression.
+- **Improvement Idea:**
+    - Implement a spaced repetition and adaptive difficulty progression engine.
+    - Dynamically calibrate problem parameters and complexity based on student accuracy and mastery history.
+
+### 8. Global Keyboard Shortcuts for Power Users
+
+- **Context:** Power users and students drilling problems for exams currently rely exclusively on mouse/touch interaction.
+- **Improvement Idea:**
+    - Add keyboard shortcuts for high-frequency actions (e.g. `Ctrl/Cmd + Enter` to Check Answer, `H` for Hint, `N` for Next Problem).
+    - Provide an accessible shortcuts cheatsheet/modal.
+
+### 9. Dashboard / Home Page Per-Module Progress Tracking
+
+- **Context:** Dashboard cards all display static "▶ Practice Now" labels without indication of user progress.
+- **Improvement Idea:**
+    - Connect the local database / persistence layer to display per-module mastery percentages, completion rates, and problem attempt counts directly on the dashboard cards.
