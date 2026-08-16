@@ -28,7 +28,7 @@
   },
   "html": {
     "formatter": {
-      "bracketSameLine": true
+      "bracketSameLine": false
     }
   }
 }

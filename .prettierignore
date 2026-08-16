@@ -1,0 +1,9 @@
+node_modules
+build
+.svelte-kit
+dev-dist
+dist
+playwright-report
+test-results
+package-lock.json
+static/katex
