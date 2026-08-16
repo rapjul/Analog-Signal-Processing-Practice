@@ -166,8 +166,8 @@
 			type="button"
 			class="btn-formula-drawer formula-drawer-btn"
 			onclick={openFormulaDrawer}
-			title="Open Formula Reference Sheet"
-			aria-label="Open Formula Reference Sheet"
+			title="Open Formulas Reference Sheet"
+			aria-label="Open Formulas Reference Sheet"
 		>
 			<span class="btn-icon">📖</span>
 			<span class="btn-label">Formulas</span>

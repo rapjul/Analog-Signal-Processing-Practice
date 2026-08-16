@@ -119,6 +119,7 @@
 	<div
 		class="math-block {className} {compact ? 'is-compact' : ''}"
 		class:math-block-responsive={responsive}
+		role="region"
 		aria-label="Mathematical formula block"
 	>
 		{#if !hideHeader}
@@ -220,12 +221,12 @@
 		padding: 0.15rem 0.45rem;
 		font-size: 0.72rem;
 		font-family: inherit;
-		color: var(--text-muted, #94a3b8);
+		color: var(--text-secondary, #a1a1aa);
 		background-color: transparent;
 		border: 1px solid transparent;
 		border-radius: var(--radius-sm, 4px);
 		cursor: pointer;
-		opacity: 0.75;
+		opacity: 1;
 		transition:
 			opacity 0.15s ease,
 			background-color 0.15s ease,

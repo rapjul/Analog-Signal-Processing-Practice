@@ -304,11 +304,11 @@
 
 	.btn-primary {
 		background: var(--accent-primary);
-		color: #ffffff;
+		color: var(--accent-contrast, #042f2e);
 		border: none;
 		padding: 0.5rem 1rem;
 		border-radius: var(--radius-sm);
-		font-weight: 600;
+		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}

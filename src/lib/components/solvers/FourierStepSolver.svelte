@@ -558,7 +558,12 @@
 	}
 
 	.step-card.locked {
-		opacity: 0.55;
+		opacity: 0.65;
+	}
+
+	.step-card.locked .step-badge {
+		background: rgba(255, 255, 255, 0.08);
+		color: var(--text-secondary);
 	}
 
 	.step-header {
@@ -806,12 +811,12 @@
 
 	.btn-primary {
 		background: var(--accent-primary);
-		color: #ffffff;
+		color: var(--accent-contrast, #042f2e);
 		border: none;
 		border-radius: var(--radius-sm, 6px);
 		padding: 0.5rem 1rem;
 		font-size: 0.85rem;
-		font-weight: 600;
+		font-weight: 700;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: normal;

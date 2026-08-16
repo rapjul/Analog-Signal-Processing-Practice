@@ -134,8 +134,13 @@
 
 	/* Locked — dimmed, pointer events disabled */
 	.step-card--locked {
-		opacity: 0.55;
+		opacity: 0.65;
 		pointer-events: none;
+	}
+
+	.step-card--locked .step-badge {
+		background: rgba(255, 255, 255, 0.08);
+		color: var(--text-secondary);
 	}
 
 	/* ── Step Header ──────────────────────────────────────── */

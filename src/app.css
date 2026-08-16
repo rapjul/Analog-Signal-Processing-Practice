@@ -15,11 +15,12 @@
 	/* Text Colors */
 	--text-primary: #f4f4f6;
 	--text-secondary: #a1a1aa;
-	--text-muted: #71717a;
+	--text-muted: #94a3b8;
 
 	/* Brand & Accent Colors */
 	--accent-primary: #06b6d4;
 	--accent-hover: #22d3ee;
+	--accent-contrast: #042f2e;
 	--accent-glow: rgba(6, 182, 212, 0.25);
 	--accent-bg: rgba(6, 182, 212, 0.15);
 	--accent-bg-subtle: rgba(6, 182, 212, 0.1);
@@ -102,6 +103,7 @@
 
 	--accent-primary: #0284c7;
 	--accent-hover: #0369a1;
+	--accent-contrast: #ffffff;
 	--accent-glow: rgba(2, 132, 199, 0.2);
 
 	--color-success: #059669;
