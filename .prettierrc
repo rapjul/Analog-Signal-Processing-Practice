@@ -6,6 +6,20 @@
 			"options": {
 				"parser": "svelte"
 			}
+		},
+		{
+			"files": [
+				"*.json",
+				"*.json5",
+				"*.jsonc",
+				"*.svg",
+				"*.yaml",
+				"*.yml"
+			],
+			"options": {
+				"useTabs": false,
+				"tabWidth": 2
+			}
 		}
 	],
 	"printWidth": 80,

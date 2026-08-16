@@ -1,14 +1,14 @@
 {
-	"no-duplicate-heading": false,
-	"no-hard-tabs": false,
-	"no-space-in-links": true,
-	"no-space-in-urls": true,
-	"no-trailing-spaces": false,
-	"atx": true,
-	"line-length": false,
-	"list-indent": false,
-	"ul-indent": false,
-	"ul-style": {
-		"style": "dash"
-	}
+  "no-duplicate-heading": false,
+  "no-hard-tabs": false,
+  "no-space-in-links": true,
+  "no-space-in-urls": true,
+  "no-trailing-spaces": false,
+  "atx": true,
+  "line-length": false,
+  "list-indent": false,
+  "ul-indent": false,
+  "ul-style": {
+    "style": "dash"
+  }
 }
