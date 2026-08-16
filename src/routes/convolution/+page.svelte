@@ -6,11 +6,8 @@
 	 * interactive interval input, and formula reference.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type ConvolutionPairType,
@@ -21,7 +18,6 @@
 	let selectedPair = $state<ConvolutionPairType>("rect_rect");
 
 	// Active problem state
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let currentProblem = $state<ConvolutionProblem>(
 		generateConvolutionProblem("rect_rect"),
 	);
@@ -36,7 +32,6 @@
 	/**
 	 * Handles change to signal pair selector.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleOptionChange() {
 		handleGenerateNext();
 	}

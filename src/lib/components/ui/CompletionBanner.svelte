@@ -14,7 +14,6 @@
 	 */
 
 	import type { Snippet } from "svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	/** A single statistic row displayed in the banner footer. */
@@ -55,15 +54,10 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title = "Problem Completed!",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		description,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		icon = "🎉",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		stats = [],
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		actionsSnippet,
 	}: Props = $props();
 </script>

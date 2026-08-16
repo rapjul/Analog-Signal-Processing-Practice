@@ -6,9 +6,7 @@
 	 * for zero-guesswork math solutions.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { SolutionStep } from "$lib/math-engine/types";
 
@@ -28,7 +26,6 @@
 	/**
 	 * Reveals the next step in the breakdown.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function revealNextStep() {
 		if (revealedCount < steps.length) {
 			revealedCount += 1;
@@ -38,7 +35,6 @@
 	/**
 	 * Reveals all steps in the breakdown.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function revealAllSteps() {
 		revealedCount = steps.length;
 	}

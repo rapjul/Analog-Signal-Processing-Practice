@@ -8,16 +8,11 @@
 	 * initial conditions system, and ZI/ZS response decomposition.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import { toFractionLatex } from "$lib/math-engine/fraction";
 	import type { OdeProblem } from "$lib/math-engine/odes";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Progress from "../ui/Progress.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import StepFeedback from "../ui/StepFeedback.svelte";
 	import { OdeStepSolverState } from "./ode-step-solver.svelte";
 

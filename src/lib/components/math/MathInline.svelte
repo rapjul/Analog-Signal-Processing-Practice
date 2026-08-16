@@ -16,13 +16,10 @@
 
 	let {
 		math = "",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		class: className = "",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		displayStyle = false,
 	}: Props = $props();
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let copied = $state(false);
 	let copyDismissed = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -30,7 +27,6 @@
 	/**
 	 * Copies LaTeX expression to system clipboard and triggers visual feedback.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleCopy(): void {
 		if (!math) return;
 		navigator.clipboard.writeText(math).then(() => {
@@ -47,7 +43,6 @@
 	/**
 	 * Resets copied state when fade-out opacity transition completes.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleTransitionEnd(event: TransitionEvent): void {
 		if (event.propertyName === "opacity" && copyDismissed) {
 			copied = false;
@@ -57,7 +52,6 @@
 	/**
 	 * Resets copyDismissed state when mouse leaves component.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleMouseLeave(): void {
 		copyDismissed = false;
 	}
@@ -68,7 +62,6 @@
 	 * @param {boolean} [useDisplayStyle] Whether to force displayStyle formatting
 	 * @returns {string} Rendered HTML string
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function renderInlineMath(
 		expr: string,
 		useDisplayStyle: boolean = false,

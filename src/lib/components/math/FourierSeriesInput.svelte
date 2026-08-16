@@ -8,9 +8,7 @@
 	 * without requiring manual LaTeX coding. Includes live LaTeX preview cards.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathInline from "./MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathText from "./MathText.svelte";
 
 	export type FourierFormMode = "trigonometric" | "exponential";
@@ -24,7 +22,6 @@
 		onChange?: (latex: string) => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	let { value = "", onChange }: Props = $props();
 
 	/** Active Fourier representation mode tab */

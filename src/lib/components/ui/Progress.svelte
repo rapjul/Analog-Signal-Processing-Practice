@@ -20,21 +20,16 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		currentStep,
 		totalSteps,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title = "Progress:",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		activeStepTitle,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		onStepClick,
 	}: Props = $props();
 
 	/**
 	 * Array of 1-based step indices.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const stepIndices = $derived(
 		Array.from({ length: Math.max(1, totalSteps) }, (_, i) => i + 1),
 	);

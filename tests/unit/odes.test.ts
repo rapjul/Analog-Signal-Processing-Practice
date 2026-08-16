@@ -1,10 +1,10 @@
+import { describe, expect, it } from "vitest";
 import {
 	computeParticularSolution,
 	generateOdeProblem,
 	solveCharacteristicEquation,
 	solveHomogeneousConstants,
 } from "$lib/math-engine/odes";
-import { describe, expect, it } from "vitest";
 
 describe("LCC ODE Math Engine", () => {
 	describe("Characteristic Equation Solver", () => {

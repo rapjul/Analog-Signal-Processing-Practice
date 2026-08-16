@@ -1,10 +1,10 @@
+import { describe, expect, it } from "vitest";
 import {
 	evaluateCtftSpectrum,
 	evaluateEnergySpectrum,
 	generateCtftProblem,
 	getCtftPairLatex,
 } from "$lib/math-engine/fourier-transform";
-import { describe, expect, it } from "vitest";
 
 describe("CTFT Math Engine (fourier-transform.ts)", () => {
 	describe("CTFT Transform Pairs & Custom Operator Formatting", () => {

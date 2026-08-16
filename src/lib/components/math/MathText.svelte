@@ -4,6 +4,7 @@
 	 *
 	 * Parses text containing inline ($...$) and block ($$...$$) LaTeX expressions and renders them with KaTeX.
 	 */
+
 	import katex from "katex";
 
 	interface Props {
@@ -13,12 +14,7 @@
 		class?: string;
 	}
 
-	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-		text = "",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
-		class: className = "",
-	}: Props = $props();
+	let { text = "", class: className = "" }: Props = $props();
 
 	/**
 	 * Safe HTML tags permitted in MathText prose segments.
@@ -90,7 +86,6 @@
 	 * @param {string} content Input string potentially containing LaTeX math
 	 * @returns {string} Safe HTML string containing rendered KaTeX elements
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function renderFormattedMathText(content: string): string {
 		if (!content) return "";
 

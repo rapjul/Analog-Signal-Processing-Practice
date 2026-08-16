@@ -4,10 +4,9 @@
 	 *
 	 * Provides a course overview for UIUC ECE 210 with module launcher cards.
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const modules = [
 		{
 			id: "odes",

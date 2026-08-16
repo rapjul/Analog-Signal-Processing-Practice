@@ -6,13 +6,9 @@
 	 * spectral magnitude/phase plots, and ECE 210 exam formula sheets.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type CtftSignalType,
@@ -22,12 +18,9 @@
 	let selectedType = $state<CtftSignalType>("rect");
 	let currentProblem = $state(generateCtftProblem("rect"));
 	let userAttempt = $state("");
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isSubmitted = $state(false);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCorrect = $state(false);
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleGenerateNext() {
 		currentProblem = generateCtftProblem(selectedType);
 		userAttempt = "";
@@ -35,7 +28,6 @@
 		isCorrect = false;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleCheck() {
 		isSubmitted = true;
 		// Flexible string comparison fallback for demo

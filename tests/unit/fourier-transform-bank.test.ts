@@ -1,5 +1,5 @@
-import { CTFT_EXAM_BANK } from "$lib/problems/bank/fourier-transform-bank";
 import { describe, expect, it } from "vitest";
+import { CTFT_EXAM_BANK } from "$lib/problems/bank/fourier-transform-bank";
 
 describe("CTFT Problem Bank (fourier-transform-bank.ts)", () => {
 	it("should contain hand-curated UIUC ECE 210 CTFT problems", () => {

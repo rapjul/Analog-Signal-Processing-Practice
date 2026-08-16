@@ -1,5 +1,5 @@
-import { Complex } from "$lib/math-engine/complex";
 import { describe, expect, it } from "vitest";
+import { Complex } from "$lib/math-engine/complex";
 
 describe("Complex Number Math Engine (complex.ts)", () => {
 	describe("Constructors and Static Factories", () => {

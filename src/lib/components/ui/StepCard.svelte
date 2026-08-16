@@ -13,7 +13,6 @@
 	 */
 
 	import type { Snippet } from "svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	interface Props {
@@ -39,17 +38,11 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		stepNumber,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		status,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		summaryLatex,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		children,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		summarySnippet,
 	}: Props = $props();
 </script>

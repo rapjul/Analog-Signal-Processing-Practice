@@ -1,5 +1,5 @@
-import { CIRCUITS_EXAM_BANK } from "$lib/problems/bank/circuits-bank";
 import { describe, expect, it } from "vitest";
+import { CIRCUITS_EXAM_BANK } from "$lib/problems/bank/circuits-bank";
 
 describe("Circuits Exam Problem Bank (circuits-bank.ts)", () => {
 	it("should contain at least 12 hand-curated ECE 210 circuit problems", () => {

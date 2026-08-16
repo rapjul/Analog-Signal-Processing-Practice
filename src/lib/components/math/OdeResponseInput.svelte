@@ -6,7 +6,6 @@
 	 * Allows users to choose the damping mode template and input numerical/symbolic coefficients.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import MathText from "./MathText.svelte";
 
 	export type ResponseMode =
@@ -27,7 +26,6 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		value = "",
 		r1 = $bindable(""),
 		r2 = $bindable(""),

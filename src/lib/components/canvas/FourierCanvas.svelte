@@ -13,7 +13,6 @@
 		type FourierCoefficients,
 		type FourierWaveformType,
 	} from "$lib/math-engine/fourier-series";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathInline from "../math/MathInline.svelte";
 
 	interface Props {
@@ -30,7 +29,6 @@
 	let {
 		waveformType = "square",
 		harmonicCount = 5,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title = "Fourier Series Partial Sum & Harmonic Spectrum",
 	}: Props = $props();
 

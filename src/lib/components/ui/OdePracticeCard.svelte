@@ -7,17 +7,11 @@
 	 */
 
 	import type { OdeProblem } from "$lib/math-engine/odes";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import WaveformCanvas from "../canvas/WaveformCanvas.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import OdeStepSolver from "../solvers/OdeStepSolver.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import CompletionBanner from "./CompletionBanner.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import ProblemHeader from "./ProblemHeader.svelte";
 
 	interface Props {
@@ -27,10 +21,8 @@
 		onNextProblem: () => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { problem, onNextProblem }: Props = $props();
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCompleted = $state(false);
 
 	// Reset state when new problem loads
@@ -43,7 +35,6 @@
 	/**
 	 * Handles problem completion from stepped solver.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleProblemCompleted() {
 		isCompleted = true;
 	}
@@ -51,7 +42,6 @@
 	/**
 	 * Curves to plot on WaveformCanvas
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let plotCurves = $derived([
 		{
 			label: "Total Solution",
@@ -77,7 +67,6 @@
 	 * Derives the badge list to pass to ProblemHeader from the active problem.
 	 * @returns {Array<{label: string; variant: "secondary" | "accent"}>} Badge items
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const headerBadges = $derived([
 		{
 			label: problem.params.order === 1 ? "1st-Order" : "2nd-Order",

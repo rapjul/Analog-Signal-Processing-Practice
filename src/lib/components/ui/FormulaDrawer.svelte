@@ -6,9 +6,7 @@
 	 * formulas, and shortcuts for ODEs, Fourier Series, and Transforms.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
 
 	interface Props {
@@ -21,14 +19,12 @@
 	let { isOpen = $bindable(false), onClose }: Props = $props();
 
 	type TabId = "odes" | "fourier" | "transforms";
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let activeTab = $state<TabId>("odes");
 
 	/**
 	 * Handles keydown events to close drawer on Esc key.
 	 * @param {KeyboardEvent} event Keyboard event
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === "Escape" && isOpen) {
 			onClose();
@@ -39,7 +35,6 @@
 	 * Sets the active reference tab.
 	 * @param {TabId} tab Tab identifier
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function setTab(tab: TabId) {
 		activeTab = tab;
 	}

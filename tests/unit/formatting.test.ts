@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import {
 	formatCoefficientTerm,
 	formatOdeLhs,
@@ -5,7 +6,6 @@ import {
 	formatQuadraticPolynomial,
 	formatRootFactor,
 } from "$lib/math-engine/formatting";
-import { describe, expect, it } from "vitest";
 
 describe("formatCoefficientTerm", () => {
 	it("omits unit coefficient 1 for non-empty symbols", () => {

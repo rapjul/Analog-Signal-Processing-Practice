@@ -1,6 +1,6 @@
-import { test } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { test } from "@playwright/test";
 
 /**
  * Visual Verification & Screenshot Capture Suite for SignalLab.

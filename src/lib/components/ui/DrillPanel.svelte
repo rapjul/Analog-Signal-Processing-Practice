@@ -6,6 +6,7 @@
 	 * module pages to house targeted filters and problem generators without spoiling
 	 * problem types on page load.
 	 */
+
 	import type { Snippet } from "svelte";
 
 	/**
@@ -25,15 +26,10 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title = "Targeted Drill & Custom Filters",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		icon = "⚙️",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		badge = "Random / Exam Mode",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		isOpen = false,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		children,
 	}: Props = $props();
 </script>

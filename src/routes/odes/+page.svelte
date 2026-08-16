@@ -7,13 +7,9 @@
 	 * 7-step ITS diagnostic solver, and verified waveform plotting.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import OdePracticeCard from "$lib/components/ui/OdePracticeCard.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type ForcingType,
@@ -25,7 +21,6 @@
 	let selectedForcingType = $state<ForcingType | "random">("random");
 
 	// Active problem state (default blind random exam practice)
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let currentProblem = $state(generateOdeProblem("random", "random"));
 
 	/**
@@ -41,7 +36,6 @@
 	/**
 	 * Handles changes to root or forcing function selectors.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleOptionChange() {
 		handleGenerateNext();
 	}

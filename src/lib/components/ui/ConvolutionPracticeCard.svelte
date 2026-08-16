@@ -8,17 +8,11 @@
 
 	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
 	import { validateConvolutionResponse } from "$lib/math-engine/evaluator";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import ConvolutionCanvas from "../canvas/ConvolutionCanvas.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathInputBar from "../math/MathInputBar.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import ProblemHeader from "./ProblemHeader.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
@@ -28,13 +22,11 @@
 		onNextProblem: () => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { problem, onNextProblem }: Props = $props();
 
 	// Student LaTeX response binding
 	let studentLatex = $state("");
 	// Diagnostic feedback state
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let feedback = $state<{
 		isCorrect: boolean;
 		message: string;
@@ -42,7 +34,6 @@
 	} | null>(null);
 
 	// Formula drawer visibility state
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let showFormulaDrawer = $state(false);
 
 	// Reset response and feedback when problem instance changes
@@ -56,7 +47,6 @@
 	/**
 	 * Submits and validates student response against computed piecewise solution.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleSubmit() {
 		if (!studentLatex.trim()) {
 			feedback = {
@@ -89,7 +79,6 @@
 	}
 
 	// Dynamic placeholder text
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let placeholderText = $derived(
 		problem.pairType.includes("rect")
 			? String.raw`e.g. \begin{cases} t & 0 \le t < 1 \\ 2-t & 1 \le t \le 2 \end{cases}`
@@ -97,7 +86,6 @@
 	);
 
 	// Formula constant for statement text
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const convExprMath =
 		"y(t) = (x * h)(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau";
 </script>

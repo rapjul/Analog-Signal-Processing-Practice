@@ -3,6 +3,7 @@
  * Tests analytical piecewise convolution solvers, numerical integration, and problem generator.
  */
 
+import { describe, expect, it } from "vitest";
 import {
 	evalExpDecay,
 	evalRect,
@@ -14,7 +15,6 @@ import {
 	solveRectRectConvolution,
 	solveShiftedRectConvolution,
 } from "$lib/math-engine/convolution";
-import { describe, expect, it } from "vitest";
 
 describe("Continuous-Time Convolution Math Engine", () => {
 	describe("Primitive Signal Evaluators", () => {

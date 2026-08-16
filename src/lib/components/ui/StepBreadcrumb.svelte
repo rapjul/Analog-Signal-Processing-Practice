@@ -7,7 +7,6 @@
 	 * Step titles are rendered via MathText so LaTeX math in titles compiles cleanly.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	/** Metadata for a single step in the breadcrumb. */
@@ -34,7 +33,6 @@
 		onSelectStep?: (stepNumber: number) => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { steps, currentStep, totalSteps, onSelectStep }: Props = $props();
 
 	/**
@@ -42,7 +40,6 @@
 	 * @param {number} stepNumber 1-based step number to evaluate
 	 * @returns {"completed" | "active" | "locked"} Step status string
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getStatus(stepNumber: number): "completed" | "active" | "locked" {
 		if (stepNumber < currentStep) return "completed";
 		if (stepNumber === currentStep) return "active";
@@ -54,7 +51,6 @@
 	 * @param {"completed" | "active" | "locked"} status Step status
 	 * @returns {string} Icon character or empty string
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getIcon(status: "completed" | "active" | "locked"): string {
 		switch (status) {
 			case "completed":

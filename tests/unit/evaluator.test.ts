@@ -1,10 +1,10 @@
+import { describe, expect, it } from "vitest";
 import {
 	evaluateLatexAt,
 	evaluatePiecewiseLatexAt,
 	validateConvolutionResponse,
 	validateLatexAnswer,
 } from "$lib/math-engine/evaluator";
-import { describe, expect, it } from "vitest";
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
 	describe("evaluateLatexAt", () => {

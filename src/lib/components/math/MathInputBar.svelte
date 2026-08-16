@@ -6,19 +6,13 @@
 	 * 1. Guided Form Builder (Piecewise, ODEs, Pole-Zero, Fourier Series, Phasors)
 	 * 2. Freehand LaTeX input with symbol shortcuts and live KaTeX preview
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
+
 	import FourierSeriesInput from "./FourierSeriesInput.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import MathBlock from "./MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import MathInline from "./MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import OdeResponseInput from "./OdeResponseInput.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import PhasorInput from "./PhasorInput.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import PiecewiseIntervalInput from "./PiecewiseIntervalInput.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import PoleZeroInput from "./PoleZeroInput.svelte";
 
 	export type InputTypeOption =
@@ -51,11 +45,8 @@
 		value = $bindable(""),
 		r1 = $bindable(""),
 		r2 = $bindable(""),
-		// biome-ignore lint/correctness/noUnusedVariables: Used in template
 		label = "Enter Math Solution:",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in template
 		placeholder = "e.g. 2 e^{-2t} \\cos(3t) u(t)",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in template
 		inputType = "generic",
 		onChange,
 	}: Props = $props();
@@ -64,13 +55,11 @@
 	let inputMode = $state<"builder" | "freehand">("builder");
 
 	/** Active builder selector when inputType is 'generic' or 'auto' */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let selectedBuilder = $state<
 		"piecewise" | "ode" | "polezero" | "fourier" | "phasor"
 	>("piecewise");
 
 	/** Common Symbol Shortcuts for freehand mode */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template
 	const symbols = [
 		{ label: "Fraction", math: "\\frac{a}{b}", latex: "\\frac{a}{b}" },
 		{ label: "e^x", math: "e^{-t}", latex: "e^{-t}" },
@@ -92,7 +81,6 @@
 	 * Appends chosen symbol snippet to current input value.
 	 * @param {string} snippet LaTeX snippet
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template
 	function insertSymbol(snippet: string) {
 		value = value ? `${value} ${snippet}` : snippet;
 		if (onChange) onChange(value);
@@ -102,7 +90,6 @@
 	 * Handles direct textarea input change.
 	 * @param {Event} e Input event
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template
 	function handleInput(e: Event) {
 		const target = e.target as HTMLTextAreaElement;
 		value = target.value;
@@ -113,7 +100,6 @@
 	 * Handles builder synthesized LaTeX update.
 	 * @param {string} newLatex Synthesized LaTeX
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleBuilderChange(newLatex: string) {
 		if (inputMode === "builder") {
 			value = newLatex;

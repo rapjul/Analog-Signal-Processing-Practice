@@ -5,11 +5,9 @@
 	 * Implements Bilateral/Unilateral Laplace inverse transforms, PFD breakdown,
 	 * ROC analysis, and pole-zero stability checks.
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		determineStability,
@@ -21,15 +19,11 @@
 		generateLaplaceProblem("inverse_pfd"),
 	);
 	let userAttempt = $state("");
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isSubmitted = $state(false);
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCorrect = $state(false);
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let stability = $derived(determineStability([-2, -3], "right-sided"));
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleGenerateNext() {
 		currentProblem = generateLaplaceProblem("inverse_pfd");
 		userAttempt = "";
@@ -37,7 +31,6 @@
 		isCorrect = false;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleCheck() {
 		isSubmitted = true;
 		const cleanAttempt = userAttempt.trim().replace(/\s+/g, "");

@@ -1,5 +1,5 @@
-import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 import { describe, expect, it } from "vitest";
+import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 
 describe("toFractionLatex", () => {
 	it("formats integers correctly", () => {

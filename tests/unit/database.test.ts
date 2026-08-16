@@ -1,9 +1,9 @@
+import { describe, expect, it } from "vitest";
 import {
 	formatAttemptHistory,
 	getModuleProgress,
 	recordAttempt,
 } from "$lib/db/database";
-import { describe, expect, it } from "vitest";
 
 describe("IndexedDB & Progress Tracker (database.ts)", () => {
 	it("should record problem attempt and compute module mastery score", () => {

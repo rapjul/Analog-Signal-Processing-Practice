@@ -8,13 +8,9 @@
 	 */
 
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import Progress from "../ui/Progress.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template
 	import StepFeedback from "../ui/StepFeedback.svelte";
 	import { FourierStepSolverState } from "./fourier-step-solver.svelte";
 

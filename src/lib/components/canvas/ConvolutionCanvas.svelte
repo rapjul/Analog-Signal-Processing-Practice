@@ -7,7 +7,6 @@
 	 *    with shaded green product region x(tau)*h(t - tau).
 	 * 2. Lower Plot: Synchronized output response curve y(t) = (x * h)(t) (cyan).
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathInline from "../math/MathInline.svelte";
 
 	interface Props {
@@ -31,7 +30,6 @@
 			if (t < 2) return t;
 			return 4 - t;
 		},
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title = "Graphical Flip-and-Shift Convolution Animator",
 		timeRange = [-2, 6],
 	}: Props = $props();
@@ -60,7 +58,6 @@
 	/**
 	 * Toggles play/pause state for convolution animation.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function togglePlay() {
 		isPlaying = !isPlaying;
 		if (isPlaying) {

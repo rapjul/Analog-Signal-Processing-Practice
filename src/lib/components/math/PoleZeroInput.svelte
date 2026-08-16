@@ -6,7 +6,6 @@
 	 * and partial fraction decomposition expressions.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import MathInline from "./MathInline.svelte";
 
 	export type BuilderSubMode = "rational" | "partial_fractions";
@@ -33,7 +32,6 @@
 		onChange?: (latex: string) => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { value = "", onChange }: Props = $props();
 
 	/** Sub-mode selector */
@@ -179,7 +177,6 @@
 	/**
 	 * Adds a new PFD row to state.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function addPfdTerm() {
 		pfdTerms.push({
 			id: generateId(),
@@ -196,7 +193,6 @@
 	 * Removes a PFD row by ID.
 	 * @param {string} id Row ID
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function removePfdTerm(id: string) {
 		if (pfdTerms.length <= 1) return;
 		pfdTerms = pfdTerms.filter((t) => t.id !== id);

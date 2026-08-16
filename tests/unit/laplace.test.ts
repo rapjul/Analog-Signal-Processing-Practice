@@ -1,9 +1,9 @@
+import { describe, expect, it } from "vitest";
 import {
 	determineStability,
 	evaluatePfdResidues,
 	generateLaplaceProblem,
 } from "$lib/math-engine/laplace";
-import { describe, expect, it } from "vitest";
 
 describe("Laplace Transform Math Engine (laplace.ts)", () => {
 	describe("Partial Fraction Decomposition (PFD) Residue Solver", () => {

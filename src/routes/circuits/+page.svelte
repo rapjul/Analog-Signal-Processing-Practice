@@ -6,13 +6,9 @@
 	 * transfer function H(s) derivation, and Bode plot calculation.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type CircuitTopology,
@@ -26,16 +22,12 @@
 	let L = $state(1);
 	let C = $state(0.01);
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let currentProblem = $state(generateCircuitProblem("series-rlc"));
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let tf = $derived(evaluateTransferFunction(selectedTopology, { R, L, C }));
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let cornerBode = $derived(
 		evaluateBodePoint(selectedTopology, { R, L, C }, 10),
 	);
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleGenerateNext() {
 		currentProblem = generateCircuitProblem(selectedTopology);
 	}

@@ -10,7 +10,6 @@
 	 * /laplace, /circuits, /fourier-transform.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	/** A single badge pill displayed beneath the problem title. */
@@ -53,15 +52,10 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		category,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		badges = [],
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		onNextProblem,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		nextButtonLabel = "🎲 Generate Next Problem",
 	}: Props = $props();
 </script>

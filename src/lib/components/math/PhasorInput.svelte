@@ -5,7 +5,7 @@
 	 * Form builder for AC steady-state phasors and sinusoidal signals.
 	 * Formatted with LaTeX for all mathematical symbols and expressions.
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
+
 	import MathText from "./MathText.svelte";
 
 	export type PhasorFormMode = "polar" | "time_domain" | "rectangular";
@@ -17,7 +17,6 @@
 		onChange?: (latex: string) => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	let { value = "", onChange }: Props = $props();
 
 	/** Active mode tab */
@@ -38,11 +37,8 @@
 	let imagPart = $state("7.07");
 
 	// MathText formula constants for UI labels
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	const polarMath = "|V| \\angle \\theta^\\circ";
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	const timeDomainMath = "A \\cos(\\omega t + \\phi)";
-	// biome-ignore lint/correctness/noUnusedVariables: Used in template.
 	const rectangularMath = "X + jY";
 
 	/**
@@ -94,7 +90,6 @@
 	/**
 	 * Notifies parent of updated LaTeX expression whenever inputs change.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function updateValue(): void {
 		const res = synthesizedLatex;
 		if (onChange) onChange(res);

@@ -6,11 +6,8 @@
 	 * harmonic spectrum analysis, Gibbs phenomenon visualizer, and formula reference.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type FourierSeriesProblem,
@@ -21,7 +18,6 @@
 	let selectedWaveform = $state<FourierWaveformType>("square");
 
 	// Active problem state
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let currentProblem = $state<FourierSeriesProblem>(
 		generateFourierSeriesProblem("square"),
 	);
@@ -36,7 +32,6 @@
 	/**
 	 * Handles change to waveform selector.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleOptionChange() {
 		handleGenerateNext();
 	}

@@ -12,7 +12,6 @@
 		activeRoute?: string;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: activeRoute prop is used in template markup
 	let { activeRoute = "/odes" }: Props = $props();
 	let isDark = $state(true);
 	let isMenuOpen = $state(false);
@@ -32,7 +31,6 @@
 	/**
 	 * Toggles light and dark UI themes and dispatches event for canvas redraws.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: toggleTheme function is referenced in template click handler
 	function toggleTheme() {
 		isDark = !isDark;
 		const nextTheme = isDark ? "dark" : "light";
@@ -46,7 +44,6 @@
 	/**
 	 * Toggles the mobile menu open/closed state.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: toggleMenu function is referenced in template click handler
 	function toggleMenu() {
 		isMenuOpen = !isMenuOpen;
 	}
@@ -54,21 +51,17 @@
 	/**
 	 * Closes mobile menu when clicking a link.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: closeMenu function is referenced in template click handler.
 	function closeMenu() {
 		isMenuOpen = false;
 	}
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import FormulaDrawer from "./FormulaDrawer.svelte";
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isFormulaDrawerOpen = $state(false);
 
 	/**
 	 * Opens the global formula reference slide-over drawer.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function openFormulaDrawer() {
 		isFormulaDrawerOpen = true;
 	}
@@ -76,7 +69,6 @@
 	/**
 	 * Closes the global formula reference slide-over drawer.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function closeFormulaDrawer() {
 		isFormulaDrawerOpen = false;
 	}
@@ -85,7 +77,6 @@
 	 * Handles global keyboard shortcuts to dismiss open mobile navigation on Escape.
 	 * @param {KeyboardEvent} event Keyboard event
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === "Escape" && isMenuOpen) {
 			isMenuOpen = false;

@@ -7,17 +7,11 @@
 	 */
 
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import FourierCanvas from "../canvas/FourierCanvas.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathBlock from "../math/MathBlock.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in template markup.
 	import MathText from "../math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import CompletionBanner from "./CompletionBanner.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import ProblemHeader from "./ProblemHeader.svelte";
 
 	interface Props {
@@ -27,10 +21,8 @@
 		onNextProblem: () => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { problem, onNextProblem }: Props = $props();
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let isCompleted = $state(false);
 
 	// Reset state when new problem loads
@@ -43,7 +35,6 @@
 	/**
 	 * Handles problem completion from stepped solver.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleProblemCompleted() {
 		isCompleted = true;
 	}
@@ -52,7 +43,6 @@
 	 * Derives the badge list to pass to ProblemHeader from the active problem.
 	 * @returns {Array<{label: string; variant: "primary" | "secondary" | "accent"}>} Badge items
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const headerBadges = $derived([
 		{
 			label: `${problem.waveformType.replace("_", " ")} Wave`,

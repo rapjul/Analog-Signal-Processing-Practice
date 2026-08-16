@@ -33,17 +33,12 @@
 		cases = false,
 		matrix,
 		gathered = false,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		compact = false,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		responsive = false,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		hideHeader = false,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		class: className = "",
 	}: Props = $props();
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let copied = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -85,7 +80,6 @@
 	/**
 	 * Copies processed LaTeX code to clipboard and shows brief success indication.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function handleCopy(): void {
 		if (!formattedMath) return;
 		navigator.clipboard.writeText(formattedMath).then(() => {
@@ -102,7 +96,6 @@
 	 * @param {string} expr LaTeX expression
 	 * @returns {string} Rendered HTML string
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function renderMath(expr: string): string {
 		try {
 			return katex.renderToString(expr || "", {

@@ -30,7 +30,6 @@
 	let {
 		curves = [],
 		title = "Time-Domain Signal Response y(t)",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		mathTitle,
 		tRange = [0, 5],
 	}: Props = $props();
@@ -38,9 +37,7 @@
 	let canvasEl = $state<HTMLCanvasElement | null>(null);
 
 	import { onMount } from "svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathInline from "../math/MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "../math/MathText.svelte";
 
 	let themeVersion = $state(0);

@@ -4,11 +4,9 @@
 	 *
 	 * Renders when a requested path is not found or when a requested practice module is under development.
 	 */
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
+
 	import { page } from "$app/state";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathInline from "$lib/components/math/MathInline.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 
 	/**
@@ -30,7 +28,6 @@
 	 * @param {string} pathname - The requested route path
 	 * @returns {string} Human-readable status title
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getErrorTitle(status: number, pathname: string): string {
 		if (isModuleUnimplemented(pathname)) {
 			return "Module Under Construction";
@@ -49,7 +46,6 @@
 	 * @param {string} pathname - The requested route path
 	 * @returns {string} Explanatory message text
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getErrorMessage(defaultMsg: string, pathname: string): string {
 		if (pathname.includes("fourier-transform")) {
 			return "Continuous-Time Fourier Transform (CTFT) practice suite is currently in active development.";
@@ -71,7 +67,6 @@
 	 * @param {string} pathname - The requested route path
 	 * @returns {string} LaTeX expression string
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getMathFormula(pathname: string): string {
 		if (pathname.includes("fourier-transform")) {
 			return "X(\\omega) = \\int_{-\\infty}^{\\infty} x(t) e^{-j\\omega t} dt";

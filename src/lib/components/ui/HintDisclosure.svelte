@@ -10,7 +10,6 @@
 	 * through MathText so LaTeX compiles cleanly without raw Unicode math.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in the Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	interface Props {
@@ -36,7 +35,6 @@
 		hints,
 		hintTier,
 		maxTier = hints.length,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		onRevealNextHint,
 		disabled = false,
 	}: Props = $props();
@@ -47,7 +45,6 @@
 	 * @param {number} max Maximum available hint tiers
 	 * @returns {string} Button label text
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getButtonLabel(tier: number, max: number): string {
 		if (tier === 0) return "Get Hint";
 		if (tier < max) return `Get Next Hint (${tier}/${max})`;
@@ -59,7 +56,6 @@
 	 * @param {number} tier Currently active 1-based hint tier
 	 * @returns {string} Human-readable tier label
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getTierLabel(tier: number): string {
 		switch (tier) {
 			case 1:
@@ -76,7 +72,6 @@
 	/** Whether all tiers have been revealed. */
 	const allRevealed = $derived(hintTier >= maxTier);
 	/** Whether the trigger button should be disabled. */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	const isButtonDisabled = $derived(disabled || allRevealed);
 </script>
 

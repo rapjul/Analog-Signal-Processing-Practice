@@ -8,9 +8,7 @@
 	 */
 
 	import type { Snippet } from "svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import MathText from "$lib/components/math/MathText.svelte";
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte HTML template markup.
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 
 	/**
@@ -36,21 +34,13 @@
 	}
 
 	let {
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		title,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		subtitleText,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		subtitleSnippet,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		metaDescription,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		activeRoute,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		maxWidth = "1200px",
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		controls,
-		// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 		children,
 	}: Props = $props();
 
@@ -60,7 +50,6 @@
 	 * @param {"1100px" | "1200px" | "1400px" | "full"} width - The requested width constraint
 	 * @returns {string} The CSS max-width string value
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function getComputedMaxWidth(
 		width: "1100px" | "1200px" | "1400px" | "full",
 	): string {

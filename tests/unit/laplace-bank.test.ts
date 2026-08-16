@@ -1,5 +1,5 @@
-import { LAPLACE_EXAM_BANK } from "$lib/problems/bank/laplace-bank";
 import { describe, expect, it } from "vitest";
+import { LAPLACE_EXAM_BANK } from "$lib/problems/bank/laplace-bank";
 
 describe("Laplace Exam Problem Bank (laplace-bank.ts)", () => {
 	it("should contain at least 12 hand-curated ECE 210 Laplace problems", () => {

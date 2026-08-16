@@ -29,7 +29,6 @@
 		children?: Snippet;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { visible = true, children }: Props = $props();
 </script>
 

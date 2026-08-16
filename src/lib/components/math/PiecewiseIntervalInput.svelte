@@ -6,7 +6,6 @@
 	 * auto-synthesizing canonical LaTeX for the math engine.
 	 */
 
-	// biome-ignore lint/correctness/noUnusedImports: Used in Svelte template
 	import MathInline from "./MathInline.svelte";
 
 	export interface IntervalRow {
@@ -31,7 +30,6 @@
 		onChange?: (latex: string) => void;
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	let { value = "", onChange }: Props = $props();
 
 	/** Interval list state */
@@ -114,7 +112,6 @@
 	/**
 	 * Adds a new interval row to the list.
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function addInterval() {
 		const lastRow = intervals[intervals.length - 1];
 		let nextLower = "0";
@@ -141,7 +138,6 @@
 	 * Removes an interval row by ID.
 	 * @param {string} id Row ID to remove
 	 */
-	// biome-ignore lint/correctness/noUnusedVariables: Used in the Svelte HTML template markup.
 	function removeInterval(id: string) {
 		if (intervals.length <= 1) return;
 		intervals = intervals.filter((row) => row.id !== id);

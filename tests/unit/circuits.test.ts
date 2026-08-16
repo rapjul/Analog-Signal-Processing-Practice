@@ -1,9 +1,9 @@
+import { describe, expect, it } from "vitest";
 import {
 	evaluateBodePoint,
 	evaluateTransferFunction,
 	generateCircuitProblem,
 } from "$lib/math-engine/circuits";
-import { describe, expect, it } from "vitest";
 
 describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () => {
 	describe("Expanded Circuit Topologies Transfer Functions H(s)", () => {
