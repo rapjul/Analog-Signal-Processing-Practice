@@ -39,4 +39,4 @@ Chosen Option: **Option 3**, because `@cortex-js/compute-engine` provides specia
 
 #### Bad
 
-- Increases bundle size slightly (`@cortex-js/compute-engine` dependency).
+- Increases bundle size slightly (`@cortex-js/compute-engine` dependency), mitigated by importing via `@cortex-js/compute-engine/latex-syntax` subpath and MathJSON tree evaluation to avoid pulling in unused CAS dictionaries.

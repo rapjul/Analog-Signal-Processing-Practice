@@ -1,12 +1,11 @@
 /**
  * LaTeX & Expression Mathematical Evaluator Engine.
+ *
  * Combines CortexJS ComputeEngine AST parsing with multi-point numerical sampling
  * to verify equivalence between student-submitted LaTeX and reference solutions.
  */
 
-import { ComputeEngine } from "@cortex-js/compute-engine";
-
-const ce = new ComputeEngine();
+import { parse } from "@cortex-js/compute-engine/latex-syntax";
 
 export interface ValidationResult {
 	/** Whether the answer is mathematically correct */
@@ -20,45 +19,175 @@ export interface ValidationResult {
 }
 
 /**
+ * Evaluates a MathJSON AST node numerically with given variable assignments.
+ * @param {unknown} node MathJSON AST node or primitive
+ * @param {Record<string, number>} vars Dictionary of variable values (e.g. { t: 1.5, s: 1.5 })
+ * @returns {number} Evaluated numerical value
+ */
+function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
+	if (typeof node === "number") {
+		return node;
+	}
+
+	if (typeof node === "string") {
+		if (node === "Pi" || node === "pi" || node === "\\pi") {
+			return Math.PI;
+		}
+		if (node === "ExponentialE" || node === "e") {
+			return Math.E;
+		}
+		if (node in vars) {
+			return vars[node];
+		}
+		const parsedNum = Number.parseFloat(node);
+		return Number.isNaN(parsedNum) ? 0 : parsedNum;
+	}
+
+	if (node !== null && typeof node === "object") {
+		if (
+			"num" in node &&
+			typeof (node as { num: unknown }).num === "string"
+		) {
+			const n = Number.parseFloat((node as { num: string }).num);
+			return Number.isNaN(n) ? 0 : n;
+		}
+		if (
+			"sym" in node &&
+			typeof (node as { sym: unknown }).sym === "string"
+		) {
+			return evaluateMathJson((node as { sym: string }).sym, vars);
+		}
+		if ("fn" in node && Array.isArray((node as { fn: unknown }).fn)) {
+			return evaluateMathJson((node as { fn: unknown[] }).fn, vars);
+		}
+	}
+
+	if (!Array.isArray(node) || node.length === 0) {
+		return 0;
+	}
+
+	const [head, ...args] = node;
+	const op = typeof head === "string" ? head : "";
+
+	switch (op) {
+		case "Add": {
+			return args.reduce<number>(
+				(sum, arg) => sum + evaluateMathJson(arg, vars),
+				0,
+			);
+		}
+		case "Subtract": {
+			if (args.length === 0) return 0;
+			if (args.length === 1) return -evaluateMathJson(args[0], vars);
+			const first = evaluateMathJson(args[0], vars);
+			const rest = args
+				.slice(1)
+				.reduce<number>(
+					(acc, arg) => acc + evaluateMathJson(arg, vars),
+					0,
+				);
+			return first - rest;
+		}
+		case "InvisibleOperator":
+		case "Multiply": {
+			return args.reduce<number>(
+				(prod, arg) => prod * evaluateMathJson(arg, vars),
+				1,
+			);
+		}
+		case "Divide":
+		case "Rational": {
+			if (args.length < 2) return 0;
+			const num = evaluateMathJson(args[0], vars);
+			const den = evaluateMathJson(args[1], vars);
+			return den === 0 ? 0 : num / den;
+		}
+		case "Power": {
+			if (args.length < 2) return 0;
+			const base = evaluateMathJson(args[0], vars);
+			const exp = evaluateMathJson(args[1], vars);
+			return base ** exp;
+		}
+		case "Sqrt": {
+			if (args.length === 0) return 0;
+			return Math.sqrt(evaluateMathJson(args[0], vars));
+		}
+		case "Root": {
+			if (args.length < 2) return 0;
+			const radicand = evaluateMathJson(args[0], vars);
+			const index = evaluateMathJson(args[1], vars);
+			return index === 0 ? 0 : radicand ** (1 / index);
+		}
+		case "Negate": {
+			if (args.length === 0) return 0;
+			return -evaluateMathJson(args[0], vars);
+		}
+		case "Exp": {
+			if (args.length === 0) return 0;
+			return Math.exp(evaluateMathJson(args[0], vars));
+		}
+		case "Cos": {
+			if (args.length === 0) return 0;
+			return Math.cos(evaluateMathJson(args[0], vars));
+		}
+		case "Sin": {
+			if (args.length === 0) return 0;
+			return Math.sin(evaluateMathJson(args[0], vars));
+		}
+		case "Tan": {
+			if (args.length === 0) return 0;
+			return Math.tan(evaluateMathJson(args[0], vars));
+		}
+		case "Ln":
+		case "Log": {
+			if (args.length === 0) return 0;
+			return Math.log(evaluateMathJson(args[0], vars));
+		}
+		case "Abs": {
+			if (args.length === 0) return 0;
+			return Math.abs(evaluateMathJson(args[0], vars));
+		}
+		case "Delimiter":
+		case "Sequence": {
+			if (args.length === 0) return 0;
+			return evaluateMathJson(args[0], vars);
+		}
+		default: {
+			return 0;
+		}
+	}
+}
+
+/**
  * Parses LaTeX string and evaluates at numerical point t.
- * Fallback to JS evaluation if ComputeEngine encounters custom functions.
+ *
+ * Evaluates via MathJSON AST parsed from the standalone LaTeX syntax subpath.
  * @param {string} latex Student LaTeX or reference LaTeX
  * @param {number} t Time sample point
  * @returns {number} Evaluated numerical value
  */
 export function evaluateLatexAt(latex: string, t: number): number {
 	try {
-		// Clean common LaTeX notation for ComputeEngine
+		// Clean common LaTeX notation
 		const cleaned = latex
 			.replace(/\\left/g, "")
 			.replace(/\\right/g, "")
 			.replace(/u\(t\)/g, "1") // step function assumed positive t > 0
 			.replace(/u\(t-[^)]+\)/g, "1");
 
-		// Parse and evaluate expression with variable t or s
-		ce.assign("t", t);
-		ce.assign("s", t);
-		const expr = ce.parse(cleaned);
-		const result = expr.N().valueOf();
+		// Parse into MathJSON AST via standalone LaTeX syntax subpath
+		const mathJson = parse(cleaned);
+		const result = evaluateMathJson(mathJson, { t, s: t });
 
-		if (typeof result === "number" && !Number.isNaN(result)) {
+		if (
+			typeof result === "number" &&
+			!Number.isNaN(result) &&
+			Number.isFinite(result)
+		) {
 			return result;
 		}
 
-		// Fallback: evaluate using JS Function for basic expressions
-		const jsExpr = cleaned
-			.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "(($1)/($2))")
-			.replace(/\\cos/g, "Math.cos")
-			.replace(/\\sin/g, "Math.sin")
-			.replace(/\\exp/g, "Math.exp")
-			.replace(/e\^\{([^}]+)\}/g, "Math.exp($1)")
-			.replace(/\bt\b/g, `(${t})`)
-			.replace(/\bs\b/g, `(${t})`);
-
-		/* eslint-disable-next-line no-new-func */
-		const evalFn = new Function(`return ${jsExpr};`);
-		const val = Number(evalFn());
-		return Number.isNaN(val) ? 0 : val;
+		return 0;
 	} catch {
 		return 0;
 	}
