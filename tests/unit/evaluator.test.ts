@@ -104,6 +104,53 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			expect(powerVal).toBe(27);
 		});
 
+		it("evaluates nth root expressions (Root AST operator)", () => {
+			// \sqrt[3]{t + 7} at t = 1 -> (8)^(1/3) = 2
+			const rootVal = evaluateLatexAt(String.raw`\sqrt[3]{t + 7}`, 1);
+			expect(rootVal).toBeCloseTo(2, 5);
+		});
+
+		it("evaluates tangent, natural logarithm, and common logarithm functions", () => {
+			// tan(t) at t = pi/4
+			const tanVal = evaluateLatexAt(String.raw`\tan(t)`, Math.PI / 4);
+			expect(tanVal).toBeCloseTo(1, 4);
+
+			// ln(t) at t = e
+			const lnVal = evaluateLatexAt(String.raw`\ln(t)`, Math.E);
+			expect(lnVal).toBeCloseTo(1, 4);
+
+			// log(t) (natural log in MathJSON) at t = e^2
+			const logVal = evaluateLatexAt(String.raw`\log(t)`, Math.E ** 2);
+			expect(logVal).toBeCloseTo(2, 4);
+		});
+
+		it("evaluates absolute value expressions (Abs AST operator)", () => {
+			// |t - 5| at t = 2 -> 3
+			const absVal = evaluateLatexAt(String.raw`|t - 5|`, 2);
+			expect(absVal).toBeCloseTo(3, 5);
+
+			const absLatexVal = evaluateLatexAt(
+				String.raw`\left| t - 5 \right|`,
+				2,
+			);
+			expect(absLatexVal).toBeCloseTo(3, 5);
+		});
+
+		it("evaluates negation and parenthesized sequence/delimiter AST nodes", () => {
+			// -cos(t) at t = 0 -> -1
+			const negVal = evaluateLatexAt(String.raw`-\cos(t)`, 0);
+			expect(negVal).toBeCloseTo(-1, 5);
+
+			// ((2t + 4)) with nested delimiters at t = 3 -> 10
+			const nestedVal = evaluateLatexAt("((2t + 4))", 3);
+			expect(nestedVal).toBe(10);
+		});
+
+		it("defensively handles division by zero and indeterminate forms by returning 0", () => {
+			const divZero = evaluateLatexAt(String.raw`\frac{5}{0}`, 1);
+			expect(divZero).toBe(0);
+		});
+
 		it("returns 0 gracefully on unparseable / malformed syntax", () => {
 			const val = evaluateLatexAt("((( malformed % syntax", 1);
 			expect(val).toBe(0);
@@ -126,6 +173,13 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			expect(evaluatePiecewiseLatexAt(piecewise, 3)).toBe(4);
 		});
 
+		it("evaluates piecewise interval expressions with \\lt and \\gt macros", () => {
+			const piecewise = String.raw`\begin{cases} 0, & t \lt 0 \\ 3t, & 0 \le t \lt 2 \\ 6, & t \gt 2 \end{cases}`;
+			expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
+			expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(3);
+			expect(evaluatePiecewiseLatexAt(piecewise, 3)).toBe(6);
+		});
+
 		it("evaluates piecewise interval expressions with \\text{for} syntax", () => {
 			const piecewise = String.raw`\begin{cases} 0 \quad \text{for} \quad t < 0 \\ 3t \quad \text{for} \quad 0 \le t < 2 \\ 6 \quad \text{for} \quad t \ge 2 \end{cases}`;
 			expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
@@ -133,9 +187,22 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			expect(evaluatePiecewiseLatexAt(piecewise, 4)).toBe(6);
 		});
 
-		it("falls back to single-expression evaluation if cases environment is absent", () => {
+		it("returns 0 when sample point does not match any piecewise interval condition", () => {
+			const piecewise = String.raw`\begin{cases} 2t, & 1 \le t \le 2 \end{cases}`;
+			expect(evaluatePiecewiseLatexAt(piecewise, 5)).toBe(0);
+		});
+
+		it("returns 0 on unclosed cases environment and falls back to single-expression when cases keyword is absent", () => {
 			const singleExpr = "2t + 4";
 			expect(evaluatePiecewiseLatexAt(singleExpr, 3)).toBe(10);
+
+			const unclosedCases = String.raw`\begin{cases} 2t + 4`;
+			expect(evaluatePiecewiseLatexAt(unclosedCases, 3)).toBe(0);
+		});
+
+		it("returns 0 for unrecognized or malformed condition strings", () => {
+			const piecewise = String.raw`\begin{cases} 2t, & \text{invalid condition syntax} \end{cases}`;
+			expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(0);
 		});
 	});
 
