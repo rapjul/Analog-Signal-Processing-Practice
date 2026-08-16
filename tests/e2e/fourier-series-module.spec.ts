@@ -20,10 +20,13 @@ test.describe("Fourier Series Module", () => {
 	test("renders header, waveform selector, and Fourier practice card", async ({
 		page,
 	}) => {
-		await expect(page).toHaveTitle(/Fourier Series Practice — SignalLab/i);
+		await expect(page).toHaveTitle(/Fourier Series Analysis — SignalLab/i);
 		await expect(page.locator("h1.page-title")).toHaveText(
 			/Fourier Series Analysis/i,
 		);
+
+		const drillSummary = page.locator(".drill-summary");
+		await drillSummary.click();
 
 		const waveformSelect = page.locator("#waveform-select");
 		await expect(waveformSelect).toBeVisible();
@@ -43,6 +46,9 @@ test.describe("Fourier Series Module", () => {
 	test("switches waveforms between square, triangle, sawtooth, and rectified sine", async ({
 		page,
 	}) => {
+		const drillSummary = page.locator(".drill-summary");
+		await drillSummary.click();
+
 		const waveformSelect = page.locator("#waveform-select");
 
 		// Select Triangle Wave
@@ -57,7 +63,7 @@ test.describe("Fourier Series Module", () => {
 		await expect(card).toBeVisible();
 
 		// Next problem generation
-		const nextBtn = page.locator('.btn-secondary:has-text("New Problem")');
+		const nextBtn = page.locator("#btn-next-problem");
 		if (await nextBtn.isVisible()) {
 			await nextBtn.click();
 			await page.waitForTimeout(300);
@@ -74,14 +80,14 @@ test.describe("Fourier Series Module", () => {
 		const step1 = page.locator(".step-card").first();
 		await expect(step1).toBeVisible();
 		await expect(step1.locator(".step-title")).toHaveText(
-			/Fundamental Period/i,
+			/Fundamental Period & Frequency/i,
 		);
 
 		// Test Hint Toggle
-		const hintBtn = page.locator(".hint-toggle-btn");
+		const hintBtn = step1.locator(".btn-hint");
 		await expect(hintBtn).toBeVisible();
 		await hintBtn.click();
-		await expect(page.locator(".hint-container")).toBeVisible();
+		await expect(step1.locator(".hints-content")).toBeVisible();
 
 		// Input wrong answer to verify misconception feedback
 		const tInput = page.locator("#fourier-period-input");
@@ -89,7 +95,7 @@ test.describe("Fourier Series Module", () => {
 		await tInput.fill("999");
 		await w0Input.fill("999");
 
-		const checkBtn = page.locator(".step-actions .btn-primary");
+		const checkBtn = step1.locator(".step-actions .btn-primary");
 		await checkBtn.click();
 		await page.waitForTimeout(200);
 
@@ -114,7 +120,7 @@ test.describe("Fourier Series Module", () => {
 		const step2 = page.locator(".step-card").nth(1);
 		await expect(step2).toHaveClass(/active/);
 		await expect(step2.locator(".step-title")).toHaveText(
-			/Signal Symmetry Classification/i,
+			/Waveform Symmetry Analysis/i,
 		);
 	});
 
@@ -136,7 +142,9 @@ test.describe("Fourier Series Module", () => {
 		});
 		expect(isOverflowing).toBe(false);
 
-		// Assert control bar dropdown is visible and bounded
+		// Open drill disclosure to assert control bar dropdown is visible and bounded
+		const drillSummary = page.locator(".drill-summary");
+		await drillSummary.click();
 		const controlGroup = page.locator(".control-group");
 		await expect(controlGroup).toBeVisible();
 

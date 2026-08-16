@@ -20,7 +20,9 @@ test.describe("LCC ODEs Practice Module", () => {
 	test("renders header, blind exam mode defaults, and active practice card with difficulty badge", async ({
 		page,
 	}) => {
-		await expect(page).toHaveTitle(/LCC ODEs Practice — SignalLab/i);
+		await expect(page).toHaveTitle(
+			/Linear Constant-Coefficient ODEs — SignalLab/i,
+		);
 		await expect(page.locator("h1.page-title")).toHaveText(
 			/Linear Constant-Coefficient ODEs/i,
 		);
