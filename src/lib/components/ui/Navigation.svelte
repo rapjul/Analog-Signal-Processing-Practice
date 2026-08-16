@@ -29,13 +29,24 @@
 	});
 
 	/**
-	 * Toggles light and dark UI themes and dispatches event for canvas redraws.
+	 * Toggles light and dark UI themes, synchronizes meta theme-color, and dispatches event for canvas redraws.
 	 */
 	function toggleTheme() {
 		isDark = !isDark;
 		const nextTheme = isDark ? "dark" : "light";
 		document.documentElement.setAttribute("data-theme", nextTheme);
 		localStorage.setItem("theme", nextTheme);
+
+		const themeColorMeta = document.querySelector(
+			'meta[name="theme-color"]',
+		);
+		if (themeColorMeta) {
+			themeColorMeta.setAttribute(
+				"content",
+				isDark ? "#0f172a" : "#f8fafc",
+			);
+		}
+
 		window.dispatchEvent(
 			new CustomEvent("themechange", { detail: { theme: nextTheme } }),
 		);
