@@ -3,7 +3,11 @@ import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
+	type BaseSubStepState,
+	type MultiPartStepState,
+	createMultiPartStepState,
 	createStepState,
+	createSubStepState,
 } from "./base-step-solver.svelte";
 
 /**
@@ -19,9 +23,19 @@ export interface OdeStep1State extends BaseStepState {
 }
 
 /**
+ * Step 2 Sub-step Identifiers.
+ */
+export type OdeStep2SubStepId =
+	| "strategy_gate"
+	| "factoring_inputs"
+	| "quad_classification"
+	| "remedial_discriminant"
+	| "quad_root_inputs";
+
+/**
  * Step 2 State: Characteristic Roots & Quadratic Setup Inputs.
  */
-export interface OdeStep2State extends BaseStepState {
+export interface OdeStep2State extends MultiPartStepState<OdeStep2SubStepId> {
 	/** Selected solving strategy: factoring or quadratic formula */
 	strategy: "factoring" | "quadratic" | null;
 	/** First root input string (for distinct real / repeated) */
@@ -59,9 +73,18 @@ export interface OdeStep4State extends BaseStepState {
 }
 
 /**
+ * Step 5 Sub-step Identifiers.
+ */
+export type OdeStep5SubStepId = "derivatives" | "system_setup" | "solve";
+
+/**
  * Step 5 State: Undetermined Particular Coefficients.
  */
-export interface OdeStep5State extends BaseStepState {
+export interface OdeStep5State extends MultiPartStepState<OdeStep5SubStepId> {
+	/** Selected derivative option ID */
+	selectedDerivatives: string | null;
+	/** Selected grouped system setup option ID */
+	selectedSystem: string | null;
 	/** Solved Kp for constant/exponential forcing */
 	kp: string;
 	/** Solved A for sinusoidal forcing */
@@ -71,9 +94,18 @@ export interface OdeStep5State extends BaseStepState {
 }
 
 /**
+ * Step 6 Sub-step Identifiers.
+ */
+export type OdeStep6SubStepId = "target_values" | "solve_constants";
+
+/**
  * Step 6 State: Initial Conditions Constants C1, C2.
  */
-export interface OdeStep6State extends BaseStepState {
+export interface OdeStep6State extends MultiPartStepState<OdeStep6SubStepId> {
+	/** Target homogeneous value y_h(0+) = y(0+) - y_p(0+) */
+	yh0: string;
+	/** Target homogeneous derivative y_h'(0+) = y'(0+) - y_p'(0+) */
+	dyh0: string;
 	/** Constant C1 input string */
 	c1: string;
 	/** Constant C2 input string */
@@ -81,11 +113,14 @@ export interface OdeStep6State extends BaseStepState {
 }
 
 /**
+ * Step 7 Sub-step Identifiers.
+ */
+export type OdeStep7SubStepId = "zi_zs" | "tr_ss" | "concept";
+
+/**
  * Step 7 State: Response Decomposition & Conceptual Mastery.
  */
-export interface OdeStep7State extends BaseStepState {
-	/** Sub-phase within Step 7: 'zi_zs' -> 'tr_ss' -> 'concept' -> 'done' */
-	subStep: "zi_zs" | "tr_ss" | "concept" | "done";
+export interface OdeStep7State extends MultiPartStepState<OdeStep7SubStepId> {
 	/** Zero-input C1 constant input */
 	ziC1: string;
 	/** Zero-input C2 constant input */
@@ -96,9 +131,9 @@ export interface OdeStep7State extends BaseStepState {
 	selectedSteadyState: string | null;
 	/** Selected option ID for conceptual mastery question */
 	selectedConcept: string | null;
-	/** Whether ZI/ZS phase passed */
+	/** Whether ZI/ZS sub-step passed */
 	ziZsPassed: boolean;
-	/** Whether Transient/Steady-State phase passed */
+	/** Whether Transient/Steady-State sub-step passed */
 	trSsPassed: boolean;
 	/** Whether conceptual question passed */
 	conceptPassed: boolean;
@@ -123,17 +158,49 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/** Step 2 State: Characteristic Roots & Strategy */
 	step2: OdeStep2State = $state<OdeStep2State>(
-		createStepState({
-			strategy: null as "factoring" | "quadratic" | null,
-			r1: "",
-			r2: "",
-			sigma: "",
-			omegaD: "",
-			quadClassChoice: null as RootType | null,
-			quadDiscriminantInput: "",
-			quadNeedsDiscriminantCalc: false,
-			quadDiscriminantVerified: false,
-		}),
+		createMultiPartStepState(
+			{
+				strategy: null as "factoring" | "quadratic" | null,
+				r1: "",
+				r2: "",
+				sigma: "",
+				omegaD: "",
+				quadClassChoice: null as RootType | null,
+				quadDiscriminantInput: "",
+				quadNeedsDiscriminantCalc: false,
+				quadDiscriminantVerified: false,
+			},
+			[
+				"strategy_gate",
+				"factoring_inputs",
+				"quad_classification",
+				"remedial_discriminant",
+				"quad_root_inputs",
+			],
+			{
+				strategy_gate: createSubStepState(
+					"strategy_gate",
+					"Select Solving Strategy",
+				),
+				factoring_inputs: createSubStepState(
+					"factoring_inputs",
+					"Factoring & Roots",
+				),
+				quad_classification: createSubStepState(
+					"quad_classification",
+					"Root Classification",
+				),
+				remedial_discriminant: createSubStepState(
+					"remedial_discriminant",
+					"Calculate Discriminant",
+				),
+				quad_root_inputs: createSubStepState(
+					"quad_root_inputs",
+					"Quadratic Formula Roots",
+				),
+			},
+			"strategy_gate",
+		),
 	);
 
 	/** Step 3 State: Homogeneous Form Template */
@@ -148,27 +215,87 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/** Step 5 State: Undetermined Particular Coefficients */
 	step5: OdeStep5State = $state<OdeStep5State>(
-		createStepState({ kp: "", a: "", b: "" }),
+		createMultiPartStepState(
+			{
+				selectedDerivatives: null as string | null,
+				selectedSystem: null as string | null,
+				kp: "",
+				a: "",
+				b: "",
+			},
+			["derivatives", "system_setup", "solve"],
+			{
+				derivatives: createSubStepState(
+					"derivatives",
+					"Part 5A: Trial Derivatives",
+				),
+				system_setup: createSubStepState(
+					"system_setup",
+					"Part 5B: System Setup",
+				),
+				solve: createSubStepState(
+					"solve",
+					"Part 5C: Undetermined Coefficients",
+				),
+			},
+			"derivatives",
+		),
 	);
 
 	/** Step 6 State: Initial Conditions Constants */
 	step6: OdeStep6State = $state<OdeStep6State>(
-		createStepState({ c1: "", c2: "" }),
+		createMultiPartStepState(
+			{
+				yh0: "",
+				dyh0: "",
+				c1: "",
+				c2: "",
+			},
+			["target_values", "solve_constants"],
+			{
+				target_values: createSubStepState(
+					"target_values",
+					"Part 6A: Target Initial Values",
+				),
+				solve_constants: createSubStepState(
+					"solve_constants",
+					"Part 6B: Integration Constants",
+				),
+			},
+			"target_values",
+		),
 	);
 
 	/** Step 7 State: Response Decomposition & Conceptual Mastery */
 	step7: OdeStep7State = $state<OdeStep7State>(
-		createStepState({
-			subStep: "zi_zs" as "zi_zs" | "tr_ss" | "concept" | "done",
-			ziC1: "",
-			ziC2: "",
-			selectedTransient: null as string | null,
-			selectedSteadyState: null as string | null,
-			selectedConcept: null as string | null,
-			ziZsPassed: false,
-			trSsPassed: false,
-			conceptPassed: false,
-		}),
+		createMultiPartStepState(
+			{
+				ziC1: "",
+				ziC2: "",
+				selectedTransient: null as string | null,
+				selectedSteadyState: null as string | null,
+				selectedConcept: null as string | null,
+				ziZsPassed: false,
+				trSsPassed: false,
+				conceptPassed: false,
+			},
+			["zi_zs", "tr_ss", "concept"],
+			{
+				zi_zs: createSubStepState(
+					"zi_zs",
+					"Part 7A: Zero-Input & Zero-State",
+				),
+				tr_ss: createSubStepState(
+					"tr_ss",
+					"Part 7B: Transient & Steady-State",
+				),
+				concept: createSubStepState(
+					"concept",
+					"Part 7C: Conceptual Mastery",
+				),
+			},
+			"zi_zs",
+		),
 	);
 
 	/**
@@ -261,7 +388,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	});
 
 	/**
-	 * Progressive hints for the currently active step.
+	 * Progressive hints for the currently active step or sub-step.
 	 */
 	activeHints = $derived.by((): string[] => {
 		switch (this.currentStep) {
@@ -315,7 +442,6 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			return;
 		}
 
-		// Misconception check: student entered RHS forcing amplitude for a0
 		if (
 			Math.abs(vA0 - this.problem.forcing.K) < 0.05 &&
 			Math.abs(vA0 - s1Data.expectedA0) >= 0.05
@@ -348,244 +474,105 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const b = this.problem.params.a1;
 		const a = 1;
 		const c = this.problem.params.a0;
-		return String.raw`s = \frac{-(${b}) \pm \sqrt{(${b})^2 - 4(${a})(${c})}}{2(${a})}`;
+		const disc = b * b - 4 * a * c;
+		const negB = -b;
+		return `s = \\frac{-(${b}) \\pm \\sqrt{(${b})^2 - 4(1)(${c})}}{2(1)} = \\frac{${negB} \\pm \\sqrt{${disc}}}{2}`;
 	});
 
 	/**
-	 * Formatted LaTeX preview string of complex roots (sigma +/- j omega_d).
+	 * Live rendered preview equation for Step 2 complex roots.
 	 */
 	previewComplexRoots = $derived.by((): string => {
-		const sig =
+		const sigStr =
 			this.step2.sigma.trim() !== ""
 				? this.step2.sigma.trim()
 				: "\\sigma";
-		const om =
+		const omStr =
 			this.step2.omegaD.trim() !== ""
 				? this.step2.omegaD.trim()
 				: "\\omega_d";
-		return String.raw`s = ${sig} \pm j ${om}`;
+		return `s = ${sigStr} \\pm j${omStr}`;
 	});
 
 	/**
-	 * Handles user selection of root classification in the Quadratic Formula path.
-	 * If the choice is correct, reveals root inputs.
-	 * If incorrect, locks classification buttons and requires calculating Delta = b^2 - 4ac.
-	 * @param {RootType} choice Selected root classification
+	 * Legacy alias for selecting quadratic root classification in Step 2.
+	 * @param {RootType} choice Root classification choice
 	 */
 	selectQuadRootClassification(choice: RootType): void {
-		const s2Data = this.problem.itsData.step2;
-		if (choice === s2Data.rootType) {
-			this.step2.quadClassChoice = choice;
-			this.step2.quadNeedsDiscriminantCalc = false;
-			this.clearFeedback();
-		} else {
-			this.step2.quadClassChoice = null;
-			this.step2.quadNeedsDiscriminantCalc = true;
-			this.setIncorrect(
-				this.step2,
-				"Incorrect root classification. Please calculate the discriminant $\\Delta = b^2 - 4ac$ below to determine the true root structure.",
-			);
+		this.checkStep2QuadClass(choice);
+	}
+
+	/**
+	 * Legacy alias for verifying discriminant in Step 2 remediation.
+	 */
+	verifyDiscriminant(): void {
+		this.checkStep2Discriminant();
+	}
+
+	/**
+	 * Legacy dispatcher for verifying Step 2 roots.
+	 */
+	checkStep2(): void {
+		if (!this.step2.strategy) {
+			this.setValidation(this.step2, "Please select a solving strategy.");
+			return;
+		}
+		if (this.step2.strategy === "factoring") {
+			this.checkStep2Factoring();
+		} else if (this.step2.strategy === "quadratic") {
+			this.checkStep2QuadRoots();
 		}
 	}
 
 	/**
-	 * Validates the student's numerical discriminant calculation Delta = b^2 - 4ac.
+	 * Selects the solving strategy in Step 2 Gate.
+	 * @param {"factoring" | "quadratic"} strat Selected strategy
 	 */
-	verifyDiscriminant(): void {
+	selectStep2Strategy(strat: "factoring" | "quadratic"): void {
 		const s2Data = this.problem.itsData.step2;
-		const userDisc = parseNumericInput(this.step2.quadDiscriminantInput);
+		this.clearFeedback();
 
-		if (Number.isNaN(userDisc)) {
-			this.setValidation(
+		if (strat === "factoring" && !s2Data.isFactorable) {
+			this.setMisconception(
 				this.step2,
-				"Please enter a numeric value for the discriminant $\\Delta = b^2 - 4ac$.",
+				s2Data.misconceptions.unfactorable_complex ||
+					s2Data.misconceptions.unfactorable_general,
 			);
 			return;
 		}
 
-		const expectedDisc = s2Data.discriminant;
-		if (Math.abs(userDisc - expectedDisc) < 0.05) {
-			this.step2.quadDiscriminantVerified = true;
-			this.step2.quadClassChoice = s2Data.rootType;
-			this.step2.quadNeedsDiscriminantCalc = false;
-			this.clearFeedback();
-		} else {
-			const a1 = this.problem.params.a1;
-			const a0 = this.problem.params.a0;
-			this.setIncorrect(
+		this.step2.strategy = strat;
+		if (strat === "factoring") {
+			this.setSubStepPassed(
 				this.step2,
-				`Incorrect discriminant. Evaluate $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0})$.`,
+				"strategy_gate",
+				"factoring_inputs",
+			);
+		} else {
+			this.setSubStepPassed(
+				this.step2,
+				"strategy_gate",
+				"quad_classification",
 			);
 		}
 	}
 
 	/**
-	 * Validates Step 2 (Characteristic Roots & Strategy).
-	 */
-	checkStep2(): void {
-		switch (this.step2.strategy) {
-			case "quadratic":
-				this.checkStep2Quadratic();
-				break;
-			case "factoring":
-				this.checkStep2Factoring();
-				break;
-			case null:
-				this.setValidation(
-					this.step2,
-					"Please select a solving strategy first.",
-				);
-				break;
-			default:
-				throw new Error(
-					`Unhandled ODE solving strategy: ${String(this.step2.strategy)}`,
-				);
-		}
-	}
-
-	/**
-	 * Validates Step 2 via Factoring path.
+	 * Validates Step 2 Factoring Path root inputs.
 	 */
 	checkStep2Factoring(): void {
 		const s2Data = this.problem.itsData.step2;
+		const rootType = s2Data.rootType;
 
-		// Diagnostic check: If student selected factoring for a complex / un-factorable polynomial
-		if (!s2Data.isFactorable || s2Data.rootType === "complex_conjugate") {
-			const feedback =
-				s2Data.misconceptions.unfactorable_complex ??
-				s2Data.misconceptions.unfactorable_general ??
-				"This polynomial cannot be factored over real integers. Please select the Quadratic Formula.";
-			this.setIncorrect(this.step2, feedback);
-			return;
-		}
-
-		if (s2Data.rootType === "distinct_real") {
-			const v1 = parseNumericInput(this.step2.r1);
-			const v2 = parseNumericInput(this.step2.r2);
-
-			if (Number.isNaN(v1) || Number.isNaN(v2)) {
-				this.setValidation(
-					this.step2,
-					"Please enter numeric values for both roots: $r_1$ and $r_2$.",
-				);
-				return;
-			}
-
-			const r1 = s2Data.r1;
-			const r2 = s2Data.r2 ?? 0;
-
-			const matchDirect =
-				Math.abs(v1 - r1) < 0.05 && Math.abs(v2 - r2) < 0.05;
-			const matchSwapped =
-				Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
-
-			if (matchDirect || matchSwapped) {
-				this.setPassed(this.step2, 3);
-			} else if (
-				(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
-				(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
-			) {
-				this.setMisconception(
-					this.step2,
-					"Check your signs. Factoring into $(s + a)(s + b) = 0$ yields roots $r_1 = -a$ and $r_2 = -b$.",
-				);
-			} else if (
-				(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 - r2) < 0.05) ||
-				(Math.abs(v1 - r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
-				(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 - r1) < 0.05) ||
-				(Math.abs(v1 - r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
-			) {
-				this.setMisconception(
-					this.step2,
-					"Check the sign of your roots. Remember that solving the factor $(s - r) = 0$ yields root $s = r$.",
-				);
-			} else {
-				this.setIncorrect(
-					this.step2,
-					`Incorrect roots. Factor the characteristic polynomial $${this.problem.itsData.step1.latex}$.`,
-				);
-			}
-		} else if (s2Data.rootType === "repeated_real") {
-			const v1 = parseNumericInput(this.step2.r1);
-
-			if (Number.isNaN(v1)) {
-				this.setValidation(
-					this.step2,
-					"Please enter a numeric value for the repeated root $r$.",
-				);
-				return;
-			}
-
-			const r1 = s2Data.r1;
-
-			if (Math.abs(v1 - r1) < 0.05) {
-				this.setPassed(this.step2, 3);
-			} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
-				this.setMisconception(
-					this.step2,
-					"Check your sign. Factoring into $(s + a)^2 = 0$ means solving $s + a = 0 \\implies r = -a$.",
-				);
-			} else {
-				this.setIncorrect(
-					this.step2,
-					"Incorrect repeated root. Characteristic equation: $(s - r)^2 = 0$.",
-				);
-			}
-		}
-	}
-
-	/**
-	 * Validates Step 2 via Quadratic Formula Setup path.
-	 */
-	checkStep2Quadratic(): void {
-		const s2Data = this.problem.itsData.step2;
-
-		if (!this.step2.quadClassChoice) {
-			this.setValidation(
+		if (!s2Data.isFactorable || rootType === "complex_conjugate") {
+			this.setIncorrect(
 				this.step2,
-				"Please select the root classification or calculate the discriminant $\\Delta$.",
+				"This polynomial cannot be factored over real integers. Please use the quadratic formula strategy.",
 			);
 			return;
 		}
 
-		switch (this.step2.quadClassChoice) {
-			case "complex_conjugate": {
-				const userSig = parseNumericInput(this.step2.sigma);
-				const userOm = parseNumericInput(this.step2.omegaD);
-
-				if (Number.isNaN(userSig) || Number.isNaN(userOm)) {
-					this.setValidation(
-						this.step2,
-						"Please enter numeric values for both the real part $\\sigma$ and imaginary part $\\omega_d$.",
-					);
-					return;
-				}
-
-				const expectedSig = s2Data.r1;
-				const expectedOm = Math.abs(s2Data.im ?? 0);
-
-				if (
-					Math.abs(userSig - expectedSig) < 0.05 &&
-					Math.abs(Math.abs(userOm) - expectedOm) < 0.05
-				) {
-					this.setPassed(this.step2, 3);
-				} else if (
-					Math.abs(userSig + expectedSig) < 0.05 &&
-					Math.abs(expectedSig) > 0.01
-				) {
-					this.setMisconception(
-						this.step2,
-						"Check the sign of the real part $\\sigma$. In the quadratic formula, the real part is $\\sigma = \\frac{-b}{2a}$.",
-					);
-				} else {
-					this.setIncorrect(
-						this.step2,
-						`Incorrect complex roots. Real part $\\sigma = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{2}$, imaginary part $\\omega_d = \\frac{\\sqrt{|\\Delta|}}{2a} = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{2}$.`,
-					);
-				}
-				break;
-			}
-
+		switch (rootType) {
 			case "distinct_real": {
 				const v1 = parseNumericInput(this.step2.r1);
 				const v2 = parseNumericInput(this.step2.r2);
@@ -593,7 +580,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				if (Number.isNaN(v1) || Number.isNaN(v2)) {
 					this.setValidation(
 						this.step2,
-						"Please enter numeric values for both roots: $r_1$ and $r_2$.",
+						"Please enter numeric values or fractions for both roots $r_1$ and $r_2$.",
 					);
 					return;
 				}
@@ -606,14 +593,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
 
 				if (matchDirect || matchSwapped) {
-					this.setPassed(this.step2, 3);
+					this.setSubStepPassed(
+						this.step2,
+						"factoring_inputs",
+						undefined,
+						3,
+					);
 				} else if (
 					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
 					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
 				) {
 					this.setMisconception(
 						this.step2,
-						"Check the signs of your roots. In the quadratic formula, the leading numerator term is $-b$.",
+						"Check your signs. Remember that factoring as $(s - r_1)(s - r_2) = 0$ means the roots are $s = r_1$ and $s = r_2$.",
 					);
 				} else if (
 					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 - r2) < 0.05) ||
@@ -623,12 +615,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				) {
 					this.setMisconception(
 						this.step2,
-						"Check the sign of your roots. Verify that you evaluated $s = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$ with correct signs.",
+						"Check the sign of your roots. One of your factored roots has an inverted sign.",
 					);
 				} else {
 					this.setIncorrect(
 						this.step2,
-						`Incorrect roots. Evaluate $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$.`,
+						`Incorrect roots. Factoring $s^2 + ${this.problem.params.a1}s + ${this.problem.params.a0} = 0$ gives $(s - (${r1}))(s - (${r2})) = 0$.`,
 					);
 				}
 				break;
@@ -647,15 +639,230 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 				const r1 = s2Data.r1;
 				if (Math.abs(v1 - r1) < 0.05) {
-					this.setPassed(this.step2, 3);
+					this.setSubStepPassed(
+						this.step2,
+						"factoring_inputs",
+						undefined,
+						3,
+					);
 				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
 					this.setMisconception(
 						this.step2,
-						"Check your sign. For a repeated root with $\\Delta = 0$, $r = \\frac{-b}{2a}$.",
+						"Check your sign. Factoring as $(s - r)^2 = 0$ yields root $s = r$.",
 					);
 				} else {
 					this.setIncorrect(
 						this.step2,
+						`Incorrect repeated root. Factoring yields $(s - (${r1}))^2 = 0 \\implies r = ${r1}$.`,
+					);
+				}
+				break;
+			}
+
+			default:
+				throw new Error(
+					`Unsupported root type for factoring: ${rootType}`,
+				);
+		}
+	}
+
+	/**
+	 * Validates root classification in Step 2 Quadratic Formula path.
+	 * @param {RootType} choice Selected classification
+	 */
+	checkStep2QuadClass(choice: RootType): void {
+		const s2Data = this.problem.itsData.step2;
+
+		if (choice === s2Data.rootType) {
+			this.step2.quadClassChoice = choice;
+			this.step2.quadNeedsDiscriminantCalc = false;
+			this.step2.quadDiscriminantVerified = true;
+			this.setSubStepPassed(
+				this.step2,
+				"quad_classification",
+				"quad_root_inputs",
+			);
+		} else {
+			this.step2.quadClassChoice = null;
+			this.step2.quadNeedsDiscriminantCalc = true;
+			this.setSubStepIncorrect(
+				this.step2,
+				"quad_classification",
+				`Incorrect classification. Calculate the discriminant $\\Delta = b^2 - 4ac$ below to confirm the root structure.`,
+			);
+			this.step2.activeSubStepId = "remedial_discriminant";
+		}
+	}
+
+	/**
+	 * Validates calculated discriminant in Step 2 remediation.
+	 */
+	checkStep2Discriminant(): void {
+		const s2Data = this.problem.itsData.step2;
+		const v = parseNumericInput(this.step2.quadDiscriminantInput);
+
+		if (Number.isNaN(v)) {
+			this.setSubStepValidation(
+				this.step2,
+				"remedial_discriminant",
+				"Please enter a numeric value for $\\Delta = b^2 - 4ac$.",
+			);
+			return;
+		}
+
+		if (Math.abs(v - s2Data.discriminant) < 0.05) {
+			this.step2.quadClassChoice = s2Data.rootType;
+			this.step2.quadDiscriminantVerified = true;
+			this.step2.quadNeedsDiscriminantCalc = false;
+			this.setSubStepPassed(
+				this.step2,
+				"remedial_discriminant",
+				"quad_root_inputs",
+			);
+		} else {
+			this.setSubStepIncorrect(
+				this.step2,
+				"remedial_discriminant",
+				`Incorrect discriminant. Compute $\\Delta = (${this.problem.params.a1})^2 - 4(1)(${this.problem.params.a0}) = ${s2Data.discriminant}$.`,
+			);
+		}
+	}
+
+	/**
+	 * Validates root calculation inputs in Step 2 Quadratic path.
+	 */
+	checkStep2QuadRoots(): void {
+		const s2Data = this.problem.itsData.step2;
+		const rootType = s2Data.rootType;
+
+		if (!this.step2.quadClassChoice) {
+			this.setSubStepValidation(
+				this.step2,
+				"quad_classification",
+				"Please select the root classification from the discriminant first.",
+			);
+			return;
+		}
+
+		switch (rootType) {
+			case "complex_conjugate": {
+				const vSig = parseNumericInput(this.step2.sigma);
+				const vOm = parseNumericInput(this.step2.omegaD);
+
+				if (Number.isNaN(vSig) || Number.isNaN(vOm)) {
+					this.setSubStepValidation(
+						this.step2,
+						"quad_root_inputs",
+						"Please enter numeric values for both real part $\\sigma$ and damped frequency $\\omega_d$.",
+					);
+					return;
+				}
+
+				const expSig = s2Data.r1;
+				const expOm = s2Data.im ?? 0;
+
+				if (
+					Math.abs(vSig - expSig) < 0.05 &&
+					Math.abs(vOm - expOm) < 0.05
+				) {
+					this.setSubStepPassed(
+						this.step2,
+						"quad_root_inputs",
+						undefined,
+						3,
+					);
+				} else if (Math.abs(vSig + expSig) < 0.05) {
+					this.setSubStepMisconception(
+						this.step2,
+						"quad_root_inputs",
+						"Check the sign of $\\sigma$. In the quadratic formula, $\\sigma = \\frac{-b}{2a}$.",
+					);
+				} else {
+					this.setSubStepIncorrect(
+						this.step2,
+						"quad_root_inputs",
+						`Incorrect roots. $\\sigma = \\frac{-(${this.problem.params.a1})}{2} = ${expSig}$ and $\\omega_d = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{2} = ${expOm}$.`,
+					);
+				}
+				break;
+			}
+
+			case "distinct_real": {
+				const v1 = parseNumericInput(this.step2.r1);
+				const v2 = parseNumericInput(this.step2.r2);
+
+				if (Number.isNaN(v1) || Number.isNaN(v2)) {
+					this.setSubStepValidation(
+						this.step2,
+						"quad_root_inputs",
+						"Please enter numeric values for both roots $r_1$ and $r_2$.",
+					);
+					return;
+				}
+
+				const r1 = s2Data.r1;
+				const r2 = s2Data.r2 ?? 0;
+				const matchDirect =
+					Math.abs(v1 - r1) < 0.05 && Math.abs(v2 - r2) < 0.05;
+				const matchSwapped =
+					Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
+
+				if (matchDirect || matchSwapped) {
+					this.setSubStepPassed(
+						this.step2,
+						"quad_root_inputs",
+						undefined,
+						3,
+					);
+				} else if (
+					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
+					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+				) {
+					this.setSubStepMisconception(
+						this.step2,
+						"quad_root_inputs",
+						"Check the signs of your roots. In the quadratic formula, the leading numerator term is $-b$.",
+					);
+				} else {
+					this.setSubStepIncorrect(
+						this.step2,
+						"quad_root_inputs",
+						`Incorrect roots. Evaluate $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$.`,
+					);
+				}
+				break;
+			}
+
+			case "repeated_real": {
+				const v1 = parseNumericInput(this.step2.r1);
+
+				if (Number.isNaN(v1)) {
+					this.setSubStepValidation(
+						this.step2,
+						"quad_root_inputs",
+						"Please enter a numeric value for the repeated root $r$.",
+					);
+					return;
+				}
+
+				const r1 = s2Data.r1;
+				if (Math.abs(v1 - r1) < 0.05) {
+					this.setSubStepPassed(
+						this.step2,
+						"quad_root_inputs",
+						undefined,
+						3,
+					);
+				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
+					this.setSubStepMisconception(
+						this.step2,
+						"quad_root_inputs",
+						"Check your sign. For a repeated root with $\\Delta = 0$, $r = \\frac{-b}{2a}$.",
+					);
+				} else {
+					this.setSubStepIncorrect(
+						this.step2,
+						"quad_root_inputs",
 						`Incorrect repeated root. With $\\Delta = 0$, $r = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{2}$.`,
 					);
 				}
@@ -701,17 +908,58 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 5 (Particular Coefficients).
+	 * Validates Step 5 Part 5A (Trial Derivatives).
+	 * @param {OdeItsOption} opt Selected derivative option
 	 */
-	checkStep5(): void {
+	checkStep5Derivatives(opt: OdeItsOption): void {
+		this.step5.selectedDerivatives = opt.id;
+		if (opt.isCorrect) {
+			const nextSubStep =
+				this.problem.forcing.type === "sinusoid"
+					? "system_setup"
+					: "solve";
+			this.setSubStepPassed(this.step5, "derivatives", nextSubStep);
+		} else {
+			this.setSubStepMisconception(
+				this.step5,
+				"derivatives",
+				opt.feedback ??
+					"Incorrect derivatives of the trial particular solution.",
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 5 Part 5B (System Setup).
+	 * @param {OdeItsOption} opt Selected system setup option
+	 */
+	checkStep5System(opt: OdeItsOption): void {
+		this.step5.selectedSystem = opt.id;
+		if (opt.isCorrect) {
+			this.setSubStepPassed(this.step5, "system_setup", "solve");
+		} else {
+			this.setSubStepMisconception(
+				this.step5,
+				"system_setup",
+				opt.feedback ??
+					"Incorrect system setup for the undetermined coefficients.",
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 5 Part 5C (Undetermined Coefficients).
+	 */
+	checkStep5Coeffs(): void {
 		const s5Data = this.problem.itsData.step5;
 		if (this.problem.forcing.type === "sinusoid") {
 			const vA = parseNumericInput(this.step5.a);
 			const vB = parseNumericInput(this.step5.b);
 
 			if (Number.isNaN(vA) || Number.isNaN(vB)) {
-				this.setValidation(
+				this.setSubStepValidation(
 					this.step5,
+					"solve",
 					"Please enter numeric values for both coefficients: $A$ and $B$.",
 				);
 				return;
@@ -721,19 +969,21 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const expB = s5Data.expectedB ?? 0;
 
 			if (Math.abs(vA - expA) < 0.05 && Math.abs(vB - expB) < 0.05) {
-				this.setPassed(this.step5, 6);
+				this.setSubStepPassed(this.step5, "solve", undefined, 6);
 			} else {
-				this.setIncorrect(
+				this.setSubStepIncorrect(
 					this.step5,
-					"Incorrect coefficients $A$ and $B$. Substitute $y_p(t)$ into the ODE and equate like cosine and sine terms.",
+					"solve",
+					"Incorrect coefficients $A$ and $B$. Solve the $2\\times 2$ system by substitution or Cramer's Rule.",
 				);
 			}
 		} else {
 			const vKp = parseNumericInput(this.step5.kp);
 
 			if (Number.isNaN(vKp)) {
-				this.setValidation(
+				this.setSubStepValidation(
 					this.step5,
+					"solve",
 					"Please enter a numeric value for the particular amplitude $K_p$.",
 				);
 				return;
@@ -742,10 +992,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const expKp = s5Data.expectedKp ?? 0;
 
 			if (Math.abs(vKp - expKp) < 0.05) {
-				this.setPassed(this.step5, 6);
+				this.setSubStepPassed(this.step5, "solve", undefined, 6);
 			} else {
-				this.setIncorrect(
+				this.setSubStepIncorrect(
 					this.step5,
+					"solve",
 					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.",
 				);
 			}
@@ -753,16 +1004,71 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 6 (Initial Conditions System & Constants C1, C2).
+	 * Legacy/shortcut wrapper for checking Step 5.
 	 */
-	checkStep6(): void {
+	checkStep5(): void {
+		this.checkStep5Coeffs();
+	}
+
+	/**
+	 * Validates Step 6 Part 6A (Target Initial Values).
+	 */
+	checkStep6TargetValues(): void {
+		const s6Data = this.problem.itsData.step6;
+		const vYh0 = parseNumericInput(this.step6.yh0);
+		const vDYh0 = parseNumericInput(this.step6.dyh0);
+
+		if (Number.isNaN(vYh0) || Number.isNaN(vDYh0)) {
+			this.setSubStepValidation(
+				this.step6,
+				"target_values",
+				"Please enter numeric values or fractions for both target values: $y_h(0^+)$ and $y_h'(0^+)$.",
+			);
+			return;
+		}
+
+		const expYh0 = s6Data.targetYh0;
+		const expDYh0 = s6Data.targetDYh0;
+
+		if (
+			Math.abs(vYh0 - expYh0) < 0.05 &&
+			Math.abs(vDYh0 - expDYh0) < 0.05
+		) {
+			this.setSubStepPassed(
+				this.step6,
+				"target_values",
+				"solve_constants",
+			);
+		} else if (
+			Math.abs(vYh0 - this.problem.initialConditions.y0) < 0.05 &&
+			Math.abs(vDYh0 - this.problem.initialConditions.dy0) < 0.05
+		) {
+			this.setSubStepMisconception(
+				this.step6,
+				"target_values",
+				"Remember that initial conditions apply to the total response $y(t) = y_h(t) + y_p(t)$. You must subtract $y_p(0^+)$ and $y_p'(0^+)$.",
+			);
+		} else {
+			this.setSubStepIncorrect(
+				this.step6,
+				"target_values",
+				`Incorrect target values. Compute $y_h(0^+) = y(0^+) - y_p(0^+) = ${this.problem.initialConditions.y0} - (${toFractionLatex(s6Data.yp0)}) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${this.problem.initialConditions.dy0} - (${toFractionLatex(s6Data.dyp0)}) = ${toFractionLatex(expDYh0)}$.`,
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 6 Part 6B (Constants C1, C2).
+	 */
+	checkStep6Constants(): void {
 		const s6Data = this.problem.itsData.step6;
 		const vC1 = parseNumericInput(this.step6.c1);
 		const vC2 = parseNumericInput(this.step6.c2);
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
-			this.setValidation(
+			this.setSubStepValidation(
 				this.step6,
+				"solve_constants",
 				"Please enter numeric values for both constants: $C_1$ and $C_2$.",
 			);
 			return;
@@ -772,13 +1078,21 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			Math.abs(vC1 - s6Data.expectedC1) < 0.05 &&
 			Math.abs(vC2 - s6Data.expectedC2) < 0.05
 		) {
-			this.setPassed(this.step6, 7);
+			this.setSubStepPassed(this.step6, "solve_constants", undefined, 7);
 		} else {
-			this.setIncorrect(
+			this.setSubStepIncorrect(
 				this.step6,
-				"Incorrect constants $C_1$, $C_2$. Remember to account for the velocity offset $y_p'(0^+)$ when setting up $y'(0^+) = y_h'(0^+) + y_p'(0^+)$.",
+				"solve_constants",
+				"Incorrect constants $C_1$, $C_2$. Solve the linear system matching $y_h(0^+)$ and $y_h'(0^+)$.",
 			);
 		}
+	}
+
+	/**
+	 * Legacy/shortcut wrapper for checking Step 6.
+	 */
+	checkStep6(): void {
+		this.checkStep6Constants();
 	}
 
 	/**
@@ -855,7 +1169,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	});
 
 	/**
-	 * Validates Step 7 Phase 1: Zero-Input (y_{ZI}) and Zero-State (y_{ZS}) decomposition constants.
+	 * Validates Step 7 Part 7A: Zero-Input (y_{ZI}) and Zero-State (y_{ZS}) decomposition constants.
 	 */
 	checkStep7ZI(): void {
 		const s7Data = this.problem.itsData.step7;
@@ -863,8 +1177,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const vC2 = parseNumericInput(this.step7.ziC2);
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
-			this.setValidation(
+			this.setSubStepValidation(
 				this.step7,
+				"zi_zs",
 				"Please enter numeric values or fractions for both Zero-Input constants: $C_{1,ZI}$ and $C_{2,ZI}$.",
 			);
 			return;
@@ -875,33 +1190,35 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		if (Math.abs(vC1 - expC1) < 0.05 && Math.abs(vC2 - expC2) < 0.05) {
 			this.step7.ziZsPassed = true;
-			this.step7.subStep = "tr_ss";
-			this.clearFeedback();
+			this.setSubStepPassed(this.step7, "zi_zs", "tr_ss");
 		} else if (
 			Math.abs(vC1 + expC1) < 0.05 ||
 			Math.abs(vC2 + expC2) < 0.05
 		) {
-			this.setMisconception(
+			this.setSubStepMisconception(
 				this.step7,
+				"zi_zs",
 				"Check the signs of your Zero-Input constants. Remember that $y_{ZI}(t)$ matches initial conditions $y(0^-), y'(0^-)$ with forcing $x(t) = 0$.",
 			);
 		} else {
-			this.setIncorrect(
+			this.setSubStepIncorrect(
 				this.step7,
+				"zi_zs",
 				"Incorrect Zero-Input constants. Set up the homogeneous system matching $y_h(0^-) = y(0^-)$ and $y_h'(0^-) = y'(0^-)$ without subtracting $y_p$.",
 			);
 		}
 	}
 
 	/**
-	 * Validates Step 7 Phase 2: Transient (y_{tr}) and Steady-State (y_{ss}) decomposition.
+	 * Validates Step 7 Part 7B: Transient (y_{tr}) and Steady-State (y_{ss}) decomposition.
 	 */
 	checkStep7TrSS(): void {
 		const s7Data = this.problem.itsData.step7;
 
 		if (!this.step7.selectedTransient || !this.step7.selectedSteadyState) {
-			this.setValidation(
+			this.setSubStepValidation(
 				this.step7,
+				"tr_ss",
 				"Please select options for both the Transient Response $y_{tr}(t)$ and Steady-State Response $y_{ss}(t)$.",
 			);
 			return;
@@ -915,8 +1232,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		);
 
 		if (!trOption?.isCorrect) {
-			this.setMisconception(
+			this.setSubStepMisconception(
 				this.step7,
+				"tr_ss",
 				trOption?.feedback ||
 					"Incorrect Transient response. The transient response consists of the decaying natural modes $y_h(t)$.",
 			);
@@ -924,8 +1242,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		if (!ssOption?.isCorrect) {
-			this.setMisconception(
+			this.setSubStepMisconception(
 				this.step7,
+				"tr_ss",
 				ssOption?.feedback ||
 					"Incorrect Steady-State response. The steady-state response is the persistent forced response $y_p(t)$.",
 			);
@@ -933,19 +1252,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		this.step7.trSsPassed = true;
-		this.step7.subStep = "concept";
-		this.clearFeedback();
+		this.setSubStepPassed(this.step7, "tr_ss", "concept");
 	}
 
 	/**
-	 * Validates Step 7 Phase 3: Targeted Conceptual Mastery Question.
+	 * Validates Step 7 Part 7C: Targeted Conceptual Mastery Question.
 	 */
 	checkStep7Concept(): void {
 		const s7Data = this.problem.itsData.step7;
 
 		if (!this.step7.selectedConcept) {
-			this.setValidation(
+			this.setSubStepValidation(
 				this.step7,
+				"concept",
 				"Please select an answer for the conceptual mastery question.",
 			);
 			return;
@@ -957,11 +1276,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		if (option?.isCorrect) {
 			this.step7.conceptPassed = true;
-			this.step7.subStep = "done";
-			this.setPassed(this.step7, 8);
+			this.setSubStepPassed(this.step7, "concept", undefined, 8);
 		} else {
-			this.setMisconception(
+			this.setSubStepMisconception(
 				this.step7,
+				"concept",
 				option?.feedback ||
 					"Incorrect choice. Re-examine how linearity and superposition govern response decomposition.",
 			);
@@ -970,7 +1289,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/**
 	 * Handles submission from Step 7 Response Decomposition (legacy/shortcut compatible).
-	 * @param {string} _value LaTeX formatted student response (unused in multi-phase decomposition)
+	 * @param {string} _value LaTeX formatted student response
 	 */
 	handleStep7Submit(_value?: string): void {
 		if (this.step7.conceptPassed) {
@@ -989,31 +1308,123 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		this.hintTier = 0;
 
 		this.step1 = createStepState({ a2: "", a1: "", a0: "" });
-		this.step2 = createStepState({
-			strategy: null as "factoring" | "quadratic" | null,
-			r1: "",
-			r2: "",
-			sigma: "",
-			omegaD: "",
-			quadClassChoice: null as RootType | null,
-			quadDiscriminantInput: "",
-			quadNeedsDiscriminantCalc: false,
-			quadDiscriminantVerified: false,
-		});
+		this.step2 = createMultiPartStepState(
+			{
+				strategy: null as "factoring" | "quadratic" | null,
+				r1: "",
+				r2: "",
+				sigma: "",
+				omegaD: "",
+				quadClassChoice: null as RootType | null,
+				quadDiscriminantInput: "",
+				quadNeedsDiscriminantCalc: false,
+				quadDiscriminantVerified: false,
+			},
+			[
+				"strategy_gate",
+				"factoring_inputs",
+				"quad_classification",
+				"remedial_discriminant",
+				"quad_root_inputs",
+			],
+			{
+				strategy_gate: createSubStepState(
+					"strategy_gate",
+					"Select Solving Strategy",
+				),
+				factoring_inputs: createSubStepState(
+					"factoring_inputs",
+					"Factoring & Roots",
+				),
+				quad_classification: createSubStepState(
+					"quad_classification",
+					"Root Classification",
+				),
+				remedial_discriminant: createSubStepState(
+					"remedial_discriminant",
+					"Calculate Discriminant",
+				),
+				quad_root_inputs: createSubStepState(
+					"quad_root_inputs",
+					"Quadratic Formula Roots",
+				),
+			},
+			"strategy_gate",
+		);
 		this.step3 = createStepState({ selected: null as RootType | null });
 		this.step4 = createStepState({ selected: null as string | null });
-		this.step5 = createStepState({ kp: "", a: "", b: "" });
-		this.step6 = createStepState({ c1: "", c2: "" });
-		this.step7 = createStepState({
-			subStep: "zi_zs" as "zi_zs" | "tr_ss" | "concept" | "done",
-			ziC1: "",
-			ziC2: "",
-			selectedTransient: null as string | null,
-			selectedSteadyState: null as string | null,
-			selectedConcept: null as string | null,
-			ziZsPassed: false,
-			trSsPassed: false,
-			conceptPassed: false,
-		});
+		this.step5 = createMultiPartStepState(
+			{
+				selectedDerivatives: null as string | null,
+				selectedSystem: null as string | null,
+				kp: "",
+				a: "",
+				b: "",
+			},
+			["derivatives", "system_setup", "solve"],
+			{
+				derivatives: createSubStepState(
+					"derivatives",
+					"Part 5A: Trial Derivatives",
+				),
+				system_setup: createSubStepState(
+					"system_setup",
+					"Part 5B: System Setup",
+				),
+				solve: createSubStepState(
+					"solve",
+					"Part 5C: Undetermined Coefficients",
+				),
+			},
+			"derivatives",
+		);
+		this.step6 = createMultiPartStepState(
+			{
+				yh0: "",
+				dyh0: "",
+				c1: "",
+				c2: "",
+			},
+			["target_values", "solve_constants"],
+			{
+				target_values: createSubStepState(
+					"target_values",
+					"Part 6A: Target Initial Values",
+				),
+				solve_constants: createSubStepState(
+					"solve_constants",
+					"Part 6B: Integration Constants",
+				),
+			},
+			"target_values",
+		);
+		this.step7 = createMultiPartStepState(
+			{
+				ziC1: "",
+				ziC2: "",
+				selectedTransient: null as string | null,
+				selectedSteadyState: null as string | null,
+				selectedConcept: null as string | null,
+				ziZsPassed: false,
+				trSsPassed: false,
+				conceptPassed: false,
+			},
+			["zi_zs", "tr_ss", "concept"],
+			{
+				zi_zs: createSubStepState(
+					"zi_zs",
+					"Part 7A: Zero-Input & Zero-State",
+				),
+				tr_ss: createSubStepState(
+					"tr_ss",
+					"Part 7B: Transient & Steady-State",
+				),
+				concept: createSubStepState(
+					"concept",
+					"Part 7C: Conceptual Mastery",
+				),
+			},
+			"zi_zs",
+		);
 	}
 }

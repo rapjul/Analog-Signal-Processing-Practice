@@ -4,6 +4,7 @@
  * - `misconception`: Diagnosed pedagogical misconception or distractor pattern.
  * - `incorrect`: General calculation error or algebraic mismatch.
  */
+
 export type StepFeedbackType = "validation" | "misconception" | "incorrect";
 
 /**
@@ -16,6 +17,40 @@ export interface BaseStepState {
 	feedbackType: StepFeedbackType | null;
 	/** Whether this step has passed validation */
 	isValid: boolean;
+}
+
+/**
+ * State interface for an individual sub-step / part within a multi-part step.
+ */
+export interface BaseSubStepState {
+	/** Unique sub-step identifier */
+	id: string;
+	/** Sub-step title for display */
+	title: string;
+	/** Diagnostic feedback message if validation fails */
+	feedback: string | null;
+	/** Diagnostic feedback classification */
+	feedbackType: StepFeedbackType | null;
+	/** Current progressive hint tier for this sub-step (0 = closed, 1..N) */
+	hintTier: number;
+	/** Available hint strings specific to this sub-step */
+	hints?: string[];
+	/** Whether this sub-step has been validated and completed */
+	isValid: boolean;
+}
+
+/**
+ * State interface for a multi-part step containing sequential or conditional sub-steps.
+ */
+export interface MultiPartStepState<
+	TSubStepId extends string = string,
+> extends BaseStepState {
+	/** Active sub-step identifier */
+	activeSubStepId: TSubStepId;
+	/** Ordered list of sub-step identifiers */
+	subStepOrder: TSubStepId[];
+	/** Map of individual sub-step states */
+	subSteps: Record<TSubStepId, BaseSubStepState>;
 }
 
 /**
@@ -57,6 +92,65 @@ export function createStepState<T extends object>(
 		feedback: null,
 		feedbackType: null,
 		isValid: false,
+	};
+}
+
+/**
+ * Factory helper function to initialize a sub-step state with default validation fields.
+ *
+ * @template T - Custom sub-step form fields object type.
+ * @param {string} id - Unique sub-step identifier.
+ * @param {string} title - Sub-step display title.
+ * @param {T} [customFields] - Initial custom field values for the sub-step.
+ * @param {string[]} [hints] - Optional array of progressive hint strings.
+ * @returns {T & BaseSubStepState} The combined sub-step state.
+ */
+export function createSubStepState<T extends object = Record<string, unknown>>(
+	id: string,
+	title: string,
+	customFields: T = {} as T,
+	hints?: string[],
+): T & BaseSubStepState {
+	return {
+		...customFields,
+		id,
+		title,
+		feedback: null,
+		feedbackType: null,
+		hintTier: 0,
+		hints,
+		isValid: false,
+	};
+}
+
+/**
+ * Factory helper function to initialize a multi-part step state.
+ *
+ * @template TSubStepId - Sub-step string literal identifier union.
+ * @template TCustom - Custom step-level fields object type.
+ * @param {TCustom} customFields - Initial step-level field values.
+ * @param {TSubStepId[]} subStepOrder - Sequential array of sub-step IDs.
+ * @param {Record<TSubStepId, BaseSubStepState>} subSteps - Map of sub-step states.
+ * @param {TSubStepId} initialActiveId - Initial active sub-step ID.
+ * @returns {TCustom & MultiPartStepState<TSubStepId>} The combined multi-part step state.
+ */
+export function createMultiPartStepState<
+	TSubStepId extends string,
+	TCustom extends object = Record<string, unknown>,
+>(
+	customFields: TCustom,
+	subStepOrder: TSubStepId[],
+	subSteps: Record<TSubStepId, BaseSubStepState>,
+	initialActiveId: TSubStepId,
+): TCustom & MultiPartStepState<TSubStepId> {
+	return {
+		...customFields,
+		feedback: null,
+		feedbackType: null,
+		isValid: false,
+		activeSubStepId: initialActiveId,
+		subStepOrder,
+		subSteps,
 	};
 }
 
@@ -280,6 +374,136 @@ export abstract class BaseStepSolverState {
 			this.setPassed(step, nextStep);
 		} else {
 			this.setMisconception(step, option.feedback ?? fallbackFeedback);
+		}
+	}
+
+	/**
+	 * Sets an input validation error on a specific sub-step of a multi-part step.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state containing the sub-step.
+	 * @param {string} subStepId - Target sub-step identifier.
+	 * @param {string} message - Validation feedback message to display.
+	 */
+	setSubStepValidation(
+		step: MultiPartStepState,
+		subStepId: string,
+		message: string,
+	): void {
+		const sub = step.subSteps[subStepId];
+		if (sub) {
+			sub.isValid = false;
+			sub.feedbackType = "validation";
+			sub.feedback = message;
+		}
+		this.setValidation(step, message);
+	}
+
+	/**
+	 * Sets a pedagogical misconception alert on a specific sub-step.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state containing the sub-step.
+	 * @param {string} subStepId - Target sub-step identifier.
+	 * @param {string} message - Misconception explanation message to display.
+	 */
+	setSubStepMisconception(
+		step: MultiPartStepState,
+		subStepId: string,
+		message: string,
+	): void {
+		const sub = step.subSteps[subStepId];
+		if (sub) {
+			sub.isValid = false;
+			sub.feedbackType = "misconception";
+			sub.feedback = message;
+		}
+		this.setMisconception(step, message);
+	}
+
+	/**
+	 * Sets a generic incorrect answer error on a specific sub-step.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state containing the sub-step.
+	 * @param {string} subStepId - Target sub-step identifier.
+	 * @param {string} message - Incorrect error message to display.
+	 */
+	setSubStepIncorrect(
+		step: MultiPartStepState,
+		subStepId: string,
+		message: string,
+	): void {
+		const sub = step.subSteps[subStepId];
+		if (sub) {
+			sub.isValid = false;
+			sub.feedbackType = "incorrect";
+			sub.feedback = message;
+		}
+		this.setIncorrect(step, message);
+	}
+
+	/**
+	 * Clears the diagnostic feedback for a specific sub-step and the parent step.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state.
+	 * @param {string} subStepId - Target sub-step identifier.
+	 */
+	clearSubStepFeedback(step: MultiPartStepState, subStepId: string): void {
+		const sub = step.subSteps[subStepId];
+		if (sub) {
+			sub.feedback = null;
+			sub.feedbackType = null;
+		}
+		this.clearFeedback();
+	}
+
+	/**
+	 * Marks a sub-step as passed, resets its feedback, and transitions to the next sub-step or parent step.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state.
+	 * @param {string} subStepId - Sub-step identifier to mark valid.
+	 * @param {string} [nextSubStepId] - Next sub-step ID within the active step.
+	 * @param {number} [nextParentStep] - Next parent step index if all sub-steps completed.
+	 */
+	setSubStepPassed(
+		step: MultiPartStepState,
+		subStepId: string,
+		nextSubStepId?: string,
+		nextParentStep?: number,
+	): void {
+		const sub = step.subSteps[subStepId];
+		if (sub) {
+			sub.isValid = true;
+			sub.feedback = null;
+			sub.feedbackType = null;
+		}
+		this.clearFeedback();
+
+		if (nextSubStepId) {
+			step.activeSubStepId = nextSubStepId;
+			// Reset sub-step hint tier for the next sub-step
+			const nextSub = step.subSteps[nextSubStepId];
+			if (nextSub) {
+				nextSub.hintTier = 0;
+			}
+		} else if (nextParentStep !== undefined) {
+			this.setPassed(step, nextParentStep);
+		}
+	}
+
+	/**
+	 * Increments the hint tier for a specific sub-step up to maxTiers.
+	 *
+	 * @param {MultiPartStepState} step - Multi-part step state.
+	 * @param {string} subStepId - Target sub-step identifier.
+	 * @param {number} [maxTiers=3] - Maximum available hint tiers for this sub-step.
+	 */
+	revealSubStepHint(
+		step: MultiPartStepState,
+		subStepId: string,
+		maxTiers = 3,
+	): void {
+		const sub = step.subSteps[subStepId];
+		if (sub && sub.hintTier < maxTiers) {
+			sub.hintTier += 1;
 		}
 	}
 

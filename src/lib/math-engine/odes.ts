@@ -172,7 +172,7 @@ export interface OdeItsStep4 extends BaseItsStep {
 	options: OdeItsOption[];
 }
 
-/** ITS Step 5: Particular Coefficients */
+/** ITS Step 5: Particular Coefficients and Scaffolding */
 export interface OdeItsStep5 extends BaseItsStep {
 	/** Solved Kp for constant/exponential forcing */
 	expectedKp?: number;
@@ -180,6 +180,14 @@ export interface OdeItsStep5 extends BaseItsStep {
 	expectedA?: number;
 	/** Solved B for sinusoidal forcing */
 	expectedB?: number;
+	/** Multiple-choice derivative options for Part 5A */
+	derivativeOptions?: OdeItsOption[];
+	/** Multiple-choice system setup options for Part 5B */
+	systemOptions?: OdeItsOption[];
+	/** Correct derivative LaTeX string */
+	derivativesLatex?: string;
+	/** Correct system equations LaTeX string */
+	systemLatex?: string;
 }
 
 /** ITS Step 6: Initial Conditions System and Constants */
@@ -850,6 +858,118 @@ export function generateOdeProblem(
 		}
 	}
 
+	// Step 5 Derivative and System Scaffolding Options
+	let step5DerivativeOptions: OdeItsOption[] = [];
+	let step5SystemOptions: OdeItsOption[] = [];
+	let step5DerivLatex = "";
+	let step5SysLatex = "";
+
+	if (forcing.type === "sinusoid") {
+		const w = forcing.omega ?? 1;
+		const w2 = w * w;
+		const m11 = a0 - w2;
+		const m12 = a1 * w;
+		const m21 = -a1 * w;
+		const m22 = a0 - w2;
+
+		step5DerivLatex = `y_p'(t) = -${w}A \\sin(${w}t) + ${w}B \\cos(${w}t), \\quad y_p''(t) = -${w2}A \\cos(${w}t) - ${w2}B \\sin(${w}t)`;
+		step5SysLatex = `\\begin{cases} (${m11})A + (${m12})B = ${forcing.K} \\\\ (${m21})A + (${m22})B = 0 \\end{cases}`;
+
+		step5DerivativeOptions = [
+			{
+				id: "deriv_correct",
+				latex: step5DerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "deriv_sign_err",
+				latex: `y_p'(t) = ${w}A \\sin(${w}t) - ${w}B \\cos(${w}t), \\quad y_p''(t) = ${w2}A \\cos(${w}t) + ${w2}B \\sin(${w}t)`,
+				isCorrect: false,
+				feedback:
+					"Sign Error in Derivatives: $\\frac{d}{dt}\\cos(\\omega t) = -\\omega\\sin(\\omega t)$ and $\\frac{d}{dt}\\sin(\\omega t) = \\omega\\cos(\\omega t)$.",
+			},
+			{
+				id: "deriv_missing_omega",
+				latex: `y_p'(t) = -A \\sin(${w}t) + B \\cos(${w}t), \\quad y_p''(t) = -A \\cos(${w}t) - B \\sin(${w}t)`,
+				isCorrect: false,
+				feedback:
+					"Chain Rule Error: Differentiating $\\cos(\\omega t)$ and $\\sin(\\omega t)$ pulls out an inner factor of $\\omega$.",
+			},
+		];
+
+		step5SystemOptions = [
+			{
+				id: "sys_correct",
+				latex: step5SysLatex,
+				isCorrect: true,
+			},
+			{
+				id: "sys_sign_err",
+				latex: `\\begin{cases} (${m11})A - (${m12})B = ${forcing.K} \\\\ (${m12})A + (${m22})B = 0 \\end{cases}`,
+				isCorrect: false,
+				feedback:
+					"Sign Error: Substituting $y_p', y_p''$ into $y'' + a_1 y' + a_0 y$ yields $-a_1\\omega A + (a_0-\\omega^2)B = 0$ for the sine term.",
+			},
+			{
+				id: "sys_uncoupled",
+				latex: `\\begin{cases} (${a0})A = ${forcing.K} \\\\ (${a0})B = 0 \\end{cases}`,
+				isCorrect: false,
+				feedback:
+					"Missing Derivatives: You must include contributions from $y_p''$ ($-\\omega^2$) and $y_p'$ ($a_1\\omega$) in the grouped harmonic terms.",
+			},
+		];
+	} else if (forcing.type === "constant") {
+		step5DerivLatex = "y_p'(t) = 0, \\quad y_p''(t) = 0";
+		step5SysLatex = `${a0} K_p = ${forcing.K}`;
+		step5DerivativeOptions = [
+			{
+				id: "deriv_correct",
+				latex: step5DerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "deriv_nonzero",
+				latex: "y_p'(t) = K_p, \\quad y_p''(t) = K_p",
+				isCorrect: false,
+				feedback:
+					"Derivative of a constant: The derivative of any constant $K_p$ with respect to time is strictly zero.",
+			},
+		];
+		step5SystemOptions = [
+			{
+				id: "sys_correct",
+				latex: step5SysLatex,
+				isCorrect: true,
+			},
+		];
+	} else {
+		const p = forcing.p ?? 0;
+		const polyAtP = p * p + a1 * p + a0;
+		step5DerivLatex = `y_p'(t) = ${p} K_p e^{${p}t}, \\quad y_p''(t) = ${p * p} K_p e^{${p}t}`;
+		step5SysLatex = `${polyAtP} K_p = ${forcing.K}`;
+		step5DerivativeOptions = [
+			{
+				id: "deriv_correct",
+				latex: step5DerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "deriv_missing_p",
+				latex: `y_p'(t) = K_p e^{${p}t}, \\quad y_p''(t) = K_p e^{${p}t}`,
+				isCorrect: false,
+				feedback:
+					"Chain Rule Error: $\\frac{d}{dt} e^{pt} = p e^{pt}$ and $\\frac{d^2}{dt^2} e^{pt} = p^2 e^{pt}$.",
+			},
+		];
+		step5SystemOptions = [
+			{
+				id: "sys_correct",
+				latex: step5SysLatex,
+				isCorrect: true,
+			},
+		];
+	}
+
 	// Step 7 Transient and Steady-State Options
 	const transientOptions: OdeItsOption[] = [
 		{
@@ -1122,6 +1242,10 @@ export function generateOdeProblem(
 			expectedKp: particular.coeffs.Kp,
 			expectedA: particular.coeffs.A,
 			expectedB: particular.coeffs.B,
+			derivativeOptions: step5DerivativeOptions,
+			systemOptions: step5SystemOptions,
+			derivativesLatex: step5DerivLatex,
+			systemLatex: step5SysLatex,
 			hints: [
 				"Take derivatives of $y_p(t)$ ($y_p'$ and $y_p''$) and substitute them into the left-hand side of the ODE.",
 				"Collect like terms and equate coefficients with the right-hand side forcing input $x(t)$.",
