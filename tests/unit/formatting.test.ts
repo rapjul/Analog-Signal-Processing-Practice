@@ -5,6 +5,8 @@ import {
 	formatPolynomial,
 	formatQuadraticPolynomial,
 	formatRootFactor,
+	formatSignedLinearTerm,
+	sanitizeLatexMath,
 } from "$lib/math-engine/formatting";
 
 describe("formatCoefficientTerm", () => {
@@ -174,5 +176,46 @@ describe("formatRootFactor", () => {
 
 	it("formats zero root without parentheses", () => {
 		expect(formatRootFactor(0, "s")).toBe("s");
+	});
+});
+
+describe("sanitizeLatexMath", () => {
+	it("replaces adjacent double operators (+ +, + -, - -, - +)", () => {
+		expect(sanitizeLatexMath("2e^{-t} + + \\frac{1}{2}\\sin(2t)")).toBe(
+			"2e^{-t} + \\frac{1}{2}\\sin(2t)",
+		);
+		expect(sanitizeLatexMath("C_1 e^{-t} + - 3 e^{-2t}")).toBe(
+			"C_1 e^{-t} - 3 e^{-2t}",
+		);
+		expect(sanitizeLatexMath("e^{-t} - - 4 e^{-2t}")).toBe(
+			"e^{-t} + 4 e^{-2t}",
+		);
+		expect(sanitizeLatexMath("5 - + 2")).toBe("5 - 2");
+	});
+
+	it("cleans unit multipliers and leading positive signs inside brackets", () => {
+		expect(sanitizeLatexMath("e^{(-1t)}")).toBe("e^{-t}");
+		expect(sanitizeLatexMath("e^{(1t)}")).toBe("e^{t}");
+		expect(sanitizeLatexMath("[ + 2\\cos(t) - 3\\sin(t)]")).toBe(
+			"[2\\cos(t) - 3\\sin(t)]",
+		);
+	});
+});
+
+describe("formatSignedLinearTerm", () => {
+	it("formats positive, negative, and zero coefficients correctly", () => {
+		expect(formatSignedLinearTerm("2", "e^{-t}", true)).toBe("2 e^{-t}");
+		expect(formatSignedLinearTerm("2", "e^{-t}", false)).toBe("+ 2 e^{-t}");
+		expect(formatSignedLinearTerm("-3", "e^{-2t}", true)).toBe(
+			"-3 e^{-2t}",
+		);
+		expect(formatSignedLinearTerm("-3", "e^{-2t}", false)).toBe(
+			"- 3 e^{-2t}",
+		);
+		expect(formatSignedLinearTerm("1", "e^{-t}", true)).toBe("e^{-t}");
+		expect(formatSignedLinearTerm("1", "e^{-t}", false)).toBe("+ e^{-t}");
+		expect(formatSignedLinearTerm("-1", "e^{-t}", true)).toBe("-e^{-t}");
+		expect(formatSignedLinearTerm("-1", "e^{-t}", false)).toBe("- e^{-t}");
+		expect(formatSignedLinearTerm("0", "e^{-t}", false)).toBe("");
 	});
 });

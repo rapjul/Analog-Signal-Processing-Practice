@@ -138,3 +138,86 @@ export function formatRootFactor(root: number, variable = "x"): string {
 	if (root < 0) return `(${variable} + ${Math.abs(root)})`;
 	return `(${variable} - ${root})`;
 }
+
+/**
+ * Sanitizes and normalizes LaTeX mathematical strings by collapsing redundant signs,
+ * stripping extraneous spacing around operators, and preventing double-sign artifacts.
+ *
+ * Examples:
+ * - sanitizeLatexMath("(-4t)e^{-2t} + + \\frac{1}{2}\\sin(2t)") -> "(-4t)e^{-2t} + \\frac{1}{2}\\sin(2t)"
+ * - sanitizeLatexMath("C_1 e^{-2t} + - 4 e^{-3t}") -> "C_1 e^{-2t} - 4 e^{-3t}"
+ * - sanitizeLatexMath("3t - - 5") -> "3t + 5"
+ * - sanitizeLatexMath("y(t) = + 2e^{-t}") -> "y(t) = 2e^{-t}"
+ * - sanitizeLatexMath("(+ 2t)") -> "(2t)"
+ *
+ * @param {string} latex Input raw or interpolated LaTeX math string
+ * @returns {string} Sanitized LaTeX string
+ */
+export function sanitizeLatexMath(latex: string): string {
+	if (!latex) return "";
+	let s = latex;
+
+	// Replace double plus: "+ +" -> "+"
+	s = s.replace(/\+\s*\+/g, "+");
+
+	// Replace plus-minus: "+ -" -> "-"
+	s = s.replace(/\+\s*-/g, "-");
+
+	// Replace minus-minus: "- -" -> "+"
+	s = s.replace(/-\s*-/g, "+");
+
+	// Replace minus-plus: "- +" -> "-"
+	s = s.replace(/-\s*\+/g, "-");
+
+	// Clean up second pass if any cascaded signs remain
+	s = s.replace(/\+\s*\+/g, "+");
+	s = s.replace(/\+\s*-/g, "-");
+
+	// Clean up leading "+ " after opening delimiter, parenthesis, bracket, or equals sign
+	s = s.replace(/([([{=])\s*\+\s*/g, "$1");
+	s = s.replace(/([([{=])\s*-\s*/g, "$1-");
+	s = s.replace(/^\s*\+\s*/, "");
+
+	// Clean up unit coefficients inside parens like (-1t) -> (-t) or (+1t) -> (t)
+	s = s.replace(/\{\((-?\+?)(?:1)?([a-zA-Z]+)\)\}/g, "{$1$2}");
+	s = s.replace(/\(-1([a-zA-Z])/g, "(-$1");
+	s = s.replace(/\(\+?1([a-zA-Z])/g, "($1");
+
+	// Standardize spacing around binary operators
+	s = s.replace(/([^\s([{=^_-])\s*\+\s*([^\s)\]}])/g, "$1 + $2");
+	s = s.replace(/([^\s([{=^_-])\s*-\s*([^\s)\]}])/g, "$1 - $2");
+
+	// Collapse multiple spaces
+	s = s.replace(/[ \t]{2,}/g, " ");
+
+	return s.trim();
+}
+
+/**
+ * Formats a signed linear or functional term with algebraic sign reduction.
+ *
+ * @param {number | string} coeff Numerical coefficient or fractional string
+ * @param {string} term Body term (e.g. "e^{-2t}", "\\cos(2t)")
+ * @param {boolean} [isFirst=false] Whether this term is the first leading term
+ * @returns {string} Formatted term
+ */
+export function formatSignedLinearTerm(
+	coeff: number | string,
+	term: string,
+	isFirst = false,
+): string {
+	const coeffStr = String(coeff).trim();
+	if (coeffStr === "0" || coeffStr === "") return "";
+
+	const isNegative = coeffStr.startsWith("-");
+	const absCoeffStr = isNegative ? coeffStr.slice(1).trim() : coeffStr;
+
+	const isUnit = absCoeffStr === "1" && term !== "";
+	const body = isUnit ? term : `${absCoeffStr} ${term}`.trim();
+
+	if (isFirst) {
+		return isNegative ? `-${body}` : body;
+	}
+
+	return isNegative ? `- ${body}` : `+ ${body}`;
+}
