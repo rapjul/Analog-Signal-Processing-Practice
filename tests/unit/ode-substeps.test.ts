@@ -70,7 +70,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 			solver.checkStep2QuadClass("distinct_real");
 			expect(solver.step2.quadNeedsDiscriminantCalc).toBe(true);
 			expect(solver.step2.activeSubStepId).toBe("remedial_discriminant");
-			expect(solver.step2.feedbackType).toBe("incorrect");
+			expect(solver.step2.feedbackType).toBe("misconception");
 
 			// Incorrect discriminant calculation fails
 			solver.step2.quadDiscriminantInput = "999";
@@ -117,7 +117,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 	});
 
 	describe("Step 5 Multi-Part Sub-Steps Flow", () => {
-		it("Sinusoidal 3-part flow: Part 5A -> Part 5B -> Part 5C", () => {
+		it("Sinusoidal 4-part flow: Part 5A-1 -> Part 5A-2 -> Part 5B -> Part 5C", () => {
 			let problem = generateOdeProblem("distinct_real");
 			while (problem.forcing.type !== "sinusoid") {
 				problem = generateOdeProblem("distinct_real");
@@ -126,21 +126,28 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(5);
 
-			expect(solver.step5.activeSubStepId).toBe("derivatives");
-			expect(solver.step5.subStepOrder).toEqual([
-				"derivatives",
-				"system_setup",
-				"solve",
-			]);
+			expect(solver.step5.activeSubStepId).toBe("first_deriv");
 
-			// Complete Part 5A
-			const cDeriv = problem.itsData.step5.derivativeOptions?.find(
-				(o) => o.isCorrect,
-			);
-			expect(cDeriv).toBeDefined();
-			if (cDeriv) solver.checkStep5Derivatives(cDeriv);
+			// Complete Part 5A-1
+			const cFirstDeriv =
+				problem.itsData.step5.firstDerivativeOptions?.find(
+					(o) => o.isCorrect,
+				);
+			expect(cFirstDeriv).toBeDefined();
+			if (cFirstDeriv) solver.checkStep5FirstDeriv(cFirstDeriv);
 
-			expect(solver.step5.subSteps.derivatives.isValid).toBe(true);
+			expect(solver.step5.subSteps.first_deriv.isValid).toBe(true);
+			expect(solver.step5.activeSubStepId).toBe("second_deriv");
+
+			// Complete Part 5A-2
+			const cSecondDeriv =
+				problem.itsData.step5.secondDerivativeOptions?.find(
+					(o) => o.isCorrect,
+				);
+			expect(cSecondDeriv).toBeDefined();
+			if (cSecondDeriv) solver.checkStep5SecondDeriv(cSecondDeriv);
+
+			expect(solver.step5.subSteps.second_deriv.isValid).toBe(true);
 			expect(solver.step5.activeSubStepId).toBe("system_setup");
 
 			// Complete Part 5B
@@ -163,7 +170,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 			expect(solver.currentStep).toBe(6);
 		});
 
-		it("Constant/Exponential 2-part flow: Part 5A -> Part 5B (solve)", () => {
+		it("Constant/Exponential 3-part flow: Part 5A-1 -> Part 5A-2 -> Part 5C (solve)", () => {
 			let problem = generateOdeProblem("distinct_real");
 			while (problem.forcing.type === "sinusoid") {
 				problem = generateOdeProblem("distinct_real");
@@ -172,16 +179,28 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(5);
 
-			expect(solver.step5.activeSubStepId).toBe("derivatives");
+			expect(solver.step5.activeSubStepId).toBe("first_deriv");
 
-			// Complete Part 5A
-			const cDeriv = problem.itsData.step5.derivativeOptions?.find(
-				(o) => o.isCorrect,
-			);
-			expect(cDeriv).toBeDefined();
-			if (cDeriv) solver.checkStep5Derivatives(cDeriv);
+			// Complete Part 5A-1
+			const cFirstDeriv =
+				problem.itsData.step5.firstDerivativeOptions?.find(
+					(o) => o.isCorrect,
+				);
+			expect(cFirstDeriv).toBeDefined();
+			if (cFirstDeriv) solver.checkStep5FirstDeriv(cFirstDeriv);
 
-			expect(solver.step5.subSteps.derivatives.isValid).toBe(true);
+			expect(solver.step5.subSteps.first_deriv.isValid).toBe(true);
+			expect(solver.step5.activeSubStepId).toBe("second_deriv");
+
+			// Complete Part 5A-2
+			const cSecondDeriv =
+				problem.itsData.step5.secondDerivativeOptions?.find(
+					(o) => o.isCorrect,
+				);
+			expect(cSecondDeriv).toBeDefined();
+			if (cSecondDeriv) solver.checkStep5SecondDeriv(cSecondDeriv);
+
+			expect(solver.step5.subSteps.second_deriv.isValid).toBe(true);
 			expect(solver.step5.activeSubStepId).toBe("solve");
 
 			// Complete solve
@@ -258,8 +277,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 					(o) => o.isCorrect,
 				);
 			expect(correctOption).toBeDefined();
-			solver.step7.selectedConcept = correctOption?.id ?? "";
-			solver.checkStep7Concept();
+			if (correctOption) solver.checkStep7Concept(correctOption);
 
 			expect(solver.step7.conceptPassed).toBe(true);
 			expect(solver.isCompleted).toBe(true);
@@ -283,6 +301,37 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 
 			expect(solver.currentStep).toBe(2);
 			expect(solver.hintTier).toBe(0);
+		});
+
+		it("resets hint tier to 0 upon sub-step transition within multi-part step", () => {
+			const problem = generateOdeProblem("distinct_real");
+			const solver = new OdeStepSolverState(() => problem);
+			solver.advanceToStep(6);
+
+			solver.revealNextHint();
+			expect(solver.hintTier).toBe(1);
+
+			solver.step6.yh0 = String(problem.itsData.step6.targetYh0);
+			solver.step6.dyh0 = String(problem.itsData.step6.targetDYh0);
+			solver.checkStep6TargetValues();
+
+			expect(solver.step6.activeSubStepId).toBe("solve_constants");
+			expect(solver.hintTier).toBe(0);
+		});
+
+		it("dynamically returns sub-step-scoped hints", () => {
+			const problem = generateOdeProblem("distinct_real");
+			const solver = new OdeStepSolverState(() => problem);
+			solver.advanceToStep(6);
+
+			const targetHints = solver.activeHints;
+			expect(targetHints.length).toBeGreaterThan(0);
+			expect(
+				problem.itsData.step6.subStepHints?.target_values,
+			).toBeDefined();
+			expect(targetHints).toEqual(
+				problem.itsData.step6.subStepHints?.target_values,
+			);
 		});
 	});
 });

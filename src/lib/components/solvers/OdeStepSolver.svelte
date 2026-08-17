@@ -770,84 +770,151 @@
 		<div class="step-header">
 			<div class="step-badge">
 				{solver.currentStep === 5
-					? solver.step5.activeSubStepId === "derivatives"
-						? "Step 5A"
-						: solver.step5.activeSubStepId === "system_setup"
-							? "Step 5B"
-							: "Step 5C"
+					? solver.step5.activeSubStepId === "first_deriv"
+						? "Step 5A-1"
+						: solver.step5.activeSubStepId === "second_deriv"
+							? "Step 5A-2"
+							: solver.step5.activeSubStepId === "system_setup"
+								? "Step 5B"
+								: "Step 5C"
 					: "Step 5"}
 			</div>
 			<h3 class="step-title">Undetermined Coefficients</h3>
 			{#if solver.currentStep === 5}
 				<span class="part-progress-pill">
-					Part {solver.step5.activeSubStepId === "derivatives"
+					Part {solver.step5.activeSubStepId === "first_deriv"
 						? "1"
-						: solver.step5.activeSubStepId === "system_setup"
+						: solver.step5.activeSubStepId === "second_deriv"
 							? "2"
-							: "3"} of {problem.forcing.type === "sinusoid"
-						? "3"
-						: "2"}
+							: solver.step5.activeSubStepId === "system_setup"
+								? "3"
+								: problem.forcing.type === "sinusoid"
+									? "4"
+									: "3"} of {problem.forcing.type ===
+					"sinusoid"
+						? "4"
+						: "3"}
 				</span>
 			{/if}
 		</div>
 
 		{#if solver.currentStep === 5}
 			<div class="step-body">
-				<!-- Part 5A: Trial Derivatives -->
-				<div
-					class="subpart-block"
-					class:subpart-done={solver.step5.subSteps.derivatives
-						.isValid}
-				>
-					<div class="subpart-header">
-						<span class="subpart-badge">Part 5A</span>
-						<h4 class="subpart-title">
-							<MathText
-								text={"Compute Trial Derivatives $y_p'(t)$ and $y_p''(t)$"}
-							/>
-						</h4>
-						{#if solver.step5.subSteps.derivatives.isValid}
-							<span class="substep-check-badge"
-								><span class="check-icon">✓</span> Verified</span
-							>
+				<!-- Part 5A-1: First Derivative -->
+				{#if problem.itsData.step5.firstDerivativeOptions}
+					<div
+						class="subpart-block"
+						class:subpart-done={solver.step5.subSteps.first_deriv
+							.isValid}
+					>
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 5A-1</span>
+							<h4 class="subpart-title">
+								<MathText
+									text={"Compute First Derivative $y_p'(t)$"}
+								/>
+							</h4>
+							{#if solver.step5.subSteps.first_deriv.isValid}
+								<span class="substep-check-badge"
+									><span class="check-icon">✓</span> Verified</span
+								>
+							{/if}
+						</div>
+
+						{#if !solver.step5.subSteps.first_deriv.isValid}
+							<p class="step-prompt">
+								<MathText
+									text={`Given the particular ansatz $y_p(t) = ${solver.correctAnsatz}$, select the correct first derivative $y_p'(t)$:`}
+								/>
+							</p>
+							<div class="mcq-cards-grid">
+								{#each problem.itsData.step5.firstDerivativeOptions as opt}
+									<button
+										type="button"
+										class="mcq-card"
+										class:selected={solver.step5
+											.selectedFirstDeriv === opt.id}
+										onclick={() =>
+											solver.checkStep5FirstDeriv(opt)}
+									>
+										<MathBlock
+											math={opt.latex}
+											compact={true}
+											hideHeader={true}
+										/>
+									</button>
+								{/each}
+							</div>
+						{:else}
+							<div class="substep-verified-line">
+								<MathText
+									text={`First Derivative: $${problem.itsData.step5.firstDerivLatex}$`}
+								/>
+							</div>
 						{/if}
 					</div>
 
-					{#if !solver.step5.subSteps.derivatives.isValid}
-						<p class="step-prompt">
-							<MathText
-								text={`Given the particular ansatz $y_p(t) = ${solver.correctAnsatz}$, select the correct derivatives:`}
-							/>
-						</p>
-						<div class="mcq-cards-grid">
-							{#each problem.itsData.step5.derivativeOptions ?? [] as opt}
-								<button
-									type="button"
-									class="mcq-card"
-									class:selected={solver.step5
-										.selectedDerivatives === opt.id}
-									onclick={() =>
-										solver.checkStep5Derivatives(opt)}
-								>
-									<MathBlock
-										math={opt.latex}
-										compact={true}
-										hideHeader={true}
+					<!-- Part 5A-2: Second Derivative (Order >= 2) -->
+					{#if solver.step5.subSteps.first_deriv.isValid && problem.params.order >= 2 && problem.itsData.step5.secondDerivativeOptions}
+						<div
+							class="subpart-block"
+							class:subpart-done={solver.step5.subSteps
+								.second_deriv.isValid}
+						>
+							<div class="subpart-header">
+								<span class="subpart-badge">Part 5A-2</span>
+								<h4 class="subpart-title">
+									<MathText
+										text={"Compute Second Derivative $y_p''(t)$"}
 									/>
-								</button>
-							{/each}
-						</div>
-					{:else}
-						<div class="substep-verified-line">
-							<MathText
-								text={`Derivatives: $${problem.itsData.step5.derivativesLatex}$`}
-							/>
+								</h4>
+								{#if solver.step5.subSteps.second_deriv.isValid}
+									<span class="substep-check-badge"
+										><span class="check-icon">✓</span>
+										Verified</span
+									>
+								{/if}
+							</div>
+
+							{#if !solver.step5.subSteps.second_deriv.isValid}
+								<p class="step-prompt">
+									<MathText
+										text={"Differentiate once more to obtain the second derivative $y_p''(t)$:"}
+									/>
+								</p>
+								<div class="mcq-cards-grid">
+									{#each problem.itsData.step5.secondDerivativeOptions as opt}
+										<button
+											type="button"
+											class="mcq-card"
+											class:selected={solver.step5
+												.selectedSecondDeriv === opt.id}
+											onclick={() =>
+												solver.checkStep5SecondDeriv(
+													opt,
+												)}
+										>
+											<MathBlock
+												math={opt.latex}
+												compact={true}
+												hideHeader={true}
+											/>
+										</button>
+									{/each}
+								</div>
+							{:else}
+								<div class="substep-verified-line">
+									<MathText
+										text={`Second Derivative: $${problem.itsData.step5.secondDerivLatex}$`}
+									/>
+								</div>
+							{/if}
 						</div>
 					{/if}
-				</div>
+				{/if}
 
 				<!-- Part 5B: System Setup (for sinusoidal forcing) -->
-				{#if solver.step5.subSteps.derivatives.isValid && problem.forcing.type === "sinusoid"}
+				{#if solver.step5.subSteps.second_deriv.isValid && problem.forcing.type === "sinusoid"}
 					<div
 						class="subpart-block"
 						class:subpart-done={solver.step5.subSteps.system_setup
@@ -862,7 +929,8 @@
 							</h4>
 							{#if solver.step5.subSteps.system_setup.isValid}
 								<span class="substep-check-badge"
-									><span class="check-icon">✓</span> Verified</span
+									><span class="check-icon">✓</span>
+									Verified</span
 								>
 							{/if}
 						</div>
@@ -902,7 +970,7 @@
 				{/if}
 
 				<!-- Part 5C: Undetermined Coefficients Resolution -->
-				{#if solver.step5.subSteps.derivatives.isValid && (problem.forcing.type !== "sinusoid" || solver.step5.subSteps.system_setup.isValid)}
+				{#if solver.step5.subSteps.second_deriv.isValid && (problem.forcing.type !== "sinusoid" || solver.step5.subSteps.system_setup.isValid)}
 					<div class="subpart-block">
 						<div class="subpart-header">
 							<span class="subpart-badge">
@@ -1150,9 +1218,19 @@
 
 						<p class="step-prompt">
 							<MathText
-								text={`Set up and solve the system matching $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}$ and $y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0)}$:`}
+								text={"Solve the linear system satisfying the homogeneous initial condition targets:"}
 							/>
 						</p>
+
+						{#if problem.itsData.step6.icSystemLatex}
+							<div class="ic-system-display">
+								<MathBlock
+									math={problem.itsData.step6.icSystemLatex}
+									compact={true}
+									hideHeader={true}
+								/>
+							</div>
+						{/if}
 
 						<div class="input-row-grid">
 							<div class="input-pair">
@@ -1395,7 +1473,8 @@
 							</h4>
 							{#if solver.step7.trSsPassed}
 								<span class="substep-check-badge"
-									><span class="check-icon">✓</span> Verified</span
+									><span class="check-icon">✓</span>
+									Verified</span
 								>
 							{/if}
 						</div>
@@ -1522,7 +1601,7 @@
 									onclick={() => {
 										solver.step7.selectedConcept =
 											option.id;
-										solver.clearFeedback();
+										solver.checkStep7Concept(option);
 									}}
 								>
 									<span class="option-radio-indicator">
@@ -1536,16 +1615,6 @@
 									</div>
 								</button>
 							{/each}
-						</div>
-
-						<div class="step-actions">
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => solver.checkStep7Concept()}
-							>
-								Submit Answer & Complete Problem →
-							</button>
 						</div>
 					</div>
 				{/if}
@@ -1596,9 +1665,12 @@
 					<span class="takeaway-label"
 						>💡 Key Conceptual Insight:</span
 					>
-					<p class="takeaway-text">
-						{problem.itsData.step7.conceptQuestion.explanation}
-					</p>
+					<div class="takeaway-text">
+						<MathText
+							text={problem.itsData.step7.conceptQuestion
+								.explanation}
+						/>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -2377,6 +2449,19 @@
 	.option-math-content {
 		flex: 1;
 		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.option-math-content::-webkit-scrollbar {
+		display: none;
+	}
+
+	.ic-system-display {
+		margin: 0.5rem 0;
+		padding: 0.5rem;
+		background: var(--bg-card);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-color);
 	}
 
 	/* ── Complete solution summary & conceptual takeaway ───── */

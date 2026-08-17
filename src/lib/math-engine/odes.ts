@@ -18,6 +18,8 @@ import {
 	formatOdeLhs,
 	formatQuadraticPolynomial,
 	formatRootFactor,
+	formatSignedLinearTerm,
+	sanitizeLatexMath,
 } from "./formatting";
 import { toFractionLatex } from "./fraction";
 import type { BaseItsStep, ItsOption } from "./types";
@@ -154,6 +156,8 @@ export interface OdeItsStep2 extends BaseItsStep {
 	im?: number;
 	/** Diagnostic misconception feedback dictionary */
 	misconceptions: Record<string, string>;
+	/** Sub-step-specific progressive hints */
+	subStepHints?: Record<string, string[]>;
 }
 
 /** ITS Step 3: Homogeneous Form Template */
@@ -180,14 +184,24 @@ export interface OdeItsStep5 extends BaseItsStep {
 	expectedA?: number;
 	/** Solved B for sinusoidal forcing */
 	expectedB?: number;
-	/** Multiple-choice derivative options for Part 5A */
+	/** Multiple-choice derivative options for combined legacy / Part 5A */
 	derivativeOptions?: OdeItsOption[];
+	/** Multiple-choice first derivative options for Part 5A-1 */
+	firstDerivativeOptions?: OdeItsOption[];
+	/** Multiple-choice second derivative options for Part 5A-2 (order >= 2) */
+	secondDerivativeOptions?: OdeItsOption[];
 	/** Multiple-choice system setup options for Part 5B */
 	systemOptions?: OdeItsOption[];
 	/** Correct derivative LaTeX string */
 	derivativesLatex?: string;
+	/** Correct first derivative LaTeX string */
+	firstDerivLatex?: string;
+	/** Correct second derivative LaTeX string */
+	secondDerivLatex?: string;
 	/** Correct system equations LaTeX string */
 	systemLatex?: string;
+	/** Sub-step-specific progressive hints */
+	subStepHints?: Record<string, string[]>;
 }
 
 /** ITS Step 6: Initial Conditions System and Constants */
@@ -204,6 +218,10 @@ export interface OdeItsStep6 extends BaseItsStep {
 	targetYh0: number;
 	/** Effective homogeneous target y_h'(0+) = y'(0+) - y_p'(0+) */
 	targetDYh0: number;
+	/** Concrete evaluated system of initial conditions LaTeX string */
+	icSystemLatex: string;
+	/** Sub-step-specific progressive hints */
+	subStepHints?: Record<string, string[]>;
 }
 
 /** ITS Step 7: Response Decomposition & Conceptual Mastery */
@@ -233,6 +251,8 @@ export interface OdeItsStep7 extends BaseItsStep {
 		/** Detailed conceptual explanation upon completion */
 		explanation: string;
 	};
+	/** Sub-step-specific progressive hints */
+	subStepHints?: Record<string, string[]>;
 }
 
 /** Complete ITS problem data container for ODE problem */
@@ -860,8 +880,12 @@ export function generateOdeProblem(
 
 	// Step 5 Derivative and System Scaffolding Options
 	let step5DerivativeOptions: OdeItsOption[] = [];
+	let step5FirstDerivOptions: OdeItsOption[] = [];
+	let step5SecondDerivOptions: OdeItsOption[] = [];
 	let step5SystemOptions: OdeItsOption[] = [];
 	let step5DerivLatex = "";
+	let step5FirstDerivLatex = "";
+	let step5SecondDerivLatex = "";
 	let step5SysLatex = "";
 
 	if (forcing.type === "sinusoid") {
@@ -872,8 +896,62 @@ export function generateOdeProblem(
 		const m21 = -a1 * w;
 		const m22 = a0 - w2;
 
-		step5DerivLatex = `y_p'(t) = -${w}A \\sin(${w}t) + ${w}B \\cos(${w}t), \\quad y_p''(t) = -${w2}A \\cos(${w}t) - ${w2}B \\sin(${w}t)`;
+		step5FirstDerivLatex = `y_p'(t) = -${w}A \\sin(${w}t) + ${w}B \\cos(${w}t)`;
+		step5SecondDerivLatex = `y_p''(t) = -${w2}A \\cos(${w}t) - ${w2}B \\sin(${w}t)`;
+		step5DerivLatex = `${step5FirstDerivLatex}, \\quad ${step5SecondDerivLatex}`;
 		step5SysLatex = `\\begin{cases} (${m11})A + (${m12})B = ${forcing.K} \\\\ (${m21})A + (${m22})B = 0 \\end{cases}`;
+
+		step5FirstDerivOptions = [
+			{
+				id: "d1_correct",
+				latex: step5FirstDerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "d1_sign_cos",
+				latex: `y_p'(t) = ${w}A \\sin(${w}t) + ${w}B \\cos(${w}t)`,
+				isCorrect: false,
+				feedback: `Trig Sign Error: $\\frac{d}{dt}\\cos(${w}t) = -${w}\\sin(${w}t)$, which introduces a negative sign on the sine term.`,
+			},
+			{
+				id: "d1_sign_sin",
+				latex: `y_p'(t) = -${w}A \\sin(${w}t) - ${w}B \\cos(${w}t)`,
+				isCorrect: false,
+				feedback: `Trig Sign Error: $\\frac{d}{dt}\\sin(${w}t) = +${w}\\cos(${w}t)$, maintaining a positive sign on the cosine term.`,
+			},
+			{
+				id: "d1_missing_factor",
+				latex: `y_p'(t) = -A \\sin(${w}t) + B \\cos(${w}t)`,
+				isCorrect: false,
+				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out the inner factor of ${w}.`,
+			},
+		];
+
+		step5SecondDerivOptions = [
+			{
+				id: "d2_correct",
+				latex: step5SecondDerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "d2_positive_signs",
+				latex: `y_p''(t) = ${w2}A \\cos(${w}t) + ${w2}B \\sin(${w}t)`,
+				isCorrect: false,
+				feedback: `Sign Error: Differentiating $\\sin(${w}t)$ yields $+${w}\\cos(${w}t)$ (preserving the preceding negative sign), and differentiating $\\cos(${w}t)$ introduces another negative sign.`,
+			},
+			{
+				id: "d2_missing_square",
+				latex: `y_p''(t) = -${w}A \\cos(${w}t) - ${w}B \\sin(${w}t)`,
+				isCorrect: false,
+				feedback: `Chain Rule Error: Differentiating twice accumulates an inner factor of $(${w})^2 = ${w2}$.`,
+			},
+			{
+				id: "d2_sign_sin_term",
+				latex: `y_p''(t) = -${w2}A \\cos(${w}t) + ${w2}B \\sin(${w}t)`,
+				isCorrect: false,
+				feedback: `Sign Error: The second derivative of $B\\sin(${w}t)$ is $-${w2}B\\sin(${w}t)$.`,
+			},
+		];
 
 		step5DerivativeOptions = [
 			{
@@ -885,15 +963,13 @@ export function generateOdeProblem(
 				id: "deriv_sign_err",
 				latex: `y_p'(t) = ${w}A \\sin(${w}t) - ${w}B \\cos(${w}t), \\quad y_p''(t) = ${w2}A \\cos(${w}t) + ${w2}B \\sin(${w}t)`,
 				isCorrect: false,
-				feedback:
-					"Sign Error in Derivatives: $\\frac{d}{dt}\\cos(\\omega t) = -\\omega\\sin(\\omega t)$ and $\\frac{d}{dt}\\sin(\\omega t) = \\omega\\cos(\\omega t)$.",
+				feedback: `Sign Error in Derivatives: $\\frac{d}{dt}\\cos(${w}t) = -${w}\\sin(${w}t)$ and $\\frac{d}{dt}\\sin(${w}t) = ${w}\\cos(${w}t)$.`,
 			},
 			{
 				id: "deriv_missing_omega",
 				latex: `y_p'(t) = -A \\sin(${w}t) + B \\cos(${w}t), \\quad y_p''(t) = -A \\cos(${w}t) - B \\sin(${w}t)`,
 				isCorrect: false,
-				feedback:
-					"Chain Rule Error: Differentiating $\\cos(\\omega t)$ and $\\sin(\\omega t)$ pulls out an inner factor of $\\omega$.",
+				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out an inner factor of ${w}.`,
 			},
 		];
 
@@ -907,20 +983,58 @@ export function generateOdeProblem(
 				id: "sys_sign_err",
 				latex: `\\begin{cases} (${m11})A - (${m12})B = ${forcing.K} \\\\ (${m12})A + (${m22})B = 0 \\end{cases}`,
 				isCorrect: false,
-				feedback:
-					"Sign Error: Substituting $y_p', y_p''$ into $y'' + a_1 y' + a_0 y$ yields $-a_1\\omega A + (a_0-\\omega^2)B = 0$ for the sine term.",
+				feedback: `Sign Error: Substituting $y_p', y_p''$ into $y'' + ${a1}y' + ${a0}y$ yields $(${m21})A + (${m22})B = 0$ for the sine equation.`,
+			},
+			{
+				id: "sys_missing_factor",
+				latex: `\\begin{cases} (${m11})A + (${a1})B = ${forcing.K} \\\\ (-${a1})A + (${m22})B = 0 \\end{cases}`,
+				isCorrect: false,
+				feedback: `Missing Inner Factor: The first derivative term contributes $a_1 \\cdot ${w} = ${m12}$, not just $a_1$.`,
 			},
 			{
 				id: "sys_uncoupled",
 				latex: `\\begin{cases} (${a0})A = ${forcing.K} \\\\ (${a0})B = 0 \\end{cases}`,
 				isCorrect: false,
-				feedback:
-					"Missing Derivatives: You must include contributions from $y_p''$ ($-\\omega^2$) and $y_p'$ ($a_1\\omega$) in the grouped harmonic terms.",
+				feedback: `Missing Derivatives: You must include contributions from $y_p''$ ($-${w2}$) and $y_p'$ ($a_1 \\cdot ${w} = ${m12}$) in the grouped harmonic terms.`,
+			},
+			{
+				id: "sys_wrong_target",
+				latex: `\\begin{cases} (${m11})A + (${m12})B = 0 \\\\ (${m21})A + (${m22})B = ${forcing.K} \\end{cases}`,
+				isCorrect: false,
+				feedback: `Target Forcing Error: The input $x(t) = ${forcing.K}\\cos(${w}t)$ is pure cosine, so the cosine sum equates to ${forcing.K} and the sine sum equates to $0$.`,
 			},
 		];
 	} else if (forcing.type === "constant") {
+		step5FirstDerivLatex = "y_p'(t) = 0";
+		step5SecondDerivLatex = "y_p''(t) = 0";
 		step5DerivLatex = "y_p'(t) = 0, \\quad y_p''(t) = 0";
 		step5SysLatex = `${a0} K_p = ${forcing.K}`;
+
+		step5FirstDerivOptions = [
+			{ id: "d1_const_correct", latex: "y_p'(t) = 0", isCorrect: true },
+			{
+				id: "d1_const_err",
+				latex: "y_p'(t) = K_p",
+				isCorrect: false,
+				feedback:
+					"The derivative of a constant $K_p$ with respect to time $t$ is strictly 0.",
+			},
+			{
+				id: "d1_const_t",
+				latex: "y_p'(t) = t K_p",
+				isCorrect: false,
+				feedback: "A constant $K_p$ does not depend on time.",
+			},
+		];
+		step5SecondDerivOptions = [
+			{ id: "d2_const_correct", latex: "y_p''(t) = 0", isCorrect: true },
+			{
+				id: "d2_const_err",
+				latex: "y_p''(t) = K_p",
+				isCorrect: false,
+				feedback: "The derivative of 0 is 0.",
+			},
+		];
 		step5DerivativeOptions = [
 			{
 				id: "deriv_correct",
@@ -941,12 +1055,72 @@ export function generateOdeProblem(
 				latex: step5SysLatex,
 				isCorrect: true,
 			},
+			{
+				id: "sys_nonzero_deriv",
+				latex: `(1 + ${a1} + ${a0}) K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback:
+					"Derivatives of the constant $y_p(t) = K_p$ vanish: $y_p' = 0$ and $y_p'' = 0$.",
+			},
+			{
+				id: "sys_missing_a0",
+				latex: `K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `You must multiply $y_p(t) = K_p$ by the coefficient $a_0 = ${a0}$ in the ODE.`,
+			},
+			{
+				id: "sys_sign_err",
+				latex: `-${a0} K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `Sign Error: Maintain the positive coefficient $a_0 = ${a0}$.`,
+			},
 		];
 	} else {
 		const p = forcing.p ?? 0;
 		const polyAtP = p * p + a1 * p + a0;
-		step5DerivLatex = `y_p'(t) = ${p} K_p e^{${p}t}, \\quad y_p''(t) = ${p * p} K_p e^{${p}t}`;
+		step5FirstDerivLatex = `y_p'(t) = ${p} K_p e^{${p}t}`;
+		step5SecondDerivLatex = `y_p''(t) = ${p * p} K_p e^{${p}t}`;
+		step5DerivLatex = `${step5FirstDerivLatex}, \\quad ${step5SecondDerivLatex}`;
 		step5SysLatex = `${polyAtP} K_p = ${forcing.K}`;
+
+		step5FirstDerivOptions = [
+			{
+				id: "d1_exp_correct",
+				latex: step5FirstDerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "d1_exp_sign",
+				latex: `y_p'(t) = ${-p} K_p e^{${p}t}`,
+				isCorrect: false,
+				feedback: `Chain Rule Sign: Differentiating $e^{${p}t}$ brings down $+${p}$, not ${-p}.`,
+			},
+			{
+				id: "d1_exp_nofactor",
+				latex: `y_p'(t) = K_p e^{${p}t}`,
+				isCorrect: false,
+				feedback: `Chain Rule Error: Differentiating $e^{${p}t}$ pulls down an inner factor of $p = ${p}$.`,
+			},
+		];
+		step5SecondDerivOptions = [
+			{
+				id: "d2_exp_correct",
+				latex: step5SecondDerivLatex,
+				isCorrect: true,
+			},
+			{
+				id: "d2_exp_linear",
+				latex: `y_p''(t) = ${p} K_p e^{${p}t}`,
+				isCorrect: false,
+				feedback: `Chain Rule Error: Differentiating twice squares the factor: $(${p})^2 = ${p * p}$.`,
+			},
+			{
+				id: "d2_exp_neg",
+				latex: `y_p''(t) = -${p * p} K_p e^{${p}t}`,
+				isCorrect: false,
+				feedback: `Sign Error: Squaring $(${p})^2$ is strictly positive ($${p * p}$).`,
+			},
+		];
 		step5DerivativeOptions = [
 			{
 				id: "deriv_correct",
@@ -957,8 +1131,7 @@ export function generateOdeProblem(
 				id: "deriv_missing_p",
 				latex: `y_p'(t) = K_p e^{${p}t}, \\quad y_p''(t) = K_p e^{${p}t}`,
 				isCorrect: false,
-				feedback:
-					"Chain Rule Error: $\\frac{d}{dt} e^{pt} = p e^{pt}$ and $\\frac{d^2}{dt^2} e^{pt} = p^2 e^{pt}$.",
+				feedback: `Chain Rule Error: $\\frac{d}{dt} e^{${p}t} = ${p} e^{${p}t}$ and $\\frac{d^2}{dt^2} e^{${p}t} = ${p * p} e^{${p}t}$.`,
 			},
 		];
 		step5SystemOptions = [
@@ -966,6 +1139,30 @@ export function generateOdeProblem(
 				id: "sys_correct",
 				latex: step5SysLatex,
 				isCorrect: true,
+			},
+			{
+				id: "sys_sign_lin",
+				latex: `${p * p - a1 * p + a0} K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `Sign Error: The linear term $+${a1} y'$ contributes $+${a1}(${p}) = +${a1 * p}$, not $-${a1 * p}$.`,
+			},
+			{
+				id: "sys_no_chain",
+				latex: `${1 + a1 + a0} K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `Missing Chain Rule Factors: $y_p''$ produces $(${p})^2 = ${p * p}$ and $y_p'$ produces $${p}$.`,
+			},
+			{
+				id: "sys_missing_second_power",
+				latex: `${p + a1 * p + a0} K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `Power Error: The second derivative contributes $p^2 = ${p * p}$, not $p = ${p}$.`,
+			},
+			{
+				id: "sys_missing_a0",
+				latex: `${p * p + a1 * p + 1} K_p = ${forcing.K}`,
+				isCorrect: false,
+				feedback: `Coefficient Error: The zero-derivative term is $a_0 y = ${a0} y$, contributing $+${a0}$.`,
 			},
 		];
 	}
@@ -1088,25 +1285,25 @@ export function generateOdeProblem(
 			options: [
 				{
 					id: "cq3_opt1",
-					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = 0 \quad (\text{all natural modes decay to zero})`,
+					latex: String.raw`\displaystyle \lim_{t \to \infty} y_{tr}(t) = 0 \quad (\text{all natural modes decay to zero})`,
 					isCorrect: true,
 				},
 				{
 					id: "cq3_opt2",
-					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = y_p(t)`,
+					latex: String.raw`\displaystyle \lim_{t \to \infty} y_{tr}(t) = y_p(t)`,
 					isCorrect: false,
 					feedback:
 						"The transient response consists strictly of natural homogeneous modes $e^{rt}$ which decay to $0$ as $t \\to \\infty$, leaving only the steady-state response.",
 				},
 				{
 					id: "cq3_opt3",
-					latex: String.raw`\lim_{t \to \infty} y_{tr}(t) = y(0^-)`,
+					latex: String.raw`\displaystyle \lim_{t \to \infty} y_{tr}(t) = y(0^-)`,
 					isCorrect: false,
 					feedback:
 						"Initial conditions dictate the starting values at $t=0$, not the asymptotic limit at $t \\to \\infty$.",
 				},
 			],
-			explanation: String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\lim_{t \to \infty} y_{tr}(t) = 0$.`,
+			explanation: String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\displaystyle \lim_{t \to \infty} y_{tr}(t) = 0$.`,
 		},
 		{
 			prompt: String.raw`If the forcing function $x(t)$ is replaced by a different input signal $\tilde{x}(t)$, which response component is guaranteed to remain strictly identical?`,
@@ -1149,6 +1346,32 @@ export function generateOdeProblem(
 			Math.floor(Math.random() * conceptQuestionsPool.length)
 		];
 
+	// Formulate concrete initial condition system LaTeX
+	let icSystemLatex = "";
+	if (resolvedRootType === "distinct_real") {
+		const r1 = roots.r1;
+		const r2 = roots.r2 ?? 0;
+		const eq1 = `C_1 + C_2 = ${toFractionLatex(targetYh0)}`;
+		const term1 = formatSignedLinearTerm(r1, "C_1", true);
+		const term2 = formatSignedLinearTerm(r2, "C_2", false);
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(targetDYh0)}`;
+		icSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	} else if (resolvedRootType === "repeated_real") {
+		const r = roots.r1;
+		const eq1 = `C_1 = ${toFractionLatex(targetYh0)}`;
+		const term1 = formatSignedLinearTerm(r, "C_1", true);
+		const eq2 = `${term1} + C_2 = ${toFractionLatex(targetDYh0)}`;
+		icSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	} else {
+		const sig = roots.r1;
+		const wd = roots.im ?? 1;
+		const eq1 = `C_1 = ${toFractionLatex(targetYh0)}`;
+		const term1 = formatSignedLinearTerm(sig, "C_1", true);
+		const term2 = formatSignedLinearTerm(wd, "C_2", false);
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(targetDYh0)}`;
+		icSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	}
+
 	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
 	const itsData: OdeItsData = {
 		step1: {
@@ -1158,7 +1381,7 @@ export function generateOdeProblem(
 			latex: charEqFormatted,
 			hints: [
 				"Recall that differential operators map directly to powers of $s$: $\\frac{d^2}{dt^2} \\to s^2$, $\\frac{d}{dt} \\to s$, and $y(t) \\to 1$.",
-				`Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.`,
+				"Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.",
 				`For this differential equation, the characteristic equation is ${charEqFormatted}.`,
 			],
 			misconceptions: {
@@ -1186,7 +1409,7 @@ export function generateOdeProblem(
 			},
 			symbolicRootsLatex:
 				resolvedRootType === "distinct_real"
-					? `r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}`
+					? `r_1 = ${roots.r1}, \\quad r_2 = ${roots.r2}`
 					: resolvedRootType === "repeated_real"
 						? `r_1 = r_2 = ${roots.r1}`
 						: `s = ${roots.r1} \\pm j${roots.im}`,
@@ -1203,11 +1426,40 @@ export function generateOdeProblem(
 				`To solve $${charEqLhs} = 0$, first inspect if it factors cleanly into $(s - r_1)(s - r_2) = 0$. You can check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$.`,
 				`The quadratic formula is $s = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. Setting up with $a = 1$, $b = ${a1}$, and $c = ${a0}$ gives $s = \\frac{-(${a1}) \\pm \\sqrt{(${a1})^2 - 4(1)(${a0})}}{2(1)} = \\frac{${-a1} \\pm \\sqrt{${a1 * a1 - 4 * a0}}}{2}$.`,
 				resolvedRootType === "distinct_real"
-					? `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} > 0$ yields two distinct real roots: $r_1 = ${roots.r1}, \\; r_2 = ${roots.r2}$.`
+					? `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} > 0$ yields two distinct real roots: $r_1 = ${roots.r1}, \\quad r_2 = ${roots.r2}$.`
 					: resolvedRootType === "repeated_real"
 						? `The discriminant $\\Delta = 0$ yields a single repeated real root: $r = ${roots.r1}$.`
 						: `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} < 0$ produces a negative value under the radical, yielding $\\sqrt{${a1 * a1 - 4 * a0}} = j${(roots.im ?? 0) * 2}$. Dividing by $2$ gives complex conjugate roots: $s = ${roots.r1} \\pm j${roots.im ?? 0}$.`,
 			],
+			subStepHints: {
+				strategy_gate: [
+					"Inspect whether two integers multiply to $a_0$ and sum to $a_1$.",
+					"If integer factoring is not readily apparent, check whether the discriminant $b^2 - 4ac$ is positive, zero, or negative.",
+					"Select Factoring for clean integer roots or Quadratic Formula for guaranteed solution.",
+				],
+				factoring_inputs: [
+					`Find two numbers that multiply to $a_0 = ${a0}$ and add up to $a_1 = ${a1}$.`,
+					`Express in factored form $(s - r_1)(s - r_2) = 0$.`,
+					`The roots are $r_1 = ${roots.r1}$ and $r_2 = ${roots.r2 ?? roots.r1}$.`,
+				],
+				quad_classification: [
+					`Compute the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$.`,
+					"If $\\Delta > 0$, roots are distinct real. If $\\Delta = 0$, roots are repeated real. If $\\Delta < 0$, roots are complex conjugate.",
+					`Since $\\Delta = ${a1 * a1 - 4 * a0}$, classify as ${resolvedRootType.replace("_", " ")}.`,
+				],
+				remedial_discriminant: [
+					"Substitute into $\\Delta = b^2 - 4ac$ with $a=1$, $b=a_1$, and $c=a_0$.",
+					`Calculate $(${a1})^2 - 4(1)(${a0}) = ${a1 * a1} - ${4 * a0}$.`,
+					`The discriminant value is exactly ${a1 * a1 - 4 * a0}.`,
+				],
+				quad_root_inputs: [
+					"Apply $s = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$.",
+					`Evaluate $\\frac{${-a1} \\pm \\sqrt{${a1 * a1 - 4 * a0}}}{2}$.`,
+					resolvedRootType === "complex_conjugate"
+						? `Real part $\\sigma = ${roots.r1}$, imaginary frequency $\\omega_d = ${roots.im}$.`
+						: `The roots are $r_1 = ${roots.r1}$ and $r_2 = ${roots.r2 ?? roots.r1}$.`,
+				],
+			},
 			misconceptions: {
 				unfactorable_complex: `The polynomial $${charEqLhs} = 0$ cannot be factored over real integers because its discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0} < 0$. The negative quantity under the square root generates an imaginary component $\\pm j\\sqrt{${Math.abs(a1 * a1 - 4 * a0)}} = \\pm j${(roots.im ?? 0) * 2}$, requiring the quadratic formula.`,
 				unfactorable_general: `Check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$. Because $\\Delta$ is not a non-negative perfect square, factoring by integer inspection does not work cleanly. Use the quadratic formula.`,
@@ -1234,7 +1486,7 @@ export function generateOdeProblem(
 			options: step4Options,
 			hints: [
 				`Inspect the forcing function $x(t) = ${forcing.latex}$. What form should the trial particular solution $y_p(t)$ take?`,
-				"Match the functional shape of $x(t) (constant \\to K_p, exponential \\to K_p e^{pt}, sinusoid \\to A \\cos(\\omega t) + B \\sin(\\omega t))$.",
+				"Match the functional shape of $x(t)$ (constant $\\to K_p$, exponential $\\to K_p e^{pt}$, sinusoid $\\to A \\cos(kt) + B \\sin(kt)$).",
 				"Check if the trial guess collides with any characteristic root in the homogeneous solution (resonance).",
 			],
 		},
@@ -1243,8 +1495,12 @@ export function generateOdeProblem(
 			expectedA: particular.coeffs.A,
 			expectedB: particular.coeffs.B,
 			derivativeOptions: step5DerivativeOptions,
+			firstDerivativeOptions: step5FirstDerivOptions,
+			secondDerivativeOptions: step5SecondDerivOptions,
 			systemOptions: step5SystemOptions,
 			derivativesLatex: step5DerivLatex,
+			firstDerivLatex: step5FirstDerivLatex,
+			secondDerivLatex: step5SecondDerivLatex,
 			systemLatex: step5SysLatex,
 			hints: [
 				"Take derivatives of $y_p(t)$ ($y_p'$ and $y_p''$) and substitute them into the left-hand side of the ODE.",
@@ -1255,6 +1511,42 @@ export function generateOdeProblem(
 						? `Substitute $y_p = K_p e^{${forcing.p}t}$: $(${(forcing.p ?? 0) ** 2 + a1 * (forcing.p ?? 0) + a0}) K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
 						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
 			],
+			subStepHints: {
+				first_deriv: [
+					"Apply differentiation rules to your trial ansatz $y_p(t)$.",
+					forcing.type === "sinusoid"
+						? `For $y_p(t) = A\\cos(${forcing.omega}t) + B\\sin(${forcing.omega}t)$, apply $\\frac{d}{dt}\\cos(${forcing.omega}t) = -${forcing.omega}\\sin(${forcing.omega}t)$ and $\\frac{d}{dt}\\sin(${forcing.omega}t) = +${forcing.omega}\\cos(${forcing.omega}t)$.`
+						: forcing.type === "exponential"
+							? `For $y_p(t) = K_p e^{${forcing.p}t}$, bring down the factor $p = ${forcing.p}$.`
+							: "The derivative of a constant is strictly zero.",
+					`$${step5FirstDerivLatex}$`,
+				],
+				second_deriv: [
+					"Differentiate the first derivative $y_p'(t)$ one more time.",
+					forcing.type === "sinusoid"
+						? `Differentiating again multiplies each term by an additional factor of ${forcing.omega}, resulting in $(${forcing.omega})^2 = ${(forcing.omega ?? 1) ** 2}$.`
+						: forcing.type === "exponential"
+							? `Differentiating again multiplies by $p = ${forcing.p}$, producing $p^2 = ${(forcing.p ?? 0) ** 2}$.`
+							: "The second derivative of a constant is strictly zero.",
+					`$${step5SecondDerivLatex}$`,
+				],
+				system_setup: [
+					`Substitute $y_p, y_p', y_p''$ into the ODE: $y'' + ${a1}y' + ${a0}y = x(t)$.`,
+					"Collect like functional terms on the left-hand side and equate their coefficients to the right-hand side forcing input.",
+					`Linear system: $${step5SysLatex}$`,
+				],
+				solve: [
+					forcing.type === "sinusoid"
+						? "Solve the $2\\times 2$ linear system for coefficients $A$ and $B$."
+						: "Solve the linear algebraic equation for the undetermined scale factor $K_p$.",
+					forcing.type === "sinusoid"
+						? `From the system, substitute or eliminate to obtain $A$ (cos term) and $B$ (sin term).`
+						: `Divide the forcing amplitude by the evaluated polynomial value.`,
+					forcing.type === "sinusoid"
+						? `Coefficients: $A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \\quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
+						: `Coefficient: $K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`,
+				],
+			},
 		},
 		step6: {
 			expectedC1: homogeneousComplete.C1,
@@ -1263,11 +1555,24 @@ export function generateOdeProblem(
 			dyp0: particular.evalDeriv(0),
 			targetYh0,
 			targetDYh0,
+			icSystemLatex,
 			hints: [
 				"Remember initial conditions apply to the TOTAL solution $y(t) = y_h(t) + y_p(t)$. First find $y_p(0^+)$ and $y_p'(0^+)$.",
 				`Calculate the target homogeneous values: $y_h(0^+) = y(0^+) - y_p(0^+) = ${initialConditions.y0} - (${toFractionLatex(particular.eval(0))}) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${initialConditions.dy0} - (${toFractionLatex(particular.evalDeriv(0))}) = ${toFractionLatex(targetDYh0)}$.`,
-				String.raw`Solve the $2\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \; C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
+				String.raw`Solve the $2\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \quad C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
 			],
+			subStepHints: {
+				target_values: [
+					"Evaluate $y_p(0^+)$ and $y_p'(0^+)$ by substituting $t = 0$ into your particular solution.",
+					`Subtract from total initial conditions: $y_h(0^+) = y(0^+) - y_p(0^+)$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+)$.`,
+					`Target values: $y_h(0^+) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = ${toFractionLatex(targetDYh0)}$.`,
+				],
+				solve_constants: [
+					`Match the homogeneous expression $y_h(t)$ and its derivative $y_h'(t)$ at $t = 0$ to the target values.`,
+					`Solve the linear system: $${icSystemLatex}$.`,
+					`Constants: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \\quad C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
+				],
+			},
 		},
 		step7: {
 			expectedZI: ziLatex,
@@ -1288,8 +1593,25 @@ export function generateOdeProblem(
 			hints: [
 				"$y_{ZI}(t)$ is the zero-input response (natural response satisfying initial conditions with $x(t)=0$).",
 				"$y_{ZS}(t)$ is the zero-state response (response driven purely by $x(t)$ with zero initial conditions).",
-				`$y_{ZI}(t) = ${ziLatex}$, \\; $y_{ZS}(t) = ${zsLatex}$.`,
+				`$y_{ZI}(t) = ${ziLatex}, \\quad y_{ZS}(t) = ${zsLatex}$`,
 			],
+			subStepHints: {
+				zi_zs: [
+					"Zero-Input ($y_{ZI}$) satisfies original initial conditions with forcing $x(t) = 0$.",
+					"Zero-State ($y_{ZS}$) is driven by the forcing $x(t)$ with zero initial conditions ($y(0^-)=0, y'(0^-)=0$).",
+					`$C_{1,ZI} = ${toFractionLatex(homogeneousZI.C1)}, \\; C_{2,ZI} = ${toFractionLatex(homogeneousZI.C2)}$ and $C_{1,ZS} = C_1 - C_{1,ZI} = ${toFractionLatex(homogeneousZS.C1)}, \\; C_{2,ZS} = C_2 - C_{2,ZI} = ${toFractionLatex(homogeneousZS.C2)}$.`,
+				],
+				tr_ss: [
+					"Transient response $y_{tr}(t)$ consists of natural homogeneous modes that decay to zero as $t \\to \\infty$.",
+					"Steady-state response $y_{ss}(t)$ is the persistent forced response component matching the input as $t \\to \\infty$.",
+					`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
+				],
+				concept: [
+					"Think about system linearity, stability, and the physical definition of each response component.",
+					"Review how initial conditions affect Zero-Input vs Zero-State responses.",
+					selectedConceptQ.explanation,
+				],
+			},
 		},
 	};
 
@@ -1321,13 +1643,13 @@ export function generateOdeProblem(
 			r2: roots.r2,
 			r1_im: roots.im,
 			r2_im: roots.im ? -roots.im : undefined,
-			y_h_latex: homogeneousComplete.latex,
-			y_p_latex: particular.latex,
-			y_complete_latex: completeLatex,
-			y_zi_latex: ziLatex,
-			y_zs_latex: zsLatex,
-			y_tr_latex,
-			y_ss_latex,
+			y_h_latex: sanitizeLatexMath(homogeneousComplete.latex),
+			y_p_latex: sanitizeLatexMath(particular.latex),
+			y_complete_latex: sanitizeLatexMath(completeLatex),
+			y_zi_latex: sanitizeLatexMath(ziLatex),
+			y_zs_latex: sanitizeLatexMath(zsLatex),
+			y_tr_latex: sanitizeLatexMath(y_tr_latex),
+			y_ss_latex: sanitizeLatexMath(y_ss_latex),
 		},
 		evalComplete,
 		evalZI,

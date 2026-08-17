@@ -1,3 +1,7 @@
+import {
+	formatSignedLinearTerm,
+	sanitizeLatexMath,
+} from "$lib/math-engine/formatting";
 import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
 import {
@@ -75,13 +79,18 @@ export interface OdeStep4State extends BaseStepState {
 /**
  * Step 5 Sub-step Identifiers.
  */
-export type OdeStep5SubStepId = "derivatives" | "system_setup" | "solve";
+export type OdeStep5SubStepId =
+	"first_deriv" | "second_deriv" | "system_setup" | "solve";
 
 /**
  * Step 5 State: Undetermined Particular Coefficients.
  */
 export interface OdeStep5State extends MultiPartStepState<OdeStep5SubStepId> {
-	/** Selected derivative option ID */
+	/** Selected first derivative option ID (Part 5A-1) */
+	selectedFirstDeriv: string | null;
+	/** Selected second derivative option ID (Part 5A-2) */
+	selectedSecondDeriv: string | null;
+	/** Selected derivative option ID (legacy combined) */
 	selectedDerivatives: string | null;
 	/** Selected grouped system setup option ID */
 	selectedSystem: string | null;
@@ -121,42 +130,46 @@ export type OdeStep7SubStepId = "zi_zs" | "tr_ss" | "concept";
  * Step 7 State: Response Decomposition & Conceptual Mastery.
  */
 export interface OdeStep7State extends MultiPartStepState<OdeStep7SubStepId> {
-	/** Zero-input C1 constant input */
+	/** Zero-input C1 constant input string */
 	ziC1: string;
-	/** Zero-input C2 constant input */
+	/** Zero-input C2 constant input string */
 	ziC2: string;
-	/** Selected option for transient response */
+	/** Selected transient response option identifier */
 	selectedTransient: string | null;
-	/** Selected option for steady-state response */
+	/** Selected steady-state response option identifier */
 	selectedSteadyState: string | null;
-	/** Selected option ID for conceptual mastery question */
+	/** Selected conceptual question option identifier */
 	selectedConcept: string | null;
-	/** Whether ZI/ZS sub-step passed */
+	/** Whether the zero-input / zero-state subpart has passed */
 	ziZsPassed: boolean;
-	/** Whether Transient/Steady-State sub-step passed */
+	/** Whether the transient / steady-state subpart has passed */
 	trSsPassed: boolean;
-	/** Whether conceptual question passed */
+	/** Whether the conceptual question subpart has passed */
 	conceptPassed: boolean;
 }
 
 /**
- * Reactive State and Controller for the 7-Step ODE ITS Solver.
+ * Reactive Step-by-Step ODE Solver Controller Class.
+ * Manages reactive step state transitions, pedagogical distractor feedback,
+ * answer validations, hints, and error diagnostics for 2nd-order ODEs.
  */
 export class OdeStepSolverState extends BaseStepSolverState {
-	/** Getter closure returning active ODE problem */
-	private readonly getProblem: () => OdeProblem;
+	/** Reactive getter for current active ODE problem */
+	private getProblem: () => OdeProblem;
 
-	/** Active ODE problem definition */
+	/**
+	 * Accesses the active ODE problem.
+	 */
 	get problem(): OdeProblem {
 		return this.getProblem();
 	}
 
-	/** Step 1 State: Characteristic Equation */
+	/** Step 1 State: Characteristic Equation Setup */
 	step1: OdeStep1State = $state<OdeStep1State>(
 		createStepState({ a2: "", a1: "", a0: "" }),
 	);
 
-	/** Step 2 State: Characteristic Roots & Strategy */
+	/** Step 2 State: Characteristic Roots & Strategy State Machine */
 	step2: OdeStep2State = $state<OdeStep2State>(
 		createMultiPartStepState(
 			{
@@ -217,17 +230,23 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	step5: OdeStep5State = $state<OdeStep5State>(
 		createMultiPartStepState(
 			{
+				selectedFirstDeriv: null as string | null,
+				selectedSecondDeriv: null as string | null,
 				selectedDerivatives: null as string | null,
 				selectedSystem: null as string | null,
 				kp: "",
 				a: "",
 				b: "",
 			},
-			["derivatives", "system_setup", "solve"],
+			["first_deriv", "second_deriv", "system_setup", "solve"],
 			{
-				derivatives: createSubStepState(
-					"derivatives",
-					"Part 5A: Trial Derivatives",
+				first_deriv: createSubStepState(
+					"first_deriv",
+					"Part 5A-1: First Derivative",
+				),
+				second_deriv: createSubStepState(
+					"second_deriv",
+					"Part 5A-2: Second Derivative",
 				),
 				system_setup: createSubStepState(
 					"system_setup",
@@ -238,7 +257,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					"Part 5C: Undetermined Coefficients",
 				),
 			},
-			"derivatives",
+			"first_deriv",
 		),
 	);
 
@@ -391,21 +410,44 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Progressive hints for the currently active step or sub-step.
 	 */
 	activeHints = $derived.by((): string[] => {
-		switch (this.currentStep) {
+		const sId = this.currentStep;
+		const its = this.problem.itsData;
+
+		if (sId === 2) {
+			const subId = this.step2.activeSubStepId;
+			if (its.step2.subStepHints && its.step2.subStepHints[subId]) {
+				return its.step2.subStepHints[subId];
+			}
+			return its.step2.hints;
+		}
+		if (sId === 5) {
+			const subId = this.step5.activeSubStepId;
+			if (its.step5.subStepHints && its.step5.subStepHints[subId]) {
+				return its.step5.subStepHints[subId];
+			}
+			return its.step5.hints;
+		}
+		if (sId === 6) {
+			const subId = this.step6.activeSubStepId;
+			if (its.step6.subStepHints && its.step6.subStepHints[subId]) {
+				return its.step6.subStepHints[subId];
+			}
+			return its.step6.hints;
+		}
+		if (sId === 7) {
+			const subId = this.step7.activeSubStepId;
+			if (its.step7.subStepHints && its.step7.subStepHints[subId]) {
+				return its.step7.subStepHints[subId];
+			}
+			return its.step7.hints;
+		}
+		switch (sId) {
 			case 1:
-				return this.problem.itsData.step1.hints;
-			case 2:
-				return this.problem.itsData.step2.hints;
+				return its.step1.hints;
 			case 3:
-				return this.problem.itsData.step3.hints;
+				return its.step3.hints;
 			case 4:
-				return this.problem.itsData.step4.hints;
-			case 5:
-				return this.problem.itsData.step5.hints;
-			case 6:
-				return this.problem.itsData.step6.hints;
-			case 7:
-				return this.problem.itsData.step7.hints;
+				return its.step4.hints;
 			default:
 				return [];
 		}
@@ -520,6 +562,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		if (this.step2.strategy === "factoring") {
 			this.checkStep2Factoring();
 		} else if (this.step2.strategy === "quadratic") {
+			if (
+				!this.step2.quadClassChoice &&
+				!this.step2.quadDiscriminantVerified
+			) {
+				this.setValidation(
+					this.step2,
+					"Please select the root classification first.",
+				);
+				return;
+			}
 			this.checkStep2QuadRoots();
 		}
 	}
@@ -632,7 +684,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				if (Number.isNaN(v1)) {
 					this.setValidation(
 						this.step2,
-						"Please enter a numeric value for the repeated root $r$.",
+						"Please enter a numeric value or fraction for the repeated root $r$.",
 					);
 					return;
 				}
@@ -648,12 +700,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
 					this.setMisconception(
 						this.step2,
-						"Check your sign. Factoring as $(s - r)^2 = 0$ yields root $s = r$.",
+						"Check your sign. If factored as $(s - r)^2 = 0$, then the root is $s = r$.",
 					);
 				} else {
 					this.setIncorrect(
 						this.step2,
-						`Incorrect repeated root. Factoring yields $(s - (${r1}))^2 = 0 \\implies r = ${r1}$.`,
+						`Incorrect repeated root. Factoring gives $(s - (${r1}))^2 = 0$.`,
 					);
 				}
 				break;
@@ -661,22 +713,20 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 			default:
 				throw new Error(
-					`Unsupported root type for factoring: ${rootType}`,
+					`Unhandled root type in factoring branch: ${rootType}`,
 				);
 		}
 	}
 
 	/**
-	 * Validates root classification in Step 2 Quadratic Formula path.
-	 * @param {RootType} choice Selected classification
+	 * Validates Step 2 Quadratic Formula classification choice.
+	 * @param {RootType} choice Selected root classification
 	 */
 	checkStep2QuadClass(choice: RootType): void {
 		const s2Data = this.problem.itsData.step2;
-
 		if (choice === s2Data.rootType) {
 			this.step2.quadClassChoice = choice;
 			this.step2.quadNeedsDiscriminantCalc = false;
-			this.step2.quadDiscriminantVerified = true;
 			this.setSubStepPassed(
 				this.step2,
 				"quad_classification",
@@ -685,23 +735,23 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		} else {
 			this.step2.quadClassChoice = null;
 			this.step2.quadNeedsDiscriminantCalc = true;
-			this.setSubStepIncorrect(
+			this.setSubStepMisconception(
 				this.step2,
 				"quad_classification",
-				`Incorrect classification. Calculate the discriminant $\\Delta = b^2 - 4ac$ below to confirm the root structure.`,
+				`Incorrect classification. Calculate the discriminant $\\Delta = b^2 - 4ac$ to confirm whether $\\Delta > 0$, $\\Delta = 0$, or $\\Delta < 0$.`,
 			);
 			this.step2.activeSubStepId = "remedial_discriminant";
 		}
 	}
 
 	/**
-	 * Validates calculated discriminant in Step 2 remediation.
+	 * Validates Step 2 Remedial Discriminant Calculation.
 	 */
 	checkStep2Discriminant(): void {
 		const s2Data = this.problem.itsData.step2;
-		const v = parseNumericInput(this.step2.quadDiscriminantInput);
+		const vDisc = parseNumericInput(this.step2.quadDiscriminantInput);
 
-		if (Number.isNaN(v)) {
+		if (Number.isNaN(vDisc)) {
 			this.setSubStepValidation(
 				this.step2,
 				"remedial_discriminant",
@@ -710,10 +760,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			return;
 		}
 
-		if (Math.abs(v - s2Data.discriminant) < 0.05) {
-			this.step2.quadClassChoice = s2Data.rootType;
+		const expDisc = s2Data.discriminant;
+		if (Math.abs(vDisc - expDisc) < 0.05) {
 			this.step2.quadDiscriminantVerified = true;
 			this.step2.quadNeedsDiscriminantCalc = false;
+			this.step2.quadClassChoice = s2Data.rootType;
 			this.setSubStepPassed(
 				this.step2,
 				"remedial_discriminant",
@@ -723,26 +774,17 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step2,
 				"remedial_discriminant",
-				`Incorrect discriminant. Compute $\\Delta = (${this.problem.params.a1})^2 - 4(1)(${this.problem.params.a0}) = ${s2Data.discriminant}$.`,
+				`Incorrect discriminant. $\\Delta = (${this.problem.params.a1})^2 - 4(1)(${this.problem.params.a0}) = ${expDisc}$.`,
 			);
 		}
 	}
 
 	/**
-	 * Validates root calculation inputs in Step 2 Quadratic path.
+	 * Validates Step 2 Quadratic Formula root calculations.
 	 */
 	checkStep2QuadRoots(): void {
 		const s2Data = this.problem.itsData.step2;
 		const rootType = s2Data.rootType;
-
-		if (!this.step2.quadClassChoice) {
-			this.setSubStepValidation(
-				this.step2,
-				"quad_classification",
-				"Please select the root classification from the discriminant first.",
-			);
-			return;
-		}
 
 		switch (rootType) {
 			case "complex_conjugate": {
@@ -827,7 +869,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.setSubStepIncorrect(
 						this.step2,
 						"quad_root_inputs",
-						`Incorrect roots. Evaluate $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$.`,
+						`Incorrect roots. $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$, yielding $r_1 = ${r1}, r_2 = ${r2}.`,
 					);
 				}
 				break;
@@ -908,7 +950,60 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 5 Part 5A (Trial Derivatives).
+	 * Validates Step 5 Part 5A-1 (First Derivative y_p'(t)).
+	 * @param {OdeItsOption} opt Selected derivative option
+	 */
+	checkStep5FirstDeriv(opt: OdeItsOption): void {
+		this.step5.selectedFirstDeriv = opt.id;
+		if (opt.isCorrect) {
+			const isSecondOrder = this.problem.params.order >= 2;
+			if (isSecondOrder) {
+				this.setSubStepPassed(
+					this.step5,
+					"first_deriv",
+					"second_deriv",
+				);
+			} else {
+				const nextSub =
+					this.problem.forcing.type === "sinusoid"
+						? "system_setup"
+						: "solve";
+				this.setSubStepPassed(this.step5, "first_deriv", nextSub);
+			}
+		} else {
+			this.setSubStepMisconception(
+				this.step5,
+				"first_deriv",
+				opt.feedback ??
+					"Incorrect first derivative of the trial particular solution.",
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 5 Part 5A-2 (Second Derivative y_p''(t)).
+	 * @param {OdeItsOption} opt Selected derivative option
+	 */
+	checkStep5SecondDeriv(opt: OdeItsOption): void {
+		this.step5.selectedSecondDeriv = opt.id;
+		if (opt.isCorrect) {
+			const nextSub =
+				this.problem.forcing.type === "sinusoid"
+					? "system_setup"
+					: "solve";
+			this.setSubStepPassed(this.step5, "second_deriv", nextSub);
+		} else {
+			this.setSubStepMisconception(
+				this.step5,
+				"second_deriv",
+				opt.feedback ??
+					"Incorrect second derivative of the trial particular solution.",
+			);
+		}
+	}
+
+	/**
+	 * Validates Step 5 Part 5A (Trial Derivatives - legacy combined).
 	 * @param {OdeItsOption} opt Selected derivative option
 	 */
 	checkStep5Derivatives(opt: OdeItsOption): void {
@@ -984,7 +1079,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.setSubStepValidation(
 					this.step5,
 					"solve",
-					"Please enter a numeric value for the particular amplitude $K_p$.",
+					"Please enter a numeric value for $K_p$.",
 				);
 				return;
 			}
@@ -997,7 +1092,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.setSubStepIncorrect(
 					this.step5,
 					"solve",
-					"Incorrect $K_p$ coefficient. Substitute $y_p(t)$ into the ODE and solve for $K_p$.",
+					`Incorrect coefficient $K_p$. Expected $K_p = ${toFractionLatex(expKp)}$.`,
 				);
 			}
 		}
@@ -1011,7 +1106,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 6 Part 6A (Target Initial Values).
+	 * Validates Step 6 Part 6A: Target homogeneous initial values (y_h(0+) and y_h'(0+)).
 	 */
 	checkStep6TargetValues(): void {
 		const s6Data = this.problem.itsData.step6;
@@ -1046,19 +1141,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setSubStepMisconception(
 				this.step6,
 				"target_values",
-				"Remember that initial conditions apply to the total response $y(t) = y_h(t) + y_p(t)$. You must subtract $y_p(0^+)$ and $y_p'(0^+)$.",
+				"Forgetting Particular Contribution: Initial conditions apply to the TOTAL response $y(t) = y_h(t) + y_p(t)$. You must subtract $y_p(0^+)$ and $y_p'(0^+)$ to find $y_h(0^+)$ and $y_h'(0^+)$.",
 			);
 		} else {
 			this.setSubStepIncorrect(
 				this.step6,
 				"target_values",
-				`Incorrect target values. Compute $y_h(0^+) = y(0^+) - y_p(0^+) = ${this.problem.initialConditions.y0} - (${toFractionLatex(s6Data.yp0)}) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${this.problem.initialConditions.dy0} - (${toFractionLatex(s6Data.dyp0)}) = ${toFractionLatex(expDYh0)}$.`,
+				`Incorrect target values. $y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${toFractionLatex(expDYh0)}$.`,
 			);
 		}
 	}
 
 	/**
-	 * Validates Step 6 Part 6B (Constants C1, C2).
+	 * Validates Step 6 Part 6B: Solved homogeneous integration constants C1, C2.
 	 */
 	checkStep6Constants(): void {
 		const s6Data = this.problem.itsData.step6;
@@ -1106,16 +1201,44 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const rootType = this.problem.params.rootType;
 		const roots = this.problem.params.roots;
 
+		let raw = "";
 		switch (rootType) {
-			case "distinct_real":
-				return `${c1} e^{${roots.r1}t} + ${c2} e^{${roots.r2}t}`;
+			case "distinct_real": {
+				const term1 = formatSignedLinearTerm(
+					c1,
+					`e^{${roots.r1}t}`,
+					true,
+				);
+				const term2 = formatSignedLinearTerm(
+					c2,
+					`e^{${roots.r2}t}`,
+					false,
+				);
+				raw = `${term1} ${term2}`;
+				break;
+			}
 			case "repeated_real":
-				return `(${c1} + ${c2}t) e^{${roots.r1}t}`;
-			case "complex_conjugate":
-				return `e^{${roots.r1}t} [${c1} \\cos(${roots.im}t) + ${c2} \\sin(${roots.im}t)]`;
+				raw = `(${c1} + ${c2}t) e^{${roots.r1}t}`;
+				break;
+			case "complex_conjugate": {
+				const term1 = formatSignedLinearTerm(
+					c1,
+					`\\cos(${roots.im}t)`,
+					true,
+				);
+				const term2 = formatSignedLinearTerm(
+					c2,
+					`\\sin(${roots.im}t)`,
+					false,
+				);
+				raw = `e^{${roots.r1}t} [${term1} ${term2}]`;
+				break;
+			}
 			default:
-				return `${c1} + ${c2}`;
+				raw = `${c1} + ${c2}`;
+				break;
 		}
+		return sanitizeLatexMath(raw);
 	});
 
 	/**
@@ -1152,20 +1275,54 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 		let homoPart = "";
 		switch (rootType) {
-			case "distinct_real":
-				homoPart = `${c1} e^{${roots.r1}t} + ${c2} e^{${roots.r2}t}`;
+			case "distinct_real": {
+				const term1 = formatSignedLinearTerm(
+					c1,
+					`e^{${roots.r1}t}`,
+					true,
+				);
+				const term2 = formatSignedLinearTerm(
+					c2,
+					`e^{${roots.r2}t}`,
+					false,
+				);
+				homoPart = `${term1} ${term2}`;
 				break;
+			}
 			case "repeated_real":
 				homoPart = `(${c1} + ${c2}t) e^{${roots.r1}t}`;
 				break;
-			case "complex_conjugate":
-				homoPart = `e^{${roots.r1}t} [${c1} \\cos(${roots.im}t) + ${c2} \\sin(${roots.im}t)]`;
+			case "complex_conjugate": {
+				const term1 = formatSignedLinearTerm(
+					c1,
+					`\\cos(${roots.im}t)`,
+					true,
+				);
+				const term2 = formatSignedLinearTerm(
+					c2,
+					`\\sin(${roots.im}t)`,
+					false,
+				);
+				homoPart = `e^{${roots.r1}t} [${term1} ${term2}]`;
 				break;
+			}
 			default:
 				homoPart = `${c1} + ${c2}`;
 				break;
 		}
-		return yp === "0" ? homoPart : `${homoPart} + ${yp}`;
+
+		let full = "";
+		if (yp === "0" || yp === "") {
+			full = homoPart;
+		} else {
+			const ypClean = yp.trim();
+			if (ypClean.startsWith("-") || ypClean.startsWith("+")) {
+				full = `${homoPart} ${ypClean}`;
+			} else {
+				full = `${homoPart} + ${ypClean}`;
+			}
+		}
+		return sanitizeLatexMath(full);
 	});
 
 	/**
@@ -1192,74 +1349,79 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.step7.ziZsPassed = true;
 			this.setSubStepPassed(this.step7, "zi_zs", "tr_ss");
 		} else if (
-			Math.abs(vC1 + expC1) < 0.05 ||
-			Math.abs(vC2 + expC2) < 0.05
+			Math.abs(vC1 - this.problem.itsData.step6.expectedC1) < 0.05 &&
+			Math.abs(vC2 - this.problem.itsData.step6.expectedC2) < 0.05
 		) {
 			this.setSubStepMisconception(
 				this.step7,
 				"zi_zs",
-				"Check the signs of your Zero-Input constants. Remember that $y_{ZI}(t)$ matches initial conditions $y(0^-), y'(0^-)$ with forcing $x(t) = 0$.",
+				"Total vs Zero-Input Confusion: You entered the complete constants $C_1, C_2$ from Step 6. Zero-Input constants are determined by satisfying initial conditions with $x(t) = 0$ (so target values are original $y(0^-), y'(0^-)$ without subtracting $y_p$).",
 			);
 		} else {
 			this.setSubStepIncorrect(
 				this.step7,
 				"zi_zs",
-				"Incorrect Zero-Input constants. Set up the homogeneous system matching $y_h(0^-) = y(0^-)$ and $y_h'(0^-) = y'(0^-)$ without subtracting $y_p$.",
+				`Incorrect Zero-Input constants. Solve the homogeneous initial conditions with $y_h(0) = y(0^-) = ${this.problem.initialConditions.y0}$ and $y_h'(0) = y'(0^-) = ${this.problem.initialConditions.dy0}$.`,
 			);
 		}
 	}
 
 	/**
-	 * Validates Step 7 Part 7B: Transient (y_{tr}) and Steady-State (y_{ss}) decomposition.
+	 * Validates Step 7 Part 7B: Transient and Steady-State response selection.
 	 */
 	checkStep7TrSS(): void {
 		const s7Data = this.problem.itsData.step7;
-
 		if (!this.step7.selectedTransient || !this.step7.selectedSteadyState) {
 			this.setSubStepValidation(
 				this.step7,
 				"tr_ss",
-				"Please select options for both the Transient Response $y_{tr}(t)$ and Steady-State Response $y_{ss}(t)$.",
+				"Please select both the transient response and the steady-state response options.",
 			);
 			return;
 		}
 
-		const trOption = s7Data.transientOptions.find(
-			(o) => o.id === this.step7.selectedTransient,
-		);
-		const ssOption = s7Data.steadyStateOptions.find(
-			(o) => o.id === this.step7.selectedSteadyState,
-		);
+		const correctTr = s7Data.transientOptions.find((o) => o.isCorrect)?.id;
+		const correctSS = s7Data.steadyStateOptions.find(
+			(o) => o.isCorrect,
+		)?.id;
 
-		if (!trOption?.isCorrect) {
+		const isTrCorrect = this.step7.selectedTransient === correctTr;
+		const isSSCorrect = this.step7.selectedSteadyState === correctSS;
+
+		if (isTrCorrect && isSSCorrect) {
+			this.step7.trSsPassed = true;
+			this.setSubStepPassed(this.step7, "tr_ss", "concept");
+		} else if (!isTrCorrect) {
+			const chosenOpt = s7Data.transientOptions.find(
+				(o) => o.id === this.step7.selectedTransient,
+			);
 			this.setSubStepMisconception(
 				this.step7,
 				"tr_ss",
-				trOption?.feedback ||
-					"Incorrect Transient response. The transient response consists of the decaying natural modes $y_h(t)$.",
+				chosenOpt?.feedback ??
+					"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
 			);
-			return;
-		}
-
-		if (!ssOption?.isCorrect) {
+		} else {
+			const chosenOpt = s7Data.steadyStateOptions.find(
+				(o) => o.id === this.step7.selectedSteadyState,
+			);
 			this.setSubStepMisconception(
 				this.step7,
 				"tr_ss",
-				ssOption?.feedback ||
-					"Incorrect Steady-State response. The steady-state response is the persistent forced response $y_p(t)$.",
+				chosenOpt?.feedback ??
+					"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
 			);
-			return;
 		}
-
-		this.step7.trSsPassed = true;
-		this.setSubStepPassed(this.step7, "tr_ss", "concept");
 	}
 
 	/**
-	 * Validates Step 7 Part 7C: Targeted Conceptual Mastery Question.
+	 * Validates Step 7 Part 7C: Conceptual Mastery question.
+	 * @param {OdeItsOption} [opt] Optional selected concept option
 	 */
-	checkStep7Concept(): void {
-		const s7Data = this.problem.itsData.step7;
+	checkStep7Concept(opt?: OdeItsOption): void {
+		if (opt) {
+			this.step7.selectedConcept = opt.id;
+		}
 
 		if (!this.step7.selectedConcept) {
 			this.setSubStepValidation(
@@ -1270,43 +1432,40 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			return;
 		}
 
-		const option = s7Data.conceptQuestion.options.find(
-			(o) => o.id === this.step7.selectedConcept,
-		);
+		const s7Data = this.problem.itsData.step7;
+		const chosen =
+			opt ??
+			s7Data.conceptQuestion.options.find(
+				(o) => o.id === this.step7.selectedConcept,
+			);
 
-		if (option?.isCorrect) {
+		if (chosen?.isCorrect) {
 			this.step7.conceptPassed = true;
 			this.setSubStepPassed(this.step7, "concept", undefined, 8);
 		} else {
 			this.setSubStepMisconception(
 				this.step7,
 				"concept",
-				option?.feedback ||
-					"Incorrect choice. Re-examine how linearity and superposition govern response decomposition.",
+				chosen?.feedback ??
+					"Incorrect answer. Review linearity, zero-input, and stability principles.",
 			);
 		}
 	}
 
 	/**
-	 * Handles submission from Step 7 Response Decomposition (legacy/shortcut compatible).
-	 * @param {string} _value LaTeX formatted student response
+	 * Legacy/shortcut wrapper for checking Step 7.
 	 */
-	handleStep7Submit(_value?: string): void {
-		if (this.step7.conceptPassed) {
-			this.setPassed(this.step7, 8);
-		} else {
-			this.checkStep7Concept();
-		}
+	checkStep7(): void {
+		this.checkStep7ZI();
 	}
 
 	/**
-	 * Resets all step inputs, feedbacks, and status.
+	 * Resets all solver state and step answers for a new problem instance.
 	 */
 	reset(): void {
 		this.currentStep = 1;
 		this.isCompleted = false;
 		this.hintTier = 0;
-
 		this.step1 = createStepState({ a2: "", a1: "", a0: "" });
 		this.step2 = createMultiPartStepState(
 			{
@@ -1355,17 +1514,23 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createMultiPartStepState(
 			{
+				selectedFirstDeriv: null as string | null,
+				selectedSecondDeriv: null as string | null,
 				selectedDerivatives: null as string | null,
 				selectedSystem: null as string | null,
 				kp: "",
 				a: "",
 				b: "",
 			},
-			["derivatives", "system_setup", "solve"],
+			["first_deriv", "second_deriv", "system_setup", "solve"],
 			{
-				derivatives: createSubStepState(
-					"derivatives",
-					"Part 5A: Trial Derivatives",
+				first_deriv: createSubStepState(
+					"first_deriv",
+					"Part 5A-1: First Derivative",
+				),
+				second_deriv: createSubStepState(
+					"second_deriv",
+					"Part 5A-2: Second Derivative",
 				),
 				system_setup: createSubStepState(
 					"system_setup",
@@ -1376,7 +1541,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					"Part 5C: Undetermined Coefficients",
 				),
 			},
-			"derivatives",
+			"first_deriv",
 		);
 		this.step6 = createMultiPartStepState(
 			{

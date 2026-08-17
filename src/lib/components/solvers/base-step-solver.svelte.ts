@@ -135,8 +135,8 @@ export function createSubStepState<T extends object = Record<string, unknown>>(
  * @returns {TCustom & MultiPartStepState<TSubStepId>} The combined multi-part step state.
  */
 export function createMultiPartStepState<
-	TSubStepId extends string,
 	TCustom extends object = Record<string, unknown>,
+	TSubStepId extends string = string,
 >(
 	customFields: TCustom,
 	subStepOrder: TSubStepId[],
@@ -479,6 +479,7 @@ export abstract class BaseStepSolverState {
 
 		if (nextSubStepId) {
 			step.activeSubStepId = nextSubStepId;
+			this.hintTier = 0;
 			// Reset sub-step hint tier for the next sub-step
 			const nextSub = step.subSteps[nextSubStepId];
 			if (nextSub) {

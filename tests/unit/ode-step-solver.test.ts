@@ -237,7 +237,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.selectQuadRootClassification("distinct_real");
 		expect(solver.step2.quadNeedsDiscriminantCalc).toBe(true);
 		expect(solver.step2.quadClassChoice).toBeNull();
-		expect(solver.step2.feedbackType).toBe("incorrect");
+		expect(solver.step2.feedbackType).toBe("misconception");
 		expect(solver.step2.feedback).toContain("Calculate the discriminant");
 
 		// Non-numeric discriminant calculation
@@ -341,8 +341,8 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		}
 	});
 
-	it("validates Step 5 multi-part progressive disclosure (derivatives, system, coefficients)", () => {
-		// Test sinusoidal forcing (3-part step)
+	it("validates Step 5 multi-part progressive disclosure (first_deriv, second_deriv, system, coefficients)", () => {
+		// Test sinusoidal forcing (4-part step)
 		let sinProblem = generateOdeProblem("distinct_real");
 		while (sinProblem.forcing.type !== "sinusoid") {
 			sinProblem = generateOdeProblem("distinct_real");
@@ -351,28 +351,42 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const sinSolver = new OdeStepSolverState(() => sinProblem);
 		sinSolver.advanceToStep(5);
 
-		expect(sinSolver.step5.activeSubStepId).toBe("derivatives");
-		expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(false);
+		expect(sinSolver.step5.activeSubStepId).toBe("first_deriv");
+		expect(sinSolver.step5.subSteps.first_deriv.isValid).toBe(false);
 
-		// Part 5A: Wrong derivatives distractor
-		const wrongDeriv = sinProblem.itsData.step5.derivativeOptions?.find(
-			(o) => !o.isCorrect,
-		);
-		if (wrongDeriv) {
-			sinSolver.checkStep5Derivatives(wrongDeriv);
-			expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(false);
+		// Part 5A-1: Wrong derivative distractor
+		const wrongFirstDeriv =
+			sinProblem.itsData.step5.firstDerivativeOptions?.find(
+				(o) => !o.isCorrect,
+			);
+		if (wrongFirstDeriv) {
+			sinSolver.checkStep5FirstDeriv(wrongFirstDeriv);
+			expect(sinSolver.step5.subSteps.first_deriv.isValid).toBe(false);
 			expect(sinSolver.step5.feedbackType).toBe("misconception");
-			expect(sinSolver.step5.feedback).toBe(wrongDeriv.feedback);
+			expect(sinSolver.step5.feedback).toBe(wrongFirstDeriv.feedback);
 		}
 
-		// Part 5A: Correct derivatives
-		const correctDeriv = sinProblem.itsData.step5.derivativeOptions?.find(
-			(o) => o.isCorrect,
-		);
-		expect(correctDeriv).toBeDefined();
-		if (correctDeriv) {
-			sinSolver.checkStep5Derivatives(correctDeriv);
-			expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(true);
+		// Part 5A-1: Correct first derivative
+		const correctFirstDeriv =
+			sinProblem.itsData.step5.firstDerivativeOptions?.find(
+				(o) => o.isCorrect,
+			);
+		expect(correctFirstDeriv).toBeDefined();
+		if (correctFirstDeriv) {
+			sinSolver.checkStep5FirstDeriv(correctFirstDeriv);
+			expect(sinSolver.step5.subSteps.first_deriv.isValid).toBe(true);
+			expect(sinSolver.step5.activeSubStepId).toBe("second_deriv");
+		}
+
+		// Part 5A-2: Correct second derivative
+		const correctSecondDeriv =
+			sinProblem.itsData.step5.secondDerivativeOptions?.find(
+				(o) => o.isCorrect,
+			);
+		expect(correctSecondDeriv).toBeDefined();
+		if (correctSecondDeriv) {
+			sinSolver.checkStep5SecondDeriv(correctSecondDeriv);
+			expect(sinSolver.step5.subSteps.second_deriv.isValid).toBe(true);
 			expect(sinSolver.step5.activeSubStepId).toBe("system_setup");
 		}
 
@@ -413,7 +427,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(sinSolver.step5.isValid).toBe(true);
 		expect(sinSolver.currentStep).toBe(6);
 
-		// Test constant forcing (2-part step)
+		// Test constant forcing (3-part step)
 		let constProblem = generateOdeProblem("distinct_real");
 		while (constProblem.forcing.type === "sinusoid") {
 			constProblem = generateOdeProblem("distinct_real");
@@ -421,13 +435,22 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		const constSolver = new OdeStepSolverState(() => constProblem);
 		constSolver.advanceToStep(5);
 
-		expect(constSolver.step5.activeSubStepId).toBe("derivatives");
-		const cDeriv = constProblem.itsData.step5.derivativeOptions?.find(
+		expect(constSolver.step5.activeSubStepId).toBe("first_deriv");
+		const cFirst = constProblem.itsData.step5.firstDerivativeOptions?.find(
 			(o) => o.isCorrect,
 		);
-		if (cDeriv) {
-			constSolver.checkStep5Derivatives(cDeriv);
-			expect(constSolver.step5.subSteps.derivatives.isValid).toBe(true);
+		if (cFirst) {
+			constSolver.checkStep5FirstDeriv(cFirst);
+			expect(constSolver.step5.subSteps.first_deriv.isValid).toBe(true);
+			expect(constSolver.step5.activeSubStepId).toBe("second_deriv");
+		}
+		const cSecond =
+			constProblem.itsData.step5.secondDerivativeOptions?.find(
+				(o) => o.isCorrect,
+			);
+		if (cSecond) {
+			constSolver.checkStep5SecondDeriv(cSecond);
+			expect(constSolver.step5.subSteps.second_deriv.isValid).toBe(true);
 			expect(constSolver.step5.activeSubStepId).toBe("solve");
 		}
 
@@ -512,15 +535,24 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step7.ziZsPassed).toBe(false);
 		expect(solver.step7.feedbackType).toBe("validation");
 
-		// Part 7A: Incorrect sign misconception
+		// Part 7A: Total vs Zero-Input Confusion misconception
 		const expC1 = problem.itsData.step7.ziConstants.C1;
 		const expC2 = problem.itsData.step7.ziConstants.C2;
-		if (Math.abs(expC1) > 0.01) {
-			solver.step7.ziC1 = String(-expC1);
-			solver.step7.ziC2 = String(expC2);
-			solver.checkStep7ZI();
+		solver.step7.ziC1 = String(problem.itsData.step6.expectedC1);
+		solver.step7.ziC2 = String(problem.itsData.step6.expectedC2);
+		solver.checkStep7ZI();
+		if (
+			Math.abs(problem.itsData.step6.expectedC1 - expC1) > 0.01 ||
+			Math.abs(problem.itsData.step6.expectedC2 - expC2) > 0.01
+		) {
 			expect(solver.step7.feedbackType).toBe("misconception");
 		}
+
+		// Part 7A: Incorrect numeric constants
+		solver.step7.ziC1 = "999";
+		solver.step7.ziC2 = "999";
+		solver.checkStep7ZI();
+		expect(solver.step7.feedbackType).toBe("incorrect");
 
 		// Part 7A: Correct constants
 		solver.step7.ziC1 = String(expC1);
@@ -558,10 +590,10 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			(o) => !o.isCorrect,
 		);
 		if (wrongOption) {
-			solver.step7.selectedConcept = wrongOption.id;
-			solver.checkStep7Concept();
+			solver.checkStep7Concept(wrongOption);
 			expect(solver.step7.conceptPassed).toBe(false);
 			expect(solver.step7.feedbackType).toBe("misconception");
+			expect(solver.step7.feedback).toBe(wrongOption.feedback);
 		}
 
 		// Part 7C: Correct conceptual option
@@ -570,9 +602,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 				(o) => o.isCorrect,
 			);
 		expect(correctOption).toBeDefined();
-		solver.step7.selectedConcept = correctOption?.id ?? "";
-		solver.checkStep7Concept();
-
+		if (correctOption) solver.checkStep7Concept(correctOption);
 		expect(solver.step7.conceptPassed).toBe(true);
 		expect(solver.step7.activeSubStepId).toBe("concept");
 		expect(solver.currentStep).toBe(8);
