@@ -110,16 +110,29 @@
 				<span class="signal-label">
 					<MathText text={String.raw`Input Signal $x(t)$:`} />
 				</span>
-				<MathBlock math={`x(t) = ${problem.xLatex}`} />
+				<MathBlock
+					math={`x(t) = ${problem.xLatex}`}
+					compact
+					responsive
+				/>
 			</div>
 			<div class="signal-box">
 				<span class="signal-label">
 					<MathText text={String.raw`Impulse Response $h(t)$:`} />
 				</span>
-				<MathBlock math={`h(t) = ${problem.hLatex}`} />
+				<MathBlock
+					math={`h(t) = ${problem.hLatex}`}
+					compact
+					responsive
+				/>
 			</div>
 		</div>
-		<MathBlock math={convExprMath} />
+		<div class="conv-formula-wrapper">
+			<MathBlock
+				math={convExprMath}
+				responsive
+			/>
+		</div>
 	</div>
 
 	<!-- Embedded Graphical Convolution Canvas Animator -->
@@ -195,6 +208,7 @@
 		width: 100%;
 		max-width: 100%;
 		min-width: 0;
+		box-sizing: border-box;
 		container-type: inline-size;
 	}
 
@@ -208,17 +222,42 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+
+	.conv-formula-wrapper {
+		display: flex;
+		justify-content: center;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.conv-formula-wrapper :global(.math-block) {
+		width: fit-content;
+		max-width: 100%;
+		margin: 0.25rem auto 0 auto;
 	}
 
 	.statement-text {
 		font-size: 0.95rem;
 		color: var(--text-secondary);
+		line-height: 1.5;
+		word-break: normal;
+		overflow-wrap: break-word;
 	}
 
 	.signals-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 1rem;
+		width: 100%;
+		max-width: 780px;
+		margin-inline: auto;
+		min-width: 0;
+		box-sizing: border-box;
 	}
 
 	.signal-box {
@@ -229,6 +268,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+		min-width: 0;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.signal-box :global(.math-block) {
+		width: 100%;
+		min-width: 0;
+		margin: 0.25rem 0 0 0;
 	}
 
 	.signal-label {
@@ -243,6 +291,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 	}
 
 	.section-subtitle {
@@ -256,6 +308,7 @@
 	.action-bar {
 		display: flex;
 		gap: 1rem;
+		flex-wrap: wrap;
 	}
 
 	.btn-submit {
@@ -286,6 +339,8 @@
 		padding: 1rem;
 		border-radius: var(--radius-md);
 		font-size: var(--text-sm);
+		min-width: 0;
+		box-sizing: border-box;
 	}
 
 	/* Correct — green alert */
@@ -304,12 +359,14 @@
 
 	.alert-icon {
 		font-size: var(--text-xl);
+		flex-shrink: 0;
 	}
 
 	.alert-content {
 		display: flex;
 		flex-direction: column;
 		gap: 0.2rem;
+		min-width: 0;
 	}
 
 	.alert-title {
@@ -319,13 +376,63 @@
 	.alert-message {
 		font-size: var(--text-sm);
 		opacity: 0.9;
+		word-break: break-word;
 	}
 
-	/* ── Mobile media query (≤600px) ─────────────────────── */
+	/* ── Container query (≤700px) ──────────────────────────── */
 
-	@media (max-width: 600px) {
+	@container (max-width: 700px) {
 		.signals-grid {
 			grid-template-columns: 1fr;
+			max-width: 520px;
+		}
+	}
+
+	/* ── Mobile media query (≤700px) ───────────────────────── */
+
+	@media (max-width: 700px) {
+		.signals-grid {
+			grid-template-columns: 1fr;
+			max-width: 520px;
+		}
+	}
+
+	/* ── Mobile media query (≤480px) ───────────────────────── */
+
+	@media (max-width: 480px) {
+		.convolution-practice-card {
+			padding: 1rem 0.75rem;
+			gap: 1rem;
+		}
+
+		.problem-statement {
+			padding: 0.85rem 0.65rem;
+		}
+
+		.signal-box {
+			padding: 0.5rem;
+		}
+
+		.btn-submit {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+		}
+	}
+
+	/* ── Narrow viewport (≤360px) container query ─────────── */
+
+	@container (max-width: 360px) {
+		.convolution-practice-card {
+			padding: 0.75rem 0.5rem;
+		}
+
+		.problem-statement {
+			padding: 0.65rem 0.4rem;
+		}
+
+		.signal-box {
+			padding: 0.4rem;
 		}
 	}
 </style>
