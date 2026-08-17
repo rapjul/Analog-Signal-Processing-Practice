@@ -65,3 +65,8 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 - **Context:** Dashboard cards all display static "▶ Practice Now" labels without indication of user progress.
 - **Improvement Idea:**
     - Connect the local database / persistence layer to display per-module mastery percentages, completion rates, and problem attempt counts directly on the dashboard cards.
+
+### 10. Automated Solved-Problem Screenshot Tool
+
+- **Context:** Verifying solver layouts, KaTeX rendering, progressive hints, and post-solve canvas visualizers manually across all problem archetypes is time-consuming.
+- **Proposal & Options:** See detailed design document at [automated-solved-problem-screenshot-tool.md](./automated-solved-problem-screenshot-tool.md).
