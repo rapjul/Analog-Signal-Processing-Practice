@@ -33,9 +33,6 @@
 		details?: string;
 	} | null>(null);
 
-	// Formula drawer visibility state
-	let showFormulaDrawer = $state(false);
-
 	// Reset response and feedback when problem instance changes
 	$effect(() => {
 		if (problem) {
