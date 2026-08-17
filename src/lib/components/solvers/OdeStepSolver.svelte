@@ -760,7 +760,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 5: Solve Particular Coefficients -->
+	<!-- Step 5: Solve Particular Coefficients (Multi-Part Step) -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 5}
@@ -768,91 +768,241 @@
 		class:locked={solver.currentStep < 5}
 	>
 		<div class="step-header">
-			<div class="step-badge">Step 5</div>
+			<div class="step-badge">
+				{solver.currentStep === 5
+					? solver.step5.activeSubStepId === "derivatives"
+						? "Step 5A"
+						: solver.step5.activeSubStepId === "system_setup"
+							? "Step 5B"
+							: "Step 5C"
+					: "Step 5"}
+			</div>
 			<h3 class="step-title">Undetermined Coefficients</h3>
+			{#if solver.currentStep === 5}
+				<span class="part-progress-pill">
+					Part {solver.step5.activeSubStepId === "derivatives"
+						? "1"
+						: solver.step5.activeSubStepId === "system_setup"
+							? "2"
+							: "3"} of {problem.forcing.type === "sinusoid"
+						? "3"
+						: "2"}
+				</span>
+			{/if}
 		</div>
 
 		{#if solver.currentStep === 5}
 			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={"Substitute $y_p(t)$ and its derivatives into the ODE to solve for the coefficient(s):"}
-					/>
-				</p>
-
-				{#if problem.forcing.type === "sinusoid"}
-					<div class="input-row-grid">
-						<div class="input-pair">
-							<label
-								for="ode-a-input"
-								class="field-label"
-							>
-								<MathText
-									text={String.raw`Coefficient $A$ ($\cos$ term):`}
-								/>
-							</label>
-							<input
-								id="ode-a-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. 1/2"
-								bind:value={solver.step5.a}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep5()}
+				<!-- Part 5A: Trial Derivatives -->
+				<div
+					class="subpart-block"
+					class:subpart-done={solver.step5.subSteps.derivatives
+						.isValid}
+				>
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 5A</span>
+						<h4 class="subpart-title">
+							<MathText
+								text={"Compute Trial Derivatives $y_p'(t)$ and $y_p''(t)$"}
 							/>
-						</div>
-						<div class="input-pair">
-							<label
-								for="ode-b-input"
-								class="field-label"
+						</h4>
+						{#if solver.step5.subSteps.derivatives.isValid}
+							<span class="substep-check-badge"
+								><span class="check-icon">✓</span> Verified</span
 							>
-								<MathText
-									text={String.raw`Coefficient $B$ ($\sin$ term):`}
-								/>
-							</label>
-							<input
-								id="ode-b-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. -1/4"
-								bind:value={solver.step5.b}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep5()}
-							/>
-						</div>
+						{/if}
 					</div>
-				{:else}
+
+					{#if !solver.step5.subSteps.derivatives.isValid}
+						<p class="step-prompt">
+							<MathText
+								text={`Given the particular ansatz $y_p(t) = ${solver.correctAnsatz}$, select the correct derivatives:`}
+							/>
+						</p>
+						<div class="mcq-cards-grid">
+							{#each problem.itsData.step5.derivativeOptions ?? [] as opt}
+								<button
+									type="button"
+									class="mcq-card"
+									class:selected={solver.step5
+										.selectedDerivatives === opt.id}
+									onclick={() =>
+										solver.checkStep5Derivatives(opt)}
+								>
+									<MathBlock
+										math={opt.latex}
+										compact={true}
+										hideHeader={true}
+									/>
+								</button>
+							{/each}
+						</div>
+					{:else}
+						<div class="substep-verified-line">
+							<MathText
+								text={`Derivatives: $${problem.itsData.step5.derivativesLatex}$`}
+							/>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Part 5B: System Setup (for sinusoidal forcing) -->
+				{#if solver.step5.subSteps.derivatives.isValid && problem.forcing.type === "sinusoid"}
 					<div
-						class="input-pair"
-						style="max-width: 260px;"
+						class="subpart-block"
+						class:subpart-done={solver.step5.subSteps.system_setup
+							.isValid}
 					>
-						<label
-							for="ode-kp-input"
-							class="field-label"
-						>
-							<MathText text={"Particular Amplitude $K_p$:"} />
-						</label>
-						<input
-							id="ode-kp-input"
-							type="text"
-							class="text-input"
-							placeholder="e.g. 2"
-							bind:value={solver.step5.kp}
-							onkeydown={(e) =>
-								e.key === "Enter" && solver.checkStep5()}
-						/>
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 5B</span>
+							<h4 class="subpart-title">
+								<MathText
+									text={"Substitute into ODE & Group Harmonic Terms"}
+								/>
+							</h4>
+							{#if solver.step5.subSteps.system_setup.isValid}
+								<span class="substep-check-badge"
+									><span class="check-icon">✓</span> Verified</span
+								>
+							{/if}
+						</div>
+
+						{#if !solver.step5.subSteps.system_setup.isValid}
+							<p class="step-prompt">
+								<MathText
+									text={`Substitute $y_p, y_p', y_p''$ into $y'' + ${problem.params.a1}y' + ${problem.params.a0}y = ${problem.forcing.latex}$ and equate sine/cosine coefficients:`}
+								/>
+							</p>
+							<div class="mcq-cards-grid">
+								{#each problem.itsData.step5.systemOptions ?? [] as opt}
+									<button
+										type="button"
+										class="mcq-card"
+										class:selected={solver.step5
+											.selectedSystem === opt.id}
+										onclick={() =>
+											solver.checkStep5System(opt)}
+									>
+										<MathBlock
+											math={opt.latex}
+											compact={true}
+											hideHeader={true}
+										/>
+									</button>
+								{/each}
+							</div>
+						{:else}
+							<div class="substep-verified-line">
+								<MathText
+									text={`Linear System: $${problem.itsData.step5.systemLatex}$`}
+								/>
+							</div>
+						{/if}
 					</div>
 				{/if}
 
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep5()}
-					>
-						Check Particular Solution →
-					</button>
-				</div>
+				<!-- Part 5C: Undetermined Coefficients Resolution -->
+				{#if solver.step5.subSteps.derivatives.isValid && (problem.forcing.type !== "sinusoid" || solver.step5.subSteps.system_setup.isValid)}
+					<div class="subpart-block">
+						<div class="subpart-header">
+							<span class="subpart-badge">
+								{problem.forcing.type === "sinusoid"
+									? "Part 5C"
+									: "Part 5B"}
+							</span>
+							<h4 class="subpart-title">
+								<MathText
+									text={"Solve for Undetermined Coefficient(s)"}
+								/>
+							</h4>
+						</div>
+
+						<p class="step-prompt">
+							<MathText
+								text={"Solve the algebraic equation(s) for the undetermined coefficient value(s):"}
+							/>
+						</p>
+
+						{#if problem.forcing.type === "sinusoid"}
+							<div class="input-row-grid">
+								<div class="input-pair">
+									<label
+										for="ode-a-input"
+										class="field-label"
+									>
+										<MathText
+											text={String.raw`Coefficient $A$ ($\cos$ term):`}
+										/>
+									</label>
+									<input
+										id="ode-a-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. 1/2"
+										bind:value={solver.step5.a}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep5Coeffs()}
+									/>
+								</div>
+								<div class="input-pair">
+									<label
+										for="ode-b-input"
+										class="field-label"
+									>
+										<MathText
+											text={String.raw`Coefficient $B$ ($\sin$ term):`}
+										/>
+									</label>
+									<input
+										id="ode-b-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. -1/4"
+										bind:value={solver.step5.b}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep5Coeffs()}
+									/>
+								</div>
+							</div>
+						{:else}
+							<div
+								class="input-pair"
+								style="max-width: 260px;"
+							>
+								<label
+									for="ode-kp-input"
+									class="field-label"
+								>
+									<MathText
+										text={"Particular Amplitude $K_p$:"}
+									/>
+								</label>
+								<input
+									id="ode-kp-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. 2"
+									bind:value={solver.step5.kp}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep5Coeffs()}
+								/>
+							</div>
+						{/if}
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep5Coeffs()}
+							>
+								Check Particular Solution →
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 5}
@@ -867,7 +1017,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 6: Initial Conditions System & Solved Constants -->
+	<!-- Step 6: Initial Conditions System & Solved Constants (Multi-Part Step) -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 6}
@@ -875,68 +1025,185 @@
 		class:locked={solver.currentStep < 6}
 	>
 		<div class="step-header">
-			<div class="step-badge">Step 6</div>
+			<div class="step-badge">
+				{solver.currentStep === 6
+					? solver.step6.activeSubStepId === "target_values"
+						? "Step 6A"
+						: "Step 6B"
+					: "Step 6"}
+			</div>
 			<h3 class="step-title">
 				<MathText
 					text={"Initial Conditions & Constants $(C_1, C_2)$"}
 				/>
 			</h3>
+			{#if solver.currentStep === 6}
+				<span class="part-progress-pill">
+					Part {solver.step6.activeSubStepId === "target_values"
+						? "1"
+						: "2"} of 2
+				</span>
+			{/if}
 		</div>
 
 		{#if solver.currentStep === 6}
 			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={`Evaluate total response $y(t) = y_h(t) + y_p(t)$ at $t=0^+$ to match initial conditions: $y(0^-) = ${problem.initialConditions.y0}, \\; y'(0^-) = ${problem.initialConditions.dy0}$.`}
-					/>
-				</p>
+				<!-- Part 6A: Target Initial Values -->
+				<div
+					class="subpart-block"
+					class:subpart-done={solver.step6.subSteps.target_values
+						.isValid}
+				>
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 6A</span>
+						<h4 class="subpart-title">
+							<MathText
+								text={"Compute Target Homogeneous Values $y_h(0^+)$ & $y_h'(0^+)$"}
+							/>
+						</h4>
+						{#if solver.step6.subSteps.target_values.isValid}
+							<span class="substep-check-badge"
+								><span class="check-icon">✓</span> Verified</span
+							>
+						{/if}
+					</div>
 
-				<div class="input-row-grid">
-					<div class="input-pair">
-						<label
-							for="ode-c1-input"
-							class="field-label"
-						>
-							<MathText text={"Constant $C_1$:"} />
-						</label>
-						<input
-							id="ode-c1-input"
-							type="text"
-							class="text-input"
-							placeholder="e.g. 1"
-							bind:value={solver.step6.c1}
-							onkeydown={(e) =>
-								e.key === "Enter" && solver.checkStep6()}
-						/>
-					</div>
-					<div class="input-pair">
-						<label
-							for="ode-c2-input"
-							class="field-label"
-						>
-							<MathText text={"Constant $C_2$:"} />
-						</label>
-						<input
-							id="ode-c2-input"
-							type="text"
-							class="text-input"
-							placeholder="e.g. -1/2"
-							bind:value={solver.step6.c2}
-							onkeydown={(e) =>
-								e.key === "Enter" && solver.checkStep6()}
-						/>
-					</div>
+					{#if !solver.step6.subSteps.target_values.isValid}
+						<p class="step-prompt">
+							<MathText
+								text={String.raw`Subtract the particular solution offsets $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ and $y_p'(0^+) = ${toFractionLatex(problem.itsData.step6.dyp0)}$ from initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0}$:`}
+							/>
+						</p>
+
+						<div class="input-row-grid">
+							<div class="input-pair">
+								<label
+									for="ode-yh0-input"
+									class="field-label"
+								>
+									<MathText
+										text={"Target $y_h(0^+) = y(0^+) - y_p(0^+)$:"}
+									/>
+								</label>
+								<input
+									id="ode-yh0-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. 2"
+									bind:value={solver.step6.yh0}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep6TargetValues()}
+								/>
+							</div>
+							<div class="input-pair">
+								<label
+									for="ode-dyh0-input"
+									class="field-label"
+								>
+									<MathText
+										text={"Target $y_h'(0^+) = y'(0^+) - y_p'(0^+)$:"}
+									/>
+								</label>
+								<input
+									id="ode-dyh0-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. -3"
+									bind:value={solver.step6.dyh0}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep6TargetValues()}
+								/>
+							</div>
+						</div>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep6TargetValues()}
+							>
+								Verify Target Values →
+							</button>
+						</div>
+					{:else}
+						<div class="substep-verified-line">
+							<MathText
+								text={`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0)}$`}
+							/>
+						</div>
+					{/if}
 				</div>
 
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep6()}
-					>
-						Check Constants →
-					</button>
-				</div>
+				<!-- Part 6B: Integration Constants Resolution -->
+				{#if solver.step6.subSteps.target_values.isValid}
+					<div class="subpart-block">
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 6B</span>
+							<h4 class="subpart-title">
+								<MathText
+									text={"Solve for Homogeneous Constants $C_1, C_2$"}
+								/>
+							</h4>
+						</div>
+
+						<p class="step-prompt">
+							<MathText
+								text={`Set up and solve the system matching $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}$ and $y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0)}$:`}
+							/>
+						</p>
+
+						<div class="input-row-grid">
+							<div class="input-pair">
+								<label
+									for="ode-c1-input"
+									class="field-label"
+								>
+									<MathText text={"Constant $C_1$:"} />
+								</label>
+								<input
+									id="ode-c1-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. 1"
+									bind:value={solver.step6.c1}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep6Constants()}
+								/>
+							</div>
+							<div class="input-pair">
+								<label
+									for="ode-c2-input"
+									class="field-label"
+								>
+									<MathText text={"Constant $C_2$:"} />
+								</label>
+								<input
+									id="ode-c2-input"
+									type="text"
+									class="text-input"
+									placeholder="e.g. -1/2"
+									bind:value={solver.step6.c2}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep6Constants()}
+								/>
+							</div>
+						</div>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep6Constants()}
+							>
+								Check Constants →
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 6}
@@ -951,7 +1218,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 7: Dual Response Decomposition & Conceptual Mastery -->
+	<!-- Step 7: Dual Response Decomposition & Conceptual Mastery (Multi-Part Step) -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 7}
@@ -959,10 +1226,27 @@
 		class:locked={solver.currentStep < 7}
 	>
 		<div class="step-header">
-			<div class="step-badge">Step 7</div>
+			<div class="step-badge">
+				{solver.currentStep === 7
+					? solver.step7.activeSubStepId === "zi_zs"
+						? "Step 7A"
+						: solver.step7.activeSubStepId === "tr_ss"
+							? "Step 7B"
+							: "Step 7C"
+					: "Step 7"}
+			</div>
 			<h3 class="step-title">
 				Response Decomposition & Conceptual Mastery
 			</h3>
+			{#if solver.currentStep === 7}
+				<span class="part-progress-pill">
+					Part {solver.step7.activeSubStepId === "zi_zs"
+						? "1"
+						: solver.step7.activeSubStepId === "tr_ss"
+							? "2"
+							: "3"} of 3
+				</span>
+			{/if}
 		</div>
 
 		{#if solver.currentStep === 7}
@@ -979,20 +1263,20 @@
 					</div>
 				</div>
 
-				<!-- Phase 1: Zero-Input (y_ZI) vs Zero-State (y_ZS) Decomposition -->
+				<!-- Part 7A: Zero-Input (y_ZI) vs Zero-State (y_ZS) Decomposition -->
 				<div
-					class="subphase-container"
-					class:subphase-done={solver.step7.ziZsPassed}
+					class="subpart-block"
+					class:subpart-done={solver.step7.ziZsPassed}
 				>
-					<div class="subphase-header">
-						<span class="subphase-step-tag">Phase 1</span>
-						<h4 class="subphase-title">
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 7A</span>
+						<h4 class="subpart-title">
 							<MathText
 								text={"Zero-Input ($y_{ZI}$) & Zero-State ($y_{ZS}$) Decomposition"}
 							/>
 						</h4>
 						{#if solver.step7.ziZsPassed}
-							<span class="phase-check-badge"
+							<span class="substep-check-badge"
 								><span class="check-icon">✓</span> Verified</span
 							>
 						{/if}
@@ -1079,7 +1363,7 @@
 							</button>
 						</div>
 					{:else}
-						<div class="phase-verified-summary">
+						<div class="substep-verified-line">
 							<div class="verified-item">
 								<span class="verified-label">Zero-Input:</span>
 								<MathText
@@ -1096,21 +1380,21 @@
 					{/if}
 				</div>
 
-				<!-- Phase 2: Transient (y_tr) vs Steady-State (y_ss) Identification -->
+				<!-- Part 7B: Transient (y_tr) vs Steady-State (y_ss) Identification -->
 				{#if solver.step7.ziZsPassed}
 					<div
-						class="subphase-container"
-						class:subphase-done={solver.step7.trSsPassed}
+						class="subpart-block"
+						class:subpart-done={solver.step7.trSsPassed}
 					>
-						<div class="subphase-header">
-							<span class="subphase-step-tag">Phase 2</span>
-							<h4 class="subphase-title">
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 7B</span>
+							<h4 class="subpart-title">
 								<MathText
 									text={"Transient ($y_{tr}$) & Steady-State ($y_{ss}$) Identification"}
 								/>
 							</h4>
 							{#if solver.step7.trSsPassed}
-								<span class="phase-check-badge"
+								<span class="substep-check-badge"
 									><span class="check-icon">✓</span> Verified</span
 								>
 							{/if}
@@ -1189,19 +1473,19 @@
 								</button>
 							</div>
 						{:else}
-							<div class="phase-verified-summary">
+							<div class="substep-verified-line">
 								<div class="verified-item">
-									<span class="verified-label">
-										Transient:
-									</span>
+									<span class="verified-label"
+										>Transient:</span
+									>
 									<MathText
 										text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
 									/>
 								</div>
 								<div class="verified-item">
-									<span class="verified-label">
-										Steady-State:
-									</span>
+									<span class="verified-label"
+										>Steady-State:</span
+									>
 									<MathText
 										text={`$y_{ss}(t) = (${problem.solutions.y_ss_latex}) u(t)$`}
 									/>
@@ -1211,12 +1495,12 @@
 					</div>
 				{/if}
 
-				<!-- Phase 3: Targeted Conceptual Mastery Question -->
+				<!-- Part 7C: Targeted Conceptual Mastery Question -->
 				{#if solver.step7.trSsPassed}
-					<div class="subphase-container">
-						<div class="subphase-header">
-							<span class="subphase-step-tag">Phase 3</span>
-							<h4 class="subphase-title">
+					<div class="subpart-block">
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 7C</span>
+							<h4 class="subpart-title">
 								Targeted Conceptual Mastery Check
 							</h4>
 						</div>
@@ -1278,9 +1562,9 @@
 				</div>
 				<div class="summary-decomposition-grid">
 					<div class="decomp-card">
-						<span class="decomp-title">
-							Zero-Input / Zero-State Decomposition
-						</span>
+						<span class="decomp-title"
+							>Zero-Input / Zero-State Decomposition</span
+						>
 						<div class="decomp-math">
 							<MathText
 								text={`$y_{ZI}(t) = (${problem.solutions.y_zi_latex}) u(t)$`}
@@ -1293,9 +1577,9 @@
 						</div>
 					</div>
 					<div class="decomp-card">
-						<span class="decomp-title">
-							Transient / Steady-State Decomposition
-						</span>
+						<span class="decomp-title"
+							>Transient / Steady-State Decomposition</span
+						>
 						<div class="decomp-math">
 							<MathText
 								text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
@@ -1947,55 +2231,76 @@
 		overflow-x: auto;
 	}
 
-	.subphase-container {
+	/* ── Subpart block & progress pill styles ─────────────── */
+
+	.part-progress-pill {
+		font-size: var(--text-xs);
+		font-weight: 600;
+		padding: 0.2rem 0.55rem;
+		background: rgba(6, 182, 212, 0.12);
+		color: var(--accent-primary);
+		border: 1px solid rgba(6, 182, 212, 0.25);
+		border-radius: var(--radius-full);
+		margin-left: auto;
+		white-space: nowrap;
+	}
+
+	.subpart-block {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		padding: 1rem;
+		padding: 0.85rem 1rem;
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
 		transition: all 0.2s ease;
 	}
 
-	.subphase-container.subphase-done {
+	.subpart-block.subpart-done {
 		border-color: var(--color-success);
 		background: var(--color-success-bg);
-		padding: 0.75rem 1rem;
+		padding: 0.6rem 0.85rem;
 	}
 
-	.subphase-header {
+	.subpart-header {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.6rem;
 	}
 
-	.subphase-step-tag {
-		font-size: var(--text-2xs);
+	.subpart-badge {
+		font-size: var(--text-xs);
 		font-weight: 700;
 		padding: 0.15rem 0.45rem;
-		background: var(--accent-bg);
+		background: var(--surface-3, #223048);
 		color: var(--accent-primary);
 		border-radius: var(--radius-sm);
 		text-transform: uppercase;
 	}
 
-	.subphase-title {
+	.subpart-title {
 		font-size: var(--text-sm);
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-primary);
 		margin: 0;
 		flex: 1;
 	}
 
-	.phase-check-badge {
+	.substep-check-badge {
+		font-size: var(--text-xs);
+		font-weight: 600;
+		color: var(--color-success);
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
-		font-size: var(--text-xs);
-		font-weight: 700;
-		color: var(--color-success);
+		gap: 0.25rem;
+	}
+
+	.substep-verified-line {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
 	}
 
 	.superposition-note {
@@ -2005,12 +2310,6 @@
 		padding: 0.4rem 0.6rem;
 		border-radius: var(--radius-sm);
 		border-left: 2px solid var(--accent-primary);
-	}
-
-	.phase-verified-summary {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
 	}
 
 	.verified-item {
@@ -2169,7 +2468,7 @@
 			grid-template-columns: 1fr;
 		}
 
-		.subphase-container {
+		.subpart-block {
 			padding: 0.65rem;
 		}
 

@@ -10,6 +10,7 @@
 	import WaveformCanvas from "../canvas/WaveformCanvas.svelte";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
+	import OdeFullSolutionView from "../solvers/OdeFullSolutionView.svelte";
 	import OdeStepSolver from "../solvers/OdeStepSolver.svelte";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
@@ -121,6 +122,9 @@
 				title="Problem Completed!"
 				description={String.raw`You have derived the total response $y(t)$ and separated it into Zero-Input and Zero-State components. Explore the response waveform below.`}
 			/>
+
+			<!-- Post-Completion Worked Derivation Breakdown -->
+			<OdeFullSolutionView {problem} />
 
 			<!-- Live Multi-Curve Response Plot Canvas -->
 			<div class="visualizer-wrapper">

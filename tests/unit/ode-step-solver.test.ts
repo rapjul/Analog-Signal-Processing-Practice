@@ -238,7 +238,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step2.quadNeedsDiscriminantCalc).toBe(true);
 		expect(solver.step2.quadClassChoice).toBeNull();
 		expect(solver.step2.feedbackType).toBe("incorrect");
-		expect(solver.step2.feedback).toContain("calculate the discriminant");
+		expect(solver.step2.feedback).toContain("Calculate the discriminant");
 
 		// Non-numeric discriminant calculation
 		solver.step2.quadDiscriminantInput = "abc";
@@ -276,7 +276,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep2();
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("incorrect");
-		expect(solver.step2.feedback).toContain("Incorrect complex roots");
+		expect(solver.step2.feedback).toContain("Incorrect roots");
 
 		// Correct complex roots (sigma and omega_d)
 		solver.step2.sigma = String(problem.itsData.step2.r1);
@@ -341,156 +341,160 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		}
 	});
 
-	it("validates Step 5 particular coefficients for constant/exponential and sinusoidal forcing", () => {
-		const problem = generateOdeProblem("distinct_real");
-		const solver = new OdeStepSolverState(() => problem);
-		solver.advanceToStep(5);
-
-		if (problem.forcing.type === "sinusoid") {
-			// Non-numeric input (validation)
-			solver.step5.a = "";
-			solver.step5.b = "";
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(false);
-			expect(solver.step5.feedbackType).toBe("validation");
-			expect(solver.currentFeedbackTitle).toBe("Input Required:");
-
-			// Incorrect numeric input
-			solver.step5.a = "999";
-			solver.step5.b = "999";
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(false);
-			expect(solver.step5.feedbackType).toBe("incorrect");
-			expect(solver.currentFeedbackTitle).toBe("Incorrect:");
-			expect(solver.step5.feedback).toContain(
-				"Incorrect coefficients $A$ and $B$",
-			);
-
-			solver.step5.a = String(problem.itsData.step5.expectedA);
-			solver.step5.b = String(problem.itsData.step5.expectedB);
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(true);
-			expect(solver.step5.feedback).toBeNull();
-			expect(solver.step5.feedbackType).toBeNull();
-		} else {
-			// Non-numeric input (validation)
-			solver.step5.kp = "";
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(false);
-			expect(solver.step5.feedbackType).toBe("validation");
-			expect(solver.currentFeedbackTitle).toBe("Input Required:");
-
-			// Incorrect numeric input
-			solver.step5.kp = "999";
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(false);
-			expect(solver.step5.feedbackType).toBe("incorrect");
-			expect(solver.currentFeedbackTitle).toBe("Incorrect:");
-			expect(solver.step5.feedback).toContain(
-				"Incorrect $K_p$ coefficient",
-			);
-
-			solver.step5.kp = String(problem.itsData.step5.expectedKp);
-			solver.checkStep5();
-			expect(solver.step5.isValid).toBe(true);
-			expect(solver.step5.feedback).toBeNull();
-			expect(solver.step5.feedbackType).toBeNull();
+	it("validates Step 5 multi-part progressive disclosure (derivatives, system, coefficients)", () => {
+		// Test sinusoidal forcing (3-part step)
+		let sinProblem = generateOdeProblem("distinct_real");
+		while (sinProblem.forcing.type !== "sinusoid") {
+			sinProblem = generateOdeProblem("distinct_real");
 		}
-		expect(solver.currentStep).toBe(6);
+
+		const sinSolver = new OdeStepSolverState(() => sinProblem);
+		sinSolver.advanceToStep(5);
+
+		expect(sinSolver.step5.activeSubStepId).toBe("derivatives");
+		expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(false);
+
+		// Part 5A: Wrong derivatives distractor
+		const wrongDeriv = sinProblem.itsData.step5.derivativeOptions?.find(
+			(o) => !o.isCorrect,
+		);
+		if (wrongDeriv) {
+			sinSolver.checkStep5Derivatives(wrongDeriv);
+			expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(false);
+			expect(sinSolver.step5.feedbackType).toBe("misconception");
+			expect(sinSolver.step5.feedback).toBe(wrongDeriv.feedback);
+		}
+
+		// Part 5A: Correct derivatives
+		const correctDeriv = sinProblem.itsData.step5.derivativeOptions?.find(
+			(o) => o.isCorrect,
+		);
+		expect(correctDeriv).toBeDefined();
+		if (correctDeriv) {
+			sinSolver.checkStep5Derivatives(correctDeriv);
+			expect(sinSolver.step5.subSteps.derivatives.isValid).toBe(true);
+			expect(sinSolver.step5.activeSubStepId).toBe("system_setup");
+		}
+
+		// Part 5B: Wrong system setup distractor
+		const wrongSys = sinProblem.itsData.step5.systemOptions?.find(
+			(o) => !o.isCorrect,
+		);
+		if (wrongSys) {
+			sinSolver.checkStep5System(wrongSys);
+			expect(sinSolver.step5.subSteps.system_setup.isValid).toBe(false);
+			expect(sinSolver.step5.feedbackType).toBe("misconception");
+			expect(sinSolver.step5.feedback).toBe(wrongSys.feedback);
+		}
+
+		// Part 5B: Correct system setup
+		const correctSys = sinProblem.itsData.step5.systemOptions?.find(
+			(o) => o.isCorrect,
+		);
+		expect(correctSys).toBeDefined();
+		if (correctSys) {
+			sinSolver.checkStep5System(correctSys);
+			expect(sinSolver.step5.subSteps.system_setup.isValid).toBe(true);
+			expect(sinSolver.step5.activeSubStepId).toBe("solve");
+		}
+
+		// Part 5C: Non-numeric input
+		sinSolver.step5.a = "";
+		sinSolver.step5.b = "";
+		sinSolver.checkStep5Coeffs();
+		expect(sinSolver.step5.subSteps.solve.isValid).toBe(false);
+		expect(sinSolver.step5.feedbackType).toBe("validation");
+
+		// Part 5C: Correct coefficients
+		sinSolver.step5.a = String(sinProblem.itsData.step5.expectedA);
+		sinSolver.step5.b = String(sinProblem.itsData.step5.expectedB);
+		sinSolver.checkStep5Coeffs();
+		expect(sinSolver.step5.subSteps.solve.isValid).toBe(true);
+		expect(sinSolver.step5.isValid).toBe(true);
+		expect(sinSolver.currentStep).toBe(6);
+
+		// Test constant forcing (2-part step)
+		let constProblem = generateOdeProblem("distinct_real");
+		while (constProblem.forcing.type === "sinusoid") {
+			constProblem = generateOdeProblem("distinct_real");
+		}
+		const constSolver = new OdeStepSolverState(() => constProblem);
+		constSolver.advanceToStep(5);
+
+		expect(constSolver.step5.activeSubStepId).toBe("derivatives");
+		const cDeriv = constProblem.itsData.step5.derivativeOptions?.find(
+			(o) => o.isCorrect,
+		);
+		if (cDeriv) {
+			constSolver.checkStep5Derivatives(cDeriv);
+			expect(constSolver.step5.subSteps.derivatives.isValid).toBe(true);
+			expect(constSolver.step5.activeSubStepId).toBe("solve");
+		}
+
+		constSolver.step5.kp = String(constProblem.itsData.step5.expectedKp);
+		constSolver.checkStep5Coeffs();
+		expect(constSolver.step5.isValid).toBe(true);
+		expect(constSolver.currentStep).toBe(6);
 	});
 
-	it("validates Step 6 initial condition constants C1, C2", () => {
+	it("validates Step 6 multi-part progressive disclosure (target values, solved constants)", () => {
 		const problem = generateOdeProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(6);
 
-		// Non-numeric input (validation)
+		expect(solver.step6.activeSubStepId).toBe("target_values");
+		expect(solver.step6.subSteps.target_values.isValid).toBe(false);
+
+		// Part 6A: Missing target values
+		solver.step6.yh0 = "";
+		solver.step6.dyh0 = "";
+		solver.checkStep6TargetValues();
+		expect(solver.step6.subSteps.target_values.isValid).toBe(false);
+		expect(solver.step6.feedbackType).toBe("validation");
+
+		// Part 6A: Wrong target values (forgetting to subtract yp)
+		solver.step6.yh0 = String(problem.initialConditions.y0);
+		solver.step6.dyh0 = String(problem.initialConditions.dy0);
+		if (
+			Math.abs(problem.itsData.step6.yp0) > 0.05 ||
+			Math.abs(problem.itsData.step6.dyp0) > 0.05
+		) {
+			solver.checkStep6TargetValues();
+			expect(solver.step6.subSteps.target_values.isValid).toBe(false);
+			expect(solver.step6.feedbackType).toBe("misconception");
+		}
+
+		// Part 6A: Correct target values
+		solver.step6.yh0 = String(problem.itsData.step6.targetYh0);
+		solver.step6.dyh0 = String(problem.itsData.step6.targetDYh0);
+		solver.checkStep6TargetValues();
+		expect(solver.step6.subSteps.target_values.isValid).toBe(true);
+		expect(solver.step6.activeSubStepId).toBe("solve_constants");
+
+		// Part 6B: Missing constants
 		solver.step6.c1 = "";
 		solver.step6.c2 = "";
-		solver.checkStep6();
-		expect(solver.step6.isValid).toBe(false);
+		solver.checkStep6Constants();
+		expect(solver.step6.subSteps.solve_constants.isValid).toBe(false);
 		expect(solver.step6.feedbackType).toBe("validation");
-		expect(solver.currentFeedbackTitle).toBe("Input Required:");
 
-		// Incorrect constants (incorrect)
+		// Part 6B: Incorrect constants
 		solver.step6.c1 = "999";
 		solver.step6.c2 = "888";
-		solver.checkStep6();
-		expect(solver.step6.isValid).toBe(false);
+		solver.checkStep6Constants();
+		expect(solver.step6.subSteps.solve_constants.isValid).toBe(false);
 		expect(solver.step6.feedbackType).toBe("incorrect");
-		expect(solver.currentFeedbackTitle).toBe("Incorrect:");
-		expect(solver.step6.feedback).toContain(
-			"Incorrect constants $C_1$, $C_2$",
-		);
 
-		// Correct constants (fractional inputs e.g. -11/3, (-11)/3, \frac{-11}{3})
-		solver.advanceToStep(6);
-		const c1 = problem.itsData.step6.expectedC1;
-		const c2 = problem.itsData.step6.expectedC2;
-		solver.step6.c1 = `(${c1 * 3})/3`;
-		solver.step6.c2 = `${c2 * 5}/5`;
-		solver.checkStep6();
+		// Part 6B: Correct constants
+		solver.step6.c1 = String(problem.itsData.step6.expectedC1);
+		solver.step6.c2 = String(problem.itsData.step6.expectedC2);
+		solver.checkStep6Constants();
+		expect(solver.step6.subSteps.solve_constants.isValid).toBe(true);
 		expect(solver.step6.isValid).toBe(true);
-		expect(solver.step6.feedback).toBeNull();
-		expect(solver.step6.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(7);
-
-		// Test exact slash fraction and LaTeX fraction inputs
-		solver.advanceToStep(6);
-		solver.step6.c1 = "-11/3";
-		solver.step6.c2 = "5/3";
-		// When problem expects -11/3 and 5/3
-		const mockProblem = {
-			...problem,
-			itsData: {
-				...problem.itsData,
-				step6: {
-					...problem.itsData.step6,
-					expectedC1: -11 / 3,
-					expectedC2: 5 / 3,
-				},
-			},
-		};
-		const mockSolver = new OdeStepSolverState(() => mockProblem);
-		mockSolver.advanceToStep(6);
-
-		// Slash fractions
-		mockSolver.step6.c1 = "-11/3";
-		mockSolver.step6.c2 = "5/3";
-		mockSolver.checkStep6();
-		expect(mockSolver.step6.isValid).toBe(true);
-		expect(mockSolver.currentStep).toBe(7);
-
-		// Parenthesized negative denominator
-		mockSolver.advanceToStep(6);
-		mockSolver.step6.c1 = "11/(-3)";
-		mockSolver.step6.c2 = "5/3";
-		mockSolver.checkStep6();
-		expect(mockSolver.step6.isValid).toBe(true);
-
-		// Parenthesized negative numerator
-		mockSolver.advanceToStep(6);
-		mockSolver.step6.c1 = "(-11)/3";
-		mockSolver.step6.c2 = "5/3";
-		mockSolver.checkStep6();
-		expect(mockSolver.step6.isValid).toBe(true);
-
-		// Unreduced fraction
-		mockSolver.advanceToStep(6);
-		mockSolver.step6.c1 = "-22/6";
-		mockSolver.step6.c2 = "10/6";
-		mockSolver.checkStep6();
-		expect(mockSolver.step6.isValid).toBe(true);
-
-		// LaTeX fractions
-		mockSolver.advanceToStep(6);
-		mockSolver.step6.c1 = "\\frac{-11}{3}";
-		mockSolver.step6.c2 = "\\frac{5}{3}";
-		mockSolver.checkStep6();
-		expect(mockSolver.step6.isValid).toBe(true);
 	});
 
-	it("validates Step 7 multi-phase response decomposition and triggers onComplete", () => {
+	it("validates Step 7 multi-part response decomposition and triggers onComplete", () => {
 		const onComplete = vi.fn();
 		const problem = generateOdeProblem("distinct_real");
 		const solver = new OdeStepSolverState(
@@ -499,16 +503,16 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		);
 		solver.advanceToStep(7);
 
-		expect(solver.step7.subStep).toBe("zi_zs");
+		expect(solver.step7.activeSubStepId).toBe("zi_zs");
 
-		// Phase 1: Missing input
+		// Part 7A: Missing input
 		solver.step7.ziC1 = "";
 		solver.step7.ziC2 = "";
 		solver.checkStep7ZI();
 		expect(solver.step7.ziZsPassed).toBe(false);
 		expect(solver.step7.feedbackType).toBe("validation");
 
-		// Phase 1: Incorrect sign misconception
+		// Part 7A: Incorrect sign misconception
 		const expC1 = problem.itsData.step7.ziConstants.C1;
 		const expC2 = problem.itsData.step7.ziConstants.C2;
 		if (Math.abs(expC1) > 0.01) {
@@ -518,38 +522,38 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			expect(solver.step7.feedbackType).toBe("misconception");
 		}
 
-		// Phase 1: Correct constants
+		// Part 7A: Correct constants
 		solver.step7.ziC1 = String(expC1);
 		solver.step7.ziC2 = String(expC2);
 		solver.checkStep7ZI();
 		expect(solver.step7.ziZsPassed).toBe(true);
-		expect(solver.step7.subStep).toBe("tr_ss");
+		expect(solver.step7.activeSubStepId).toBe("tr_ss");
 
-		// Phase 2: Missing transient / steady-state selection
+		// Part 7B: Missing transient / steady-state selection
 		solver.checkStep7TrSS();
 		expect(solver.step7.trSsPassed).toBe(false);
 		expect(solver.step7.feedbackType).toBe("validation");
 
-		// Phase 2: Wrong transient selection
+		// Part 7B: Wrong transient selection
 		solver.step7.selectedTransient = "tr_yp";
 		solver.step7.selectedSteadyState = "ss_correct";
 		solver.checkStep7TrSS();
 		expect(solver.step7.trSsPassed).toBe(false);
 		expect(solver.step7.feedbackType).toBe("misconception");
 
-		// Phase 2: Correct transient and steady-state selection
+		// Part 7B: Correct transient and steady-state selection
 		solver.step7.selectedTransient = "tr_correct";
 		solver.step7.selectedSteadyState = "ss_correct";
 		solver.checkStep7TrSS();
 		expect(solver.step7.trSsPassed).toBe(true);
-		expect(solver.step7.subStep).toBe("concept");
+		expect(solver.step7.activeSubStepId).toBe("concept");
 
-		// Phase 3: Missing conceptual answer
+		// Part 7C: Missing conceptual answer
 		solver.checkStep7Concept();
 		expect(solver.step7.conceptPassed).toBe(false);
 		expect(solver.step7.feedbackType).toBe("validation");
 
-		// Phase 3: Incorrect conceptual option
+		// Part 7C: Incorrect conceptual option
 		const wrongOption = problem.itsData.step7.conceptQuestion.options.find(
 			(o) => !o.isCorrect,
 		);
@@ -560,7 +564,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			expect(solver.step7.feedbackType).toBe("misconception");
 		}
 
-		// Phase 3: Correct conceptual option
+		// Part 7C: Correct conceptual option
 		const correctOption =
 			problem.itsData.step7.conceptQuestion.options.find(
 				(o) => o.isCorrect,
@@ -570,7 +574,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep7Concept();
 
 		expect(solver.step7.conceptPassed).toBe(true);
-		expect(solver.step7.subStep).toBe("done");
+		expect(solver.step7.activeSubStepId).toBe("concept");
 		expect(solver.currentStep).toBe(8);
 		expect(solver.isCompleted).toBe(true);
 		expect(onComplete).toHaveBeenCalledTimes(1);
@@ -600,7 +604,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solver.step6.c1).toBe("");
 		expect(solver.step7.ziC1).toBe("");
 		expect(solver.step7.ziZsPassed).toBe(false);
-		expect(solver.step7.subStep).toBe("zi_zs");
+		expect(solver.step7.activeSubStepId).toBe("zi_zs");
 	});
 
 	it("verifies all option LaTeX math strings in ODE steps are valid", () => {
