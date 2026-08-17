@@ -112,7 +112,7 @@
 		flex-direction: column;
 		gap: 0.35rem;
 		min-width: 0;
-		flex: 1 1 0;
+		flex: 1 1 220px;
 	}
 
 	/* ── Badge row ─────────────────────────────────────────── */
@@ -132,6 +132,7 @@
 		padding: 0.25rem 0.6rem;
 		border-radius: var(--radius-full);
 		width: fit-content;
+		max-width: 100%;
 		white-space: nowrap;
 	}
 
@@ -203,9 +204,23 @@
 		outline-offset: 2px;
 	}
 
-	/* ── Narrow viewport (≤360px) container query ─────────── */
+	/* ── Container query (≤580px) ──────────────────────────── */
 
-	@container (max-width: 360px) {
+	@container (max-width: 580px) {
+		.problem-header {
+			gap: 0.75rem;
+		}
+
+		.btn-next {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+		}
+	}
+
+	/* ── Mobile media query (≤580px) ───────────────────────── */
+
+	@media (max-width: 580px) {
 		.problem-header {
 			gap: 0.75rem;
 		}
@@ -217,19 +232,25 @@
 		.btn-next {
 			width: 100%;
 			text-align: center;
+			justify-content: center;
 		}
 	}
 
-	/* ── Mobile media query (≤480px) ─────────────────────── */
+	/* ── Narrow viewport (≤360px) container query ─────────── */
 
-	@media (max-width: 480px) {
+	@container (max-width: 360px) {
+		.problem-header {
+			gap: 0.5rem;
+		}
+
 		.problem-title {
-			font-size: var(--text-lg);
+			font-size: var(--text-base);
 		}
 
 		.btn-next {
 			width: 100%;
 			text-align: center;
+			justify-content: center;
 		}
 	}
 </style>

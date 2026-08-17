@@ -114,9 +114,7 @@
 	}
 
 	.drill-title {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		text-wrap: balance;
 	}
 
 	/* ── Active state badge ─────────────────────────────────── */
