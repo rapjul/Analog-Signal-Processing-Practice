@@ -217,4 +217,46 @@ test.describe("Navigation and Layout Shell", () => {
 		await page.waitForLoadState("networkidle");
 		await expect(page).toHaveURL(/\/odes$/);
 	});
+
+	/**
+	 * Verifies mutual exclusivity and coordinated Escape key dismissal between mobile menu and formula drawer.
+	 */
+	test("coordinates mutual exclusivity and LIFO Escape key dismissal on mobile viewports", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 375, height: 812 });
+		await page.goto("/");
+		await page.waitForLoadState("networkidle");
+
+		const menuToggle = page.locator(".menu-toggle");
+		const formulaBtn = page.locator(".formula-drawer-btn");
+		const navLinks = page.locator(".nav-links");
+		const drawer = page.locator(".formula-drawer");
+
+		// 1. Open mobile menu
+		await menuToggle.click();
+		await expect(navLinks).toHaveClass(/open/);
+
+		// 2. Open formula drawer -> should close mobile menu (mutual exclusivity)
+		await formulaBtn.click();
+		await expect(drawer).toBeVisible();
+		await expect(navLinks).not.toHaveClass(/open/);
+
+		// 3. Press Escape -> should dismiss formula drawer
+		await page.keyboard.press("Escape");
+		await expect(drawer).not.toBeVisible();
+
+		// 4. Open mobile menu -> press Escape -> should dismiss mobile menu
+		await menuToggle.click();
+		await expect(navLinks).toHaveClass(/open/);
+		await page.keyboard.press("Escape");
+		await expect(navLinks).not.toHaveClass(/open/);
+
+		// 5. Open formula drawer -> click close button -> should close formula drawer
+		await formulaBtn.click();
+		await expect(drawer).toBeVisible();
+		const closeBtn = page.locator(".formula-drawer .close-btn");
+		await closeBtn.click();
+		await expect(drawer).not.toBeVisible();
+	});
 });

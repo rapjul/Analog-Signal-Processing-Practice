@@ -22,11 +22,12 @@
 	let activeTab = $state<TabId>("odes");
 
 	/**
-	 * Handles keydown events to close drawer on Esc key.
+	 * Handles keydown events to close drawer on Esc key and stop propagation to underlying listeners.
 	 * @param {KeyboardEvent} event Keyboard event
 	 */
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === "Escape" && isOpen) {
+			event.stopImmediatePropagation();
 			onClose();
 		}
 	}

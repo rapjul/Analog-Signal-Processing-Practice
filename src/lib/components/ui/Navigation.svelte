@@ -53,9 +53,12 @@
 	}
 
 	/**
-	 * Toggles the mobile menu open/closed state.
+	 * Toggles the mobile menu open/closed state, closing any open formula drawer for mutual exclusivity.
 	 */
 	function toggleMenu() {
+		if (!isMenuOpen && isFormulaDrawerOpen) {
+			isFormulaDrawerOpen = false;
+		}
 		isMenuOpen = !isMenuOpen;
 	}
 
@@ -71,9 +74,10 @@
 	let isFormulaDrawerOpen = $state(false);
 
 	/**
-	 * Opens the global formula reference slide-over drawer.
+	 * Opens the global formula reference slide-over drawer, closing the mobile menu for mutual exclusivity.
 	 */
 	function openFormulaDrawer() {
+		isMenuOpen = false;
 		isFormulaDrawerOpen = true;
 	}
 
@@ -85,12 +89,21 @@
 	}
 
 	/**
-	 * Handles global keyboard shortcuts to dismiss open mobile navigation on Escape.
+	 * Handles global keyboard shortcuts to dismiss overlays in LIFO priority on Escape.
+	 *
+	 * If the formula reference drawer is active (top-most), dismisses it first;
+	 * otherwise dismisses the mobile navigation menu.
 	 * @param {KeyboardEvent} event Keyboard event
 	 */
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === "Escape" && isMenuOpen) {
-			isMenuOpen = false;
+		if (event.key === "Escape") {
+			if (isFormulaDrawerOpen) {
+				isFormulaDrawerOpen = false;
+				event.stopImmediatePropagation();
+			} else if (isMenuOpen) {
+				isMenuOpen = false;
+				event.stopImmediatePropagation();
+			}
 		}
 	}
 </script>
