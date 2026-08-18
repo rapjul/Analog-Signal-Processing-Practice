@@ -2,1080 +2,1105 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * Visual Inspection Gallery Generator for SignalLab Solved Problems.
- *
- * Scans `tests/e2e/screenshots/solvers/` and generates a standalone, interactive
- * `index.html` report with side-by-side theme comparison, 3-milestone progression rows,
- * high-resolution zoom lightbox, and full keyboard navigation (keys 1-6, 0, D, L, S, Esc, Arrows).
+ * Builds a standalone inspection gallery exclusively from the current capture
+ * manifest. Files left behind by older runs are intentionally invisible.
  */
 
 const SOLVERS_DIR = path.resolve(
 	process.cwd(),
 	"tests/e2e/screenshots/solvers",
 );
+const MANIFEST_PATH = path.join(SOLVERS_DIR, "current", "manifest.json");
 const OUTPUT_HTML = path.join(SOLVERS_DIR, "index.html");
+// The collapsible hierarchy currently replaces these two redundant selectors.
+// Toggle this flag to restore them without rebuilding their behavior.
+const SHOW_HIERARCHY_FILTERS = false;
 
-interface ScreenshotItem {
+type Theme = "dark" | "light";
+type CaptureKind = "state" | "milestone";
+type StateKind = "interactive" | "hint" | "diagnostic" | "milestone";
+
+interface VisualArtifactEntry {
 	module: string;
 	archetype: string;
-	shotType: string;
-	theme: "dark" | "light";
+	archetypeTitle: string;
+	stateId: string;
+	stateLabel: string;
+	stateKind: StateKind;
+	step?: number;
+	subStep?: string;
+	theme: Theme;
 	viewport: string;
+	captureKind: CaptureKind;
 	relativePath: string;
-	fileName: string;
 }
 
-interface MilestoneDefinition {
-	id: string;
-	title: string;
-	badge: string;
-	badgeClass: string;
-	description: string;
+interface VisualRunManifest {
+	version: number;
+	generatedAt: string;
+	coverage: {
+		stateMatrix: string;
+		milestoneMatrix: string;
+	};
+	artifacts: VisualArtifactEntry[];
 }
 
-const MILESTONES: MilestoneDefinition[] = [
-	{
-		id: "01_interactive_setup",
-		title: "Initial Problem Setup",
-		badge: "1",
-		badgeClass: "setup",
-		description:
-			"Active problem card with initial step inputs, formula prompts, and formula drawer access.",
-	},
-	{
-		id: "02_misconception_feedback",
-		title: "Misconception Diagnostic",
-		badge: "2",
-		badgeClass: "misconception",
-		description:
-			"Stepped Intelligent Tutoring System with multi-tiered hints and diagnostic error banners.",
-	},
-	{
-		id: "03_full_solution",
-		title: "Full Solution & Response Visualizer",
-		badge: "3",
-		badgeClass: "full_solution",
-		description:
-			"Complete zero-guesswork step breakdown and deferred HTML5 canvas response curves.",
-	},
-];
+function readManifest(): VisualRunManifest {
+	if (!fs.existsSync(MANIFEST_PATH)) {
+		throw new Error(
+			`No current visual manifest found at ${MANIFEST_PATH}. Run npm run capture:solvers first.`,
+		);
+	}
 
-/**
- * Scans directory recursively for generated solver screenshot PNGs.
- *
- * @param {string} dir - Directory to scan.
- * @returns {ScreenshotItem[]} List of parsed screenshot items.
- */
-function scanScreenshots(dir: string): ScreenshotItem[] {
-	if (!fs.existsSync(dir)) return [];
-	const items: ScreenshotItem[] = [];
+	const parsed = JSON.parse(
+		fs.readFileSync(MANIFEST_PATH, "utf8"),
+	) as VisualRunManifest;
+	if (parsed.version !== 2 || !Array.isArray(parsed.artifacts)) {
+		throw new Error(
+			`Unsupported visual manifest format in ${MANIFEST_PATH}. Expected version 2.`,
+		);
+	}
 
-	const modules = fs.readdirSync(dir, { withFileTypes: true });
-	for (const mod of modules) {
-		if (!mod.isDirectory()) continue;
-		const modPath = path.join(dir, mod.name);
-		const archetypes = fs.readdirSync(modPath, { withFileTypes: true });
-
-		for (const arch of archetypes) {
-			if (!arch.isDirectory()) continue;
-			const archPath = path.join(modPath, arch.name);
-			const files = fs.readdirSync(archPath);
-
-			for (const file of files) {
-				if (!file.endsWith(".png")) continue;
-				// Format: 01_interactive_setup__dark__desktop-1280x800.png
-				const parts = file.replace(".png", "").split("__");
-				if (parts.length >= 3) {
-					const shotType = parts[0];
-					const theme = parts[1] as "dark" | "light";
-					const viewport = parts[2];
-					const relativePath = `${mod.name}/${arch.name}/${file}`;
-
-					items.push({
-						module: mod.name,
-						archetype: arch.name,
-						shotType,
-						theme,
-						viewport,
-						relativePath,
-						fileName: file,
-					});
-				}
-			}
+	for (const artifact of parsed.artifacts) {
+		const absolutePath = path.resolve(SOLVERS_DIR, artifact.relativePath);
+		const relativeToRoot = path.relative(SOLVERS_DIR, absolutePath);
+		if (
+			relativeToRoot.startsWith("..") ||
+			path.isAbsolute(relativeToRoot) ||
+			!fs.existsSync(absolutePath)
+		) {
+			throw new Error(
+				`Manifest references a missing or invalid artifact: ${artifact.relativePath}`,
+			);
 		}
 	}
-	return items;
+
+	return parsed;
 }
 
-/**
- * Formats a raw slug into a human-readable title.
- *
- * @param {string} slug - Raw slug string.
- * @returns {string} Formatted title string.
- */
-function formatTitle(slug: string): string {
-	return slug
-		.split("-")
-		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-		.join(" ");
+function serializeForInlineScript(value: unknown): string {
+	return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-// ── Standalone Gallery Stylesheet (Prettier CSS Formatted) ──────
-const GALLERY_STYLES = /* css */ `
-  /* ── Core CSS Variables & Reset ────────────────────────── */
-  :root {
-    --bg-dark: #090d16;
-    --bg-black: #000000;
-    --bg-card: #131b2e;
-    --bg-card-hover: #1c2742;
-    --bg-row: rgba(9, 13, 22, 0.5);
-    --bg-item: rgba(0, 0, 0, 0.4);
-    --bg-subtle: rgba(255, 255, 255, 0.03);
-    --bg-header: rgba(9, 13, 22, 0.94);
-
-    --border-color: #1e293b;
-    --border-subtle: #192238;
-    --border-focus: #38bdf8;
-
-    --text-bright: #ffffff;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
-
-    --accent-cyan: #06b6d4;
-    --accent-cyan-hover: #0891b2;
-    --accent-cyan-bg: rgba(6, 182, 212, 0.15);
-    --accent-cyan-border-subtle: rgba(6, 182, 212, 0.4);
-    --accent-emerald: #10b981;
-    --accent-emerald-bg: rgba(16, 185, 129, 0.15);
-    --accent-amber: #f59e0b;
-    --accent-amber-bg: rgba(245, 158, 11, 0.15);
-    --accent-rose: #f43f5e;
-
-    --tag-dark-bg: rgba(0, 0, 0, 0.6);
-    --tag-dark-text: #94a3b8;
-    --tag-dark-border: #334155;
-    --tag-light-bg: rgba(255, 255, 255, 0.9);
-    --tag-light-text: #0f172a;
-    --tag-light-border: #cbd5e1;
-
-    --lightbox-bg: rgba(0, 0, 0, 0.96);
-    --lightbox-btn-bg: rgba(19, 27, 46, 0.85);
-
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-    --radius-pill: 999px;
-
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
-
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-
-    --header-height: 80px;
-
-    --scroll-padding-extra: 24px;
-
-    --gallery-scroll-offset: calc(var(--header-height) + var(--scroll-padding-extra));
-  }
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    font-family: var(--font-sans);
-    line-height: 1.5;
-    padding: 24px;
-    min-height: 100vh;
-  }
-
-  /* ── Sticky Navigation & Control Header ───────────────── */
-  header.gallery-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg-header);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--border-color);
-    padding: 16px 24px;
-    margin: -24px -24px 32px -24px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-
-  .header-branding h1 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--text-bright);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .header-branding .badge {
-    background: var(--accent-cyan-bg);
-    border: 1px solid var(--accent-cyan);
-    color: var(--accent-cyan);
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: var(--radius-pill);
-  }
-
-  .header-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .control-pill-group {
-    display: flex;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    padding: 2px;
-  }
-
-  .btn-pill {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: all 0.2s ease;
-  }
-
-  .btn-pill:hover {
-    color: var(--text-bright);
-    background: var(--bg-subtle);
-  }
-
-  .btn-pill.active {
-    background: var(--accent-cyan);
-    color: var(--bg-black);
-    font-weight: 700;
-  }
-
-  .keyboard-hint {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-  }
-
-  kbd {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    color: var(--accent-cyan);
-  }
-
-  /* ── Gallery Layout & Sections ────────────────────────── */
-  .module-section {
-    margin-bottom: 48px;
-    scroll-margin-top: var(--gallery-scroll-offset);
-  }
-
-  .btn-jump {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-family: inherit;
-    transition: all 0.15s ease;
-  }
-
-  .btn-jump:hover {
-    color: var(--text-bright);
-    background: var(--bg-subtle);
-  }
-
-  .module-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--accent-cyan);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .archetype-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    margin-bottom: 32px;
-    box-shadow: var(--shadow-sm);
-    scroll-margin-top: var(--gallery-scroll-offset);
-  }
-
-  .archetype-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 12px;
-  }
-
-  .archetype-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--text-bright);
-  }
-
-  /* ── Milestone Progression Rows ───────────────────────── */
-  .milestones-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .milestone-row {
-    background: var(--bg-row);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 16px;
-    transition: border-color 0.2s ease;
-  }
-
-  .milestone-row:hover {
-    border-color: var(--accent-cyan-border-subtle);
-  }
-
-  .milestone-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .milestone-badge {
-    width: 26px;
-    height: 26px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-pill);
-    font-size: 0.8rem;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  .milestone-badge.setup {
-    background: var(--accent-cyan-bg);
-    color: var(--accent-cyan);
-    border: 1px solid var(--accent-cyan);
-  }
-
-  .milestone-badge.misconception {
-    background: var(--accent-amber-bg);
-    color: var(--accent-amber);
-    border: 1px solid var(--accent-amber);
-  }
-
-  .milestone-badge.full_solution {
-    background: var(--accent-emerald-bg);
-    color: var(--accent-emerald);
-    border: 1px solid var(--accent-emerald);
-  }
-
-  .milestone-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .milestone-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-bright);
-  }
-
-  .milestone-desc {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  /* ── Milestone Grid Layout ────────────────────────────── */
-  .snapshots-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-  }
-
-  .snapshot-item {
-    background: var(--bg-item);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition:
-      transform 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .snapshot-item:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-cyan);
-  }
-
-  .snapshot-meta {
-    padding: 8px 12px;
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .shot-tag {
-    font-weight: 600;
-    color: var(--text-bright);
-  }
-
-  .theme-tag {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    font-weight: 700;
-  }
-
-  .theme-tag.dark {
-    background: var(--tag-dark-bg);
-    color: var(--tag-dark-text);
-    border: 1px solid var(--tag-dark-border);
-  }
-
-  .theme-tag.light {
-    background: var(--tag-light-bg);
-    color: var(--tag-light-text);
-    border: 1px solid var(--tag-light-border);
-  }
-
-  .snapshot-img-wrapper {
-    position: relative;
-    cursor: zoom-in;
-    overflow: hidden;
-    max-height: 420px;
-    background: var(--bg-black);
-  }
-
-  .snapshot-img-wrapper img {
-    width: 100%;
-    height: auto;
-    display: block;
-    transition: opacity 0.2s ease;
-  }
-
-  .snapshot-img-wrapper:hover img {
-    opacity: 0.9;
-  }
-
-  /* ── Lightbox Modal & Controls ────────────────────────── */
-  .lightbox-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: var(--lightbox-bg);
-    backdrop-filter: blur(10px);
-    padding: 24px;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-  }
-
-  .lightbox-modal.active {
-    display: flex;
-  }
-
-  .lightbox-content {
-    max-width: 95vw;
-    max-height: 85vh;
-    overflow: auto;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-color);
-  }
-
-  .lightbox-content img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  .lightbox-caption {
-    margin-top: 14px;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 95vw;
-    gap: 12px;
-  }
-
-  .lightbox-counter {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: var(--accent-cyan);
-  }
-
-  .lightbox-nav-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--lightbox-btn-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-bright);
-    font-size: 1.8rem;
-    padding: 16px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    z-index: 1010;
-  }
-
-  .lightbox-nav-btn:hover {
-    background: var(--accent-cyan);
-    color: var(--bg-black);
-    border-color: var(--accent-cyan);
-  }
-
-  .lightbox-nav-prev {
-    left: 20px;
-  }
-
-  .lightbox-nav-next {
-    right: 20px;
-  }
-
-  .btn-close-lightbox {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-bright);
-    font-size: 1.1rem;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    z-index: 1010;
-  }
-
-  .btn-close-lightbox:hover {
-    background: var(--accent-rose);
-    border-color: var(--accent-rose);
-  }
-`;
-
-// ── Standalone Gallery Script (Prettier JavaScript Formatted) ──
-const GALLERY_SCRIPT = /* javascript */ `
-  // ── Dynamic Sticky Header Offset Measurement ───────────
-  function updateHeaderOffset() {
-    const header = document.querySelector('header.gallery-header');
-    if (header) {
-      const height = header.offsetHeight;
-      document.documentElement.style.setProperty('--header-height', height + 'px');
+const manifest = readManifest();
+const pageData = serializeForInlineScript(manifest);
+
+const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SignalLab Solver Visual States</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d16;
+      --panel: #111827;
+      --panel-2: #172033;
+      --border: #26334a;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --rose: #fb7185;
+      --green: #34d399;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-  }
-
-  window.addEventListener('resize', updateHeaderOffset);
-  window.addEventListener('DOMContentLoaded', updateHeaderOffset);
-  if (typeof ResizeObserver !== 'undefined') {
-    const header = document.querySelector('header.gallery-header');
-    if (header) {
-      new ResizeObserver(updateHeaderOffset).observe(header);
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    button, select { font: inherit; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
-  }
-  updateHeaderOffset();
+    .skip-link {
+      position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-150%);
+      border-radius: 8px; background: var(--cyan); color: #04131a; padding: 8px 12px;
+      font-weight: 700;
+    }
+    .skip-link:focus { transform: translateY(0); }
+    .header {
+      position: sticky; top: 0; z-index: 20; padding: 18px 24px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      border-bottom: 1px solid var(--border); backdrop-filter: blur(16px);
+    }
+    .header.collapsed { padding-top: 10px; padding-bottom: 10px; }
+    .header.collapsed .header-details { display: none; }
+    .header-row { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+    .header-actions { display: flex; align-items: center; justify-content: end; gap: 12px; }
+    h1 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.65rem); }
+    .subtitle, .coverage { margin: 5px 0 0; color: var(--muted); font-size: .85rem; }
+    .count { color: var(--cyan); font-weight: 700; white-space: nowrap; }
+    .header-toggle {
+      border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2);
+      color: var(--text); padding: 7px 10px; cursor: pointer; white-space: nowrap;
+    }
+    .header-toggle:hover { border-color: var(--cyan); }
+    .header-toggle:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+    .filters {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px; min-inline-size: 0; margin: 16px 0 0; padding: 0; border: 0;
+    }
+    label { display: grid; gap: 5px; color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+    select {
+      width: 100%; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--panel); color: var(--text); padding: 8px 10px;
+    }
+    select optgroup { color: var(--cyan); font-weight: 700; }
+    select option { color: var(--text); font-weight: 500; }
+    .filter-actions { display: flex; align-items: end; }
+    .reset-button {
+      width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2);
+      color: var(--text); padding: 8px 12px; cursor: pointer;
+    }
+    .reset-button:hover:not(:disabled) { border-color: var(--cyan); }
+    .reset-button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+    .reset-button:disabled { opacity: .5; cursor: default; }
+    main { padding: 24px; }
+    .empty { padding: 48px 20px; color: var(--muted); text-align: center; }
+    .module-group { margin-bottom: 42px; scroll-margin-top: 190px; }
+    .module-header, .archetype-header, .step-heading, .state-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      position: relative; border: 1px solid var(--border); background: var(--panel);
+      cursor: pointer;
+    }
+    .module-header { padding: 13px 15px; border-radius: 12px; }
+    .archetype { margin: 14px 0 26px 16px; padding-left: 16px; border-left: 2px solid var(--border); }
+    .archetype-header {
+      padding: 14px 16px; border-radius: 12px;
+      border-color: color-mix(in srgb, var(--cyan) 52%, var(--border));
+      background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 13%, var(--panel)), var(--panel));
+      box-shadow: inset 4px 0 0 color-mix(in srgb, var(--cyan) 78%, transparent);
+    }
+    .group-heading {
+      min-width: 0; display: flex; align-items: baseline; gap: 10px;
+      padding-right: 8.5rem; pointer-events: none;
+    }
+    .module-header h2, .archetype-header h3, .step-heading h4, .state-header h5 { margin: 0; }
+    .module-header h2 { font-size: 1.15rem; }
+    .archetype-header h3 { color: var(--text); font-size: 1.05rem; }
+    .hierarchy-label {
+      flex: none; border: 1px solid color-mix(in srgb, var(--cyan) 50%, var(--border));
+      border-radius: 999px; padding: 2px 7px; color: var(--cyan);
+      font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .group-count, .step-count { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+    .module-content, .archetype-content, .step-content { padding-top: 2px; }
+    .group-content[hidden] { display: none; }
+    .group-toggle {
+      position: absolute; inset: 0; z-index: 1; width: 100%;
+      border: 0; border-radius: inherit; background: transparent; color: var(--text);
+      padding: 0; cursor: pointer;
+    }
+    .toggle-label {
+      position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+      border: 0; border-radius: 8px; background: var(--panel-2);
+      padding: 6px 10px; pointer-events: none;
+    }
+    .module-header:has(.group-toggle:hover), .archetype-header:has(.group-toggle:hover),
+    .step-heading:has(.group-toggle:hover), .state-header:has(.group-toggle:hover) {
+      border-color: var(--cyan);
+    }
+    .group-toggle:focus-visible { outline: 3px solid var(--cyan); outline-offset: -3px; }
+    .step-group { margin: 16px 0 24px; }
+    .step-heading {
+      margin: 0 0 10px; padding: 9px 10px; border-radius: 9px;
+      background: color-mix(in srgb, var(--panel) 78%, var(--bg));
+    }
+    .step-heading h4 { color: var(--text); font-size: .92rem; }
+    .state-group { margin: 10px 0 18px 12px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .state-header { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; }
+    .state-header h5 { font-size: .84rem; }
+    .step-direct-grid { margin: 10px 0 18px 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 370px), 1fr)); gap: 14px; }
+    .card { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+    .card-header { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border-bottom: 1px solid var(--border); }
+    .state-label { min-width: 0; font-size: .88rem; font-weight: 700; }
+    .state-id { margin-top: 3px; overflow: hidden; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .67rem; text-overflow: ellipsis; white-space: nowrap; }
+    .tags { display: flex; flex-wrap: wrap; justify-content: end; align-content: start; gap: 5px; }
+    .tag { border: 1px solid var(--border); border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: .64rem; white-space: nowrap; }
+    .tag.diagnostic { border-color: color-mix(in srgb, var(--rose) 55%, var(--border)); color: var(--rose); }
+    .tag.hint { border-color: color-mix(in srgb, var(--amber) 55%, var(--border)); color: var(--amber); }
+    .tag.milestone { border-color: color-mix(in srgb, var(--green) 55%, var(--border)); color: var(--green); }
+    .image-button {
+      display: block; width: 100%; padding: 0 3px 4px;
+      border: 0; border-radius: 0 0 13px 13px; background: var(--panel); cursor: zoom-in;
+    }
+    .image-button:focus-visible { outline: 3px solid var(--cyan); outline-offset: -3px; }
+    .image-button img {
+      display: block; width: 100%; max-height: 620px; border-radius: 0 0 10px 10px;
+      object-fit: contain; object-position: top; background: #020617;
+    }
+    .card.desktop-edge-screenshot .image-button img { border-radius: 0; }
+    .lightbox { position: fixed; inset: 0; z-index: 100; display: none; background: rgba(0, 0, 0, .94); }
+    .lightbox.open { display: grid; grid-template-rows: auto 1fr; gap: 6px; }
+    .lightbox-bar {
+      display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
+      gap: 16px; padding: 12px 16px; background: #020617; border-bottom: 1px solid var(--border);
+    }
+    .lightbox-heading { min-width: 0; display: grid; gap: 4px; text-align: center; }
+    .lightbox-descriptor-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lightbox-descriptor {
+      min-width: 0; overflow: hidden; padding-inline: 12px;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lightbox-descriptor:first-child { text-align: right; }
+    .lightbox-descriptor:last-child { text-align: left; }
+    .lightbox-descriptor + .lightbox-descriptor { border-left: 1px solid var(--border); }
+    .lightbox-meta { color: var(--muted); font-size: .78rem; }
+    .lightbox-actions {
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+    }
+    .lightbox-action-group { display: flex; align-items: center; gap: 8px; }
+    .lightbox-navigation { justify-self: start; }
+    .lightbox-zoom {
+      justify-self: center; padding-inline: 16px;
+      border-inline: 1px solid var(--border);
+    }
+    .lightbox-close { justify-self: end; }
+    .icon-button { border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); color: var(--text); padding: 7px 11px; cursor: pointer; }
+    .icon-button:hover:not(:disabled) { border-color: var(--cyan); }
+    .icon-button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+    .icon-button:disabled { opacity: .45; cursor: default; }
+    .zoom-level { min-width: 4.4rem; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+    .lightbox-stage { min-height: 0; overflow: auto; padding: 10px 20px 20px; }
+    .lightbox-canvas {
+      display: flex; width: max-content; min-width: 100%; height: max-content;
+      min-height: 100%; align-items: flex-start; justify-content: center;
+    }
+    .lightbox-stage img {
+      display: block; flex: none; max-width: none; max-height: none; height: auto;
+      border: 1px solid var(--border); border-radius: 8px; background: #020617;
+    }
+    @media (max-width: 900px) {
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lightbox-bar { gap: 8px; }
+    }
+    @media (max-width: 520px) {
+      .header, main { padding-left: 12px; padding-right: 12px; }
+      .header-row { align-items: center; }
+      .header-actions { gap: 8px; }
+      .header-toggle { padding: 6px 8px; }
+      .filters { grid-template-columns: 1fr; }
+      .coverage { display: none; }
+      .archetype { margin-left: 6px; padding-left: 8px; }
+      .state-group { margin-left: 4px; padding-left: 6px; }
+      .module-header, .archetype-header, .step-heading, .state-header { align-items: flex-start; }
+      .group-heading { display: grid; gap: 3px; }
+      .group-heading { padding-right: 7.25rem; }
+      .hierarchy-label { width: max-content; }
+      .lightbox-actions { grid-template-columns: 1fr auto; }
+      .lightbox-zoom {
+        grid-column: 1 / -1; grid-row: 2; justify-self: center;
+        border-inline: 0; border-top: 1px solid var(--border); padding: 8px 0 0;
+      }
+      .lightbox-stage { padding: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#gallery">Skip to gallery</a>
+  <header class="header">
+    <div class="header-row">
+      <h1>SignalLab Solver Visual States</h1>
+      <div class="header-actions">
+        <div class="count" id="count" aria-live="polite"></div>
+        <button class="header-toggle" id="header-toggle" type="button" aria-expanded="true" aria-controls="header-details">Hide filters ↑</button>
+      </div>
+    </div>
+    <div class="header-details" id="header-details">
+      <div>
+        <p class="subtitle">Manifest generated <span id="generated-at"></span></p>
+        <p class="coverage" id="coverage"></p>
+      </div>
+      <fieldset class="filters">
+        <legend class="sr-only">Gallery filters</legend>
+        <label${SHOW_HIERARCHY_FILTERS ? "" : " hidden"}>Module<select id="module-filter"></select></label>
+        <label${SHOW_HIERARCHY_FILTERS ? "" : " hidden"}>Archetype<select id="archetype-filter"></select></label>
+        <label>State<select id="state-filter"></select></label>
+        <label>Viewport<select id="viewport-filter"></select></label>
+        <label>Theme<select id="theme-filter"></select></label>
+        <div class="filter-actions">
+          <button class="reset-button" id="reset-filters" type="button">Reset filters</button>
+        </div>
+      </fieldset>
+    </div>
+  </header>
+  <main id="gallery" tabindex="-1"></main>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-caption" aria-describedby="lightbox-help">
+    <div class="lightbox-bar">
+      <div class="lightbox-heading">
+        <div class="lightbox-descriptor-row lightbox-caption" id="lightbox-caption">
+          <div class="lightbox-descriptor" id="lightbox-archetype"></div>
+          <div class="lightbox-descriptor" id="lightbox-state"></div>
+        </div>
+        <div class="lightbox-descriptor-row lightbox-meta">
+          <div class="lightbox-descriptor" id="lightbox-viewport"></div>
+          <div class="lightbox-descriptor" id="lightbox-theme"></div>
+        </div>
+      </div>
+      <p class="sr-only" id="lightbox-help">Use the arrow buttons to move between screenshots. Use plus and minus to zoom, Fit Page to show the whole image, or Fit Width to fill the available width. Press Escape to close.</p>
+      <div class="lightbox-actions">
+        <div class="lightbox-action-group lightbox-navigation" aria-label="Screenshot navigation">
+          <button class="icon-button" id="previous" type="button" aria-label="Previous screenshot">←</button>
+          <button class="icon-button" id="next" type="button" aria-label="Next screenshot">→</button>
+        </div>
+        <div class="lightbox-action-group lightbox-zoom" aria-label="Screenshot zoom">
+          <button class="icon-button" id="zoom-out" type="button" aria-label="Zoom out">−</button>
+          <span class="zoom-level" id="zoom-level" aria-live="polite">Fit page</span>
+          <button class="icon-button" id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button class="icon-button" id="zoom-fit" type="button">Fit Page</button>
+          <button class="icon-button" id="zoom-fit-width" type="button">Fit Width</button>
+        </div>
+        <div class="lightbox-action-group lightbox-close">
+          <button class="icon-button" id="close" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="lightbox-stage" id="lightbox-stage">
+      <div class="lightbox-canvas" id="lightbox-canvas"><img id="lightbox-image" alt=""></div>
+    </div>
+  </div>
+  <script>
+    const manifest = ${pageData};
+    const artifacts = manifest.artifacts;
+    const controls = {
+      module: document.getElementById('module-filter'),
+      archetype: document.getElementById('archetype-filter'),
+      state: document.getElementById('state-filter'),
+      viewport: document.getElementById('viewport-filter'),
+      theme: document.getElementById('theme-filter')
+    };
+    const filterFields = {
+      module: 'module',
+      archetype: 'archetype',
+      state: 'stateId',
+      viewport: 'viewport',
+      theme: 'theme'
+    };
+    const filterLabels = {
+      module: 'All modules',
+      archetype: 'All archetypes',
+      state: 'All states',
+      viewport: 'All viewports',
+      theme: 'Both themes'
+    };
+    const defaultFilterValues = {
+      module: '',
+      archetype: '',
+      state: '',
+      viewport: '',
+      theme: 'dark'
+    };
+    const filterKeys = Object.keys(controls);
+    const resetFilters = document.getElementById('reset-filters');
+    const skipLink = document.querySelector('.skip-link');
+    const header = document.querySelector('.header');
+    const headerToggle = document.getElementById('header-toggle');
+    const gallery = document.getElementById('gallery');
+    const count = document.getElementById('count');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxStage = document.getElementById('lightbox-stage');
+    const lightboxCanvas = document.getElementById('lightbox-canvas');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxArchetype = document.getElementById('lightbox-archetype');
+    const lightboxState = document.getElementById('lightbox-state');
+    const lightboxViewport = document.getElementById('lightbox-viewport');
+    const lightboxTheme = document.getElementById('lightbox-theme');
+    const zoomLevel = document.getElementById('zoom-level');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomIn = document.getElementById('zoom-in');
+    let visibleArtifacts = [];
+    let lightboxIndex = -1;
+    let lightboxTrigger = null;
+    let lightboxFitWidth = 0;
+    let lightboxFitHeight = 0;
+    let lightboxZoom = 1;
+    let lightboxFitMode = 'contain';
+    const collapsedModules = new Set();
+    const collapsedArchetypes = new Set();
+    const collapsedSteps = new Set();
+    const collapsedStates = new Set();
 
-  // ── Combined Filtering State (Theme & Viewport) ─────────
-  let currentTheme = 'all';
-  let currentViewport = 'all';
+    document.getElementById('generated-at').textContent = new Date(manifest.generatedAt).toLocaleString();
+    document.getElementById('coverage').textContent = manifest.coverage.stateMatrix + ' ' + manifest.coverage.milestoneMatrix;
 
-  function applyFilters() {
-    document.querySelectorAll('#theme-filters .btn-pill').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.themeFilter === currentTheme);
-    });
-    document.querySelectorAll('#viewport-filters .btn-pill').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.viewportFilter === currentViewport);
-    });
+    function filterItemLabel(key, item) {
+      if (key === 'state') return milestoneLabels.get(item.stateId) ?? item.stateLabel;
+      if (key === 'viewport') return viewportLabels.get(item.viewport) ?? item.viewport;
+      if (key === 'theme') return themeLabels.get(item.theme) ?? item.theme;
+      if (key === 'module') return moduleLabels.get(item.module) ?? item.module;
+      if (key === 'archetype') return item.archetypeTitle;
+      return item[filterFields[key]];
+    }
 
-    document.querySelectorAll('.snapshot-item').forEach(item => {
-      const themeMatch = (currentTheme === 'all' || item.dataset.theme === currentTheme);
-      const viewportMatch = (currentViewport === 'all' || item.dataset.viewport.includes(currentViewport));
-      if (themeMatch && viewportMatch) {
-        item.style.display = 'flex';
+    function stateFilterGroup(item) {
+      if (item.stateId.startsWith('milestone.')) {
+        return { label: 'Milestones', order: -1 };
+      }
+      const number = stepNumber(item);
+      if (number < Number.MAX_SAFE_INTEGER - 1) {
+        return { label: 'Step ' + number, order: number };
+      }
+      return { label: 'Other states', order: Number.MAX_SAFE_INTEGER };
+    }
+
+    function compareFilterItems(key, a, b) {
+      if (key === 'state') {
+        const aGroup = stateFilterGroup(a);
+        const bGroup = stateFilterGroup(b);
+        const milestoneOrder = new Map([
+          ['milestone.initial', 0],
+          ['milestone.diagnostic', 1],
+          ['milestone.completed', 2]
+        ]);
+        return aGroup.order - bGroup.order
+          || (milestoneOrder.get(a.stateId) ?? 99) - (milestoneOrder.get(b.stateId) ?? 99)
+          || compareArtifacts(a, b);
+      }
+      if (key === 'viewport') {
+        return (viewportOrder.get(a.viewport) ?? 99) - (viewportOrder.get(b.viewport) ?? 99);
+      }
+      if (key === 'theme') return a.theme === b.theme ? 0 : a.theme === 'dark' ? -1 : 1;
+      return naturalCollator.compare(filterItemLabel(key, a), filterItemLabel(key, b));
+    }
+
+    function uniqueFilterItems(key, items) {
+      const sortedItems = [...items].sort((a, b) => compareFilterItems(key, a, b));
+      const itemByValue = new Map();
+      for (const item of sortedItems) {
+        const value = item[filterFields[key]];
+        if (!itemByValue.has(value)) itemByValue.set(value, item);
+      }
+      return [...itemByValue.values()];
+    }
+
+    function appendFilterOption(parent, key, item) {
+      const option = document.createElement('option');
+      option.value = item[filterFields[key]];
+      option.textContent = filterItemLabel(key, item);
+      parent.append(option);
+    }
+
+    function fillSelect(key, items, selectedValue = '') {
+      const select = controls[key];
+      const uniqueItems = uniqueFilterItems(key, items);
+      select.replaceChildren();
+      const all = document.createElement('option');
+      all.value = '';
+      all.textContent = filterLabels[key];
+      select.append(all);
+
+      if (key === 'state') {
+        const groups = new Map();
+        for (const item of uniqueItems) {
+          const group = stateFilterGroup(item);
+          if (!groups.has(group.label)) groups.set(group.label, []);
+          groups.get(group.label).push(item);
+        }
+        for (const [label, groupItems] of groups) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = label;
+          for (const item of groupItems) appendFilterOption(optgroup, key, item);
+          select.append(optgroup);
+        }
       } else {
-        item.style.display = 'none';
+        for (const item of uniqueItems) appendFilterOption(select, key, item);
       }
-    });
 
-    // Hide milestone rows that have no visible items
-    document.querySelectorAll('.milestone-row').forEach(row => {
-      const hasVisible = Array.from(row.querySelectorAll('.snapshot-item')).some(item => item.style.display !== 'none');
-      row.style.display = hasVisible ? 'block' : 'none';
-    });
-
-    // Hide archetype cards that have no visible items
-    document.querySelectorAll('.archetype-card').forEach(card => {
-      const hasVisible = Array.from(card.querySelectorAll('.snapshot-item')).some(item => item.style.display !== 'none');
-      card.style.display = hasVisible ? 'block' : 'none';
-    });
-  }
-
-  function setThemeFilter(theme) {
-    currentTheme = theme;
-    applyFilters();
-  }
-
-  function setViewportFilter(viewport) {
-    currentViewport = viewport;
-    applyFilters();
-  }
-
-  document.querySelectorAll('#theme-filters .btn-pill').forEach(btn => {
-    btn.addEventListener('click', () => setThemeFilter(btn.dataset.themeFilter));
-  });
-
-  document.querySelectorAll('#viewport-filters .btn-pill').forEach(btn => {
-    btn.addEventListener('click', () => setViewportFilter(btn.dataset.viewportFilter));
-  });
-
-  // ── Jump to Solver Module ───────────────────────────────
-  function jumpToModule(modKey) {
-    if (modKey === '0') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    const target = document.getElementById('module-' + modKey);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
-
-  // ── Lightbox State & Navigation ─────────────────────────
-  let activeLightboxIndex = -1;
-
-  function getVisibleItems() {
-    return Array.from(document.querySelectorAll('.snapshot-item')).filter(
-      item => item.style.display !== 'none'
-    );
-  }
-
-  function openLightboxByIndex(index) {
-    const visible = getVisibleItems();
-    if (visible.length === 0) return;
-    if (index < 0) index = visible.length - 1;
-    if (index >= visible.length) index = 0;
-    activeLightboxIndex = index;
-
-    const item = visible[index];
-    const img = item.querySelector('img');
-    const caption = item.dataset.caption || img.alt;
-    const src = img.src;
-
-    document.getElementById('lightbox-img').src = src;
-    document.getElementById('lightbox-caption').innerHTML =
-      '<span>' + caption + '</span><span class="lightbox-counter">' + (index + 1) + ' / ' + visible.length + '</span>';
-    document.getElementById('lightbox').classList.add('active');
-  }
-
-  function openLightboxFromElement(elem) {
-    const visible = getVisibleItems();
-    const idx = visible.indexOf(elem);
-    openLightboxByIndex(idx !== -1 ? idx : 0);
-  }
-
-  function nextLightbox() {
-    openLightboxByIndex(activeLightboxIndex + 1);
-  }
-
-  function prevLightbox() {
-    openLightboxByIndex(activeLightboxIndex - 1);
-  }
-
-  function nextMilestoneLightbox(direction) {
-    const visible = getVisibleItems();
-    if (activeLightboxIndex < 0 || activeLightboxIndex >= visible.length) return;
-    const currentItem = visible[activeLightboxIndex];
-    const currTheme = currentItem.dataset.theme;
-    const currViewport = currentItem.dataset.viewport;
-    const currentCard = currentItem.closest('.archetype-card');
-    const currentMilestoneRow = currentItem.closest('.milestone-row');
-
-    if (!currentCard || !currentMilestoneRow) {
-      openLightboxByIndex(activeLightboxIndex + direction);
-      return;
+      const values = uniqueItems.map(item => item[filterFields[key]]);
+      select.value = values.includes(selectedValue) ? selectedValue : '';
     }
 
-    const rows = Array.from(currentCard.querySelectorAll('.milestone-row')).filter(r => r.style.display !== 'none');
-    const currRowIdx = rows.indexOf(currentMilestoneRow);
-    const targetRowIdx = currRowIdx + direction;
+    function itemMatchesSelection(item, key) {
+      const selectedValue = controls[key].value;
+      return !selectedValue || item[filterFields[key]] === selectedValue;
+    }
 
-    if (targetRowIdx >= 0 && targetRowIdx < rows.length) {
-      // Move within the current card's rows
-      const targetRow = rows[targetRowIdx];
-      const match = Array.from(targetRow.querySelectorAll('.snapshot-item')).find(
-        it => it.dataset.theme === currTheme && it.dataset.viewport === currViewport && it.style.display !== 'none'
-      ) || Array.from(targetRow.querySelectorAll('.snapshot-item')).find(
-        it => it.dataset.viewport === currViewport && it.style.display !== 'none'
-      ) || targetRow.querySelector('.snapshot-item');
+    function normalizeSelections(preferredKey) {
+      const orderedKeys = [preferredKey, ...filterKeys.filter(key => key !== preferredKey)];
+      let compatibleArtifacts = artifacts;
 
-      if (match) {
-        const newIdx = visible.indexOf(match);
-        if (newIdx !== -1) {
-          openLightboxByIndex(newIdx);
-          return;
-        }
+      for (const key of orderedKeys) {
+        const selectedValue = controls[key].value;
+        if (!selectedValue) continue;
+        const narrowedArtifacts = compatibleArtifacts.filter(item => itemMatchesSelection(item, key));
+        if (narrowedArtifacts.length) compatibleArtifacts = narrowedArtifacts;
+        else controls[key].value = '';
       }
-    } else {
-      // Jump across cards/solvers while preserving the exact current viewport and theme!
-      const allCards = Array.from(document.querySelectorAll('.archetype-card')).filter(c => c.style.display !== 'none');
-      const currCardIdx = allCards.indexOf(currentCard);
-      if (currCardIdx !== -1 && allCards.length > 1) {
-        let targetCardIdx = currCardIdx + direction;
-        if (targetCardIdx < 0) targetCardIdx = allCards.length - 1;
-        if (targetCardIdx >= allCards.length) targetCardIdx = 0;
+    }
 
-        const targetCard = allCards[targetCardIdx];
-        const targetRows = Array.from(targetCard.querySelectorAll('.milestone-row')).filter(r => r.style.display !== 'none');
-        if (targetRows.length > 0) {
-          // If going down, pick the first row of the next card; if going up, pick the last row of the previous card
-          const targetRow = direction > 0 ? targetRows[0] : targetRows[targetRows.length - 1];
-          const match = Array.from(targetRow.querySelectorAll('.snapshot-item')).find(
-            it => it.dataset.theme === currTheme && it.dataset.viewport === currViewport && it.style.display !== 'none'
-          ) || Array.from(targetCard.querySelectorAll('.snapshot-item')).find(
-            it => it.dataset.viewport === currViewport && it.style.display !== 'none'
-          ) || targetCard.querySelector('.snapshot-item');
+    function refreshFilterOptions() {
+      const optionsByKey = new Map(filterKeys.map(key => {
+        const matchingArtifacts = artifacts.filter(item => filterKeys.every(otherKey =>
+          otherKey === key || itemMatchesSelection(item, otherKey)
+        ));
+        return [key, matchingArtifacts];
+      }));
 
-          if (match) {
-            const newIdx = visible.indexOf(match);
-            if (newIdx !== -1) {
-              openLightboxByIndex(newIdx);
-              return;
-            }
+      for (const key of filterKeys) {
+        fillSelect(key, optionsByKey.get(key), controls[key].value);
+      }
+    }
+
+    function matches(item) {
+      return filterKeys.every(key => itemMatchesSelection(item, key));
+    }
+
+    function filtersMatchDefaults() {
+      return filterKeys.every(key => controls[key].value === defaultFilterValues[key]);
+    }
+
+    function applyDefaultFilters() {
+      for (const key of filterKeys) controls[key].value = defaultFilterValues[key];
+    }
+
+    const naturalCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    const subStepOrder = new Map([
+      ['strategy_gate', 0],
+      ['factoring_inputs', 1],
+      ['quad_classification', 2],
+      ['remedial_discriminant', 3],
+      ['quad_root_inputs', 4],
+      ['first_deriv', 0],
+      ['second_deriv', 1],
+      ['system_setup', 2],
+      ['solve', 3],
+      ['target_values', 0],
+      ['solve_constants', 1],
+      ['zi_zs', 0],
+      ['tr_ss', 1],
+      ['concept', 2]
+    ]);
+    const viewportOrder = new Map([
+      ['desktop-1280x800', 0],
+      ['tablet-768x1024', 1],
+      ['mobile-narrow-320x568', 2]
+    ]);
+    const viewportLabels = new Map([
+      ['desktop-1280x800', 'Desktop · 1280 × 800'],
+      ['tablet-768x1024', 'Tablet · 768 × 1024'],
+      ['mobile-narrow-320x568', 'Mobile · 320 × 568']
+    ]);
+    const themeLabels = new Map([
+      ['dark', 'Dark mode'],
+      ['light', 'Light mode']
+    ]);
+    const milestoneLabels = new Map([
+      ['milestone.initial', 'Initial problem setup'],
+      ['milestone.diagnostic', 'Representative diagnostic'],
+      ['milestone.completed', 'Completed solution and visualizer']
+    ]);
+    const stateKindOrder = new Map([
+      ['interactive', 0],
+      ['hint', 1],
+      ['diagnostic', 2],
+      ['milestone', 3]
+    ]);
+    const moduleLabels = new Map([
+      ['odes', 'ODE'],
+      ['fourier-series', 'Fourier Series'],
+      ['fourier-transform', 'Fourier Transform'],
+      ['convolution', 'Convolution'],
+      ['laplace', 'Laplace'],
+      ['circuits', 'Circuits']
+    ]);
+
+    function stepNumber(item) {
+      if (item.stateId === 'milestone.initial') return -1;
+      if (item.stateId === 'milestone.completed') return Number.MAX_SAFE_INTEGER;
+      if (Number.isFinite(item.step)) return item.step;
+      const match = item.stateLabel.match(/\\bStep\\s+(\\d+)/i);
+      return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER - 1;
+    }
+
+    function compareArtifacts(a, b) {
+      return naturalCollator.compare(a.module, b.module)
+        || naturalCollator.compare(a.archetypeTitle, b.archetypeTitle)
+        || stepNumber(a) - stepNumber(b)
+        || (subStepOrder.get(a.subStep) ?? (a.captureKind === 'milestone' ? 90 : 0))
+          - (subStepOrder.get(b.subStep) ?? (b.captureKind === 'milestone' ? 90 : 0))
+        || (stateKindOrder.get(a.stateKind) ?? 99) - (stateKindOrder.get(b.stateKind) ?? 99)
+        || naturalCollator.compare(a.stateLabel, b.stateLabel)
+        || naturalCollator.compare(a.stateId, b.stateId)
+        || (viewportOrder.get(a.viewport) ?? 99) - (viewportOrder.get(b.viewport) ?? 99)
+        || naturalCollator.compare(a.theme, b.theme);
+    }
+
+    function captureCountLabel(value) {
+      return value + ' screenshot' + (value === 1 ? '' : 's');
+    }
+
+    function stepGroupInfo(item) {
+      if (item.stateId === 'milestone.initial') {
+        return { key: 'initial', label: 'Initial state' };
+      }
+      if (item.stateId === 'milestone.completed') {
+        return { key: 'completed', label: 'Completed solution' };
+      }
+      const number = stepNumber(item);
+      if (number < Number.MAX_SAFE_INTEGER - 1) {
+        return { key: 'step-' + number, label: 'Step ' + number };
+      }
+      return { key: 'other', label: 'Other states' };
+    }
+
+    function initializeCollapsedGroups() {
+      for (const item of artifacts) {
+        collapsedModules.add(item.module);
+        collapsedArchetypes.add(item.archetype);
+        collapsedSteps.add(item.archetype + '::' + stepGroupInfo(item).key);
+        collapsedStates.add(item.archetype + '::' + item.stateId);
+      }
+    }
+
+    function makeGroupToggle(label, content, collapsedKeys, key) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'group-toggle';
+      button.setAttribute('aria-controls', content.id);
+      const visualLabel = document.createElement('span');
+      visualLabel.className = 'toggle-label';
+      button.append(visualLabel);
+
+      function sync() {
+        const collapsed = collapsedKeys.has(key);
+        content.hidden = collapsed;
+        button.setAttribute('aria-expanded', String(!collapsed));
+        button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + label);
+        visualLabel.textContent = collapsed ? 'Expand ↓' : 'Collapse ↑';
+      }
+
+      button.addEventListener('click', () => {
+        if (collapsedKeys.has(key)) collapsedKeys.delete(key);
+        else collapsedKeys.add(key);
+        sync();
+      });
+      button.addEventListener('focus', () => {
+        requestAnimationFrame(() => {
+          const headerBottom = header.getBoundingClientRect().bottom;
+          const buttonTop = button.getBoundingClientRect().top;
+          if (buttonTop < headerBottom + 12) {
+            window.scrollBy({ top: buttonTop - headerBottom - 12, behavior: 'instant' });
           }
+        });
+      });
+      sync();
+      return button;
+    }
+
+    function makeTag(text, className) {
+      const tag = document.createElement('span');
+      tag.className = 'tag' + (className ? ' ' + className : '');
+      tag.textContent = text;
+      return tag;
+    }
+
+    function makeCard(item, index) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      if (item.viewport === 'desktop-1280x800' && item.captureKind === 'state') {
+        card.classList.add('desktop-edge-screenshot');
+      }
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'card-header';
+      const labelBox = document.createElement('div');
+      labelBox.className = 'state-label';
+      labelBox.textContent = item.stateLabel;
+      const stateId = document.createElement('div');
+      stateId.className = 'state-id';
+      stateId.textContent = item.stateId;
+      labelBox.append(stateId);
+      const tags = document.createElement('div');
+      tags.className = 'tags';
+      tags.append(
+        makeTag(viewportLabels.get(item.viewport) ?? item.viewport),
+        makeTag(themeLabels.get(item.theme) ?? item.theme),
+        makeTag(item.stateKind, item.stateKind)
+      );
+      cardHeader.append(labelBox, tags);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'image-button';
+      button.setAttribute('aria-label', 'Open ' + item.stateLabel);
+      button.addEventListener('click', () => openLightbox(index, button));
+      const image = document.createElement('img');
+      image.src = item.relativePath;
+      image.alt = item.stateLabel + ' (' + item.theme + ', ' + item.viewport + ')';
+      image.loading = 'lazy';
+      button.append(image);
+      card.append(cardHeader, button);
+      return card;
+    }
+
+    function applyLightboxZoom() {
+      if (!lightboxFitWidth || !lightboxFitHeight) return;
+      lightboxImage.style.width = Math.round(lightboxFitWidth * lightboxZoom) + 'px';
+      lightboxImage.style.height = Math.round(lightboxFitHeight * lightboxZoom) + 'px';
+      zoomLevel.textContent = lightboxZoom === 1
+        ? (lightboxFitMode === 'width' ? 'Fit width' : 'Fit page')
+        : Math.round(lightboxZoom * 100) + '%';
+      zoomOut.disabled = lightboxZoom <= 0.5;
+      zoomIn.disabled = lightboxZoom >= 4;
+    }
+
+    function sizeLightboxImage(mode, preserveZoom = false) {
+      if (!lightboxImage.naturalWidth || !lightboxImage.naturalHeight) return;
+      const stageStyle = getComputedStyle(lightboxStage);
+      const availableWidth = lightboxStage.clientWidth
+        - parseFloat(stageStyle.paddingLeft) - parseFloat(stageStyle.paddingRight);
+      const availableHeight = lightboxStage.clientHeight
+        - parseFloat(stageStyle.paddingTop) - parseFloat(stageStyle.paddingBottom);
+      const widthScale = availableWidth / lightboxImage.naturalWidth;
+      const fitScale = mode === 'width'
+        ? widthScale
+        : Math.min(widthScale, availableHeight / lightboxImage.naturalHeight);
+      lightboxFitMode = mode;
+      lightboxFitWidth = lightboxImage.naturalWidth * fitScale;
+      lightboxFitHeight = lightboxImage.naturalHeight * fitScale;
+      if (!preserveZoom) lightboxZoom = 1;
+      applyLightboxZoom();
+      if (!preserveZoom) lightboxStage.scrollTo({ top: 0, left: 0 });
+    }
+
+    function fitLightboxImage(preserveZoom = false) {
+      sizeLightboxImage('contain', preserveZoom);
+    }
+
+    function fitLightboxWidth(preserveZoom = false) {
+      sizeLightboxImage('width', preserveZoom);
+    }
+
+    function changeLightboxZoom(delta) {
+      const previousWidth = lightboxStage.scrollWidth;
+      const previousHeight = lightboxStage.scrollHeight;
+      const centerX = (lightboxStage.scrollLeft + lightboxStage.clientWidth / 2) / previousWidth;
+      const centerY = (lightboxStage.scrollTop + lightboxStage.clientHeight / 2) / previousHeight;
+      lightboxZoom = Math.min(4, Math.max(0.5, Math.round((lightboxZoom + delta) * 4) / 4));
+      applyLightboxZoom();
+      requestAnimationFrame(() => {
+        lightboxStage.scrollTo({
+          left: centerX * lightboxStage.scrollWidth - lightboxStage.clientWidth / 2,
+          top: centerY * lightboxStage.scrollHeight - lightboxStage.clientHeight / 2
+        });
+      });
+    }
+
+    function openLightbox(index, trigger = null) {
+      lightboxIndex = index;
+      const item = visibleArtifacts[index];
+      if (!item) return;
+      if (trigger) lightboxTrigger = trigger;
+      lightboxZoom = 1;
+      lightboxFitMode = 'contain';
+      lightboxFitWidth = 0;
+      lightboxFitHeight = 0;
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      skipLink.inert = true;
+      header.inert = true;
+      gallery.inert = true;
+      lightboxImage.src = item.relativePath;
+      lightboxImage.alt = item.stateLabel;
+      lightboxArchetype.textContent = item.archetypeTitle;
+      lightboxArchetype.title = item.archetypeTitle;
+      lightboxState.textContent = item.stateLabel;
+      lightboxState.title = item.stateLabel;
+      lightboxViewport.textContent = viewportLabels.get(item.viewport) ?? item.viewport;
+      lightboxViewport.title = lightboxViewport.textContent;
+      lightboxTheme.textContent = themeLabels.get(item.theme) ?? item.theme;
+      lightboxTheme.title = lightboxTheme.textContent;
+      if (lightboxImage.complete) requestAnimationFrame(() => fitLightboxImage());
+      document.getElementById('close').focus();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+      skipLink.inert = false;
+      header.inert = false;
+      gallery.inert = false;
+      lightboxImage.src = '';
+      lightboxImage.style.width = '';
+      lightboxImage.style.height = '';
+      if (lightboxTrigger?.isConnected) lightboxTrigger.focus();
+      lightboxTrigger = null;
+    }
+
+    function moveLightbox(delta) {
+      if (!visibleArtifacts.length) return;
+      openLightbox((lightboxIndex + delta + visibleArtifacts.length) % visibleArtifacts.length);
+    }
+
+    function render() {
+      visibleArtifacts = artifacts.filter(matches).sort(compareArtifacts);
+      resetFilters.disabled = filtersMatchDefaults();
+      gallery.replaceChildren();
+      count.textContent = visibleArtifacts.length + ' capture' + (visibleArtifacts.length === 1 ? '' : 's');
+      if (!visibleArtifacts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No captures match these filters.';
+        gallery.append(empty);
+        return;
+      }
+
+      const modules = new Map();
+      visibleArtifacts.forEach((item, index) => {
+        if (!modules.has(item.module)) {
+          modules.set(item.module, { entries: [], archetypes: new Map() });
         }
+        const moduleGroup = modules.get(item.module);
+        moduleGroup.entries.push({ item, index });
+        if (!moduleGroup.archetypes.has(item.archetype)) {
+          moduleGroup.archetypes.set(item.archetype, []);
+        }
+        moduleGroup.archetypes.get(item.archetype).push({ item, index });
+      });
+
+      let moduleIndex = 0;
+      let archetypeIndex = 0;
+      let stepIndex = 0;
+      let stateIndex = 0;
+      for (const [moduleKey, moduleGroup] of modules) {
+        const moduleSection = document.createElement('section');
+        moduleSection.className = 'module-group';
+        const moduleHeader = document.createElement('div');
+        moduleHeader.className = 'module-header';
+        const moduleHeading = document.createElement('div');
+        moduleHeading.className = 'group-heading';
+        const moduleTitle = document.createElement('h2');
+        moduleTitle.textContent = moduleLabels.get(moduleKey) ?? moduleKey;
+        const moduleCount = document.createElement('span');
+        moduleCount.className = 'group-count';
+        moduleCount.textContent = captureCountLabel(moduleGroup.entries.length);
+        moduleHeading.append(moduleTitle, moduleCount);
+        const moduleContent = document.createElement('div');
+        moduleContent.className = 'module-content group-content';
+        moduleContent.id = 'module-content-' + moduleIndex;
+        moduleHeader.append(
+          moduleHeading,
+          makeGroupToggle(
+            moduleTitle.textContent,
+            moduleContent,
+            collapsedModules,
+            moduleKey
+          )
+        );
+
+        for (const [archetypeKey, entries] of moduleGroup.archetypes) {
+          const first = entries[0].item;
+          const archetypeSection = document.createElement('section');
+          archetypeSection.className = 'archetype';
+          const archetypeHeader = document.createElement('div');
+          archetypeHeader.className = 'archetype-header';
+          const archetypeHeading = document.createElement('div');
+          archetypeHeading.className = 'group-heading';
+          const archetypeLabel = document.createElement('span');
+          archetypeLabel.className = 'hierarchy-label';
+          archetypeLabel.textContent = 'Problem archetype';
+          const archetypeTitle = document.createElement('h3');
+          archetypeTitle.textContent = first.archetypeTitle;
+          const archetypeCount = document.createElement('span');
+          archetypeCount.className = 'group-count';
+          archetypeCount.textContent = captureCountLabel(entries.length);
+          archetypeHeading.append(archetypeLabel, archetypeTitle, archetypeCount);
+          const archetypeContent = document.createElement('div');
+          archetypeContent.className = 'archetype-content group-content';
+          archetypeContent.id = 'archetype-content-' + archetypeIndex;
+          archetypeHeader.append(
+            archetypeHeading,
+            makeGroupToggle(
+              archetypeTitle.textContent,
+              archetypeContent,
+              collapsedArchetypes,
+              archetypeKey
+            )
+          );
+
+          const steps = new Map();
+          for (const entry of entries) {
+            const info = stepGroupInfo(entry.item);
+            if (!steps.has(info.key)) steps.set(info.key, { label: info.label, entries: [] });
+            steps.get(info.key).entries.push(entry);
+          }
+
+          for (const [stepKey, stepGroup] of steps) {
+            const stepSection = document.createElement('section');
+            stepSection.className = 'step-group';
+            const stepHeading = document.createElement('div');
+            stepHeading.className = 'step-heading';
+            const stepHeadingText = document.createElement('div');
+            stepHeadingText.className = 'group-heading';
+            const stepTitle = document.createElement('h4');
+            stepTitle.textContent = stepGroup.label;
+            const stepCount = document.createElement('span');
+            stepCount.className = 'step-count';
+            stepCount.textContent = captureCountLabel(stepGroup.entries.length);
+            stepHeadingText.append(stepTitle, stepCount);
+            const stepContent = document.createElement('div');
+            stepContent.className = 'step-content group-content';
+            stepContent.id = 'step-content-' + stepIndex;
+            const stepCollapseKey = archetypeKey + '::' + stepKey;
+            stepHeading.append(
+              stepHeadingText,
+              makeGroupToggle(
+                archetypeTitle.textContent + ', ' + stepTitle.textContent,
+                stepContent,
+                collapsedSteps,
+                stepCollapseKey
+              )
+            );
+
+            const states = new Map();
+            for (const entry of stepGroup.entries) {
+              if (!states.has(entry.item.stateId)) states.set(entry.item.stateId, []);
+              states.get(entry.item.stateId).push(entry);
+            }
+
+            const stateGroups = [...states.entries()];
+            if (stateGroups.length === 1) {
+              const grid = document.createElement('div');
+              grid.className = 'grid step-direct-grid';
+              for (const { item, index } of stateGroups[0][1]) grid.append(makeCard(item, index));
+              stepContent.append(grid);
+            } else {
+              for (const [stateIdValue, stateEntries] of stateGroups) {
+                const stateSection = document.createElement('section');
+                stateSection.className = 'state-group';
+                const stateHeader = document.createElement('div');
+                stateHeader.className = 'state-header';
+                const stateHeading = document.createElement('div');
+                stateHeading.className = 'group-heading';
+                const stateTitle = document.createElement('h5');
+                stateTitle.textContent = stateEntries[0].item.stateLabel;
+                const stateCount = document.createElement('span');
+                stateCount.className = 'group-count';
+                stateCount.textContent = captureCountLabel(stateEntries.length);
+                stateHeading.append(stateTitle, stateCount);
+                const stateContent = document.createElement('div');
+                stateContent.className = 'state-content group-content';
+                stateContent.id = 'state-content-' + stateIndex;
+                const stateCollapseKey = archetypeKey + '::' + stateIdValue;
+                stateHeader.append(
+                  stateHeading,
+                  makeGroupToggle(
+                    archetypeTitle.textContent + ', ' + stepTitle.textContent + ', ' + stateTitle.textContent,
+                    stateContent,
+                    collapsedStates,
+                    stateCollapseKey
+                  )
+                );
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+                for (const { item, index } of stateEntries) grid.append(makeCard(item, index));
+                stateContent.append(grid);
+                stateSection.append(stateHeader, stateContent);
+                stepContent.append(stateSection);
+                stateIndex += 1;
+              }
+            }
+
+            stepSection.append(stepHeading, stepContent);
+            archetypeContent.append(stepSection);
+            stepIndex += 1;
+          }
+
+          archetypeSection.append(archetypeHeader, archetypeContent);
+          moduleContent.append(archetypeSection);
+          archetypeIndex += 1;
+        }
+
+        moduleSection.append(moduleHeader, moduleContent);
+        gallery.append(moduleSection);
+        moduleIndex += 1;
       }
     }
-    openLightboxByIndex(activeLightboxIndex + direction);
-  }
 
-  function closeLightbox(e) {
-    if (!e || e.target.id === 'lightbox' || e.target.classList.contains('btn-close-lightbox')) {
-      document.getElementById('lightbox').classList.remove('active');
+    for (const [key, control] of Object.entries(controls)) {
+      control.addEventListener('change', () => {
+        normalizeSelections(key);
+        refreshFilterOptions();
+        render();
+      });
     }
-  }
-
-  // ── Keyboard Navigation Shortcuts (Arrows, Numbers, Themes)
-  function scrollArchetype(direction) {
-    const cards = Array.from(document.querySelectorAll('.archetype-card')).filter(c => c.style.display !== 'none');
-    if (cards.length === 0) return;
-    const scrollPos = window.scrollY + 140;
-    let targetIdx = 0;
-    if (direction > 0) {
-      targetIdx = cards.findIndex(c => c.offsetTop > scrollPos);
-      if (targetIdx === -1) targetIdx = cards.length - 1;
-    } else {
-      for (let i = cards.length - 1; i >= 0; i--) {
-        if (cards[i].offsetTop < scrollPos - 20) {
-          targetIdx = i;
-          break;
-        }
+    resetFilters.addEventListener('click', () => {
+      applyDefaultFilters();
+      refreshFilterOptions();
+      render();
+    });
+    headerToggle.addEventListener('click', () => {
+      const collapsed = header.classList.toggle('collapsed');
+      headerToggle.setAttribute('aria-expanded', String(!collapsed));
+      headerToggle.textContent = collapsed ? 'Show filters ↓' : 'Hide filters ↑';
+    });
+    document.getElementById('close').addEventListener('click', closeLightbox);
+    document.getElementById('previous').addEventListener('click', () => moveLightbox(-1));
+    document.getElementById('next').addEventListener('click', () => moveLightbox(1));
+    document.getElementById('zoom-out').addEventListener('click', () => changeLightboxZoom(-0.25));
+    document.getElementById('zoom-in').addEventListener('click', () => changeLightboxZoom(0.25));
+    document.getElementById('zoom-fit').addEventListener('click', () => fitLightboxImage());
+    document.getElementById('zoom-fit-width').addEventListener('click', () => fitLightboxWidth());
+    lightboxImage.addEventListener('load', () => fitLightboxImage());
+    lightboxStage.addEventListener('click', event => {
+      if (event.target === lightboxStage || event.target === lightboxCanvas) closeLightbox();
+    });
+    lightboxStage.addEventListener('wheel', event => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      changeLightboxZoom(event.deltaY < 0 ? 0.25 : -0.25);
+    }, { passive: false });
+    window.addEventListener('resize', () => {
+      if (lightbox.classList.contains('open')) sizeLightboxImage(lightboxFitMode, true);
+    });
+    function trapLightboxFocus(event) {
+      const focusable = [...lightbox.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !lightbox.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
-    cards[targetIdx]?.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  document.addEventListener('keydown', (e) => {
-    const isLightboxActive = document.getElementById('lightbox').classList.contains('active');
-
-    if (isLightboxActive) {
-      if (e.key === 'Escape') {
+    document.addEventListener('keydown', event => {
+      if (!lightbox.classList.contains('open')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
         closeLightbox();
         return;
       }
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        nextLightbox();
+      if (event.key === 'Tab') {
+        trapLightboxFocus(event);
         return;
       }
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevLightbox();
-        return;
-      }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        nextMilestoneLightbox(1);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        nextMilestoneLightbox(-1);
-        return;
-      }
-      return;
-    }
+      if (event.key === 'ArrowLeft') moveLightbox(-1);
+      else if (event.key === 'ArrowRight') moveLightbox(1);
+      else if (event.key === '+' || event.key === '=') changeLightboxZoom(0.25);
+      else if (event.key === '-') changeLightboxZoom(-0.25);
+      else if (event.key === '0') fitLightboxImage();
+      else if (event.key.toLowerCase() === 'w') fitLightboxWidth();
+      else return;
+      event.preventDefault();
+    });
+    initializeCollapsedGroups();
+    refreshFilterOptions();
+    applyDefaultFilters();
+    refreshFilterOptions();
+    render();
+  </script>
+</body>
+</html>`;
 
-    // When Lightbox is closed:
-    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
-      scrollArchetype(1);
-      return;
-    }
-    if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
-      scrollArchetype(-1);
-      return;
-    }
-
-    // Keys 1-6: Jump to solver module
-    const moduleKeys = {
-      '1': 'odes',
-      '2': 'fourier-series',
-      '3': 'convolution',
-      '4': 'laplace',
-      '5': 'fourier-transform',
-      '6': 'circuits'
-    };
-
-    if (moduleKeys[e.key]) {
-      jumpToModule(moduleKeys[e.key]);
-    } else if (e.key === '0') {
-      jumpToModule('0');
-    } else if (e.key.toLowerCase() === 'd') {
-      setThemeFilter('dark');
-    } else if (e.key.toLowerCase() === 'l') {
-      setThemeFilter('light');
-    } else if (e.key.toLowerCase() === 's') {
-      setThemeFilter('all');
-    }
-  });
-`;
-
-/**
- * Generates the complete HTML gallery document.
- *
- * @param {ScreenshotItem[]} items - List of scanned screenshot items.
- * @returns {string} Complete HTML document.
- */
-function generateHtml(items: ScreenshotItem[]): string {
-	const moduleMap: Record<string, Record<string, ScreenshotItem[]>> = {};
-
-	for (const item of items) {
-		if (!moduleMap[item.module]) {
-			moduleMap[item.module] = {};
-		}
-		if (!moduleMap[item.module][item.archetype]) {
-			moduleMap[item.module][item.archetype] = [];
-		}
-		moduleMap[item.module][item.archetype].push(item);
-	}
-
-	const modulesList = Object.keys(moduleMap);
-
-	return /* html */ `<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>SignalLab — Automated Solved-Problem Visual Inspection Gallery</title>
-		<style>
-${GALLERY_STYLES}
-		</style>
-	</head>
-	<body>
-
-		<!-- Sticky Gallery Header & Keyboard Nav -->
-		<header class="gallery-header">
-			<div class="header-branding">
-				<h1>
-					SignalLab Solved-Problem Visual Inspection Gallery
-					<span class="badge">Retina 2x</span>
-				</h1>
-			</div>
-
-			<div class="header-controls">
-				<!-- Theme Filter -->
-				<div class="control-pill-group" id="theme-filters">
-					<button class="btn-pill active" data-theme-filter="all">All Themes (S)</button>
-					<button class="btn-pill" data-theme-filter="dark">Dark (D)</button>
-					<button class="btn-pill" data-theme-filter="light">Light (L)</button>
-				</div>
-
-				<!-- Viewport Filter -->
-				<div class="control-pill-group" id="viewport-filters">
-					<button class="btn-pill active" data-viewport-filter="all">All Devices</button>
-					<button class="btn-pill" data-viewport-filter="desktop">Desktop</button>
-					<button class="btn-pill" data-viewport-filter="tablet">Tablet</button>
-					<button class="btn-pill" data-viewport-filter="mobile">320px Mobile</button>
-				</div>
-
-				<!-- Module Shortcuts Hint -->
-				<div class="keyboard-hint">
-					<span>Jump to solver:</span>
-					<button class="btn-jump" onclick="jumpToModule('odes')"><kbd>1</kbd> ODEs</button>
-					<button class="btn-jump" onclick="jumpToModule('fourier-series')"><kbd>2</kbd> Fourier</button>
-					<button class="btn-jump" onclick="jumpToModule('convolution')"><kbd>3</kbd> Conv</button>
-					<button class="btn-jump" onclick="jumpToModule('laplace')"><kbd>4</kbd> Laplace</button>
-					<button class="btn-jump" onclick="jumpToModule('fourier-transform')"><kbd>5</kbd> CTFT</button>
-					<button class="btn-jump" onclick="jumpToModule('circuits')"><kbd>6</kbd> Circuits</button>
-					<button class="btn-jump" onclick="jumpToModule('0')"><kbd>0</kbd> All</button>
-				</div>
-			</div>
-		</header>
-
-		<!-- Main Content -->
-		<main id="gallery-main">
-			${modulesList
-				.map((modName) => {
-					const archetypes = moduleMap[modName];
-					return `
-			<section class="module-section" id="module-${modName}" data-module="${modName}">
-				<h2 class="module-title">
-					<span>${formatTitle(modName)} Module</span>
-					<span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 400;">
-						${Object.keys(archetypes).length} Archetypes
-					</span>
-				</h2>
-
-				${Object.entries(archetypes)
-					.map(([archName, shots]) => {
-						// Group shots by milestone definition
-						const milestoneMap: Record<string, ScreenshotItem[]> = {
-							"01_interactive_setup": [],
-							"02_misconception_feedback": [],
-							"03_full_solution": [],
-						};
-						for (const shot of shots) {
-							if (!milestoneMap[shot.shotType]) {
-								milestoneMap[shot.shotType] = [];
-							}
-							milestoneMap[shot.shotType].push(shot);
-						}
-
-						return `
-				<div class="archetype-card" data-archetype="${archName}">
-					<div class="archetype-header">
-						<h3 class="archetype-title">${formatTitle(archName)}</h3>
-					</div>
-
-					<div class="milestones-container">
-						${MILESTONES.map((mDef) => {
-							const groupShots = milestoneMap[mDef.id] || [];
-							if (groupShots.length === 0) return "";
-
-							return `
-						<div class="milestone-row" data-milestone="${mDef.id}">
-							<div class="milestone-header">
-								<span class="milestone-badge ${mDef.badgeClass}">${mDef.badge}</span>
-								<div class="milestone-info">
-									<h4 class="milestone-title">${mDef.title}</h4>
-									<span class="milestone-desc">${mDef.description}</span>
-								</div>
-							</div>
-
-							<div class="snapshots-grid">
-								${groupShots
-									.map((shot) => {
-										const caption = `${formatTitle(archName)} — ${mDef.title} (${shot.theme}, ${shot.viewport})`;
-										return `
-								<div class="snapshot-item" data-theme="${shot.theme}" data-viewport="${shot.viewport}" data-caption="${caption}">
-									<div class="snapshot-meta">
-										<span class="shot-tag">${shot.viewport}</span>
-										<span class="theme-tag ${shot.theme}">${shot.theme}</span>
-									</div>
-									<div class="snapshot-img-wrapper" onclick="openLightboxFromElement(this.closest('.snapshot-item'))">
-										<img src="${shot.relativePath}" alt="${shot.fileName}" loading="lazy">
-									</div>
-								</div>
-										`;
-									})
-									.join("")}
-							</div>
-						</div>
-							`;
-						}).join("")}
-					</div>
-				</div>
-						`;
-					})
-					.join("")}
-			</section>
-					`;
-				})
-				.join("")}
-		</main>
-
-		<!-- Lightbox Zoom Modal -->
-		<div class="lightbox-modal" id="lightbox" onclick="closeLightbox(event)">
-			<button class="btn-close-lightbox" onclick="closeLightbox(event)">✕ Close (Esc)</button>
-			<button class="lightbox-nav-btn lightbox-nav-prev" onclick="prevLightbox()" title="Previous (←)">‹</button>
-			<button class="lightbox-nav-btn lightbox-nav-next" onclick="nextLightbox()" title="Next (→)">›</button>
-			<div class="lightbox-content">
-				<img id="lightbox-img" src="" alt="Zoomed screenshot">
-			</div>
-			<div class="lightbox-caption" id="lightbox-caption"></div>
-		</div>
-
-		<script>
-${GALLERY_SCRIPT}
-		</script>
-	</body>
-</html>
-`;
-}
-
-/**
- * Main execution function.
- */
-function main(): void {
-	console.log("🔍 Scanning solver screenshots in:", SOLVERS_DIR);
-	if (!fs.existsSync(SOLVERS_DIR)) {
-		fs.mkdirSync(SOLVERS_DIR, { recursive: true });
-	}
-	const items = scanScreenshots(SOLVERS_DIR);
-	console.log(`📸 Found ${items.length} solver screenshots.`);
-
-	const html = generateHtml(items);
-	fs.writeFileSync(OUTPUT_HTML, html, "utf-8");
-	console.log(
-		`✅ Visual inspection gallery generated at:\n   ${OUTPUT_HTML}`,
-	);
-}
-
-main();
+fs.mkdirSync(SOLVERS_DIR, { recursive: true });
+fs.writeFileSync(OUTPUT_HTML, html);
+console.log(
+	`Generated manifest-backed solver gallery with ${manifest.artifacts.length} artifacts: ${OUTPUT_HTML}`,
+);

@@ -93,8 +93,13 @@ export default defineConfig({
 		{
 			name: "Solver-Visual-Snapshots",
 			testMatch: "**/solver-visual-snapshots.spec.ts",
+			snapshotPathTemplate:
+				"{testDir}/solver-visual-baselines/{arg}{ext}",
 			use: {
 				...devices["Desktop Chrome"],
+				// Keep regression images in CSS-pixel space. The application canvases
+				// still honor devicePixelRatio in dedicated device tests.
+				deviceScaleFactor: 1,
 			},
 		},
 	],

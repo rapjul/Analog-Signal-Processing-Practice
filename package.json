@@ -19,8 +19,11 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
-    "test:e2e:solvers": "playwright test tests/e2e/solver-visual-snapshots.spec.ts",
-    "capture:solvers": "playwright test tests/e2e/solver-visual-snapshots.spec.ts && node scripts/generate-solver-gallery.ts",
+    "test:e2e:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts",
+    "capture:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
+    "capture:solvers:dark": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_PROFILE=dark playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
+    "capture:solvers:quick": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_PROFILE=quick playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
+    "gallery:solvers": "node scripts/generate-solver-gallery.ts",
     "capture:screenshots": "node scripts/capture-readme-screenshots.ts",
     "test:all": "npm test && npm run test:e2e"
   },

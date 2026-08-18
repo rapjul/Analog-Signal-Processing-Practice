@@ -285,3 +285,4 @@ playwright/.cache/
 tests/e2e/screenshots/
 tests/**/screenshots/
 *.png.tmp
+tests/e2e/solver-visual-baselines/**/*.png
