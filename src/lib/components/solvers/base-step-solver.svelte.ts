@@ -8,6 +8,28 @@
 export type StepFeedbackType = "validation" | "misconception" | "incorrect";
 
 /**
+ * Developer & Test Harness API interface attached to window in Vite dev mode.
+ */
+export interface SignalLabDevHarness {
+	/** Active mounted solver instance */
+	activeSolver?: BaseStepSolverState | null;
+	/** Solves all steps sequentially to the end */
+	solveAll: () => void;
+	/** Solves a specific step or current step */
+	autoFillStep: (step?: number) => void;
+	/** Reveals all hint tiers (Tier 3) */
+	revealAllHints: () => void;
+	/** Simulates a diagnostic misconception feedback banner */
+	simulateMisconception: (message?: string) => void;
+}
+
+declare global {
+	interface Window {
+		__signalLabDev?: SignalLabDevHarness;
+	}
+}
+
+/**
  * Common state interface implemented by every sequential step in an ITS module.
  */
 export interface BaseStepState {
@@ -234,6 +256,86 @@ export abstract class BaseStepSolverState {
 	) {
 		this.totalSteps = totalSteps;
 		this.getOnComplete = getOnComplete;
+		this.registerDevHarness();
+	}
+
+	/**
+	 * Developer / Test mode method: Automatically fills and validates a step.
+	 * Subclasses must override this to provide step-by-step mathematical auto-fill.
+	 *
+	 * @param {number} [_stepIndex] - Target 1-based step index (defaults to currentStep).
+	 */
+	devAutoFillStep(_stepIndex?: number): void {
+		// Subclasses override to provide step-by-step mathematical auto-fill
+	}
+
+	/**
+	 * Developer / Test mode method: Solves all steps sequentially and completes the problem.
+	 */
+	devSolveAll(): void {
+		if (!import.meta.env.DEV) return;
+		let safetyGuard = 0;
+		while (
+			this.currentStep <= this.totalSteps &&
+			!this.isCompleted &&
+			safetyGuard < 20
+		) {
+			safetyGuard += 1;
+			const stepBefore = this.currentStep;
+			this.devAutoFillStep(this.currentStep);
+			if (this.currentStep === stepBefore) {
+				this.advanceToStep(this.currentStep + 1);
+			}
+		}
+		this.isCompleted = true;
+		this.getOnComplete?.()?.();
+	}
+
+	/**
+	 * Developer / Test mode method: Reveals all hint tiers (Tier 3) on the active step or sub-step.
+	 */
+	devRevealAllHints(): void {
+		if (!import.meta.env.DEV) return;
+		this.hintTier = 3;
+		const curr = this.currentStepState as MultiPartStepState | undefined;
+		if (curr && "subSteps" in curr && curr.activeSubStepId) {
+			const sub = curr.subSteps[curr.activeSubStepId];
+			if (sub) {
+				sub.hintTier = 3;
+			}
+		}
+	}
+
+	/**
+	 * Developer / Test mode method: Simulates a diagnostic misconception feedback banner.
+	 *
+	 * @param {string} [message] - Optional diagnostic feedback message.
+	 */
+	devSimulateMisconception(message?: string): void {
+		if (!import.meta.env.DEV) return;
+		if (this.currentStepState) {
+			this.setMisconception(
+				this.currentStepState,
+				message ??
+					"Misconception Test: Verify sign conventions and frequency units before proceeding.",
+			);
+		}
+	}
+
+	/**
+	 * Registers this solver instance with the global developer test harness in dev mode.
+	 */
+	registerDevHarness(): void {
+		if (import.meta.env.DEV && typeof window !== "undefined") {
+			window.__signalLabDev = {
+				activeSolver: this,
+				solveAll: () => this.devSolveAll(),
+				autoFillStep: (step?: number) => this.devAutoFillStep(step),
+				revealAllHints: () => this.devRevealAllHints(),
+				simulateMisconception: (msg?: string) =>
+					this.devSimulateMisconception(msg),
+			};
+		}
 	}
 
 	/**

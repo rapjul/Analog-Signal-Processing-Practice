@@ -293,4 +293,61 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		this.step5 = createStepState({ selected: null as string | null });
 		this.step6 = createStepState({ selected: null as string | null });
 	}
+
+	/**
+	 * Developer / Test mode method: Automatically fills and validates a Fourier Series step.
+	 *
+	 * @param {number} [stepIndex] - Target 1-based step index (defaults to currentStep).
+	 */
+	override devAutoFillStep(stepIndex?: number): void {
+		if (!import.meta.env.DEV) return;
+		const target = stepIndex ?? this.currentStep;
+		switch (target) {
+			case 1: {
+				const s1 = this.problem.itsData.step1;
+				this.step1.period = String(s1.expectedT);
+				this.step1.periodUnit = "s";
+				this.step1.freq = s1.w0Aliases[0] ?? String(s1.expectedW0);
+				this.step1.freqUnit = "rad/s";
+				this.checkStep1();
+				break;
+			}
+			case 2: {
+				this.checkStep2(this.problem.itsData.step2.correctSymmetry);
+				break;
+			}
+			case 3: {
+				this.checkStep3(this.problem.itsData.step3.correctVanishing);
+				break;
+			}
+			case 4: {
+				this.checkStep4(this.problem.itsData.step4.correctForm);
+				break;
+			}
+			case 5: {
+				const opt = this.problem.itsData.step5.options.find(
+					(o) => o.isCorrect,
+				);
+				if (opt) {
+					this.checkStep5(opt);
+				} else {
+					this.advanceToStep(6);
+				}
+				break;
+			}
+			case 6: {
+				const opt = this.problem.itsData.step6.options.find(
+					(o) => o.isCorrect,
+				);
+				if (opt) {
+					this.checkStep6(opt);
+				} else {
+					this.advanceToStep(7);
+				}
+				break;
+			}
+			default:
+				break;
+		}
+	}
 }

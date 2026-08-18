@@ -6,6 +6,8 @@
 	 * harmonic spectrum analysis, Gibbs phenomenon visualizer, and formula reference.
 	 */
 
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
@@ -21,6 +23,16 @@
 	let currentProblem = $state<FourierSeriesProblem>(
 		generateFourierSeriesProblem("square"),
 	);
+
+	onMount(() => {
+		const waveParam = page.url.searchParams.get(
+			"waveform",
+		) as FourierWaveformType | null;
+		if (waveParam) {
+			selectedWaveform = waveParam;
+			currentProblem = generateFourierSeriesProblem(selectedWaveform);
+		}
+	});
 
 	/**
 	 * Regenerates a new Fourier series problem using current selected waveform option.

@@ -1707,4 +1707,158 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			"zi_zs",
 		);
 	}
+
+	/**
+	 * Developer / Test mode method: Automatically fills and validates an ODE step.
+	 *
+	 * @param {number} [stepIndex] - Target 1-based step index (defaults to currentStep).
+	 */
+	override devAutoFillStep(stepIndex?: number): void {
+		if (!import.meta.env.DEV) return;
+		const target = stepIndex ?? this.currentStep;
+		switch (target) {
+			case 1: {
+				this.step1.a2 = String(
+					this.problem.params.order === 1
+						? 0
+						: (this.problem.params.a2 ?? 1),
+				);
+				this.step1.a1 = String(this.problem.params.a1);
+				this.step1.a0 = String(this.problem.params.a0);
+				this.checkStep1();
+				break;
+			}
+			case 2: {
+				const s2 = this.problem.itsData.step2;
+				if (this.problem.params.order === 1) {
+					this.step2.strategy = "factoring";
+					this.step2.activeSubStepId = "factoring_inputs";
+					this.step2.r1 = toFractionLatex(s2.r1);
+					this.checkStep2Factoring();
+				} else if (this.problem.params.rootType === "distinct_real") {
+					this.step2.strategy = "quadratic";
+					this.step2.activeSubStepId = "quad_classification";
+					this.checkStep2QuadClass("distinct_real");
+					this.step2.r1 = toFractionLatex(s2.r1);
+					this.step2.r2 = toFractionLatex(s2.r2 ?? 0);
+					this.checkStep2QuadRoots();
+				} else if (this.problem.params.rootType === "repeated_real") {
+					this.step2.strategy = "quadratic";
+					this.step2.activeSubStepId = "quad_classification";
+					this.checkStep2QuadClass("repeated_real");
+					this.step2.r1 = toFractionLatex(s2.r1);
+					this.checkStep2QuadRoots();
+				} else if (
+					this.problem.params.rootType === "complex_conjugate"
+				) {
+					this.step2.strategy = "quadratic";
+					this.step2.activeSubStepId = "quad_classification";
+					this.checkStep2QuadClass("complex_conjugate");
+					this.step2.sigma = toFractionLatex(s2.r1);
+					this.step2.omegaD = toFractionLatex(s2.im ?? 0);
+					this.checkStep2QuadRoots();
+				} else {
+					this.advanceToStep(3);
+				}
+				break;
+			}
+			case 3: {
+				this.checkStep3(this.problem.params.rootType);
+				break;
+			}
+			case 4: {
+				const correctAnsatz = this.problem.itsData.step4.options.find(
+					(o) => o.isCorrect,
+				);
+				if (correctAnsatz) {
+					this.checkStep4(correctAnsatz);
+				} else {
+					this.advanceToStep(5);
+				}
+				break;
+			}
+			case 5: {
+				const s5 = this.problem.itsData.step5;
+				const isSinusoid = this.problem.forcing.type === "sinusoid";
+				if (isSinusoid) {
+					const d1 = s5.firstDerivativeOptions?.find(
+						(o) => o.isCorrect,
+					);
+					if (d1) this.checkStep5FirstDeriv(d1);
+					if (this.problem.params.order >= 2) {
+						const d2 = s5.secondDerivativeOptions?.find(
+							(o) => o.isCorrect,
+						);
+						if (d2) this.checkStep5SecondDeriv(d2);
+					}
+					const sys = s5.systemOptions?.find((o) => o.isCorrect);
+					if (sys) this.checkStep5System(sys);
+					this.step5.a = toFractionLatex(s5.expectedA ?? 0);
+					this.step5.b = toFractionLatex(s5.expectedB ?? 0);
+					this.checkStep5Coeffs();
+				} else {
+					const d1 = s5.firstDerivativeOptions?.find(
+						(o) => o.isCorrect,
+					);
+					if (d1) this.checkStep5FirstDeriv(d1);
+					if (this.problem.params.order >= 2) {
+						const d2 = s5.secondDerivativeOptions?.find(
+							(o) => o.isCorrect,
+						);
+						if (d2) this.checkStep5SecondDeriv(d2);
+					}
+					const sys = s5.systemOptions?.find((o) => o.isCorrect);
+					if (sys) this.checkStep5System(sys);
+					this.step5.kp = toFractionLatex(s5.expectedKp ?? 0);
+					this.checkStep5Coeffs();
+				}
+				break;
+			}
+			case 6: {
+				this.step6.yh0 = toFractionLatex(
+					this.problem.itsData.step6.targetYh0,
+				);
+				this.step6.dyh0 = toFractionLatex(
+					this.problem.itsData.step6.targetDYh0,
+				);
+				this.checkStep6TargetValues();
+				this.step6.c1 = toFractionLatex(
+					this.problem.itsData.step6.expectedC1,
+				);
+				this.step6.c2 = toFractionLatex(
+					this.problem.itsData.step6.expectedC2,
+				);
+				this.checkStep6Constants();
+				break;
+			}
+			case 7: {
+				this.step7.ziC1 = toFractionLatex(
+					this.problem.itsData.step7.ziConstants.C1,
+				);
+				this.step7.ziC2 = toFractionLatex(
+					this.problem.itsData.step7.ziConstants.C2,
+				);
+				this.checkStep7ZI();
+				const correctTr =
+					this.problem.itsData.step7.transientOptions.find(
+						(o) => o.isCorrect,
+					);
+				const correctSS =
+					this.problem.itsData.step7.steadyStateOptions.find(
+						(o) => o.isCorrect,
+					);
+				if (correctTr) this.step7.selectedTransient = correctTr.id;
+				if (correctSS) this.step7.selectedSteadyState = correctSS.id;
+				this.checkStep7TrSS();
+				const correctConcept =
+					this.problem.itsData.step7.conceptQuestion.options.find(
+						(o) => o.isCorrect,
+					);
+				if (correctConcept) this.checkStep7Concept(correctConcept);
+				break;
+			}
+			default:
+				break;
+		}
+	}
 }

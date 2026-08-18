@@ -7,6 +7,8 @@
 	 * 7-step ITS diagnostic solver, and verified waveform plotting.
 	 */
 
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import OdePracticeCard from "$lib/components/ui/OdePracticeCard.svelte";
@@ -22,6 +24,23 @@
 
 	// Active problem state (default blind random exam practice)
 	let currentProblem = $state(generateOdeProblem("random", "random"));
+
+	onMount(() => {
+		const rootParam = page.url.searchParams.get(
+			"rootType",
+		) as RootType | null;
+		const forcingParam = page.url.searchParams.get(
+			"forcing",
+		) as ForcingType | null;
+		if (rootParam || forcingParam) {
+			if (rootParam) selectedRootType = rootParam;
+			if (forcingParam) selectedForcingType = forcingParam;
+			currentProblem = generateOdeProblem(
+				selectedRootType,
+				selectedForcingType,
+			);
+		}
+	});
 
 	/**
 	 * Regenerates a new ODE problem using current selected options.
