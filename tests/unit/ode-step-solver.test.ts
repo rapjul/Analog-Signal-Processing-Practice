@@ -652,4 +652,93 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			).toBe(true);
 		}
 	});
+
+	it("computes accurate step badges and subpart progress descriptors across all steps", () => {
+		const problemExp = generateOdeProblem("distinct_real", "exponential");
+		const solverExp = new OdeStepSolverState(() => problemExp);
+
+		// Step 5 on exponential forcing (total parts = 3)
+		solverExp.currentStep = 5;
+		solverExp.step5.activeSubStepId = "first_deriv";
+		expect(solverExp.step5Badge).toBe("Step 5A-1");
+		expect(solverExp.step5Progress).toEqual({
+			current: 1,
+			total: 3,
+			label: "Part 1 of 3",
+		});
+
+		solverExp.step5.activeSubStepId = "second_deriv";
+		expect(solverExp.step5Badge).toBe("Step 5A-2");
+		expect(solverExp.step5Progress).toEqual({
+			current: 2,
+			total: 3,
+			label: "Part 2 of 3",
+		});
+
+		solverExp.step5.activeSubStepId = "solve";
+		expect(solverExp.step5Badge).toBe("Step 5C");
+		expect(solverExp.step5Progress).toEqual({
+			current: 3,
+			total: 3,
+			label: "Part 3 of 3",
+		});
+		expect(solverExp.step5CSubpartBadge).toBe("Part 5B");
+
+		// Step 5 on sinusoidal forcing (total parts = 4)
+		const problemSin = generateOdeProblem("distinct_real", "sinusoid");
+		const solverSin = new OdeStepSolverState(() => problemSin);
+		solverSin.currentStep = 5;
+		solverSin.step5.activeSubStepId = "system_setup";
+		expect(solverSin.step5Badge).toBe("Step 5B");
+		expect(solverSin.step5Progress).toEqual({
+			current: 3,
+			total: 4,
+			label: "Part 3 of 4",
+		});
+		expect(solverSin.step5CSubpartBadge).toBe("Part 5C");
+
+		// Step 6
+		solverExp.currentStep = 6;
+		solverExp.step6.activeSubStepId = "target_values";
+		expect(solverExp.step6Badge).toBe("Step 6A");
+		expect(solverExp.step6Progress).toEqual({
+			current: 1,
+			total: 2,
+			label: "Part 1 of 2",
+		});
+
+		solverExp.step6.activeSubStepId = "solve_constants";
+		expect(solverExp.step6Badge).toBe("Step 6B");
+		expect(solverExp.step6Progress).toEqual({
+			current: 2,
+			total: 2,
+			label: "Part 2 of 2",
+		});
+
+		// Step 7
+		solverExp.currentStep = 7;
+		solverExp.step7.activeSubStepId = "zi_zs";
+		expect(solverExp.step7Badge).toBe("Step 7A");
+		expect(solverExp.step7Progress).toEqual({
+			current: 1,
+			total: 3,
+			label: "Part 1 of 3",
+		});
+
+		solverExp.step7.activeSubStepId = "tr_ss";
+		expect(solverExp.step7Badge).toBe("Step 7B");
+		expect(solverExp.step7Progress).toEqual({
+			current: 2,
+			total: 3,
+			label: "Part 2 of 3",
+		});
+
+		solverExp.step7.activeSubStepId = "concept";
+		expect(solverExp.step7Badge).toBe("Step 7C");
+		expect(solverExp.step7Progress).toEqual({
+			current: 3,
+			total: 3,
+			label: "Part 3 of 3",
+		});
+	});
 });

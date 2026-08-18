@@ -13,6 +13,7 @@ import {
 	createStepState,
 	createSubStepState,
 	type MultiPartStepState,
+	type SubStepProgress,
 } from "./base-step-solver.svelte";
 
 /**
@@ -406,6 +407,109 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				?.latex ?? ""
 		);
 	});
+
+	/**
+	 * Formatted step badge for Step 5 (e.g. "Step 5A-1", "Step 5A-2", "Step 5B", "Step 5C").
+	 */
+	get step5Badge(): string {
+		if (this.currentStep !== 5) return "Step 5";
+		switch (this.step5.activeSubStepId) {
+			case "first_deriv":
+				return "Step 5A-1";
+			case "second_deriv":
+				return "Step 5A-2";
+			case "system_setup":
+				return "Step 5B";
+			case "solve":
+				return "Step 5C";
+			default:
+				return "Step 5";
+		}
+	}
+
+	/**
+	 * Sub-step progress descriptor for Step 5 Undetermined Coefficients.
+	 */
+	get step5Progress(): SubStepProgress {
+		const isSinusoid = this.problem.forcing.type === "sinusoid";
+		const total = isSinusoid ? 4 : 3;
+		let current = 1;
+		switch (this.step5.activeSubStepId) {
+			case "first_deriv":
+				current = 1;
+				break;
+			case "second_deriv":
+				current = 2;
+				break;
+			case "system_setup":
+				current = 3;
+				break;
+			case "solve":
+				current = isSinusoid ? 4 : 3;
+				break;
+			default:
+				current = 1;
+				break;
+		}
+		return {
+			current,
+			total,
+			label: `Part ${current} of ${total}`,
+		};
+	}
+
+	/**
+	 * Formatted subpart badge for Step 5C / Step 5B coefficient solve block.
+	 */
+	get step5CSubpartBadge(): string {
+		return this.problem.forcing.type === "sinusoid" ? "Part 5C" : "Part 5B";
+	}
+
+	/**
+	 * Formatted step badge for Step 6 (e.g. "Step 6A", "Step 6B").
+	 */
+	get step6Badge(): string {
+		if (this.currentStep !== 6) return "Step 6";
+		switch (this.step6.activeSubStepId) {
+			case "target_values":
+				return "Step 6A";
+			case "solve_constants":
+				return "Step 6B";
+			default:
+				return "Step 6";
+		}
+	}
+
+	/**
+	 * Sub-step progress descriptor for Step 6 Initial Conditions.
+	 */
+	get step6Progress(): SubStepProgress {
+		return this.getSubStepProgress(this.step6);
+	}
+
+	/**
+	 * Formatted step badge for Step 7 (e.g. "Step 7A", "Step 7B", "Step 7C").
+	 */
+	get step7Badge(): string {
+		if (this.currentStep !== 7) return "Step 7";
+		switch (this.step7.activeSubStepId) {
+			case "zi_zs":
+				return "Step 7A";
+			case "tr_ss":
+				return "Step 7B";
+			case "concept":
+				return "Step 7C";
+			default:
+				return "Step 7";
+		}
+	}
+
+	/**
+	 * Sub-step progress descriptor for Step 7 Response Decomposition.
+	 */
+	get step7Progress(): SubStepProgress {
+		return this.getSubStepProgress(this.step7);
+	}
 
 	/**
 	 * Progressive hints for the currently active step or sub-step.

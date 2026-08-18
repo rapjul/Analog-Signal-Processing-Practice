@@ -12,6 +12,7 @@
 	import type { OdeProblem } from "$lib/math-engine/odes";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
+	import PartProgressPill from "../ui/PartProgressPill.svelte";
 	import Progress from "../ui/Progress.svelte";
 	import StepFeedback from "../ui/StepFeedback.svelte";
 	import { OdeStepSolverState } from "./ode-step-solver.svelte";
@@ -769,32 +770,11 @@
 	>
 		<div class="step-header">
 			<div class="step-badge">
-				{solver.currentStep === 5
-					? solver.step5.activeSubStepId === "first_deriv"
-						? "Step 5A-1"
-						: solver.step5.activeSubStepId === "second_deriv"
-							? "Step 5A-2"
-							: solver.step5.activeSubStepId === "system_setup"
-								? "Step 5B"
-								: "Step 5C"
-					: "Step 5"}
+				{solver.step5Badge}
 			</div>
 			<h3 class="step-title">Undetermined Coefficients</h3>
 			{#if solver.currentStep === 5}
-				<span class="part-progress-pill">
-					Part {solver.step5.activeSubStepId === "first_deriv"
-						? "1"
-						: solver.step5.activeSubStepId === "second_deriv"
-							? "2"
-							: solver.step5.activeSubStepId === "system_setup"
-								? "3"
-								: problem.forcing.type === "sinusoid"
-									? "4"
-									: "3"} of {problem.forcing.type ===
-					"sinusoid"
-						? "4"
-						: "3"}
-				</span>
+				<PartProgressPill progress={solver.step5Progress} />
 			{/if}
 		</div>
 
@@ -974,9 +954,7 @@
 					<div class="subpart-block">
 						<div class="subpart-header">
 							<span class="subpart-badge">
-								{problem.forcing.type === "sinusoid"
-									? "Part 5C"
-									: "Part 5B"}
+								{solver.step5CSubpartBadge}
 							</span>
 							<h4 class="subpart-title">
 								<MathText
@@ -1094,11 +1072,7 @@
 	>
 		<div class="step-header">
 			<div class="step-badge">
-				{solver.currentStep === 6
-					? solver.step6.activeSubStepId === "target_values"
-						? "Step 6A"
-						: "Step 6B"
-					: "Step 6"}
+				{solver.step6Badge}
 			</div>
 			<h3 class="step-title">
 				<MathText
@@ -1106,11 +1080,7 @@
 				/>
 			</h3>
 			{#if solver.currentStep === 6}
-				<span class="part-progress-pill">
-					Part {solver.step6.activeSubStepId === "target_values"
-						? "1"
-						: "2"} of 2
-				</span>
+				<PartProgressPill progress={solver.step6Progress} />
 			{/if}
 		</div>
 
@@ -1305,25 +1275,13 @@
 	>
 		<div class="step-header">
 			<div class="step-badge">
-				{solver.currentStep === 7
-					? solver.step7.activeSubStepId === "zi_zs"
-						? "Step 7A"
-						: solver.step7.activeSubStepId === "tr_ss"
-							? "Step 7B"
-							: "Step 7C"
-					: "Step 7"}
+				{solver.step7Badge}
 			</div>
 			<h3 class="step-title">
 				Response Decomposition & Conceptual Mastery
 			</h3>
 			{#if solver.currentStep === 7}
-				<span class="part-progress-pill">
-					Part {solver.step7.activeSubStepId === "zi_zs"
-						? "1"
-						: solver.step7.activeSubStepId === "tr_ss"
-							? "2"
-							: "3"} of 3
-				</span>
+				<PartProgressPill progress={solver.step7Progress} />
 			{/if}
 		</div>
 
@@ -2322,19 +2280,7 @@
 		overflow-x: auto;
 	}
 
-	/* ── Subpart block & progress pill styles ─────────────── */
-
-	.part-progress-pill {
-		font-size: var(--text-xs);
-		font-weight: 600;
-		padding: 0.2rem 0.55rem;
-		background: rgba(6, 182, 212, 0.12);
-		color: var(--accent-primary);
-		border: 1px solid rgba(6, 182, 212, 0.25);
-		border-radius: var(--radius-full);
-		margin-left: auto;
-		white-space: nowrap;
-	}
+	/* ── Subpart block styles ────────────────────────────── */
 
 	.subpart-block {
 		display: flex;

@@ -40,6 +40,18 @@ export interface BaseSubStepState {
 }
 
 /**
+ * Diagnostic progress descriptor for multi-part steps.
+ */
+export interface SubStepProgress {
+	/** 1-based index of the currently active sub-step */
+	current: number;
+	/** Total number of sub-steps in this multi-part step */
+	total: number;
+	/** Formatted human-readable progress string, e.g. "Part 1 of 3" */
+	label: string;
+}
+
+/**
  * State interface for a multi-part step containing sequential or conditional sub-steps.
  */
 export interface MultiPartStepState<
@@ -245,6 +257,26 @@ export abstract class BaseStepSolverState {
 			this.isCompleted = true;
 			this.getOnComplete?.()?.();
 		}
+	}
+
+	/**
+	 * Calculates current 1-based sub-step index and total count for a multi-part step.
+	 *
+	 * @template TSubStepId - Sub-step identifier union type.
+	 * @param {MultiPartStepState<TSubStepId>} step - Multi-part step state to compute progress for.
+	 * @returns {SubStepProgress} The computed current and total part progress descriptor.
+	 */
+	getSubStepProgress<TSubStepId extends string>(
+		step: MultiPartStepState<TSubStepId>,
+	): SubStepProgress {
+		const idx = step.subStepOrder.indexOf(step.activeSubStepId);
+		const current = idx >= 0 ? idx + 1 : 1;
+		const total = step.subStepOrder.length;
+		return {
+			current,
+			total,
+			label: `Part ${current} of ${total}`,
+		};
 	}
 
 	/**
