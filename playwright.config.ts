@@ -43,7 +43,10 @@ export default defineConfig({
 	projects: [
 		{
 			name: "Desktop-Chrome",
-			testIgnore: "**/visual-screenshots.spec.ts",
+			testIgnore: [
+				"**/visual-screenshots.spec.ts",
+				"**/solver-visual-snapshots.spec.ts",
+			],
 			use: {
 				...devices["Desktop Chrome"],
 				viewport: { width: 1920, height: 1080 },
@@ -51,7 +54,10 @@ export default defineConfig({
 		},
 		{
 			name: "Laptop-Standard",
-			testIgnore: "**/visual-screenshots.spec.ts",
+			testIgnore: [
+				"**/visual-screenshots.spec.ts",
+				"**/solver-visual-snapshots.spec.ts",
+			],
 			use: {
 				...devices["Desktop Chrome"],
 				viewport: { width: 1280, height: 800 },
@@ -59,14 +65,20 @@ export default defineConfig({
 		},
 		{
 			name: "Tablet-iPad",
-			testIgnore: "**/visual-screenshots.spec.ts",
+			testIgnore: [
+				"**/visual-screenshots.spec.ts",
+				"**/solver-visual-snapshots.spec.ts",
+			],
 			use: {
 				...devices["iPad Pro 11"],
 			},
 		},
 		{
 			name: "Mobile-iPhone",
-			testIgnore: "**/visual-screenshots.spec.ts",
+			testIgnore: [
+				"**/visual-screenshots.spec.ts",
+				"**/solver-visual-snapshots.spec.ts",
+			],
 			use: {
 				...devices["iPhone 13"],
 			},
@@ -74,6 +86,13 @@ export default defineConfig({
 		{
 			name: "Visual-Screenshots",
 			testMatch: "**/visual-screenshots.spec.ts",
+			use: {
+				...devices["Desktop Chrome"],
+			},
+		},
+		{
+			name: "Solver-Visual-Snapshots",
+			testMatch: "**/solver-visual-snapshots.spec.ts",
 			use: {
 				...devices["Desktop Chrome"],
 			},

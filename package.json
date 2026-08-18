@@ -19,6 +19,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
+    "test:e2e:solvers": "playwright test tests/e2e/solver-visual-snapshots.spec.ts",
+    "capture:solvers": "playwright test tests/e2e/solver-visual-snapshots.spec.ts && node scripts/generate-solver-gallery.ts",
     "capture:screenshots": "node scripts/capture-readme-screenshots.ts",
     "test:all": "npm test && npm run test:e2e"
   },
