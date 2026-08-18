@@ -58,6 +58,7 @@
 
 	$effect(() => {
 		if (!canvasEl) return;
+		canvasEl.dataset.visualReady = "false";
 
 		// Track theme change dependency
 		void themeVersion;
@@ -177,6 +178,8 @@
 			}
 			ctx.stroke();
 		});
+
+		canvasEl.dataset.visualReady = "true";
 	});
 </script>
 

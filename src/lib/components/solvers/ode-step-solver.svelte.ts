@@ -13,6 +13,7 @@ import {
 	createStepState,
 	createSubStepState,
 	type MultiPartStepState,
+	type SolverVisualStateDescriptor,
 	type SubStepProgress,
 } from "./base-step-solver.svelte";
 
@@ -683,7 +684,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setMisconception(
 				this.step2,
 				s2Data.misconceptions.unfactorable_complex ||
-				s2Data.misconceptions.unfactorable_general,
+					s2Data.misconceptions.unfactorable_general,
 			);
 			return;
 		}
@@ -1070,7 +1071,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"first_deriv",
 				opt.feedback ??
-				"Incorrect first derivative of the trial particular solution.",
+					"Incorrect first derivative of the trial particular solution.",
 			);
 		}
 	}
@@ -1092,7 +1093,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"second_deriv",
 				opt.feedback ??
-				"Incorrect second derivative of the trial particular solution.",
+					"Incorrect second derivative of the trial particular solution.",
 			);
 		}
 	}
@@ -1114,7 +1115,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"derivatives",
 				opt.feedback ??
-				"Incorrect derivatives of the trial particular solution.",
+					"Incorrect derivatives of the trial particular solution.",
 			);
 		}
 	}
@@ -1132,7 +1133,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"system_setup",
 				opt.feedback ??
-				"Incorrect system setup for the undetermined coefficients.",
+					"Incorrect system setup for the undetermined coefficients.",
 			);
 		}
 	}
@@ -1504,7 +1505,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"tr_ss",
 				chosenOpt?.feedback ??
-				"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
+					"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
 			);
 		} else {
 			const chosenOpt = s7Data.steadyStateOptions.find(
@@ -1514,7 +1515,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"tr_ss",
 				chosenOpt?.feedback ??
-				"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
+					"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
 			);
 		}
 	}
@@ -1552,7 +1553,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"concept",
 				chosen?.feedback ??
-				"Incorrect answer. Review linearity, zero-input, and stability principles.",
+					"Incorrect answer. Review linearity, zero-input, and stability principles.",
 			);
 		}
 	}
@@ -1696,6 +1697,322 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			},
 			"zi_zs",
 		);
+	}
+
+	/**
+	 * Named visual states supported by the active ODE archetype. Conditional
+	 * states mirror the real branches in the solver instead of assuming that
+	 * every problem exposes the same sub-step layout.
+	 */
+	override devGetVisualStates(): SolverVisualStateDescriptor[] {
+		const states: SolverVisualStateDescriptor[] = [
+			{
+				id: "ode.step-01.characteristic-equation",
+				label: "Step 1 · Characteristic Equation",
+				step: 1,
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-02.strategy-gate",
+				label: "Step 2 · Solving Strategy",
+				step: 2,
+				subStep: "strategy_gate",
+				kind: "interactive",
+			},
+		];
+
+		if (
+			this.problem.itsData.step2.isFactorable &&
+			this.problem.params.rootType !== "complex_conjugate"
+		) {
+			states.push({
+				id: "ode.step-02.factoring-inputs",
+				label: "Step 2 · Factoring Inputs",
+				step: 2,
+				subStep: "factoring_inputs",
+				kind: "interactive",
+			});
+		}
+
+		states.push(
+			{
+				id: "ode.step-02.quadratic-classification",
+				label: "Step 2 · Quadratic Classification",
+				step: 2,
+				subStep: "quad_classification",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-02.remedial-discriminant",
+				label: "Step 2 · Discriminant Remediation",
+				step: 2,
+				subStep: "remedial_discriminant",
+				kind: "diagnostic",
+			},
+			{
+				id: "ode.step-02.quadratic-roots",
+				label: "Step 2 · Quadratic Root Inputs",
+				step: 2,
+				subStep: "quad_root_inputs",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-03.homogeneous-form",
+				label: "Step 3 · Homogeneous Form",
+				step: 3,
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-04.particular-ansatz",
+				label: "Step 4 · Particular Ansatz",
+				step: 4,
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-05.first-derivative",
+				label: "Step 5A-1 · First Derivative",
+				step: 5,
+				subStep: "first_deriv",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-05.second-derivative",
+				label: "Step 5A-2 · Second Derivative",
+				step: 5,
+				subStep: "second_deriv",
+				kind: "interactive",
+			},
+		);
+
+		if (this.problem.forcing.type === "sinusoid") {
+			states.push({
+				id: "ode.step-05.system-setup",
+				label: "Step 5B · Harmonic System Setup",
+				step: 5,
+				subStep: "system_setup",
+				kind: "interactive",
+			});
+		}
+
+		states.push(
+			{
+				id: "ode.step-05.solve-coefficients",
+				label: "Step 5 · Solve Coefficients",
+				step: 5,
+				subStep: "solve",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-05.solve-coefficients.hints",
+				label: "Step 5 · Solve Coefficients · All Hints",
+				step: 5,
+				subStep: "solve",
+				kind: "hint",
+			},
+			{
+				id: "ode.step-06.target-values",
+				label: "Step 6A · Target Initial Values",
+				step: 6,
+				subStep: "target_values",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-06.target-values.misconception",
+				label: "Step 6A · Particular-Offset Misconception",
+				step: 6,
+				subStep: "target_values",
+				kind: "diagnostic",
+			},
+			{
+				id: "ode.step-06.integration-constants",
+				label: "Step 6B · Integration Constants",
+				step: 6,
+				subStep: "solve_constants",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-07.zero-input-state",
+				label: "Step 7A · Zero-Input and Zero-State",
+				step: 7,
+				subStep: "zi_zs",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-07.transient-steady-state",
+				label: "Step 7B · Transient and Steady-State",
+				step: 7,
+				subStep: "tr_ss",
+				kind: "interactive",
+			},
+			{
+				id: "ode.step-07.concept",
+				label: "Step 7C · Conceptual Mastery",
+				step: 7,
+				subStep: "concept",
+				kind: "interactive",
+			},
+		);
+
+		return states;
+	}
+
+	/** Advances through complete parent steps using the same validation path as the UI. */
+	private devPrepareParentStep(targetStep: number): boolean {
+		this.reset();
+		let guard = 0;
+		while (this.currentStep < targetStep && guard < this.totalSteps) {
+			const before = this.currentStep;
+			this.devAutoFillStep(before);
+			if (this.currentStep === before) return false;
+			guard += 1;
+		}
+		return this.currentStep === targetStep;
+	}
+
+	/** Selects the correct derivative choices needed to reveal a Step 5 sub-step. */
+	private devPrepareStep5SubStep(target: OdeStep5SubStepId): boolean {
+		if (!this.devPrepareParentStep(5)) return false;
+		if (target === "first_deriv") return true;
+
+		const first = this.problem.itsData.step5.firstDerivativeOptions?.find(
+			(option) => option.isCorrect,
+		);
+		if (!first) return false;
+		this.checkStep5FirstDeriv(first);
+		if (target === "second_deriv") return true;
+
+		const second = this.problem.itsData.step5.secondDerivativeOptions?.find(
+			(option) => option.isCorrect,
+		);
+		if (!second) return false;
+		this.checkStep5SecondDeriv(second);
+		if (target === "system_setup") {
+			return this.problem.forcing.type === "sinusoid";
+		}
+
+		if (this.problem.forcing.type === "sinusoid") {
+			const system = this.problem.itsData.step5.systemOptions?.find(
+				(option) => option.isCorrect,
+			);
+			if (!system) return false;
+			this.checkStep5System(system);
+		}
+		return this.step5.activeSubStepId === "solve";
+	}
+
+	/** Resets and prepares one named ODE visual state deterministically. */
+	override devGoToVisualState(stateId: string): boolean {
+		if (!import.meta.env.DEV) return false;
+		if (!this.devGetVisualStates().some((state) => state.id === stateId)) {
+			return false;
+		}
+
+		switch (stateId) {
+			case "ode.step-01.characteristic-equation":
+				return this.devPrepareParentStep(1);
+			case "ode.step-02.strategy-gate":
+				return this.devPrepareParentStep(2);
+			case "ode.step-02.factoring-inputs":
+				if (!this.devPrepareParentStep(2)) return false;
+				this.selectStep2Strategy("factoring");
+				return this.step2.activeSubStepId === "factoring_inputs";
+			case "ode.step-02.quadratic-classification":
+				if (!this.devPrepareParentStep(2)) return false;
+				this.selectStep2Strategy("quadratic");
+				return this.step2.activeSubStepId === "quad_classification";
+			case "ode.step-02.remedial-discriminant": {
+				if (!this.devPrepareParentStep(2)) return false;
+				this.selectStep2Strategy("quadratic");
+				const wrongChoice: RootType =
+					this.problem.params.rootType === "distinct_real"
+						? "repeated_real"
+						: "distinct_real";
+				this.checkStep2QuadClass(wrongChoice);
+				return this.step2.activeSubStepId === "remedial_discriminant";
+			}
+			case "ode.step-02.quadratic-roots":
+				if (!this.devPrepareParentStep(2)) return false;
+				this.selectStep2Strategy("quadratic");
+				this.checkStep2QuadClass(this.problem.params.rootType);
+				return this.step2.activeSubStepId === "quad_root_inputs";
+			case "ode.step-03.homogeneous-form":
+				return this.devPrepareParentStep(3);
+			case "ode.step-04.particular-ansatz":
+				return this.devPrepareParentStep(4);
+			case "ode.step-05.first-derivative":
+				return this.devPrepareStep5SubStep("first_deriv");
+			case "ode.step-05.second-derivative":
+				return this.devPrepareStep5SubStep("second_deriv");
+			case "ode.step-05.system-setup":
+				return this.devPrepareStep5SubStep("system_setup");
+			case "ode.step-05.solve-coefficients":
+				return this.devPrepareStep5SubStep("solve");
+			case "ode.step-05.solve-coefficients.hints":
+				if (!this.devPrepareStep5SubStep("solve")) return false;
+				this.devRevealAllHints();
+				return true;
+			case "ode.step-06.target-values":
+				return this.devPrepareParentStep(6);
+			case "ode.step-06.target-values.misconception":
+				if (!this.devPrepareParentStep(6)) return false;
+				this.step6.yh0 = String(this.problem.initialConditions.y0);
+				this.step6.dyh0 = String(this.problem.initialConditions.dy0);
+				this.checkStep6TargetValues();
+				if (this.currentFeedbackType !== "misconception") {
+					this.setSubStepMisconception(
+						this.step6,
+						"target_values",
+						"Initial conditions apply to the total response. Subtract the particular-solution offsets before solving for the homogeneous constants.",
+					);
+				}
+				return true;
+			case "ode.step-06.integration-constants":
+				if (!this.devPrepareParentStep(6)) return false;
+				this.step6.yh0 = toFractionLatex(
+					this.problem.itsData.step6.targetYh0,
+				);
+				this.step6.dyh0 = toFractionLatex(
+					this.problem.itsData.step6.targetDYh0,
+				);
+				this.checkStep6TargetValues();
+				return this.step6.activeSubStepId === "solve_constants";
+			case "ode.step-07.zero-input-state":
+				return this.devPrepareParentStep(7);
+			case "ode.step-07.transient-steady-state":
+				if (!this.devPrepareParentStep(7)) return false;
+				this.step7.ziC1 = toFractionLatex(
+					this.problem.itsData.step7.ziConstants.C1,
+				);
+				this.step7.ziC2 = toFractionLatex(
+					this.problem.itsData.step7.ziConstants.C2,
+				);
+				this.checkStep7ZI();
+				return this.step7.activeSubStepId === "tr_ss";
+			case "ode.step-07.concept": {
+				if (
+					!this.devGoToVisualState(
+						"ode.step-07.transient-steady-state",
+					)
+				) {
+					return false;
+				}
+				const transient =
+					this.problem.itsData.step7.transientOptions.find(
+						(option) => option.isCorrect,
+					);
+				const steady =
+					this.problem.itsData.step7.steadyStateOptions.find(
+						(option) => option.isCorrect,
+					);
+				if (!transient || !steady) return false;
+				this.step7.selectedTransient = transient.id;
+				this.step7.selectedSteadyState = steady.id;
+				this.checkStep7TrSS();
+				return this.step7.activeSubStepId === "concept";
+			}
+			default:
+				return false;
+		}
 	}
 
 	/**

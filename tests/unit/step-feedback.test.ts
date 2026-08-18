@@ -11,6 +11,7 @@ import {
  */
 class TestStepSolverState extends BaseStepSolverState {
 	step1 = createStepState({ value: "" });
+	readonly activeHints = ["Test hint"];
 	step2 = createStepState({ selected: null as string | null });
 
 	get currentStepState(): BaseStepState | undefined {

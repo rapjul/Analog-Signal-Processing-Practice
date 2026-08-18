@@ -7,6 +7,7 @@ import {
 	BaseStepSolverState,
 	type BaseStepState,
 	createStepState,
+	type SolverVisualStateDescriptor,
 } from "./base-step-solver.svelte";
 
 /**
@@ -292,6 +293,113 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createStepState({ selected: null as string | null });
 		this.step6 = createStepState({ selected: null as string | null });
+	}
+
+	/** Named visual states for the six-step Fourier Series solver. */
+	override devGetVisualStates(): SolverVisualStateDescriptor[] {
+		return [
+			{
+				id: "fourier.step-01.period-frequency",
+				label: "Step 1 · Period and Frequency",
+				step: 1,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-02.symmetry",
+				label: "Step 2 · Waveform Symmetry",
+				step: 2,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-02.symmetry.misconception",
+				label: "Step 2 · Symmetry Misconception",
+				step: 2,
+				kind: "diagnostic",
+			},
+			{
+				id: "fourier.step-03.vanishing-coefficients",
+				label: "Step 3 · Vanishing Coefficients",
+				step: 3,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-04.representation-form",
+				label: "Step 4 · Representation Form",
+				step: 4,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-05.integral-setup",
+				label: "Step 5 · Integral Setup",
+				step: 5,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-05.integral-setup.hints",
+				label: "Step 5 · Integral Setup · All Hints",
+				step: 5,
+				kind: "hint",
+			},
+			{
+				id: "fourier.step-06.final-series",
+				label: "Step 6 · Final Series",
+				step: 6,
+				kind: "interactive",
+			},
+		];
+	}
+
+	/** Advances through complete parent steps using the real validation methods. */
+	private devPrepareParentStep(targetStep: number): boolean {
+		this.reset();
+		let guard = 0;
+		while (this.currentStep < targetStep && guard < this.totalSteps) {
+			const before = this.currentStep;
+			this.devAutoFillStep(before);
+			if (this.currentStep === before) return false;
+			guard += 1;
+		}
+		return this.currentStep === targetStep;
+	}
+
+	/** Resets and prepares one named Fourier visual state deterministically. */
+	override devGoToVisualState(stateId: string): boolean {
+		if (!import.meta.env.DEV) return false;
+		if (!this.devGetVisualStates().some((state) => state.id === stateId)) {
+			return false;
+		}
+
+		switch (stateId) {
+			case "fourier.step-01.period-frequency":
+				return this.devPrepareParentStep(1);
+			case "fourier.step-02.symmetry":
+				return this.devPrepareParentStep(2);
+			case "fourier.step-02.symmetry.misconception": {
+				if (!this.devPrepareParentStep(2)) return false;
+				const choices = ["even", "odd", "none", "half_wave"];
+				const wrong = choices.find(
+					(choice) =>
+						choice !== this.problem.itsData.step2.correctSymmetry,
+				);
+				if (!wrong) return false;
+				this.checkStep2(wrong);
+				return this.currentFeedbackType === "misconception";
+			}
+			case "fourier.step-03.vanishing-coefficients":
+				return this.devPrepareParentStep(3);
+			case "fourier.step-04.representation-form":
+				return this.devPrepareParentStep(4);
+			case "fourier.step-05.integral-setup":
+				return this.devPrepareParentStep(5);
+			case "fourier.step-05.integral-setup.hints":
+				if (!this.devPrepareParentStep(5)) return false;
+				this.devRevealAllHints();
+				return true;
+			case "fourier.step-06.final-series":
+				return this.devPrepareParentStep(6);
+			default:
+				return false;
+		}
 	}
 
 	/**

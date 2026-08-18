@@ -32,6 +32,17 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.hintTier).toBe(3);
 	});
 
+	it("derives the hint cap from the active hint count", () => {
+		const problem = generateFourierSeriesProblem("square");
+		problem.itsData.step1.hints.push("Fourth hint", "Fifth hint");
+		const solver = new FourierStepSolverState(() => problem);
+
+		for (let index = 0; index < 6; index += 1) solver.revealNextHint();
+
+		expect(solver.activeHints).toHaveLength(5);
+		expect(solver.hintTier).toBe(5);
+	});
+
 	it("validates Step 1 with tolerance, units, and alias checking across all branches", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierStepSolverState(() => problem);

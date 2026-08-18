@@ -1,11 +1,31 @@
 /**
- * Diagnostic feedback classification for step solver responses.
+ * Categorizes diagnostic feedback returned by a step solver validation attempt.
+ *
  * - `validation`: Incomplete, blank, or non-numeric/invalid input format.
  * - `misconception`: Diagnosed pedagogical misconception or distractor pattern.
  * - `incorrect`: General calculation error or algebraic mismatch.
  */
-
 export type StepFeedbackType = "validation" | "misconception" | "incorrect";
+
+/** Classification used by the visual-regression scenario catalog. */
+export type SolverVisualStateKind = "interactive" | "hint" | "diagnostic";
+
+/**
+ * Stable, human-readable description of a solver state that can be prepared by
+ * the developer harness. These IDs are part of the visual-regression contract.
+ */
+export interface SolverVisualStateDescriptor {
+	/** Stable identifier used in snapshot and artifact file names. */
+	id: string;
+	/** Display label used by the inspection gallery. */
+	label: string;
+	/** Parent solver step number. */
+	step: number;
+	/** Optional conditional sub-step identifier. */
+	subStep?: string;
+	/** Whether this is a normal input, expanded hint, or diagnostic state. */
+	kind: SolverVisualStateKind;
+}
 
 /**
  * Developer & Test Harness API interface attached to window in Vite dev mode.
@@ -17,10 +37,14 @@ export interface SignalLabDevHarness {
 	solveAll: () => void;
 	/** Solves a specific step or current step */
 	autoFillStep: (step?: number) => void;
-	/** Reveals all hint tiers (Tier 3) */
+	/** Reveals every hint available for the active step or sub-step. */
 	revealAllHints: () => void;
 	/** Simulates a diagnostic misconception feedback banner */
 	simulateMisconception: (message?: string) => void;
+	/** Returns the named visual states supported by the active problem. */
+	getVisualStates: () => SolverVisualStateDescriptor[];
+	/** Resets and prepares one named visual state. */
+	goToVisualState: (stateId: string) => boolean;
 }
 
 declare global {
@@ -191,7 +215,7 @@ export function createMultiPartStepState<
 /**
  * Abstract Base Step Solver State class for Svelte 5 ITS modules.
  *
- * Encapsulates universal step navigation, 3-tier progressive hint mechanics,
+ * Encapsulates universal step navigation, progressive hint mechanics,
  * centralized feedback derivations, and step validation helpers.
  */
 export abstract class BaseStepSolverState {
@@ -201,7 +225,7 @@ export abstract class BaseStepSolverState {
 	/** Whether all steps have been successfully completed */
 	isCompleted = $state<boolean>(false);
 
-	/** Hint tier for the active step (0 = closed, 1 = Tier 1, 2 = Tier 2, 3 = Tier 3) */
+	/** Number of hints currently revealed for the active step (0 = closed). */
 	hintTier = $state<number>(0);
 
 	/** Total number of sequential steps in this ITS module */
@@ -214,6 +238,9 @@ export abstract class BaseStepSolverState {
 	 * Abstract getter returning the active step state object for the current step.
 	 */
 	abstract get currentStepState(): BaseStepState | undefined;
+
+	/** Hint strings available for the currently active step or sub-step. */
+	abstract readonly activeHints: string[];
 
 	/**
 	 * Active feedback message for the currently active step.
@@ -292,16 +319,17 @@ export abstract class BaseStepSolverState {
 	}
 
 	/**
-	 * Developer / Test mode method: Reveals all hint tiers (Tier 3) on the active step or sub-step.
+	 * Developer / Test mode method: Reveals every available hint on the active step or sub-step.
 	 */
 	devRevealAllHints(): void {
 		if (!import.meta.env.DEV) return;
-		this.hintTier = 3;
+		const maxTiers = this.activeHints.length;
+		this.hintTier = maxTiers;
 		const curr = this.currentStepState as MultiPartStepState | undefined;
 		if (curr && "subSteps" in curr && curr.activeSubStepId) {
 			const sub = curr.subSteps[curr.activeSubStepId];
 			if (sub) {
-				sub.hintTier = 3;
+				sub.hintTier = maxTiers;
 			}
 		}
 	}
@@ -323,6 +351,22 @@ export abstract class BaseStepSolverState {
 	}
 
 	/**
+	 * Returns the named visual states supported by the active solver.
+	 * Subclasses override this with their state-machine-specific catalog.
+	 */
+	devGetVisualStates(): SolverVisualStateDescriptor[] {
+		return [];
+	}
+
+	/**
+	 * Resets and prepares a named visual state. Subclasses override this with
+	 * deterministic transitions through their real validation methods.
+	 */
+	devGoToVisualState(_stateId: string): boolean {
+		return false;
+	}
+
+	/**
 	 * Registers this solver instance with the global developer test harness in dev mode.
 	 */
 	registerDevHarness(): void {
@@ -334,15 +378,18 @@ export abstract class BaseStepSolverState {
 				revealAllHints: () => this.devRevealAllHints(),
 				simulateMisconception: (msg?: string) =>
 					this.devSimulateMisconception(msg),
+				getVisualStates: () => this.devGetVisualStates(),
+				goToVisualState: (stateId: string) =>
+					this.devGoToVisualState(stateId),
 			};
 		}
 	}
 
 	/**
-	 * Increments the hint tier for the active step up to Tier 3.
+	 * Reveals the next hint, capped at the number available on the active step.
 	 */
 	revealNextHint(): void {
-		if (this.hintTier < 3) {
+		if (this.hintTier < this.activeHints.length) {
 			this.hintTier += 1;
 		}
 	}

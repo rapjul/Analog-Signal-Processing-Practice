@@ -105,6 +105,8 @@
 
 	$effect(() => {
 		if (!canvasUpperEl || !canvasLowerEl) return;
+		canvasUpperEl.dataset.visualReady = "false";
+		canvasLowerEl.dataset.visualReady = "false";
 
 		// Track reactive dependencies
 		void themeVersion;
@@ -370,6 +372,8 @@
 				animFrameId = requestAnimationFrame(renderFrame);
 			} else {
 				animFrameId = null;
+				canvasUpperEl.dataset.visualReady = "true";
+				canvasLowerEl.dataset.visualReady = "true";
 			}
 		}
 

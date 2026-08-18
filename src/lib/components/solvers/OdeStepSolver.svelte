@@ -54,13 +54,13 @@
 					type="button"
 					class="btn-hint hint-toggle-btn"
 					onclick={() => solver.revealNextHint()}
-					disabled={solver.hintTier >= 3}
+					disabled={solver.hintTier >= solver.activeHints.length}
 				>
 					💡 {solver.hintTier === 0
 						? "Get Hint"
-						: solver.hintTier < 3
-							? `Get Next Hint (${solver.hintTier}/3)`
-							: "All Hints Revealed (3/3)"}
+						: solver.hintTier < solver.activeHints.length
+							? `Get Next Hint (${solver.hintTier}/${solver.activeHints.length})`
+							: `All Hints Revealed (${solver.activeHints.length}/${solver.activeHints.length})`}
 				</button>
 				{#if solver.hintTier > 0}
 					<span class="tier-label">
@@ -68,7 +68,9 @@
 							? "Tier 1: Conceptual Nudge"
 							: solver.hintTier === 2
 								? "Tier 2: Formula Setup"
-								: "Tier 3: Worked Intermediate Step"}
+								: solver.hintTier === 3
+									? "Tier 3: Worked Intermediate Step"
+									: `Tier ${solver.hintTier}`}
 					</span>
 				{/if}
 			</div>
