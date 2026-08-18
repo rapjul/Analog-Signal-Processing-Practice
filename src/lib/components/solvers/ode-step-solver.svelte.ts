@@ -1,4 +1,6 @@
 import {
+	formatExpTerm,
+	formatLinearCombination,
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
 } from "$lib/math-engine/formatting";
@@ -7,11 +9,10 @@ import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
-	type BaseSubStepState,
-	type MultiPartStepState,
 	createMultiPartStepState,
 	createStepState,
 	createSubStepState,
+	type MultiPartStepState,
 } from "./base-step-solver.svelte";
 
 /**
@@ -1206,20 +1207,22 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			case "distinct_real": {
 				const term1 = formatSignedLinearTerm(
 					c1,
-					`e^{${roots.r1}t}`,
+					formatExpTerm(roots.r1),
 					true,
 				);
 				const term2 = formatSignedLinearTerm(
 					c2,
-					`e^{${roots.r2}t}`,
+					formatExpTerm(roots.r2 ?? 0),
 					false,
 				);
 				raw = `${term1} ${term2}`;
 				break;
 			}
-			case "repeated_real":
-				raw = `(${c1} + ${c2}t) e^{${roots.r1}t}`;
+			case "repeated_real": {
+				const inner = formatLinearCombination(c1, c2);
+				raw = `(${inner}) ${formatExpTerm(roots.r1)}`;
 				break;
+			}
 			case "complex_conjugate": {
 				const term1 = formatSignedLinearTerm(
 					c1,
@@ -1231,7 +1234,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					`\\sin(${roots.im}t)`,
 					false,
 				);
-				raw = `e^{${roots.r1}t} [${term1} ${term2}]`;
+				const expTerm = roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";
+				raw = expTerm
+					? `${expTerm} [${term1} ${term2}]`
+					: `${term1} ${term2}`;
 				break;
 			}
 			default:
@@ -1278,20 +1284,22 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			case "distinct_real": {
 				const term1 = formatSignedLinearTerm(
 					c1,
-					`e^{${roots.r1}t}`,
+					formatExpTerm(roots.r1),
 					true,
 				);
 				const term2 = formatSignedLinearTerm(
 					c2,
-					`e^{${roots.r2}t}`,
+					formatExpTerm(roots.r2 ?? 0),
 					false,
 				);
 				homoPart = `${term1} ${term2}`;
 				break;
 			}
-			case "repeated_real":
-				homoPart = `(${c1} + ${c2}t) e^{${roots.r1}t}`;
+			case "repeated_real": {
+				const inner = formatLinearCombination(c1, c2);
+				homoPart = `(${inner}) ${formatExpTerm(roots.r1)}`;
 				break;
+			}
 			case "complex_conjugate": {
 				const term1 = formatSignedLinearTerm(
 					c1,
@@ -1303,7 +1311,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					`\\sin(${roots.im}t)`,
 					false,
 				);
-				homoPart = `e^{${roots.r1}t} [${term1} ${term2}]`;
+				const expTerm = roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";
+				homoPart = expTerm
+					? `${expTerm} [${term1} ${term2}]`
+					: `${term1} ${term2}`;
 				break;
 			}
 			default:

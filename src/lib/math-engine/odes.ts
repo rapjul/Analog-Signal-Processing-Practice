@@ -15,6 +15,8 @@
  */
 
 import {
+	formatExpTerm,
+	formatLinearCombination,
 	formatOdeLhs,
 	formatQuadraticPolynomial,
 	formatRootFactor,
@@ -251,6 +253,8 @@ export interface OdeItsStep7 extends BaseItsStep {
 		/** Detailed conceptual explanation upon completion */
 		explanation: string;
 	};
+	/** Evaluated linear system equations for Zero-Input initial conditions */
+	ziSystemLatex: string;
 	/** Sub-step-specific progressive hints */
 	subStepHints?: Record<string, string[]>;
 }
@@ -502,12 +506,17 @@ export function solveHomogeneousConstants(
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
 
-			let latex = "";
-			if (Math.abs(C1) > 1e-6) latex += `${c1Str} e^{${r1}t}`;
-			if (C2 > 1e-6) latex += ` + ${c2Str} e^{${r2}t}`;
-			else if (C2 < -1e-6)
-				latex += ` - ${toFractionLatex(Math.abs(C2))} e^{${r2}t}`;
-			if (!latex) latex = "0";
+			const term1 = formatSignedLinearTerm(
+				c1Str,
+				formatExpTerm(r1),
+				true,
+			);
+			const term2 = formatSignedLinearTerm(
+				c2Str,
+				formatExpTerm(r2),
+				false,
+			);
+			const latex = sanitizeLatexMath(`${term1} ${term2}`) || "0";
 
 			return {
 				latex,
@@ -528,13 +537,11 @@ export function solveHomogeneousConstants(
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
 
-			let inner = "";
-			if (Math.abs(C1) > 1e-6) inner += `${c1Str}`;
-			if (C2 > 1e-6) inner += ` + ${c2Str}t`;
-			else if (C2 < -1e-6)
-				inner += ` - ${toFractionLatex(Math.abs(C2))}t`;
-
-			const latex = inner ? `(${inner}) e^{${r}t}` : "0";
+			const inner = formatLinearCombination(c1Str, c2Str);
+			const expTerm = formatExpTerm(r);
+			const latex = sanitizeLatexMath(
+				inner !== "0" ? `(${inner}) ${expTerm}` : "0",
+			);
 
 			return {
 				latex,
@@ -557,17 +564,21 @@ export function solveHomogeneousConstants(
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
 
-			let inner = "";
-			if (Math.abs(C1) > 1e-6)
-				inner += `${c1Str} \\cos(${toFractionLatex(omega_d)}t)`;
-			if (C2 > 1e-6)
-				inner += ` + ${c2Str} \\sin(${toFractionLatex(omega_d)}t)`;
-			else if (C2 < -1e-6)
-				inner += ` - ${toFractionLatex(Math.abs(C2))} \\sin(${toFractionLatex(omega_d)}t)`;
-
-			const sigmaStr =
-				sigma !== 0 ? `e^{${toFractionLatex(sigma)}t}` : "";
-			const latex = inner ? `${sigmaStr} [ ${inner} ]` : "0";
+			const cosTerm = formatSignedLinearTerm(
+				c1Str,
+				`\\cos(${toFractionLatex(omega_d)}t)`,
+				true,
+			);
+			const sinTerm = formatSignedLinearTerm(
+				c2Str,
+				`\\sin(${toFractionLatex(omega_d)}t)`,
+				false,
+			);
+			const inner = `${cosTerm} ${sinTerm}`.trim();
+			const expTerm = sigma !== 0 ? formatExpTerm(sigma) : "";
+			const latex = sanitizeLatexMath(
+				inner ? (expTerm ? `${expTerm} [${inner}]` : inner) : "0",
+			);
 
 			return {
 				latex,
@@ -1372,6 +1383,32 @@ export function generateOdeProblem(
 		icSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
 	}
 
+	// Formulate Zero-Input initial condition system LaTeX matching y(0-) and y'(0-)
+	let ziSystemLatex = "";
+	if (resolvedRootType === "distinct_real") {
+		const r1 = roots.r1;
+		const r2 = roots.r2 ?? 0;
+		const eq1 = `C_{1,ZI} + C_{2,ZI} = ${toFractionLatex(initialConditions.y0)}`;
+		const term1 = formatSignedLinearTerm(r1, "C_{1,ZI}", true);
+		const term2 = formatSignedLinearTerm(r2, "C_{2,ZI}", false);
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0)}`;
+		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	} else if (resolvedRootType === "repeated_real") {
+		const r = roots.r1;
+		const eq1 = `C_{1,ZI} = ${toFractionLatex(initialConditions.y0)}`;
+		const term1 = formatSignedLinearTerm(r, "C_{1,ZI}", true);
+		const eq2 = `${term1} + C_{2,ZI} = ${toFractionLatex(initialConditions.dy0)}`;
+		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	} else {
+		const sig = roots.r1;
+		const wd = roots.im ?? 1;
+		const eq1 = `C_{1,ZI} = ${toFractionLatex(initialConditions.y0)}`;
+		const term1 = formatSignedLinearTerm(sig, "C_{1,ZI}", true);
+		const term2 = formatSignedLinearTerm(wd, "C_{2,ZI}", false);
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0)}`;
+		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
+	}
+
 	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
 	const itsData: OdeItsData = {
 		step1: {
@@ -1590,6 +1627,7 @@ export function generateOdeProblem(
 			transientOptions,
 			steadyStateOptions,
 			conceptQuestion: selectedConceptQ,
+			ziSystemLatex,
 			hints: [
 				"$y_{ZI}(t)$ is the zero-input response (natural response satisfying initial conditions with $x(t)=0$).",
 				"$y_{ZS}(t)$ is the zero-state response (response driven purely by $x(t)$ with zero initial conditions).",
@@ -1599,7 +1637,7 @@ export function generateOdeProblem(
 				zi_zs: [
 					"Zero-Input ($y_{ZI}$) satisfies original initial conditions with forcing $x(t) = 0$.",
 					"Zero-State ($y_{ZS}$) is driven by the forcing $x(t)$ with zero initial conditions ($y(0^-)=0, y'(0^-)=0$).",
-					`$C_{1,ZI} = ${toFractionLatex(homogeneousZI.C1)}, \\; C_{2,ZI} = ${toFractionLatex(homogeneousZI.C2)}$ and $C_{1,ZS} = C_1 - C_{1,ZI} = ${toFractionLatex(homogeneousZS.C1)}, \\; C_{2,ZS} = C_2 - C_{2,ZI} = ${toFractionLatex(homogeneousZS.C2)}$.`,
+					`$C_{1,ZI} = ${toFractionLatex(homogeneousZI.C1)}, \\quad C_{2,ZI} = ${toFractionLatex(homogeneousZI.C2)}$ and $C_{1,ZS} = C_1 - C_{1,ZI} = ${toFractionLatex(homogeneousZS.C1)}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${toFractionLatex(homogeneousZS.C2)}$.`,
 				],
 				tr_ss: [
 					"Transient response $y_{tr}(t)$ consists of natural homogeneous modes that decay to zero as $t \\to \\infty$.",
