@@ -59,6 +59,7 @@ export interface PolynomialTerm {
 
 /**
  * Formats an arbitrary array of polynomial/differential terms into a clean LaTeX expression.
+ *
  * Strips zero-coefficient terms and applies leading signs appropriately.
  *
  * @param {PolynomialTerm[]} terms Array of polynomial terms ordered from highest to lowest degree
@@ -77,6 +78,7 @@ export function formatPolynomial(terms: PolynomialTerm[]): string {
 
 /**
  * Formats a 2nd-order quadratic polynomial equation ($a_2 x^2 + a_1 x + a_0 = 0$).
+ *
  * Omits unit coefficients (1 and -1) on powers of the independent variable and formats signs cleanly.
  *
  * @param {number} a2 Coefficient of the quadratic term ($x^2$)

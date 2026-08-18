@@ -934,7 +934,7 @@ export function generateOdeProblem(
 				id: "d1_missing_factor",
 				latex: `y_p'(t) = -A \\sin(${w}t) + B \\cos(${w}t)`,
 				isCorrect: false,
-				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out the inner factor of ${w}.`,
+				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out the inner factor of $${w}$.`,
 			},
 		];
 
@@ -980,7 +980,7 @@ export function generateOdeProblem(
 				id: "deriv_missing_omega",
 				latex: `y_p'(t) = -A \\sin(${w}t) + B \\cos(${w}t), \\quad y_p''(t) = -A \\cos(${w}t) - B \\sin(${w}t)`,
 				isCorrect: false,
-				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out an inner factor of ${w}.`,
+				feedback: `Chain Rule Error: Differentiating $\\cos(${w}t)$ and $\\sin(${w}t)$ pulls out an inner factor of $${w}$.`,
 			},
 		];
 
@@ -1012,7 +1012,7 @@ export function generateOdeProblem(
 				id: "sys_wrong_target",
 				latex: `\\begin{cases} (${m11})A + (${m12})B = 0 \\\\ (${m21})A + (${m22})B = ${forcing.K} \\end{cases}`,
 				isCorrect: false,
-				feedback: `Target Forcing Error: The input $x(t) = ${forcing.K}\\cos(${w}t)$ is pure cosine, so the cosine sum equates to ${forcing.K} and the sine sum equates to $0$.`,
+				feedback: `Target Forcing Error: The input $x(t) = ${forcing.K}\\cos(${w}t)$ is pure cosine, so the cosine sum equates to $${forcing.K}$ and the sine sum equates to $0$.`,
 			},
 		];
 	} else if (forcing.type === "constant") {
@@ -1104,7 +1104,7 @@ export function generateOdeProblem(
 				id: "d1_exp_sign",
 				latex: `y_p'(t) = ${-p} K_p e^{${p}t}`,
 				isCorrect: false,
-				feedback: `Chain Rule Sign: Differentiating $e^{${p}t}$ brings down $+${p}$, not ${-p}.`,
+				feedback: `Chain Rule Sign: Differentiating $e^{${p}t}$ brings down $+${p}$, not $${-p}$.`,
 			},
 			{
 				id: "d1_exp_nofactor",
@@ -1419,7 +1419,7 @@ export function generateOdeProblem(
 			hints: [
 				"Recall that differential operators map directly to powers of $s$: $\\frac{d^2}{dt^2} \\to s^2$, $\\frac{d}{dt} \\to s$, and $y(t) \\to 1$.",
 				"Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.",
-				`For this differential equation, the characteristic equation is ${charEqFormatted}.`,
+				`For this differential equation, the characteristic equation is $${charEqFormatted}$.`,
 			],
 			misconceptions: {
 				forcing_rhs:
@@ -1487,7 +1487,7 @@ export function generateOdeProblem(
 				remedial_discriminant: [
 					"Substitute into $\\Delta = b^2 - 4ac$ with $a=1$, $b=a_1$, and $c=a_0$.",
 					`Calculate $(${a1})^2 - 4(1)(${a0}) = ${a1 * a1} - ${4 * a0}$.`,
-					`The discriminant value is exactly ${a1 * a1 - 4 * a0}.`,
+					`The discriminant value is exactly $${a1 * a1 - 4 * a0}$.`,
 				],
 				quad_root_inputs: [
 					"Apply $s = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$.",
