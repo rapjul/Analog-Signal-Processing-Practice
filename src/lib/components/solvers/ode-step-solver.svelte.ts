@@ -518,44 +518,34 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const sId = this.currentStep;
 		const its = this.problem.itsData;
 
-		if (sId === 2) {
-			const subId = this.step2.activeSubStepId;
-			if (its.step2.subStepHints && its.step2.subStepHints[subId]) {
-				return its.step2.subStepHints[subId];
+		const stepMap: Record<
+			number,
+			{
+				state: BaseStepState | MultiPartStepState;
+				its: {
+					hints: string[];
+					subStepHints?: Record<string, string[]>;
+				};
 			}
-			return its.step2.hints;
+		> = {
+			1: { state: this.step1, its: its.step1 },
+			2: { state: this.step2, its: its.step2 },
+			3: { state: this.step3, its: its.step3 },
+			4: { state: this.step4, its: its.step4 },
+			5: { state: this.step5, its: its.step5 },
+			6: { state: this.step6, its: its.step6 },
+			7: { state: this.step7, its: its.step7 },
+		};
+
+		const current = stepMap[sId];
+		if (!current) return [];
+
+		if ("activeSubStepId" in current.state && current.its.subStepHints) {
+			const subId = current.state.activeSubStepId;
+			return current.its.subStepHints[subId] ?? current.its.hints;
 		}
-		if (sId === 5) {
-			const subId = this.step5.activeSubStepId;
-			if (its.step5.subStepHints && its.step5.subStepHints[subId]) {
-				return its.step5.subStepHints[subId];
-			}
-			return its.step5.hints;
-		}
-		if (sId === 6) {
-			const subId = this.step6.activeSubStepId;
-			if (its.step6.subStepHints && its.step6.subStepHints[subId]) {
-				return its.step6.subStepHints[subId];
-			}
-			return its.step6.hints;
-		}
-		if (sId === 7) {
-			const subId = this.step7.activeSubStepId;
-			if (its.step7.subStepHints && its.step7.subStepHints[subId]) {
-				return its.step7.subStepHints[subId];
-			}
-			return its.step7.hints;
-		}
-		switch (sId) {
-			case 1:
-				return its.step1.hints;
-			case 3:
-				return its.step3.hints;
-			case 4:
-				return its.step4.hints;
-			default:
-				return [];
-		}
+
+		return current.its.hints ?? [];
 	});
 
 	/**
@@ -693,7 +683,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setMisconception(
 				this.step2,
 				s2Data.misconceptions.unfactorable_complex ||
-					s2Data.misconceptions.unfactorable_general,
+				s2Data.misconceptions.unfactorable_general,
 			);
 			return;
 		}
@@ -1080,7 +1070,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"first_deriv",
 				opt.feedback ??
-					"Incorrect first derivative of the trial particular solution.",
+				"Incorrect first derivative of the trial particular solution.",
 			);
 		}
 	}
@@ -1102,7 +1092,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"second_deriv",
 				opt.feedback ??
-					"Incorrect second derivative of the trial particular solution.",
+				"Incorrect second derivative of the trial particular solution.",
 			);
 		}
 	}
@@ -1124,7 +1114,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"derivatives",
 				opt.feedback ??
-					"Incorrect derivatives of the trial particular solution.",
+				"Incorrect derivatives of the trial particular solution.",
 			);
 		}
 	}
@@ -1142,7 +1132,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step5,
 				"system_setup",
 				opt.feedback ??
-					"Incorrect system setup for the undetermined coefficients.",
+				"Incorrect system setup for the undetermined coefficients.",
 			);
 		}
 	}
@@ -1514,7 +1504,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"tr_ss",
 				chosenOpt?.feedback ??
-					"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
+				"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
 			);
 		} else {
 			const chosenOpt = s7Data.steadyStateOptions.find(
@@ -1524,7 +1514,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"tr_ss",
 				chosenOpt?.feedback ??
-					"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
+				"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
 			);
 		}
 	}
@@ -1562,7 +1552,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step7,
 				"concept",
 				chosen?.feedback ??
-					"Incorrect answer. Review linearity, zero-input, and stability principles.",
+				"Incorrect answer. Review linearity, zero-input, and stability principles.",
 			);
 		}
 	}
