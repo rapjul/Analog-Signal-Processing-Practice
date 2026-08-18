@@ -1334,7 +1334,7 @@
 					<span class="synthesis-badge">Total Solution Form:</span>
 					<div class="synthesis-math">
 						<MathBlock
-							math={`y(t) = (${problem.solutions.y_complete_latex}) u(t)`}
+							math={`y(t) = ${problem.solutions.y_complete_latex}`}
 							compact={true}
 							hideHeader={true}
 						/>
@@ -1363,9 +1363,23 @@
 					{#if !solver.step7.ziZsPassed}
 						<p class="step-prompt">
 							<MathText
-								text={String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting $x(t) = 0$ ($y_p = 0$) and solving for homogeneous constants matching initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0}$:`}
+								text={String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching the original initial conditions $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$:`}
 							/>
 						</p>
+
+						<!-- Zero-Input Initial Conditions System Display -->
+						<div class="ic-system-display">
+							<span class="system-lead-label">
+								<MathText
+									text={"Zero-Input Initial Condition System ($x(t) = 0$):"}
+								/>
+							</span>
+							<MathBlock
+								math={problem.itsData.step7.ziSystemLatex}
+								compact={true}
+								hideHeader={true}
+							/>
+						</div>
 
 						<div class="input-row-grid">
 							<div class="input-pair">
@@ -1415,7 +1429,7 @@
 								Live Zero-Input & Zero-State Previews:
 							</span>
 							<MathBlock
-								math={`y_{ZI}(t) = (${solver.previewZI}) u(t)`}
+								math={`y_{ZI}(t) = ${solver.previewZI}`}
 								compact={true}
 								hideHeader={true}
 							/>
@@ -1425,7 +1439,7 @@
 								/>
 							</div>
 							<MathBlock
-								math={`y_{ZS}(t) = (${solver.previewZS}) u(t)`}
+								math={`y_{ZS}(t) = ${solver.previewZS}`}
 								compact={true}
 								hideHeader={true}
 							/>
@@ -1445,13 +1459,13 @@
 							<div class="verified-item">
 								<span class="verified-label">Zero-Input:</span>
 								<MathText
-									text={`$y_{ZI}(t) = (${problem.solutions.y_zi_latex}) u(t)$`}
+									text={`$y_{ZI}(t) = ${problem.solutions.y_zi_latex}$`}
 								/>
 							</div>
 							<div class="verified-item">
 								<span class="verified-label">Zero-State:</span>
 								<MathText
-									text={`$y_{ZS}(t) = (${problem.solutions.y_zs_latex}) u(t)$`}
+									text={`$y_{ZS}(t) = ${problem.solutions.y_zs_latex}$`}
 								/>
 							</div>
 						</div>
@@ -1558,7 +1572,7 @@
 										>Transient:</span
 									>
 									<MathText
-										text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
+										text={`$y_{tr}(t) = ${problem.solutions.y_tr_latex}$`}
 									/>
 								</div>
 								<div class="verified-item">
@@ -1566,7 +1580,7 @@
 										>Steady-State:</span
 									>
 									<MathText
-										text={`$y_{ss}(t) = (${problem.solutions.y_ss_latex}) u(t)$`}
+										text={`$y_{ss}(t) = ${problem.solutions.y_ss_latex}$`}
 									/>
 								</div>
 							</div>
@@ -1626,7 +1640,7 @@
 					<span class="check-icon">✓</span>
 					<span class="summary-heading">Complete Solution:</span>
 					<MathText
-						text={`$y(t) = (${problem.solutions.y_complete_latex}) u(t)$`}
+						text={`$y(t) = ${problem.solutions.y_complete_latex}$`}
 					/>
 				</div>
 				<div class="summary-decomposition-grid">
@@ -1636,12 +1650,12 @@
 						>
 						<div class="decomp-math">
 							<MathText
-								text={`$y_{ZI}(t) = (${problem.solutions.y_zi_latex}) u(t)$`}
+								text={`$y_{ZI}(t) = ${problem.solutions.y_zi_latex}$`}
 							/>
 						</div>
 						<div class="decomp-math">
 							<MathText
-								text={`$y_{ZS}(t) = (${problem.solutions.y_zs_latex}) u(t)$`}
+								text={`$y_{ZS}(t) = ${problem.solutions.y_zs_latex}$`}
 							/>
 						</div>
 					</div>
@@ -1651,12 +1665,12 @@
 						>
 						<div class="decomp-math">
 							<MathText
-								text={`$y_{tr}(t) = (${problem.solutions.y_tr_latex}) u(t)$`}
+								text={`$y_{tr}(t) = ${problem.solutions.y_tr_latex}$`}
 							/>
 						</div>
 						<div class="decomp-math">
 							<MathText
-								text={`$y_{ss}(t) = (${problem.solutions.y_ss_latex}) u(t)$`}
+								text={`$y_{ss}(t) = ${problem.solutions.y_ss_latex}$`}
 							/>
 						</div>
 					</div>
@@ -1937,13 +1951,14 @@
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
-		padding: 0.75rem 1rem;
+		padding: 0.9rem 1.25rem;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		transition: all 0.15s ease;
 		color: var(--text-primary);
+		font-size: var(--text-lg, 1.125rem);
 		width: 100%;
 	}
 
@@ -1957,6 +1972,10 @@
 
 	.mcq-card :global(.math-block-content) {
 		padding: 0.25rem 0.5rem;
+	}
+
+	.mcq-card :global(.katex) {
+		font-size: 1.15em;
 	}
 
 	.mcq-card:hover {
@@ -2413,8 +2432,8 @@
 	.concept-option-card {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.75rem 1rem;
+		gap: 0.85rem;
+		padding: 0.9rem 1.2rem;
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
@@ -2422,7 +2441,12 @@
 		text-align: left;
 		transition: all 0.15s ease;
 		color: var(--text-primary);
+		font-size: var(--text-base, 1rem);
 		width: 100%;
+	}
+
+	.concept-option-card :global(.katex) {
+		font-size: 1.15em;
 	}
 
 	.concept-option-card:hover {
@@ -2441,13 +2465,15 @@
 	}
 
 	.option-radio-indicator {
-		font-size: var(--text-base);
+		font-size: 1.25rem;
 		color: var(--accent-primary);
 		flex-shrink: 0;
 	}
 
 	.option-math-content {
 		flex: 1;
+		font-size: 1.05rem;
+		line-height: 1.5;
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
