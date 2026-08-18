@@ -140,14 +140,209 @@ export function formatRootFactor(root: number, variable = "x"): string {
 }
 
 /**
+ * Formats an exponential term e^(power * varName) with automatic unit and zero simplification.
+ *
+ * @param {number | string} power The exponent coefficient or symbolic factor
+ * @param {string} [varName="t"] The independent variable name (defaults to "t")
+ * @returns {string} Clean LaTeX exponential term string
+ *
+ * Examples:
+ * - formatExpTerm(0) -> "1"
+ * - formatExpTerm(1) -> "e^{t}"
+ * - formatExpTerm(-1) -> "e^{-t}"
+ * - formatExpTerm(-2) -> "e^{-2t}"
+ * - formatExpTerm("-j1") -> "e^{-jt}"
+ * - formatExpTerm("-j10") -> "e^{-j10t}"
+ */
+export function formatExpTerm(power: number | string, varName = "t"): string {
+	const pStr = String(power).trim();
+	if (pStr === "0") return "1";
+
+	const num = typeof power === "number" ? power : parseFloat(pStr);
+	if (!Number.isNaN(num)) {
+		if (num === 0) return "1";
+		if (num === 1) return `e^{${varName}}`;
+		if (num === -1) return `e^{-${varName}}`;
+		return `e^{${pStr}${varName}}`;
+	}
+
+	// Symbolic string power handling
+	if (pStr === "1") return `e^{${varName}}`;
+	if (pStr === "-1") return `e^{-${varName}}`;
+	if (pStr === "j1" || pStr === "1j") return `e^{j${varName}}`;
+	if (pStr === "-j1" || pStr === "-1j") return `e^{-j${varName}}`;
+
+	return sanitizeUnitCoefficients(`e^{${pStr}${varName}}`);
+}
+
+/**
+ * Formats a linear combination (c1 + c2 * varName) with automatic unit reduction and zero elimination.
+ *
+ * @param {string | number} c1 Constant term or symbolic expression
+ * @param {string | number} c2 Coefficient of the variable term or symbolic expression
+ * @param {string} [varName="t"] The independent variable name (defaults to "t")
+ * @returns {string} Clean LaTeX linear combination string
+ *
+ * Examples:
+ * - formatLinearCombination(2, -1) -> "2 - t"
+ * - formatLinearCombination(0, 1) -> "t"
+ * - formatLinearCombination(0, -1) -> "-t"
+ * - formatLinearCombination(0, -2) -> "-2t"
+ * - formatLinearCombination(3, 0) -> "3"
+ * - formatLinearCombination("C_{1,ZI}", "C_{2,ZI}") -> "C_{1,ZI} + C_{2,ZI}t"
+ */
+export function formatLinearCombination(
+	c1: string | number,
+	c2: string | number,
+	varName = "t",
+): string {
+	const c1Str = String(c1).trim();
+	const c2Str = String(c2).trim();
+
+	const n1 = typeof c1 === "number" ? c1 : parseFloat(c1Str);
+	const n2 = typeof c2 === "number" ? c2 : parseFloat(c2Str);
+
+	const isN1 = !Number.isNaN(n1) && String(n1) === c1Str;
+	const isN2 = !Number.isNaN(n2) && String(n2) === c2Str;
+
+	if (isN1 && isN2) {
+		if (Math.abs(n1) < 1e-9 && Math.abs(n2) < 1e-9) return "0";
+		if (Math.abs(n1) < 1e-9) {
+			if (n2 === 1) return varName;
+			if (n2 === -1) return `-${varName}`;
+			return `${c2Str}${varName}`;
+		}
+		if (Math.abs(n2) < 1e-9) return c1Str;
+
+		let term2 = "";
+		if (n2 === 1) term2 = `+ ${varName}`;
+		else if (n2 === -1) term2 = `- ${varName}`;
+		else if (n2 > 0) term2 = `+ ${c2Str}${varName}`;
+		else
+			term2 = `- ${c2Str.startsWith("-") ? c2Str.slice(1).trim() : Math.abs(n2)}${varName}`;
+
+		return `${c1Str} ${term2}`;
+	}
+
+	// Symbolic representations
+	if (c1Str === "0") {
+		if (c2Str === "1") return varName;
+		if (c2Str === "-1") return `-${varName}`;
+		return `${c2Str}${varName}`;
+	}
+
+	if (c2Str === "0") return c1Str;
+
+	let secondTerm = "";
+	if (c2Str === "1") {
+		secondTerm = `+ ${varName}`;
+	} else if (c2Str === "-1") {
+		secondTerm = `- ${varName}`;
+	} else if (c2Str.startsWith("-")) {
+		const absC2 = c2Str.slice(1).trim();
+		secondTerm = absC2 === "1" ? `- ${varName}` : `- ${absC2}${varName}`;
+	} else {
+		secondTerm = `+ ${c2Str}${varName}`;
+	}
+
+	return `${c1Str} ${secondTerm}`;
+}
+
+/**
+ * Strips redundant double outer parentheses from expressions like ((...)).
+ *
+ * @param {string} str Input mathematical expression string
+ * @returns {string} Expression without redundant outer parentheses
+ */
+function stripRedundantWrappingParens(str: string): string {
+	let res = str.trim();
+	while (res.startsWith("((") && res.endsWith(")")) {
+		let depth = 0;
+		let canStrip = true;
+		for (let i = 0; i < res.length - 1; i++) {
+			if (res[i] === "(") depth++;
+			else if (res[i] === ")") depth--;
+			if (depth === 0) {
+				canStrip = false;
+				break;
+			}
+		}
+		if (canStrip) {
+			res = res.slice(1, -1).trim();
+		} else {
+			break;
+		}
+	}
+	return res;
+}
+
+/**
+ * Sanitizes isolated unit coefficients (1 or -1) before variables, imaginary unit j,
+ * exponents, and functions while strictly preserving multi-digit numbers, decimals, and constants.
+ *
+ * @param {string} latex Input raw LaTeX math string
+ * @returns {string} Sanitized LaTeX string without spurious unit coefficients
+ */
+export function sanitizeUnitCoefficients(latex: string): string {
+	if (!latex) return "";
+	let s = latex;
+
+	// Reduce redundant double parentheses
+	s = stripRedundantWrappingParens(s);
+	s = s.replace(/\(\(\s*([^()]+)\s*\)\)/g, "($1)");
+
+	// Clean up parens inside exponents: e^{(-t)} -> e^{-t}, e^{(2t)} -> e^{2t}
+	s = s.replace(/e\^\{\s*\(([^()]+)\)\s*\}/g, "e^{$1}");
+
+	// EE Imaginary Unit j unit reduction:
+	// Isolated j1 -> j, 1j -> j, -j1 -> -j, -1j -> -j, \pm j1 -> \pm j
+	// Lookaround ensures we do NOT match multi-digit numbers like j10, j11, -j10, 10j, 31j, 151j, 0.1j
+	s = s.replace(/(?<![\d.])j1(?![0-9])/g, "j");
+	s = s.replace(/(?<![\d.])1j(?![0-9])/g, "j");
+	s = s.replace(/(?<![\d.])\\pm\s*j1(?![0-9])/g, "\\pm j");
+
+	// Standalone and linear variables:
+	// 1x -> x, -1x -> -x, + 1t -> + t, - 1t -> - t, (1t -> (t, (-1t -> (-t
+	// Lookaround ensures we do NOT match 11x, 101x, 151t, 0.1t, 21t, 10x, 1111t
+	s = s.replace(/(?<![\d.])1([a-zA-Z])(?![0-9a-zA-Z])/g, "$1");
+
+	// Exponents with unit numbers:
+	// e^{-1t} -> e^{-t}, e^{1t} -> e^{t}, e^{-j1t} -> e^{-jt}
+	// Lookahead (?![0-9]) ensures e^{-10t}, e^{-11t}, e^{-101t}, e^{-j10t} remain untouched
+	s = s.replace(/e\^\{\s*(-?)1([a-zA-Z])(?![0-9])\s*\}/g, "e^{$1$2}");
+	s = s.replace(/e\^\{\s*(-?)j1([a-zA-Z])(?![0-9])\s*\}/g, "e^{$1j$2}");
+	s = s.replace(/e\^\{\s*(-?)1j([a-zA-Z])(?![0-9])\s*\}/g, "e^{$1j$2}");
+
+	// Trigonometric and function arguments with unit factor:
+	// \cos(1t) -> \cos(t), \sin(1t) -> \sin(t), \cos(-1t) -> \cos(-t)
+	// Lookahead (?![0-9]) preserves \cos(10t), \cos(11t), \sin(151t)
+	s = s.replace(
+		/\\(cos|sin|tan|cot|sec|csc)\(\s*(-?)1([a-zA-Z])(?![0-9])\s*\)/g,
+		"\\$1($2$3)",
+	);
+	s = s.replace(
+		/\\(cos|sin|tan|cot|sec|csc)\(\s*(-?)j1([a-zA-Z])(?![0-9])\s*\)/g,
+		"\\$1($2j$3)",
+	);
+
+	// Unit multiplier before functions: 1\cos -> \cos, -1\cos -> -\cos, 1e^{ -> e^{
+	s = s.replace(
+		/(?<![\d.])1\\(cos|sin|tan|cot|sec|csc|exp|frac)(?![0-9])/g,
+		"\\$1",
+	);
+
+	return s;
+}
+
+/**
  * Sanitizes and normalizes LaTeX mathematical strings by collapsing redundant signs,
- * stripping extraneous spacing around operators, and preventing double-sign artifacts.
+ * stripping extraneous spacing around operators, dropping unit coefficients, and preventing double-sign artifacts.
  *
  * Examples:
  * - sanitizeLatexMath("(-4t)e^{-2t} + + \\frac{1}{2}\\sin(2t)") -> "(-4t)e^{-2t} + \\frac{1}{2}\\sin(2t)"
  * - sanitizeLatexMath("C_1 e^{-2t} + - 4 e^{-3t}") -> "C_1 e^{-2t} - 4 e^{-3t}"
  * - sanitizeLatexMath("3t - - 5") -> "3t + 5"
- * - sanitizeLatexMath("y(t) = + 2e^{-t}") -> "y(t) = 2e^{-t}"
+ * - sanitizeLatexMath("y(t) = + 2e^{-1t}") -> "y(t) = 2e^{-t}"
  * - sanitizeLatexMath("(+ 2t)") -> "(2t)"
  *
  * @param {string} latex Input raw or interpolated LaTeX math string
@@ -178,10 +373,8 @@ export function sanitizeLatexMath(latex: string): string {
 	s = s.replace(/([([{=])\s*-\s*/g, "$1-");
 	s = s.replace(/^\s*\+\s*/, "");
 
-	// Clean up unit coefficients inside parens like (-1t) -> (-t) or (+1t) -> (t)
-	s = s.replace(/\{\((-?\+?)(?:1)?([a-zA-Z]+)\)\}/g, "{$1$2}");
-	s = s.replace(/\(-1([a-zA-Z])/g, "(-$1");
-	s = s.replace(/\(\+?1([a-zA-Z])/g, "($1");
+	// Apply unit coefficient and parenthesis reduction
+	s = sanitizeUnitCoefficients(s);
 
 	// Standardize spacing around binary operators
 	s = s.replace(/([^\s([{=^_-])\s*\+\s*([^\s)\]}])/g, "$1 + $2");
