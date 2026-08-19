@@ -5,6 +5,7 @@ import {
 	sanitizeLatexMath,
 } from "$lib/math-engine/formatting";
 import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
+import { approximatelyEqual } from "$lib/math-engine/numeric";
 import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
@@ -396,7 +397,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			term0 = "+ a_0";
 		}
 
-		return `${term2} ${term1} ${term0} = 0`;
+		return this.problem.params.order === 1
+			? `${term1.replace(/^\+\s*/, "")} ${term0} = 0`
+			: `${term2} ${term1} ${term0} = 0`;
 	});
 
 	/**
@@ -433,7 +436,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	get step5Progress(): SubStepProgress {
 		const isSinusoid = this.problem.forcing.type === "sinusoid";
-		const total = isSinusoid ? 4 : 3;
+		const isSecondOrder = this.problem.params.order === 2;
+		const total = isSinusoid
+			? isSecondOrder
+				? 4
+				: 3
+			: isSecondOrder
+				? 3
+				: 2;
 		let current = 1;
 		switch (this.step5.activeSubStepId) {
 			case "first_deriv":
@@ -446,7 +456,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				current = 3;
 				break;
 			case "solve":
-				current = isSinusoid ? 4 : 3;
+				current = total;
 				break;
 			default:
 				current = 1;
@@ -568,21 +578,24 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep1(): void {
 		const s1Data = this.problem.itsData.step1;
-		const vA2 = parseNumericInput(this.step1.a2);
+		const isFirstOrder = this.problem.params.order === 1;
+		const vA2 = isFirstOrder ? 0 : parseNumericInput(this.step1.a2);
 		const vA1 = parseNumericInput(this.step1.a1);
 		const vA0 = parseNumericInput(this.step1.a0);
 
 		if (Number.isNaN(vA2) || Number.isNaN(vA1) || Number.isNaN(vA0)) {
 			this.setValidation(
 				this.step1,
-				"Please enter numeric values for all three coefficients: $a_2$, $a_1$, and $a_0$.",
+				isFirstOrder
+					? "Please enter numeric values for both coefficients: $a_1$ and $a_0$."
+					: "Please enter numeric values for all three coefficients: $a_2$, $a_1$, and $a_0$.",
 			);
 			return;
 		}
 
 		if (
-			Math.abs(vA0 - this.problem.forcing.K) < 0.05 &&
-			Math.abs(vA0 - s1Data.expectedA0) >= 0.05
+			approximatelyEqual(vA0, this.problem.forcing.K) &&
+			!approximatelyEqual(vA0, s1Data.expectedA0)
 		) {
 			this.setMisconception(
 				this.step1,
@@ -592,15 +605,17 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		if (
-			Math.abs(vA2 - s1Data.expectedA2) < 0.05 &&
-			Math.abs(vA1 - s1Data.expectedA1) < 0.05 &&
-			Math.abs(vA0 - s1Data.expectedA0) < 0.05
+			approximatelyEqual(vA2, s1Data.expectedA2) &&
+			approximatelyEqual(vA1, s1Data.expectedA1) &&
+			approximatelyEqual(vA0, s1Data.expectedA0)
 		) {
 			this.setPassed(this.step1, 2);
 		} else {
 			this.setIncorrect(
 				this.step1,
-				"Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.",
+				isFirstOrder
+					? "Incorrect coefficients. Substitute $\\frac{dy}{dt} \\to s$ and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$."
+					: "Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.",
 			);
 		}
 	}
@@ -610,11 +625,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	previewQuadSetup = $derived.by((): string => {
 		const b = this.problem.params.a1;
-		const a = 1;
+		const a = this.problem.params.a2;
 		const c = this.problem.params.a0;
 		const disc = b * b - 4 * a * c;
 		const negB = -b;
-		return `s = \\frac{-(${b}) \\pm \\sqrt{(${b})^2 - 4(1)(${c})}}{2(1)} = \\frac{${negB} \\pm \\sqrt{${disc}}}{2}`;
+		return `s = \\frac{-(${b}) \\pm \\sqrt{(${b})^2 - 4(${a})(${c})}}{2(${a})} = \\frac{${negB} \\pm \\sqrt{${disc}}}{${2 * a}}`;
 	});
 
 	/**
@@ -711,6 +726,32 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	checkStep2Factoring(): void {
 		const s2Data = this.problem.itsData.step2;
 		const rootType = s2Data.rootType;
+		if (this.problem.params.order === 1) {
+			const value = parseNumericInput(this.step2.r1);
+			if (Number.isNaN(value)) {
+				this.setSubStepValidation(
+					this.step2,
+					"factoring_inputs",
+					"Please enter a numeric value or fraction for the root $r$.",
+				);
+				return;
+			}
+			if (approximatelyEqual(value, s2Data.r1)) {
+				this.setSubStepPassed(
+					this.step2,
+					"factoring_inputs",
+					undefined,
+					3,
+				);
+			} else {
+				this.setSubStepIncorrect(
+					this.step2,
+					"factoring_inputs",
+					`Incorrect root. Isolate $s$ in $${this.problem.params.a1}s + ${this.problem.params.a0} = 0$.`,
+				);
+			}
+			return;
+		}
 
 		if (!s2Data.isFactorable || rootType === "complex_conjugate") {
 			this.setIncorrect(
@@ -736,9 +777,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				const r1 = s2Data.r1;
 				const r2 = s2Data.r2 ?? 0;
 				const matchDirect =
-					Math.abs(v1 - r1) < 0.05 && Math.abs(v2 - r2) < 0.05;
+					approximatelyEqual(v1, r1) && approximatelyEqual(v2, r2);
 				const matchSwapped =
-					Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
+					approximatelyEqual(v1, r2) && approximatelyEqual(v2, r1);
 
 				if (matchDirect || matchSwapped) {
 					this.setSubStepPassed(
@@ -748,18 +789,22 @@ export class OdeStepSolverState extends BaseStepSolverState {
 						3,
 					);
 				} else if (
-					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
-					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+					(approximatelyEqual(v1, -r1) &&
+						approximatelyEqual(v2, -r2)) ||
+					(approximatelyEqual(v1, -r2) && approximatelyEqual(v2, -r1))
 				) {
 					this.setMisconception(
 						this.step2,
 						"Check your signs. Remember that factoring as $(s - r_1)(s - r_2) = 0$ means the roots are $s = r_1$ and $s = r_2$.",
 					);
 				} else if (
-					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 - r2) < 0.05) ||
-					(Math.abs(v1 - r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
-					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 - r1) < 0.05) ||
-					(Math.abs(v1 - r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+					(approximatelyEqual(v1, -r1) &&
+						approximatelyEqual(v2, r2)) ||
+					(approximatelyEqual(v1, r1) &&
+						approximatelyEqual(v2, -r2)) ||
+					(approximatelyEqual(v1, -r2) &&
+						approximatelyEqual(v2, r1)) ||
+					(approximatelyEqual(v1, r2) && approximatelyEqual(v2, -r1))
 				) {
 					this.setMisconception(
 						this.step2,
@@ -768,7 +813,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				} else {
 					this.setIncorrect(
 						this.step2,
-						`Incorrect roots. Factoring $s^2 + ${this.problem.params.a1}s + ${this.problem.params.a0} = 0$ gives $(s - (${r1}))(s - (${r2})) = 0$.`,
+						`Incorrect roots. Factoring $${this.problem.itsData.step1.latex}$ gives $${this.problem.itsData.step2.factoredFormLatex}$.`,
 					);
 				}
 				break;
@@ -786,14 +831,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				}
 
 				const r1 = s2Data.r1;
-				if (Math.abs(v1 - r1) < 0.05) {
+				if (approximatelyEqual(v1, r1)) {
 					this.setSubStepPassed(
 						this.step2,
 						"factoring_inputs",
 						undefined,
 						3,
 					);
-				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
+				} else if (approximatelyEqual(v1, -r1) && Math.abs(r1) > 0.01) {
 					this.setMisconception(
 						this.step2,
 						"Check your sign. If factored as $(s - r)^2 = 0$, then the root is $s = r$.",
@@ -857,7 +902,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		const expDisc = s2Data.discriminant;
-		if (Math.abs(vDisc - expDisc) < 0.05) {
+		if (approximatelyEqual(vDisc, expDisc)) {
 			this.step2.quadDiscriminantVerified = true;
 			this.step2.quadNeedsDiscriminantCalc = false;
 			this.step2.quadClassChoice = s2Data.rootType;
@@ -870,7 +915,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step2,
 				"remedial_discriminant",
-				`Incorrect discriminant. $\\Delta = (${this.problem.params.a1})^2 - 4(1)(${this.problem.params.a0}) = ${expDisc}$.`,
+				`Incorrect discriminant. $\\Delta = (${this.problem.params.a1})^2 - 4(${this.problem.params.a2})(${this.problem.params.a0}) = ${expDisc}$.`,
 			);
 		}
 	}
@@ -900,8 +945,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				const expOm = s2Data.im ?? 0;
 
 				if (
-					Math.abs(vSig - expSig) < 0.05 &&
-					Math.abs(vOm - expOm) < 0.05
+					approximatelyEqual(vSig, expSig) &&
+					approximatelyEqual(vOm, expOm)
 				) {
 					this.setSubStepPassed(
 						this.step2,
@@ -909,7 +954,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 						undefined,
 						3,
 					);
-				} else if (Math.abs(vSig + expSig) < 0.05) {
+				} else if (approximatelyEqual(vSig, -expSig)) {
 					this.setSubStepMisconception(
 						this.step2,
 						"quad_root_inputs",
@@ -919,7 +964,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.setSubStepIncorrect(
 						this.step2,
 						"quad_root_inputs",
-						`Incorrect roots. $\\sigma = \\frac{-(${this.problem.params.a1})}{2} = ${expSig}$ and $\\omega_d = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{2} = ${expOm}$.`,
+						`Incorrect roots. $\\sigma = \\frac{-(${this.problem.params.a1})}{${2 * this.problem.params.a2}} = ${expSig}$ and $\\omega_d = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{${2 * Math.abs(this.problem.params.a2)}} = ${expOm}$.`,
 					);
 				}
 				break;
@@ -941,9 +986,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				const r1 = s2Data.r1;
 				const r2 = s2Data.r2 ?? 0;
 				const matchDirect =
-					Math.abs(v1 - r1) < 0.05 && Math.abs(v2 - r2) < 0.05;
+					approximatelyEqual(v1, r1) && approximatelyEqual(v2, r2);
 				const matchSwapped =
-					Math.abs(v1 - r2) < 0.05 && Math.abs(v2 - r1) < 0.05;
+					approximatelyEqual(v1, r2) && approximatelyEqual(v2, r1);
 
 				if (matchDirect || matchSwapped) {
 					this.setSubStepPassed(
@@ -953,8 +998,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 						3,
 					);
 				} else if (
-					(Math.abs(v1 + r1) < 0.05 && Math.abs(v2 + r2) < 0.05) ||
-					(Math.abs(v1 + r2) < 0.05 && Math.abs(v2 + r1) < 0.05)
+					(approximatelyEqual(v1, -r1) &&
+						approximatelyEqual(v2, -r2)) ||
+					(approximatelyEqual(v1, -r2) && approximatelyEqual(v2, -r1))
 				) {
 					this.setSubStepMisconception(
 						this.step2,
@@ -965,7 +1011,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.setSubStepIncorrect(
 						this.step2,
 						"quad_root_inputs",
-						`Incorrect roots. $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{2}$, yielding $r_1 = ${r1}, r_2 = ${r2}.`,
+						`Incorrect roots. $s = \\frac{-(${this.problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{${2 * this.problem.params.a2}}$, yielding $r_1 = ${r1}, r_2 = ${r2}.`,
 					);
 				}
 				break;
@@ -984,14 +1030,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				}
 
 				const r1 = s2Data.r1;
-				if (Math.abs(v1 - r1) < 0.05) {
+				if (approximatelyEqual(v1, r1)) {
 					this.setSubStepPassed(
 						this.step2,
 						"quad_root_inputs",
 						undefined,
 						3,
 					);
-				} else if (Math.abs(v1 + r1) < 0.05 && Math.abs(r1) > 0.01) {
+				} else if (approximatelyEqual(v1, -r1) && Math.abs(r1) > 0.01) {
 					this.setSubStepMisconception(
 						this.step2,
 						"quad_root_inputs",
@@ -1001,7 +1047,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.setSubStepIncorrect(
 						this.step2,
 						"quad_root_inputs",
-						`Incorrect repeated root. With $\\Delta = 0$, $r = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{2}$.`,
+						`Incorrect repeated root. With $\\Delta = 0$, $r = \\frac{-b}{2a} = \\frac{${-this.problem.params.a1}}{${2 * this.problem.params.a2}}$.`,
 					);
 				}
 				break;
@@ -1159,7 +1205,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			const expA = s5Data.expectedA ?? 0;
 			const expB = s5Data.expectedB ?? 0;
 
-			if (Math.abs(vA - expA) < 0.05 && Math.abs(vB - expB) < 0.05) {
+			if (approximatelyEqual(vA, expA) && approximatelyEqual(vB, expB)) {
 				this.setSubStepPassed(this.step5, "solve", undefined, 6);
 			} else {
 				this.setSubStepIncorrect(
@@ -1182,7 +1228,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 			const expKp = s5Data.expectedKp ?? 0;
 
-			if (Math.abs(vKp - expKp) < 0.05) {
+			if (approximatelyEqual(vKp, expKp)) {
 				this.setSubStepPassed(this.step5, "solve", undefined, 6);
 			} else {
 				this.setSubStepIncorrect(
@@ -1206,8 +1252,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep6TargetValues(): void {
 		const s6Data = this.problem.itsData.step6;
+		const isFirstOrder = this.problem.params.order === 1;
 		const vYh0 = parseNumericInput(this.step6.yh0);
-		const vDYh0 = parseNumericInput(this.step6.dyh0);
+		const vDYh0 = isFirstOrder ? 0 : parseNumericInput(this.step6.dyh0);
 
 		if (Number.isNaN(vYh0) || Number.isNaN(vDYh0)) {
 			this.setSubStepValidation(
@@ -1222,8 +1269,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const expDYh0 = s6Data.targetDYh0;
 
 		if (
-			Math.abs(vYh0 - expYh0) < 0.05 &&
-			Math.abs(vDYh0 - expDYh0) < 0.05
+			approximatelyEqual(vYh0, expYh0) &&
+			(isFirstOrder || approximatelyEqual(vDYh0, expDYh0 ?? 0))
 		) {
 			this.setSubStepPassed(
 				this.step6,
@@ -1231,8 +1278,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				"solve_constants",
 			);
 		} else if (
-			Math.abs(vYh0 - this.problem.initialConditions.y0) < 0.05 &&
-			Math.abs(vDYh0 - this.problem.initialConditions.dy0) < 0.05
+			approximatelyEqual(vYh0, this.problem.initialConditions.y0) &&
+			approximatelyEqual(vDYh0, this.problem.initialConditions.dy0 ?? 0)
 		) {
 			this.setSubStepMisconception(
 				this.step6,
@@ -1243,7 +1290,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step6,
 				"target_values",
-				`Incorrect target values. $y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${toFractionLatex(expDYh0)}$.`,
+				`Incorrect target values. $y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${toFractionLatex(expDYh0 ?? 0)}$.`,
 			);
 		}
 	}
@@ -1253,8 +1300,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep6Constants(): void {
 		const s6Data = this.problem.itsData.step6;
+		const isFirstOrder = this.problem.params.order === 1;
 		const vC1 = parseNumericInput(this.step6.c1);
-		const vC2 = parseNumericInput(this.step6.c2);
+		const vC2 = isFirstOrder ? 0 : parseNumericInput(this.step6.c2);
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 			this.setSubStepValidation(
@@ -1266,8 +1314,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		if (
-			Math.abs(vC1 - s6Data.expectedC1) < 0.05 &&
-			Math.abs(vC2 - s6Data.expectedC2) < 0.05
+			approximatelyEqual(vC1, s6Data.expectedC1) &&
+			(isFirstOrder || approximatelyEqual(vC2, s6Data.expectedC2 ?? 0))
 		) {
 			this.setSubStepPassed(this.step6, "solve_constants", undefined, 7);
 		} else {
@@ -1296,6 +1344,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.step7.ziC2.trim() !== "" ? this.step7.ziC2.trim() : "C_{2,ZI}";
 		const rootType = this.problem.params.rootType;
 		const roots = this.problem.params.roots;
+
+		if (this.problem.params.order === 1) {
+			return sanitizeLatexMath(
+				formatSignedLinearTerm(c1, formatExpTerm(roots.r1), true),
+			);
+		}
 
 		let raw = "";
 		switch (rootType) {
@@ -1360,7 +1414,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const totalC2 = this.problem.itsData.step6.expectedC2;
 		const vC2 = parseNumericInput(this.step7.ziC2);
 		if (Number.isNaN(vC2)) return "C_{2,ZS}";
-		const zsC2 = totalC2 - vC2;
+		const zsC2 = (totalC2 ?? 0) - vC2;
 		return toFractionLatex(zsC2);
 	});
 
@@ -1375,47 +1429,55 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const yp = this.problem.solutions.y_p_latex;
 
 		let homoPart = "";
-		switch (rootType) {
-			case "distinct_real": {
-				const term1 = formatSignedLinearTerm(
-					c1,
-					formatExpTerm(roots.r1),
-					true,
-				);
-				const term2 = formatSignedLinearTerm(
-					c2,
-					formatExpTerm(roots.r2 ?? 0),
-					false,
-				);
-				homoPart = `${term1} ${term2}`;
-				break;
+		if (this.problem.params.order === 1) {
+			homoPart = formatSignedLinearTerm(
+				c1,
+				formatExpTerm(roots.r1),
+				true,
+			);
+		} else
+			switch (rootType) {
+				case "distinct_real": {
+					const term1 = formatSignedLinearTerm(
+						c1,
+						formatExpTerm(roots.r1),
+						true,
+					);
+					const term2 = formatSignedLinearTerm(
+						c2,
+						formatExpTerm(roots.r2 ?? 0),
+						false,
+					);
+					homoPart = `${term1} ${term2}`;
+					break;
+				}
+				case "repeated_real": {
+					const inner = formatLinearCombination(c1, c2);
+					homoPart = `(${inner}) ${formatExpTerm(roots.r1)}`;
+					break;
+				}
+				case "complex_conjugate": {
+					const term1 = formatSignedLinearTerm(
+						c1,
+						`\\cos(${roots.im}t)`,
+						true,
+					);
+					const term2 = formatSignedLinearTerm(
+						c2,
+						`\\sin(${roots.im}t)`,
+						false,
+					);
+					const expTerm =
+						roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";
+					homoPart = expTerm
+						? `${expTerm} [${term1} ${term2}]`
+						: `${term1} ${term2}`;
+					break;
+				}
+				default:
+					homoPart = `${c1} + ${c2}`;
+					break;
 			}
-			case "repeated_real": {
-				const inner = formatLinearCombination(c1, c2);
-				homoPart = `(${inner}) ${formatExpTerm(roots.r1)}`;
-				break;
-			}
-			case "complex_conjugate": {
-				const term1 = formatSignedLinearTerm(
-					c1,
-					`\\cos(${roots.im}t)`,
-					true,
-				);
-				const term2 = formatSignedLinearTerm(
-					c2,
-					`\\sin(${roots.im}t)`,
-					false,
-				);
-				const expTerm = roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";
-				homoPart = expTerm
-					? `${expTerm} [${term1} ${term2}]`
-					: `${term1} ${term2}`;
-				break;
-			}
-			default:
-				homoPart = `${c1} + ${c2}`;
-				break;
-		}
 
 		let full = "";
 		if (yp === "0" || yp === "") {
@@ -1436,8 +1498,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 */
 	checkStep7ZI(): void {
 		const s7Data = this.problem.itsData.step7;
+		const isFirstOrder = this.problem.params.order === 1;
 		const vC1 = parseNumericInput(this.step7.ziC1);
-		const vC2 = parseNumericInput(this.step7.ziC2);
+		const vC2 = isFirstOrder ? 0 : parseNumericInput(this.step7.ziC2);
 
 		if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 			this.setSubStepValidation(
@@ -1451,12 +1514,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const expC1 = s7Data.ziConstants.C1;
 		const expC2 = s7Data.ziConstants.C2;
 
-		if (Math.abs(vC1 - expC1) < 0.05 && Math.abs(vC2 - expC2) < 0.05) {
+		if (
+			approximatelyEqual(vC1, expC1) &&
+			(isFirstOrder || approximatelyEqual(vC2, expC2 ?? 0))
+		) {
 			this.step7.ziZsPassed = true;
 			this.setSubStepPassed(this.step7, "zi_zs", "tr_ss");
 		} else if (
-			Math.abs(vC1 - this.problem.itsData.step6.expectedC1) < 0.05 &&
-			Math.abs(vC2 - this.problem.itsData.step6.expectedC2) < 0.05
+			approximatelyEqual(vC1, this.problem.itsData.step6.expectedC1) &&
+			approximatelyEqual(vC2, this.problem.itsData.step6.expectedC2 ?? 0)
 		) {
 			this.setSubStepMisconception(
 				this.step7,
@@ -1616,6 +1682,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			},
 			"strategy_gate",
 		);
+		// A first-order characteristic equation is linear, so there is no
+		// quadratic-strategy decision to make. Open the single-root input directly.
+		if (this.problem.params.order === 1) {
+			this.selectStep2Strategy("factoring");
+		}
 		this.step3 = createStepState({ selected: null as RootType | null });
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createMultiPartStepState(
@@ -1712,14 +1783,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				step: 1,
 				kind: "interactive",
 			},
-			{
+		];
+		if (this.problem.params.order === 2) {
+			states.push({
 				id: "ode.step-02.strategy-gate",
 				label: "Step 2 · Solving Strategy",
 				step: 2,
 				subStep: "strategy_gate",
 				kind: "interactive",
-			},
-		];
+			});
+		}
 
 		if (
 			this.problem.itsData.step2.isFactorable &&
@@ -1734,28 +1807,33 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			});
 		}
 
+		if (this.problem.params.order === 2) {
+			states.push(
+				{
+					id: "ode.step-02.quadratic-classification",
+					label: "Step 2 · Quadratic Classification",
+					step: 2,
+					subStep: "quad_classification",
+					kind: "interactive",
+				},
+				{
+					id: "ode.step-02.remedial-discriminant",
+					label: "Step 2 · Discriminant Remediation",
+					step: 2,
+					subStep: "remedial_discriminant",
+					kind: "diagnostic",
+				},
+				{
+					id: "ode.step-02.quadratic-roots",
+					label: "Step 2 · Quadratic Root Inputs",
+					step: 2,
+					subStep: "quad_root_inputs",
+					kind: "interactive",
+				},
+			);
+		}
+
 		states.push(
-			{
-				id: "ode.step-02.quadratic-classification",
-				label: "Step 2 · Quadratic Classification",
-				step: 2,
-				subStep: "quad_classification",
-				kind: "interactive",
-			},
-			{
-				id: "ode.step-02.remedial-discriminant",
-				label: "Step 2 · Discriminant Remediation",
-				step: 2,
-				subStep: "remedial_discriminant",
-				kind: "diagnostic",
-			},
-			{
-				id: "ode.step-02.quadratic-roots",
-				label: "Step 2 · Quadratic Root Inputs",
-				step: 2,
-				subStep: "quad_root_inputs",
-				kind: "interactive",
-			},
 			{
 				id: "ode.step-03.homogeneous-form",
 				label: "Step 3 · Homogeneous Form",
@@ -1775,14 +1853,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				subStep: "first_deriv",
 				kind: "interactive",
 			},
-			{
+		);
+		if (this.problem.params.order === 2) {
+			states.push({
 				id: "ode.step-05.second-derivative",
 				label: "Step 5A-2 · Second Derivative",
 				step: 5,
 				subStep: "second_deriv",
 				kind: "interactive",
-			},
-		);
+			});
+		}
 
 		if (this.problem.forcing.type === "sinusoid") {
 			states.push({
@@ -1879,13 +1959,18 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		);
 		if (!first) return false;
 		this.checkStep5FirstDeriv(first);
-		if (target === "second_deriv") return true;
+		if (target === "second_deriv") {
+			return this.problem.params.order === 2;
+		}
 
-		const second = this.problem.itsData.step5.secondDerivativeOptions?.find(
-			(option) => option.isCorrect,
-		);
-		if (!second) return false;
-		this.checkStep5SecondDeriv(second);
+		if (this.problem.params.order === 2) {
+			const second =
+				this.problem.itsData.step5.secondDerivativeOptions?.find(
+					(option) => option.isCorrect,
+				);
+			if (!second) return false;
+			this.checkStep5SecondDeriv(second);
+		}
 		if (target === "system_setup") {
 			return this.problem.forcing.type === "sinusoid";
 		}
@@ -1972,7 +2057,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.problem.itsData.step6.targetYh0,
 				);
 				this.step6.dyh0 = toFractionLatex(
-					this.problem.itsData.step6.targetDYh0,
+					this.problem.itsData.step6.targetDYh0 ?? 0,
 				);
 				this.checkStep6TargetValues();
 				return this.step6.activeSubStepId === "solve_constants";
@@ -1984,7 +2069,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.problem.itsData.step7.ziConstants.C1,
 				);
 				this.step7.ziC2 = toFractionLatex(
-					this.problem.itsData.step7.ziConstants.C2,
+					this.problem.itsData.step7.ziConstants.C2 ?? 0,
 				);
 				this.checkStep7ZI();
 				return this.step7.activeSubStepId === "tr_ss";
@@ -2126,14 +2211,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.problem.itsData.step6.targetYh0,
 				);
 				this.step6.dyh0 = toFractionLatex(
-					this.problem.itsData.step6.targetDYh0,
+					this.problem.itsData.step6.targetDYh0 ?? 0,
 				);
 				this.checkStep6TargetValues();
 				this.step6.c1 = toFractionLatex(
 					this.problem.itsData.step6.expectedC1,
 				);
 				this.step6.c2 = toFractionLatex(
-					this.problem.itsData.step6.expectedC2,
+					this.problem.itsData.step6.expectedC2 ?? 0,
 				);
 				this.checkStep6Constants();
 				break;
@@ -2143,7 +2228,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.problem.itsData.step7.ziConstants.C1,
 				);
 				this.step7.ziC2 = toFractionLatex(
-					this.problem.itsData.step7.ziConstants.C2,
+					this.problem.itsData.step7.ziConstants.C2 ?? 0,
 				);
 				this.checkStep7ZI();
 				const correctTr =

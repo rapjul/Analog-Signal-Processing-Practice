@@ -1,10 +1,62 @@
 import { describe, expect, it, vi } from "vitest";
 import { OdeStepSolverState } from "../../src/lib/components/solvers/ode-step-solver.svelte";
-import { generateOdeProblem } from "../../src/lib/math-engine/odes";
+import {
+	type ForcingType,
+	generateOdeProblem,
+	type RootType,
+} from "../../src/lib/math-engine/odes";
+
+function generateSecondOrderProblem(
+	rootType: RootType | "random",
+	forcingType: ForcingType | "random" = "random",
+) {
+	return generateOdeProblem({
+		order: 2,
+		rootType,
+		forcingType,
+		leadingCoefficient: "monic",
+		resonance: "none",
+	});
+}
 
 describe("OdeStepSolverState Reactive Controller", () => {
+	it("uses order-aware inputs and validation for first-order problems", () => {
+		const problem = generateOdeProblem({
+			order: 1,
+			rootType: "random",
+			forcingType: "constant",
+			leadingCoefficient: "non_monic",
+			resonance: "none",
+			seed: 210,
+		});
+		const solver = new OdeStepSolverState(() => problem);
+		expect(solver.step2.strategy).toBe("factoring");
+		expect(solver.step2.activeSubStepId).toBe("factoring_inputs");
+
+		solver.step1.a1 = String(problem.params.a1);
+		solver.step1.a0 = String(problem.params.a0);
+		solver.checkStep1();
+		expect(solver.currentStep).toBe(2);
+
+		solver.step2.r1 = String(problem.params.roots.r1);
+		solver.checkStep2Factoring();
+		expect(solver.currentStep).toBe(3);
+
+		solver.advanceToStep(6);
+		solver.step6.yh0 = String(problem.itsData.step6.targetYh0);
+		solver.checkStep6TargetValues();
+		expect(solver.step6.subSteps.target_values.isValid).toBe(true);
+		solver.step6.c1 = String(problem.itsData.step6.expectedC1);
+		solver.checkStep6Constants();
+		expect(solver.currentStep).toBe(7);
+
+		solver.step7.ziC1 = String(problem.itsData.step7.ziConstants.C1);
+		solver.checkStep7ZI();
+		expect(solver.step7.ziZsPassed).toBe(true);
+	});
+
 	it("initializes on Step 1 with default empty inputs", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		expect(solver.currentStep).toBe(1);
@@ -17,7 +69,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("renders dynamic preview equation across all sign and magnitude branches", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		// Default
@@ -49,7 +101,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("derives the correct particular solution ansatz LaTeX for Step 4", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 		const expectedLatex =
 			problem.itsData.step4.options.find((o) => o.isCorrect)?.latex ?? "";
@@ -63,7 +115,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates Step 1 characteristic equation and catches misconceptions", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		// Non-numeric / empty inputs (validation)
@@ -110,7 +162,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates distinct real roots in Step 2 with order insensitivity", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.advanceToStep(2);
@@ -168,7 +220,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates repeated real roots in Step 2", () => {
-		const problem = generateOdeProblem("repeated_real");
+		const problem = generateSecondOrderProblem("repeated_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.advanceToStep(2);
@@ -208,7 +260,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates complex conjugate roots, classification remediation, and discriminant calculation in Step 2", () => {
-		const problem = generateOdeProblem("complex_conjugate");
+		const problem = generateSecondOrderProblem("complex_conjugate");
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.advanceToStep(2);
@@ -288,7 +340,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates Step 3 template selection and misconception feedback", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(3);
 
@@ -310,7 +362,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates Step 4 ansatz option selection with distractors and correct choice", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(4);
 
@@ -343,9 +395,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 	it("validates Step 5 multi-part progressive disclosure (first_deriv, second_deriv, system, coefficients)", () => {
 		// Test sinusoidal forcing (4-part step)
-		let sinProblem = generateOdeProblem("distinct_real");
+		let sinProblem = generateSecondOrderProblem("distinct_real");
 		while (sinProblem.forcing.type !== "sinusoid") {
-			sinProblem = generateOdeProblem("distinct_real");
+			sinProblem = generateSecondOrderProblem("distinct_real");
 		}
 
 		const sinSolver = new OdeStepSolverState(() => sinProblem);
@@ -428,9 +480,9 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(sinSolver.currentStep).toBe(6);
 
 		// Test constant forcing (3-part step)
-		let constProblem = generateOdeProblem("distinct_real");
+		let constProblem = generateSecondOrderProblem("distinct_real");
 		while (constProblem.forcing.type === "sinusoid") {
-			constProblem = generateOdeProblem("distinct_real");
+			constProblem = generateSecondOrderProblem("distinct_real");
 		}
 		const constSolver = new OdeStepSolverState(() => constProblem);
 		constSolver.advanceToStep(5);
@@ -461,7 +513,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("validates Step 6 multi-part progressive disclosure (target values, solved constants)", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 		solver.advanceToStep(6);
 
@@ -480,7 +532,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.step6.dyh0 = String(problem.initialConditions.dy0);
 		if (
 			Math.abs(problem.itsData.step6.yp0) > 0.05 ||
-			Math.abs(problem.itsData.step6.dyp0) > 0.05
+			Math.abs(problem.itsData.step6.dyp0 ?? 0) > 0.05
 		) {
 			solver.checkStep6TargetValues();
 			expect(solver.step6.subSteps.target_values.isValid).toBe(false);
@@ -519,7 +571,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 
 	it("validates Step 7 multi-part response decomposition and triggers onComplete", () => {
 		const onComplete = vi.fn();
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(
 			() => problem,
 			() => onComplete,
@@ -543,7 +595,8 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		solver.checkStep7ZI();
 		if (
 			Math.abs(problem.itsData.step6.expectedC1 - expC1) > 0.01 ||
-			Math.abs(problem.itsData.step6.expectedC2 - expC2) > 0.01
+			Math.abs((problem.itsData.step6.expectedC2 ?? 0) - (expC2 ?? 0)) >
+				0.01
 		) {
 			expect(solver.step7.feedbackType).toBe("misconception");
 		}
@@ -611,7 +664,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("resets state completely when reset() is called", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 		const solver = new OdeStepSolverState(() => problem);
 
 		solver.step1.a2 = String(problem.itsData.step1.expectedA2);
@@ -638,7 +691,7 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("verifies all option LaTeX math strings in ODE steps are valid", () => {
-		const problem = generateOdeProblem("distinct_real");
+		const problem = generateSecondOrderProblem("distinct_real");
 
 		// Step 4 option math strings
 		for (const opt of problem.itsData.step4.options) {
@@ -654,7 +707,10 @@ describe("OdeStepSolverState Reactive Controller", () => {
 	});
 
 	it("computes accurate step badges and subpart progress descriptors across all steps", () => {
-		const problemExp = generateOdeProblem("distinct_real", "exponential");
+		const problemExp = generateSecondOrderProblem(
+			"distinct_real",
+			"exponential",
+		);
 		const solverExp = new OdeStepSolverState(() => problemExp);
 
 		// Step 5 on exponential forcing (total parts = 3)
@@ -685,7 +741,10 @@ describe("OdeStepSolverState Reactive Controller", () => {
 		expect(solverExp.step5CSubpartBadge).toBe("Part 5B");
 
 		// Step 5 on sinusoidal forcing (total parts = 4)
-		const problemSin = generateOdeProblem("distinct_real", "sinusoid");
+		const problemSin = generateSecondOrderProblem(
+			"distinct_real",
+			"sinusoid",
+		);
 		const solverSin = new OdeStepSolverState(() => problemSin);
 		solverSin.currentStep = 5;
 		solverSin.step5.activeSubStepId = "system_setup";

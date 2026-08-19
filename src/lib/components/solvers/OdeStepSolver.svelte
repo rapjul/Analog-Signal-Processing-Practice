@@ -118,24 +118,27 @@
 
 				<div class="char-eq-interactive-box">
 					<div class="coeff-inputs-row">
-						<div class="coeff-group">
-							<label
-								for="ode-a2-input"
-								class="coeff-label"
-							>
-								<MathText text={"$s^2$ Coeff ($a_2$):"} />
-							</label>
-							<input
-								id="ode-a2-input"
-								type="text"
-								class="text-input coeff-input"
-								placeholder="1"
-								bind:value={solver.step1.a2}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep1()}
-							/>
-						</div>
-						<span class="plus-symbol">+</span>
+						{#if problem.params.order === 2}
+							<div class="coeff-group">
+								<label
+									for="ode-a2-input"
+									class="coeff-label"
+								>
+									<MathText text={"$s^2$ Coeff ($a_2$):"} />
+								</label>
+								<input
+									id="ode-a2-input"
+									type="text"
+									class="text-input coeff-input"
+									placeholder="1"
+									bind:value={solver.step1.a2}
+									onkeydown={(e) =>
+										e.key === "Enter" &&
+										solver.checkStep1()}
+								/>
+							</div>
+							<span class="plus-symbol">+</span>
+						{/if}
 						<div class="coeff-group">
 							<label
 								for="ode-a1-input"
@@ -227,38 +230,40 @@
 					/>
 				</p>
 
-				<!-- Strategy Gate Selection -->
-				<div class="strategy-gate-box">
-					<span class="field-label"> Select solving strategy: </span>
-					<div class="strategy-button-group">
-						<button
-							type="button"
-							class="strategy-pill-btn"
-							class:active={solver.step2.strategy === "factoring"}
-							onclick={() => {
-								solver.step2.strategy = "factoring";
-								solver.clearFeedback();
-							}}
-						>
-							<span class="strategy-icon">🔍</span>
-							<span>Factoring by inspection</span>
-						</button>
-						<button
-							type="button"
-							class="strategy-pill-btn"
-							class:active={solver.step2.strategy === "quadratic"}
-							onclick={() => {
-								solver.step2.strategy = "quadratic";
-								solver.clearFeedback();
-							}}
-						>
-							<span class="strategy-icon">📐</span>
-							<span>Quadratic formula / Square root</span>
-						</button>
+				<!-- Strategy selection only applies to quadratic equations. -->
+				{#if problem.params.order === 2}
+					<div class="strategy-gate-box">
+						<span class="field-label">
+							Select solving strategy:
+						</span>
+						<div class="strategy-button-group">
+							<button
+								type="button"
+								class="strategy-pill-btn"
+								class:active={solver.step2.strategy ===
+									"factoring"}
+								onclick={() =>
+									solver.selectStep2Strategy("factoring")}
+							>
+								<span class="strategy-icon">🔍</span>
+								<span>Factoring by inspection</span>
+							</button>
+							<button
+								type="button"
+								class="strategy-pill-btn"
+								class:active={solver.step2.strategy ===
+									"quadratic"}
+								onclick={() =>
+									solver.selectStep2Strategy("quadratic")}
+							>
+								<span class="strategy-icon">📐</span>
+								<span>Quadratic formula / Square root</span>
+							</button>
+						</div>
 					</div>
-				</div>
+				{/if}
 
-				{#if solver.step2.strategy === null}
+				{#if problem.params.order === 2 && solver.step2.strategy === null}
 					<div class="strategy-unselected-prompt">
 						<p class="strategy-helper-text">
 							Select whether to factor the polynomial directly or
@@ -267,7 +272,28 @@
 					</div>
 				{:else if solver.step2.strategy === "factoring"}
 					<!-- Factoring Path -->
-					{#if problem.itsData.step2.rootType === "repeated_real"}
+					{#if problem.params.order === 1}
+						<div
+							class="input-pair"
+							style="max-width: 260px;"
+						>
+							<label
+								for="ode-r1-input"
+								class="field-label"
+							>
+								<MathText text={"Root $r$:"} />
+							</label>
+							<input
+								id="ode-r1-input"
+								type="text"
+								class="text-input"
+								placeholder="e.g. -2"
+								bind:value={solver.step2.r1}
+								onkeydown={(e) =>
+									e.key === "Enter" && solver.checkStep2()}
+							/>
+						</div>
+					{:else if problem.itsData.step2.rootType === "repeated_real"}
 						<div
 							class="input-pair"
 							style="max-width: 260px;"
@@ -658,48 +684,64 @@
 					/>
 				</p>
 				<div class="button-grid-taxonomic">
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected ===
-							"distinct_real"}
-						onclick={() => solver.checkStep3("distinct_real")}
-					>
-						<strong>Distinct Real Roots</strong>
-						<span class="choice-sub">
-							<MathText
-								text={String.raw`$C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
-							/>
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected ===
-							"repeated_real"}
-						onclick={() => solver.checkStep3("repeated_real")}
-					>
-						<strong>Repeated Real Roots</strong>
-						<span class="choice-sub">
-							<MathText
-								text={String.raw`$(C_1 + C_2 t) e^{r t}$`}
-							/>
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected ===
-							"complex_conjugate"}
-						onclick={() => solver.checkStep3("complex_conjugate")}
-					>
-						<strong>Complex Conjugate Roots</strong>
-						<span class="choice-sub">
-							<MathText
-								text={String.raw`$e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
-							/>
-						</span>
-					</button>
+					{#if problem.params.order === 1}
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step3.selected ===
+								"distinct_real"}
+							onclick={() => solver.checkStep3("distinct_real")}
+						>
+							<strong>Single Real Root</strong>
+							<span class="choice-sub">
+								<MathText text={String.raw`$C_1 e^{rt}$`} />
+							</span>
+						</button>
+					{:else}
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step3.selected ===
+								"distinct_real"}
+							onclick={() => solver.checkStep3("distinct_real")}
+						>
+							<strong>Distinct Real Roots</strong>
+							<span class="choice-sub">
+								<MathText
+									text={String.raw`$C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
+								/>
+							</span>
+						</button>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step3.selected ===
+								"repeated_real"}
+							onclick={() => solver.checkStep3("repeated_real")}
+						>
+							<strong>Repeated Real Roots</strong>
+							<span class="choice-sub">
+								<MathText
+									text={String.raw`$(C_1 + C_2 t) e^{r t}$`}
+								/>
+							</span>
+						</button>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step3.selected ===
+								"complex_conjugate"}
+							onclick={() =>
+								solver.checkStep3("complex_conjugate")}
+						>
+							<strong>Complex Conjugate Roots</strong>
+							<span class="choice-sub">
+								<MathText
+									text={String.raw`$e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
+								/>
+							</span>
+						</button>
+					{/if}
 				</div>
 			</div>
 			{@render feedbackAndHints()}
@@ -897,7 +939,7 @@
 				{/if}
 
 				<!-- Part 5B: System Setup (for sinusoidal forcing) -->
-				{#if solver.step5.subSteps.second_deriv.isValid && problem.forcing.type === "sinusoid"}
+				{#if (problem.params.order === 1 ? solver.step5.subSteps.first_deriv.isValid : solver.step5.subSteps.second_deriv.isValid) && problem.forcing.type === "sinusoid"}
 					<div
 						class="subpart-block"
 						class:subpart-done={solver.step5.subSteps.system_setup
@@ -921,7 +963,9 @@
 						{#if !solver.step5.subSteps.system_setup.isValid}
 							<p class="step-prompt">
 								<MathText
-									text={`Substitute $y_p, y_p', y_p''$ into $y'' + ${problem.params.a1}y' + ${problem.params.a0}y = ${problem.forcing.latex}$ and equate sine/cosine coefficients:`}
+									text={problem.params.order === 1
+										? `Substitute $y_p, y_p'$ into $${problem.params.a1}y' + ${problem.params.a0}y = ${problem.forcing.latex}$ and equate sine/cosine coefficients:`
+										: `Substitute $y_p, y_p', y_p''$ into $${problem.params.a2}y'' + ${problem.params.a1}y' + ${problem.params.a0}y = ${problem.forcing.latex}$ and equate sine/cosine coefficients:`}
 								/>
 							</p>
 							<div class="mcq-cards-grid">
@@ -953,7 +997,7 @@
 				{/if}
 
 				<!-- Part 5C: Undetermined Coefficients Resolution -->
-				{#if solver.step5.subSteps.second_deriv.isValid && (problem.forcing.type !== "sinusoid" || solver.step5.subSteps.system_setup.isValid)}
+				{#if (problem.params.order === 1 ? solver.step5.subSteps.first_deriv.isValid : solver.step5.subSteps.second_deriv.isValid) && (problem.forcing.type !== "sinusoid" || solver.step5.subSteps.system_setup.isValid)}
 					<div class="subpart-block">
 						<div class="subpart-header">
 							<span class="subpart-badge">
@@ -1079,7 +1123,9 @@
 			</div>
 			<h3 class="step-title">
 				<MathText
-					text={"Initial Conditions & Constants $(C_1, C_2)$"}
+					text={problem.params.order === 1
+						? "Initial Condition & Constant $C_1$"
+						: "Initial Conditions & Constants $(C_1, C_2)$"}
 				/>
 			</h3>
 			{#if solver.currentStep === 6}
@@ -1099,7 +1145,9 @@
 						<span class="subpart-badge">Part 6A</span>
 						<h4 class="subpart-title">
 							<MathText
-								text={"Compute Target Homogeneous Values $y_h(0^+)$ & $y_h'(0^+)$"}
+								text={problem.params.order === 1
+									? "Compute Target Homogeneous Value $y_h(0^+)$"
+									: "Compute Target Homogeneous Values $y_h(0^+)$ & $y_h'(0^+)$"}
 							/>
 						</h4>
 						{#if solver.step6.subSteps.target_values.isValid}
@@ -1112,7 +1160,9 @@
 					{#if !solver.step6.subSteps.target_values.isValid}
 						<p class="step-prompt">
 							<MathText
-								text={String.raw`Subtract the particular solution offsets $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ and $y_p'(0^+) = ${toFractionLatex(problem.itsData.step6.dyp0)}$ from initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0}$:`}
+								text={problem.params.order === 1
+									? String.raw`Subtract $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ from $y(0^-) = ${problem.initialConditions.y0}$:`
+									: String.raw`Subtract the particular solution offsets $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ and $y_p'(0^+) = ${toFractionLatex(problem.itsData.step6.dyp0 ?? 0)}$ from initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0 ?? 0}$:`}
 							/>
 						</p>
 
@@ -1137,26 +1187,28 @@
 										solver.checkStep6TargetValues()}
 								/>
 							</div>
-							<div class="input-pair">
-								<label
-									for="ode-dyh0-input"
-									class="field-label"
-								>
-									<MathText
-										text={"Target $y_h'(0^+) = y'(0^+) - y_p'(0^+)$:"}
+							{#if problem.params.order === 2}
+								<div class="input-pair">
+									<label
+										for="ode-dyh0-input"
+										class="field-label"
+									>
+										<MathText
+											text={"Target $y_h'(0^+) = y'(0^+) - y_p'(0^+)$:"}
+										/>
+									</label>
+									<input
+										id="ode-dyh0-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. -3"
+										bind:value={solver.step6.dyh0}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep6TargetValues()}
 									/>
-								</label>
-								<input
-									id="ode-dyh0-input"
-									type="text"
-									class="text-input"
-									placeholder="e.g. -3"
-									bind:value={solver.step6.dyh0}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep6TargetValues()}
-								/>
-							</div>
+								</div>
+							{/if}
 						</div>
 
 						<div class="step-actions">
@@ -1171,7 +1223,9 @@
 					{:else}
 						<div class="substep-verified-line">
 							<MathText
-								text={`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0)}$`}
+								text={problem.params.order === 1
+									? `Target Value: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}$`
+									: `Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
 							/>
 						</div>
 					{/if}
@@ -1184,7 +1238,9 @@
 							<span class="subpart-badge">Part 6B</span>
 							<h4 class="subpart-title">
 								<MathText
-									text={"Solve for Homogeneous Constants $C_1, C_2$"}
+									text={problem.params.order === 1
+										? "Solve for Homogeneous Constant $C_1$"
+										: "Solve for Homogeneous Constants $C_1, C_2$"}
 								/>
 							</h4>
 						</div>
@@ -1224,24 +1280,26 @@
 										solver.checkStep6Constants()}
 								/>
 							</div>
-							<div class="input-pair">
-								<label
-									for="ode-c2-input"
-									class="field-label"
-								>
-									<MathText text={"Constant $C_2$:"} />
-								</label>
-								<input
-									id="ode-c2-input"
-									type="text"
-									class="text-input"
-									placeholder="e.g. -1/2"
-									bind:value={solver.step6.c2}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep6Constants()}
-								/>
-							</div>
+							{#if problem.params.order === 2}
+								<div class="input-pair">
+									<label
+										for="ode-c2-input"
+										class="field-label"
+									>
+										<MathText text={"Constant $C_2$:"} />
+									</label>
+									<input
+										id="ode-c2-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. -1/2"
+										bind:value={solver.step6.c2}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep6Constants()}
+									/>
+								</div>
+							{/if}
 						</div>
 
 						<div class="step-actions">
@@ -1262,7 +1320,9 @@
 				<span class="check-icon">✓</span>
 				<span>
 					<MathText
-						text={`Constants: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2)}$`}
+						text={problem.params.order === 1
+							? `Constant: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}$`
+							: `Constants: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}$`}
 					/>
 				</span>
 			</div>
@@ -1324,7 +1384,9 @@
 					{#if !solver.step7.ziZsPassed}
 						<p class="step-prompt">
 							<MathText
-								text={String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching the original initial conditions $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$:`}
+								text={problem.params.order === 1
+									? String.raw`Find $y_{ZI}(t)$ by setting $x(t)=0$ and matching $y(0^-) = ${problem.initialConditions.y0}$:`
+									: String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching the original initial conditions $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$:`}
 							/>
 						</p>
 
@@ -1363,26 +1425,28 @@
 										solver.checkStep7ZI()}
 								/>
 							</div>
-							<div class="input-pair">
-								<label
-									for="ode-zic2-input"
-									class="field-label"
-								>
-									<MathText
-										text={"Zero-Input Constant $C_{2,ZI}$:"}
+							{#if problem.params.order === 2}
+								<div class="input-pair">
+									<label
+										for="ode-zic2-input"
+										class="field-label"
+									>
+										<MathText
+											text={"Zero-Input Constant $C_{2,ZI}$:"}
+										/>
+									</label>
+									<input
+										id="ode-zic2-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. -2"
+										bind:value={solver.step7.ziC2}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep7ZI()}
 									/>
-								</label>
-								<input
-									id="ode-zic2-input"
-									type="text"
-									class="text-input"
-									placeholder="e.g. -2"
-									bind:value={solver.step7.ziC2}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep7ZI()}
-								/>
-							</div>
+								</div>
+							{/if}
 						</div>
 
 						<div class="preview-equation-box">
@@ -1396,7 +1460,9 @@
 							/>
 							<div class="superposition-note">
 								<MathText
-									text={`Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${solver.derivedZSC2}$`}
+									text={problem.params.order === 1
+										? `Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}$`
+										: `Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${solver.derivedZSC2}$`}
 								/>
 							</div>
 							<MathBlock

@@ -74,7 +74,10 @@
 			variant: "secondary" as const,
 		},
 		{
-			label: problem.params.rootType.replace("_", " "),
+			label:
+				problem.params.order === 1
+					? "single real root"
+					: problem.params.rootType.replace("_", " "),
 			variant: "accent" as const,
 		},
 	]);
@@ -102,7 +105,9 @@
 		/>
 		<div class="initial-conditions">
 			<MathText
-				text={String.raw`<strong>Initial Conditions:</strong> $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$`}
+				text={problem.params.order === 1
+					? String.raw`<strong>Initial Condition:</strong> $y(0^-) = ${problem.initialConditions.y0}$`
+					: String.raw`<strong>Initial Conditions:</strong> $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$`}
 			/>
 		</div>
 	</div>

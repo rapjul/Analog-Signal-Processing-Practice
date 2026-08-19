@@ -3,7 +3,7 @@
 	 * OdeFullSolutionView Svelte 5 Component.
 	 *
 	 * Displays a comprehensive, zero-guesswork worked solution breakdown for
-	 * completed 2nd-order Linear Constant-Coefficient ODE problems.
+	 * completed first- and second-order Linear Constant-Coefficient ODE problems.
 	 */
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
@@ -76,11 +76,15 @@
 				</div>
 				<p class="step-prose">
 					<MathText
-						text={String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(1)(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
+						text={problem.params.order === 1
+							? String.raw`Solving the linear characteristic equation for its single root:`
+							: String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
 					/>
 				</p>
 				<MathBlock
-					math={`s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(1)} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+					math={problem.params.order === 1
+						? `${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`
+						: `s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
 					compact={true}
 					hideHeader={true}
 				/>
@@ -101,7 +105,9 @@
 				</div>
 				<p class="step-prose">
 					<MathText
-						text={String.raw`Based on the root structure (${problem.params.rootType.replace("_", " ")}), the natural basis modes form:`}
+						text={problem.params.order === 1
+							? "The single real root produces one natural basis mode:"
+							: String.raw`Based on the root structure (${problem.params.rootType.replace("_", " ")}), the natural basis modes form:`}
 					/>
 				</p>
 				<MathBlock
@@ -141,17 +147,23 @@
 				{#if problem.forcing.type === "sinusoid"}
 					<p class="step-prose">
 						<MathText
-							text={String.raw`Taking trial derivatives $y_p'(t)$ and $y_p''(t)$:`}
+							text={problem.params.order === 1
+								? String.raw`Taking the required trial derivative $y_p'(t)$:`
+								: String.raw`Taking trial derivatives $y_p'(t)$ and $y_p''(t)$:`}
 						/>
 					</p>
 					<MathBlock
-						math={problem.itsData.step5.derivativesLatex ?? ""}
+						math={problem.params.order === 1
+							? (problem.itsData.step5.firstDerivLatex ?? "")
+							: (problem.itsData.step5.derivativesLatex ?? "")}
 						compact={true}
 						hideHeader={true}
 					/>
 					<p class="step-prose">
 						<MathText
-							text={String.raw`Substituting into $y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`}
+							text={problem.params.order === 1
+								? String.raw`Substituting into $a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`
+								: String.raw`Substituting into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`}
 						/>
 					</p>
 					<MathBlock
@@ -172,7 +184,9 @@
 				{:else}
 					<p class="step-prose">
 						<MathText
-							text={String.raw`Substituting $y_p(t)$ into $y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$:`}
+							text={problem.params.order === 1
+								? String.raw`Substituting $y_p(t)$ into $a_1 y' + a_0 y = ${problem.forcing.latex}$:`
+								: String.raw`Substituting $y_p(t)$ into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$:`}
 						/>
 					</p>
 					<MathBlock
@@ -201,18 +215,24 @@
 					compact={true}
 					hideHeader={true}
 				/>
-				<MathBlock
-					math={`y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${problem.initialConditions.dy0} - (${toFractionLatex(problem.itsData.step6.dyp0)}) = ${toFractionLatex(problem.itsData.step6.targetDYh0)}`}
-					compact={true}
-					hideHeader={true}
-				/>
+				{#if problem.params.order === 2}
+					<MathBlock
+						math={`y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${problem.initialConditions.dy0 ?? 0} - (${toFractionLatex(problem.itsData.step6.dyp0 ?? 0)}) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}`}
+						compact={true}
+						hideHeader={true}
+					/>
+				{/if}
 				<p class="step-prose">
 					<MathText
-						text={String.raw`Solving for integration constants $C_1, C_2$ gives the complete response:`}
+						text={problem.params.order === 1
+							? String.raw`Solving for integration constant $C_1$ gives the complete response:`
+							: String.raw`Solving for integration constants $C_1, C_2$ gives the complete response:`}
 					/>
 				</p>
 				<MathBlock
-					math={`C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2)}`}
+					math={problem.params.order === 1
+						? `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}`
+						: `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
 					compact={true}
 					hideHeader={true}
 				/>

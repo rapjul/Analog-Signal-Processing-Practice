@@ -10,14 +10,16 @@ import { expect, test } from "@playwright/test";
 
 test.describe("LCC ODEs Practice Module", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/odes");
+		await page.goto(
+			"/odes?order=2&rootType=distinct_real&forcing=constant&leading=monic&resonance=none&seed=210",
+		);
 		await page.waitForLoadState("networkidle");
 	});
 
 	/**
 	 * Verifies initial rendering of the ODEs module page.
 	 */
-	test("renders header, blind exam mode defaults, and active practice card with difficulty badge", async ({
+	test("renders header, deterministic drill filters, and active practice card with difficulty badge", async ({
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
@@ -31,7 +33,7 @@ test.describe("LCC ODEs Practice Module", () => {
 		const drillPanel = page.locator(".drill-panel");
 		await expect(drillPanel).toBeVisible();
 		await expect(drillPanel.locator(".drill-badge")).toHaveText(
-			/Random \/ Exam Mode/i,
+			/Custom Filter Active/i,
 		);
 
 		// Practice card container
@@ -58,6 +60,10 @@ test.describe("LCC ODEs Practice Module", () => {
 
 		const rootSelect = page.locator("#root-type-select");
 		const forcingSelect = page.locator("#forcing-type-select");
+		await expect(page.locator("#ode-order-select")).toBeVisible();
+		await expect(page.locator("#leading-coefficient-select")).toBeVisible();
+		await expect(page.locator("#resonance-select")).toBeVisible();
+		await expect(page.locator('input[name="seed"]')).toHaveValue("210");
 		await expect(rootSelect).toBeVisible();
 		await expect(forcingSelect).toBeVisible();
 
@@ -119,39 +125,13 @@ test.describe("LCC ODEs Practice Module", () => {
 	test("requires explicit strategy selection in Step 2 without spoiling answers", async ({
 		page,
 	}) => {
-		const step1 = page.locator(".step-card").nth(0);
-		const hintBtn = step1.locator(".hint-toggle-btn");
-
-		// Reveal hints in Step 1 to extract exact characteristic equation coefficients
-		await hintBtn.click();
-		await hintBtn.click();
-		await hintBtn.click();
-
-		const hint3Text = await step1.locator(".hint-line").last().innerText();
-		const match = hint3Text.match(
-			/s\^2\s*([+-]\s*\d+)?\s*s\s*([+-]\s*\d+)?/,
+		// Seeded fixture + developer harness avoids scraping rendered KaTeX.
+		await page.evaluate(() =>
+			window.__signalLabDev?.goToVisualState("ode.step-02.strategy-gate"),
 		);
 
-		let a1 = "0";
-		let a0 = "0";
-		if (match) {
-			a1 = match[1] ? match[1].replace(/\s+/g, "") : "0";
-			a0 = match[2] ? match[2].replace(/\s+/g, "") : "0";
-		}
-
-		const a2Input = page.locator("#ode-a2-input");
-		const a1Input = page.locator("#ode-a1-input");
-		const a0Input = page.locator("#ode-a0-input");
-
-		await a2Input.fill("1");
-		await a1Input.fill(a1);
-		await a0Input.fill(a0);
-
-		await step1.locator(".step-actions .btn-primary").click();
-		await page.waitForTimeout(300);
-
 		// Step 2 should now be active
-		const step2 = page.locator(".step-card").nth(1);
+		const step2 = page.locator(".step-card.active");
 		await expect(step2).toBeVisible();
 		await expect(step2.locator(".step-title")).toHaveText(
 			/Characteristic Polynomial Roots/i,
@@ -182,5 +162,41 @@ test.describe("LCC ODEs Practice Module", () => {
 		await expect(step2.locator(".quad-classification-box")).toBeVisible();
 		await expect(step2.locator(".quad-class-btn")).toHaveCount(3);
 		await expect(step2.locator("#ode-disc-input")).toBeVisible();
+
+		// A wrong classification enters the discriminant-remediation state.
+		await step2.locator(".quad-class-btn").nth(1).click();
+		await expect(step2.locator(".disc-remediation-required")).toBeVisible();
+	});
+
+	test("restores safe URL filters and gives first-order problems a direct root flow", async ({
+		page,
+	}) => {
+		await page.goto(
+			"/odes?order=1&rootType=not-a-root&forcing=bad&leading=nope&resonance=repeated&seed=4294967296",
+		);
+		await page.waitForLoadState("networkidle");
+
+		await expect(page.locator("#root-type-select")).toBeDisabled();
+		await expect(page.locator("#root-type-select")).toHaveValue("random");
+		await expect(page.locator("#resonance-select")).toHaveValue("simple");
+		await expect(page.locator("#forcing-type-select")).toHaveValue(
+			"exponential",
+		);
+		await expect(page.locator('input[name="seed"]')).not.toHaveValue(
+			"4294967296",
+		);
+		await expect(page.locator(".problem-title")).toContainText("1st-Order");
+
+		const step1 = page.locator(".step-card").first();
+		// The test harness advances without scraping rendered KaTeX.
+		await page.evaluate(() =>
+			window.__signalLabDev?.goToVisualState(
+				"ode.step-02.factoring-inputs",
+			),
+		);
+		const step2 = page.locator(".step-card.active");
+		await expect(step2.locator(".strategy-gate-box")).toHaveCount(0);
+		await expect(step2.locator("#ode-r1-input")).toBeVisible();
+		await expect(step1).not.toHaveClass(/active/);
 	});
 });
