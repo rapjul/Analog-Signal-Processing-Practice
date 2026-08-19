@@ -379,7 +379,7 @@
 										)}
 								>
 									<MathText
-										text={"Distinct Real ($Delta > 0$)"}
+										text={String.raw`Distinct Real ($\Delta > 0$)`}
 									/>
 								</button>
 								<button
@@ -395,7 +395,7 @@
 										)}
 								>
 									<MathText
-										text={"Repeated Real ($Delta = 0$)"}
+										text={String.raw`Repeated Real ($\Delta = 0$)`}
 									/>
 								</button>
 								<button
@@ -412,7 +412,8 @@
 										)}
 								>
 									<MathText
-										text={"Complex Conjugate ($Delta < 0$)"}
+										text={String.raw`Complex Conjugate ($\Delta < 0$)
+									`}
 									/>
 								</button>
 							</div>
@@ -446,11 +447,11 @@
 									/>
 									<button
 										type="button"
-										class="btn btn-secondary btn-verify-disc"
+										class="btn-primary btn-verify-disc"
 										onclick={() =>
 											solver.verifyDiscriminant()}
 									>
-										<MathText text={"Verify $Delta$"} />
+										Verify Discriminant
 									</button>
 								</div>
 
@@ -2196,6 +2197,7 @@
 	.disc-calc-row {
 		display: flex;
 		flex-wrap: wrap;
+		justify-content: center;
 		align-items: center;
 		gap: 0.6rem;
 		margin-top: 0.25rem;
