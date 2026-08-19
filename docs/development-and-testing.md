@@ -27,29 +27,30 @@ npm run dev
 
 ## 📜 Available Scripts
 
-| Command                         | Description                                                              |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| `npm run dev`                   | Starts the Vite development server with hot module replacement (HMR).    |
-| `npm run build`                 | Builds the static production application via `@sveltejs/adapter-static`. |
-| `npm run preview`               | Previews the production build locally.                                   |
-| `npm run check`                 | Runs `svelte-check` against the TypeScript configuration.                |
-| `npm run check:watch`           | Runs `svelte-check` in watch mode during development.                    |
-| `npm test`                      | Runs the full Vitest unit and component test suite.                      |
-| `npm run test:unit`             | Starts Vitest in interactive watch mode.                                 |
-| `npm run test:coverage`         | Generates a V8 code coverage report.                                     |
-| `npm run test:e2e`              | Executes Playwright end-to-end integration tests.                        |
-| `npm run test:e2e:screenshots`  | Captures full-page visual regression screenshots across all viewports.   |
-| `npm run test:e2e:solvers`      | Compares deterministic solver states with local visual baselines.        |
-| `npm run capture:solvers`       | Captures the complete solver visual matrix and rebuilds its gallery.     |
-| `npm run capture:solvers:dark`  | Captures the full solver matrix in dark mode only.                       |
-| `npm run capture:solvers:quick` | Captures only dark mode with all available hints shown; skips tablet.    |
-| `npm run gallery:solvers`       | Rebuilds the solver gallery from the current-run manifest.               |
-| `npm run capture:screenshots`   | Captures viewport-framed ($1280 \times 800$) screenshots for the README. |
-| `npm run test:all`              | Runs both the unit test suite and Playwright E2E tests.                  |
-| `npm run lint:imports`          | Checks import statement ordering with Biome.                             |
-| `npm run format:imports`        | Auto-sorts and organizes imports with Biome.                             |
-| `npm run format`                | Formats all code and markdown files with Prettier.                       |
-| `npm run format:check`          | Verifies code formatting compliance with Prettier.                       |
+| Command                          | Description                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `npm run dev`                    | Starts the Vite development server with hot module replacement (HMR).    |
+| `npm run build`                  | Builds the static production application via `@sveltejs/adapter-static`. |
+| `npm run preview`                | Previews the production build locally.                                   |
+| `npm run check`                  | Runs `svelte-check` against the TypeScript configuration.                |
+| `npm run check:watch`            | Runs `svelte-check` in watch mode during development.                    |
+| `npm test`                       | Runs the full Vitest unit and component test suite.                      |
+| `npm run test:unit`              | Starts Vitest in interactive watch mode.                                 |
+| `npm run test:coverage`          | Generates a V8 code coverage report.                                     |
+| `npm run test:e2e`               | Executes Playwright end-to-end integration tests.                        |
+| `npm run test:e2e:screenshots`   | Captures full-page visual regression screenshots across all viewports.   |
+| `npm run test:e2e:solvers`       | Compares deterministic solver states with local visual baselines.        |
+| `npm run capture:solvers`        | Captures the complete solver visual matrix and rebuilds its gallery.     |
+| `npm run capture:solvers:dark`   | Captures the full solver matrix in dark mode only.                       |
+| `npm run capture:solvers:quick`  | Captures only dark mode with all available hints shown; skips tablet.    |
+| `npm run gallery:solvers`        | Rebuilds the solver gallery from the current-run manifest.               |
+| `npm run benchmark:solvers -- …` | Runs and archives one read-only solver visual benchmark repetition.      |
+| `npm run capture:screenshots`    | Captures viewport-framed ($1280 \times 800$) screenshots for the README. |
+| `npm run test:all`               | Runs both the unit test suite and Playwright E2E tests.                  |
+| `npm run lint:imports`           | Checks import statement ordering with Biome.                             |
+| `npm run format:imports`         | Auto-sorts and organizes imports with Biome.                             |
+| `npm run format`                 | Formats all code and markdown files with Prettier.                       |
+| `npm run format:check`           | Verifies code formatting compliance with Prettier.                       |
 
 ---
 
@@ -161,6 +162,8 @@ The solver gallery is focused on the problem-solving interface, so the Playwrigh
 The `dark` profile keeps every named state and milestone but omits light-mode milestones. The `quick` profile omits the tablet viewport, keeps dark-mode desktop and narrow-mobile milestones, and captures only explicit hint states and automatically derived all-hints variants from the stepped solvers. The gallery builds its viewport options and coverage text from that smaller manifest, so a quick gallery does not offer a tablet filter or claim tablet coverage. These profiles replace the current-run gallery manifest with the subset they captured; run the full command again when you need the complete gallery.
 
 The process is both automated and deterministic: automation enumerates the live state catalog and hint variants, while stable problem seeds, explicit canvas readiness markers, and harness-driven state preparation make repeated images comparable. Local baselines live in `tests/e2e/solver-visual-baselines/` and are git-ignored, so each developer or CI environment must run `npm run capture:solvers` once before comparison runs. Git-ignored current-run artifacts and `manifest.json` live in `tests/e2e/screenshots/solvers/current/`. The gallery at `tests/e2e/screenshots/solvers/index.html` reads only that manifest, so artifacts from older runs cannot appear as current coverage.
+
+Artifact-generating runs also write `tests/e2e/screenshots/solvers/current/timings.json` with phase totals, complete suite time, and unattributed time. Snapshot-update captures reuse Playwright's accepted baseline PNG for the inspection artifact; comparison runs keep a separate artifact screenshot. The suite reuses one page per archetype by default after three counterbalanced benchmark cycles; set `SIGNALLAB_VISUAL_PAGE_MODE=isolated` to request the original fresh-page behavior. See [Solver visual capture performance](./solver-visual-performance.md) for the preservation scheme, benchmark command, timing waterfalls, and measured results.
 
 ---
 
