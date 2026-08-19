@@ -514,6 +514,45 @@ async function assertAndRecordActiveState(args: {
 	});
 }
 
+async function prepareVisualCapturePage(page: Page): Promise<void> {
+	const navbar = page.locator(".navbar");
+	await expect(
+		navbar,
+		"visual captures require the application navbar",
+	).toHaveCount(1);
+	await page.addStyleTag({
+		content: ".navbar { display: none !important; }",
+	});
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await waitForStableLayout(page);
+	if (WRITE_INSPECTION_ARTIFACTS) {
+		const overflow = await page.evaluate(() => ({
+			viewportWidth: window.innerWidth,
+			documentWidth: document.documentElement.scrollWidth,
+		}));
+		if (overflow.documentWidth > overflow.viewportWidth) {
+			console.warn(
+				`Horizontal overflow captured at ${page.url()}: document ${overflow.documentWidth}px, viewport ${overflow.viewportWidth}px`,
+			);
+		}
+		return;
+	}
+	await expect
+		.poll(
+			() =>
+				page.evaluate(
+					() =>
+						document.documentElement.scrollWidth <=
+						window.innerWidth,
+				),
+			{
+				message:
+					"solver page must not overflow the viewport horizontally",
+			},
+		)
+		.toBe(true);
+}
+
 test.skip(
 	!VISUAL_RUN_ENABLED,
 	"Run with npm run test:e2e:solvers or npm run capture:solvers.",
@@ -553,7 +592,7 @@ test.describe("Deterministic solver visual states", () => {
 					await page.goto(archetype.path, {
 						waitUntil: "networkidle",
 					});
-					await waitForStableLayout(page);
+					await prepareVisualCapturePage(page);
 
 					if (archetype.isItsStepper) await requireHarness(page);
 
@@ -632,6 +671,7 @@ test.describe("Deterministic solver visual states", () => {
 						}
 
 						await page.reload({ waitUntil: "networkidle" });
+						await prepareVisualCapturePage(page);
 						await requireHarness(page);
 						await page.evaluate(() => {
 							if (!window.__signalLabDev) {
