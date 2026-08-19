@@ -483,10 +483,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Formatted step badge for Step 6 (e.g. "Step 6A", "Step 6B").
+	 * Formatted step badge for Step 6 (e.g. "Step 6" for 1st-order, "Step 6A", "Step 6B" for 2nd-order).
 	 */
 	get step6Badge(): string {
-		if (this.currentStep !== 6) return "Step 6";
+		if (this.currentStep !== 6 || this.problem.params.order === 1) {
+			return "Step 6";
+		}
 		switch (this.step6.activeSubStepId) {
 			case "target_values":
 				return "Step 6A";
@@ -501,6 +503,13 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Sub-step progress descriptor for Step 6 Initial Conditions.
 	 */
 	get step6Progress(): SubStepProgress {
+		if (this.problem.params.order === 1) {
+			return {
+				current: 1,
+				total: 1,
+				label: "Part 1 of 1",
+			};
+		}
 		return this.getSubStepProgress(this.step6);
 	}
 
@@ -1291,7 +1300,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 6 Part 6A: Target homogeneous initial values (y_h(0+) and y_h'(0+)).
+	 * Validates Step 6 Part 6A: Target homogeneous initial values (y_h(0+) and y_h'(0+))
+	 * or direct C_1 calculation for 1st-order equations.
 	 */
 	checkStep6TargetValues(): void {
 		const s6Data = this.problem.itsData.step6;
@@ -1299,11 +1309,13 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		const vYh0 = parseNumericInput(this.step6.yh0);
 		const vDYh0 = isFirstOrder ? 0 : parseNumericInput(this.step6.dyh0);
 
-		if (Number.isNaN(vYh0) || Number.isNaN(vDYh0)) {
+		if (Number.isNaN(vYh0) || (!isFirstOrder && Number.isNaN(vDYh0))) {
 			this.setSubStepValidation(
 				this.step6,
 				"target_values",
-				"Please enter numeric values or fractions for both target values: $y_h(0^+)$ and $y_h'(0^+)$.",
+				isFirstOrder
+					? "Please enter a numeric value or fraction for the constant $C_1 = y_h(0^+)$."
+					: "Please enter numeric values or fractions for both target values: $y_h(0^+)$ and $y_h'(0^+)$.",
 			);
 			return;
 		}
@@ -1315,31 +1327,47 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			approximatelyEqual(vYh0, expYh0) &&
 			(isFirstOrder || approximatelyEqual(vDYh0, expDYh0 ?? 0))
 		) {
-			this.setSubStepPassed(
-				this.step6,
-				"target_values",
-				"solve_constants",
-			);
+			if (isFirstOrder) {
+				this.step6.c1 = this.step6.yh0;
+				this.setSubStepPassed(
+					this.step6,
+					"target_values",
+					undefined,
+					7,
+				);
+			} else {
+				this.setSubStepPassed(
+					this.step6,
+					"target_values",
+					"solve_constants",
+				);
+			}
 		} else if (
 			approximatelyEqual(vYh0, this.problem.initialConditions.y0) &&
-			approximatelyEqual(vDYh0, this.problem.initialConditions.dy0 ?? 0)
+			(isFirstOrder ||
+				approximatelyEqual(
+					vDYh0,
+					this.problem.initialConditions.dy0 ?? 0,
+				))
 		) {
 			this.setSubStepMisconception(
 				this.step6,
 				"target_values",
-				"Forgetting Particular Contribution: Initial conditions apply to the TOTAL response $y(t) = y_h(t) + y_p(t)$. You must subtract $y_p(0^+)$ and $y_p'(0^+)$ to find $y_h(0^+)$ and $y_h'(0^+)$.",
+				"Forgetting Particular Contribution: Initial conditions apply to the TOTAL response $y(t) = y_h(t) + y_p(t)$. You must subtract $y_p(0^+)$ to find the homogeneous contribution $y_h(0^+)$.",
 			);
 		} else {
 			this.setSubStepIncorrect(
 				this.step6,
 				"target_values",
-				`Incorrect target values. $y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${toFractionLatex(expDYh0 ?? 0)}$.`,
+				isFirstOrder
+					? `Incorrect value. $C_1 = y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$.`
+					: `Incorrect target values. $y_h(0^+) = y(0^+) - y_p(0^+) = ${toFractionLatex(expYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${toFractionLatex(expDYh0 ?? 0)}$.`,
 			);
 		}
 	}
 
 	/**
-	 * Validates Step 6 Part 6B: Solved homogeneous integration constants C1, C2.
+	 * Validates Step 6 Part 6B (Integration Constants).
 	 */
 	checkStep6Constants(): void {
 		const s6Data = this.problem.itsData.step6;
@@ -1374,7 +1402,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Legacy/shortcut wrapper for checking Step 6.
 	 */
 	checkStep6(): void {
-		this.checkStep6Constants();
+		if (
+			this.problem.params.order === 1 ||
+			this.step6.activeSubStepId === "target_values"
+		) {
+			this.checkStep6TargetValues();
+		} else {
+			this.checkStep6Constants();
+		}
 	}
 
 	/**
@@ -1939,27 +1974,59 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				subStep: "solve",
 				kind: "hint",
 			},
-			{
-				id: "ode.step-06.target-values",
-				label: "Step 6A · Target Initial Values",
-				step: 6,
-				subStep: "target_values",
-				kind: "interactive",
-			},
-			{
-				id: "ode.step-06.target-values.misconception",
-				label: "Step 6A · Particular-Offset Misconception",
-				step: 6,
-				subStep: "target_values",
-				kind: "diagnostic",
-			},
-			{
-				id: "ode.step-06.integration-constants",
-				label: "Step 6B · Integration Constants",
-				step: 6,
-				subStep: "solve_constants",
-				kind: "interactive",
-			},
+		);
+
+		if (this.problem.params.order === 1) {
+			states.push(
+				{
+					id: "ode.step-06.target-values",
+					label: "Step 6 · Initial Condition & Constant",
+					step: 6,
+					subStep: "target_values",
+					kind: "interactive",
+				},
+				{
+					id: "ode.step-06.target-values.misconception",
+					label: "Step 6 · Particular-Offset Misconception",
+					step: 6,
+					subStep: "target_values",
+					kind: "diagnostic",
+				},
+			);
+		} else {
+			states.push(
+				{
+					id: "ode.step-06.target-values",
+					label: "Step 6A · Target Initial Values",
+					step: 6,
+					subStep: "target_values",
+					kind: "interactive",
+				},
+				{
+					id: "ode.step-06.target-values.misconception",
+					label: "Step 6A · Particular-Offset Misconception",
+					step: 6,
+					subStep: "target_values",
+					kind: "diagnostic",
+				},
+				{
+					id: "ode.step-06.integration-constants",
+					label: "Step 6B · Integration Constants",
+					step: 6,
+					subStep: "solve_constants",
+					kind: "interactive",
+				},
+				{
+					id: "ode.step-06.integration-constants.hints",
+					label: "Step 6B · Integration Constants · All Hints",
+					step: 6,
+					subStep: "solve_constants",
+					kind: "hint",
+				},
+			);
+		}
+
+		states.push(
 			{
 				id: "ode.step-07.zero-input-state",
 				label: "Step 7A · Zero-Input and Zero-State",
@@ -2267,17 +2334,21 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.step6.yh0 = toFractionLatex(
 					this.problem.itsData.step6.targetYh0,
 				);
-				this.step6.dyh0 = toFractionLatex(
-					this.problem.itsData.step6.targetDYh0 ?? 0,
-				);
-				this.checkStep6TargetValues();
-				this.step6.c1 = toFractionLatex(
-					this.problem.itsData.step6.expectedC1,
-				);
-				this.step6.c2 = toFractionLatex(
-					this.problem.itsData.step6.expectedC2 ?? 0,
-				);
-				this.checkStep6Constants();
+				if (this.problem.params.order === 1) {
+					this.checkStep6TargetValues();
+				} else {
+					this.step6.dyh0 = toFractionLatex(
+						this.problem.itsData.step6.targetDYh0 ?? 0,
+					);
+					this.checkStep6TargetValues();
+					this.step6.c1 = toFractionLatex(
+						this.problem.itsData.step6.expectedC1,
+					);
+					this.step6.c2 = toFractionLatex(
+						this.problem.itsData.step6.expectedC2 ?? 0,
+					);
+					this.checkStep6Constants();
+				}
 				break;
 			}
 			case 7: {

@@ -891,4 +891,99 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			"do not have a second derivative",
 		);
 	});
+
+	it("evaluates Step 3 template distractors and misconceptions for first- and second-order problems", () => {
+		// 1st-order problem
+		const p1 = generateOdeProblem({
+			order: 1,
+			forcingType: "constant",
+			seed: 70,
+		});
+		const s1 = new OdeStepSolverState(() => p1);
+		s1.currentStep = 3;
+
+		// Choosing 2nd-order template distractors should fail with misconceptions
+		s1.checkStep3("distinct_real");
+		expect(s1.currentStep).toBe(3);
+		expect(s1.currentFeedback).toContain("only one characteristic root");
+
+		s1.checkStep3("repeated_real");
+		expect(s1.currentStep).toBe(3);
+		expect(s1.currentFeedback).toContain(
+			"second-order characteristic polynomial",
+		);
+
+		s1.checkStep3("complex_conjugate");
+		expect(s1.currentStep).toBe(3);
+		expect(s1.currentFeedback).toContain(
+			"Complex conjugate oscillatory modes require at least a second-order",
+		);
+
+		// Choosing single_real succeeds
+		s1.checkStep3("single_real");
+		expect(s1.currentStep).toBe(4);
+
+		// 2nd-order problem
+		const p2 = generateOdeProblem({
+			order: 2,
+			rootType: "distinct_real",
+			forcingType: "constant",
+			seed: 71,
+		});
+		const s2 = new OdeStepSolverState(() => p2);
+		s2.currentStep = 3;
+
+		// Choosing single_real on 2nd-order fails
+		s2.checkStep3("single_real");
+		expect(s2.currentStep).toBe(3);
+		expect(s2.currentFeedback).toContain(
+			"two characteristic roots and two independent modes",
+		);
+
+		// Choosing correct 2nd-order template succeeds
+		s2.checkStep3("distinct_real");
+		expect(s2.currentStep).toBe(4);
+	});
+
+	it("executes unified single-step Step 6 initial conditions workflow for first-order ODEs", () => {
+		const p1 = generateOdeProblem({
+			order: 1,
+			forcingType: "constant",
+			seed: 80,
+		});
+		const solver = new OdeStepSolverState(() => p1);
+		solver.currentStep = 6;
+		solver.step6.activeSubStepId = "target_values";
+
+		expect(solver.step6Badge).toBe("Step 6");
+		expect(solver.step6Progress).toEqual({
+			current: 1,
+			total: 1,
+			label: "Part 1 of 1",
+		});
+
+		// Validation on empty input
+		solver.step6.yh0 = "";
+		solver.checkStep6TargetValues();
+		expect(solver.currentStep).toBe(6);
+		expect(solver.currentFeedback).toContain(
+			"Please enter a numeric value or fraction",
+		);
+
+		// Forgetting particular contribution misconception
+		solver.step6.yh0 = String(p1.initialConditions.y0);
+		if (p1.itsData.step6.yp0 !== 0) {
+			solver.checkStep6TargetValues();
+			expect(solver.currentStep).toBe(6);
+			expect(solver.currentFeedback).toContain(
+				"Forgetting Particular Contribution",
+			);
+		}
+
+		// Correct C_1 = y(0+) - yp(0+)
+		solver.step6.yh0 = String(p1.itsData.step6.targetYh0);
+		solver.checkStep6();
+		expect(solver.currentStep).toBe(7);
+		expect(solver.step6.c1).toBe(String(p1.itsData.step6.targetYh0));
+	});
 });

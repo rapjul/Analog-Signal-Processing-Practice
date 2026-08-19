@@ -2043,6 +2043,12 @@ export function generateOdeProblem(
 					misconceptions: {
 						single_real:
 							"A first-order equation has one exponential mode $C_1e^{rt}$.",
+						distinct_real:
+							"A first-order equation has only one characteristic root $s = r$, yielding a single exponential mode $C_1 e^{rt}$, not two separate modes.",
+						repeated_real:
+							"Repeated root forms $(C_1 + C_2 t)e^{rt}$ require a second-order characteristic polynomial with multiplicity 2.",
+						complex_conjugate:
+							"Complex conjugate oscillatory modes require at least a second-order differential equation with $\\Delta < 0$.",
 					},
 				}
 			: {
@@ -2054,6 +2060,8 @@ export function generateOdeProblem(
 						`The roots are ${resolvedRootType.replace("_", " ")}.`,
 					],
 					misconceptions: {
+						single_real:
+							"A second-order equation has two characteristic roots and two independent modes, requiring two arbitrary constants.",
 						distinct_real:
 							"Distinct real roots produce two separate exponential modes $C_1e^{r_1t}+C_2e^{r_2t}$.",
 						repeated_real:

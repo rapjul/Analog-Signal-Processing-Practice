@@ -683,64 +683,59 @@
 					/>
 				</p>
 				<div class="button-grid-taxonomic">
-					{#if problem.params.order === 1}
-						<button
-							type="button"
-							class="choice-btn"
-							class:selected={solver.step3.selected ===
-								"single_real"}
-							onclick={() => solver.checkStep3("single_real")}
-						>
-							<strong>Single Real Root</strong>
-							<span class="choice-sub">
-								<MathText text={String.raw`$C_1 e^{rt}$`} />
-							</span>
-						</button>
-					{:else}
-						<button
-							type="button"
-							class="choice-btn"
-							class:selected={solver.step3.selected ===
-								"distinct_real"}
-							onclick={() => solver.checkStep3("distinct_real")}
-						>
-							<strong>Distinct Real Roots</strong>
-							<span class="choice-sub">
-								<MathText
-									text={String.raw`$C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
-								/>
-							</span>
-						</button>
-						<button
-							type="button"
-							class="choice-btn"
-							class:selected={solver.step3.selected ===
-								"repeated_real"}
-							onclick={() => solver.checkStep3("repeated_real")}
-						>
-							<strong>Repeated Real Roots</strong>
-							<span class="choice-sub">
-								<MathText
-									text={String.raw`$(C_1 + C_2 t) e^{r t}$`}
-								/>
-							</span>
-						</button>
-						<button
-							type="button"
-							class="choice-btn"
-							class:selected={solver.step3.selected ===
-								"complex_conjugate"}
-							onclick={() =>
-								solver.checkStep3("complex_conjugate")}
-						>
-							<strong>Complex Conjugate Roots</strong>
-							<span class="choice-sub">
-								<MathText
-									text={String.raw`$e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
-								/>
-							</span>
-						</button>
-					{/if}
+					<button
+						type="button"
+						class="choice-btn"
+						class:selected={solver.step3.selected === "single_real"}
+						onclick={() => solver.checkStep3("single_real")}
+					>
+						<strong>Single Real Root</strong>
+						<span class="choice-sub">
+							<MathText text={String.raw`$C_1 e^{rt}$`} />
+						</span>
+					</button>
+					<button
+						type="button"
+						class="choice-btn"
+						class:selected={solver.step3.selected ===
+							"distinct_real"}
+						onclick={() => solver.checkStep3("distinct_real")}
+					>
+						<strong>Distinct Real Roots</strong>
+						<span class="choice-sub">
+							<MathText
+								text={String.raw`$C_1 e^{r_1 t} + C_2 e^{r_2 t}$`}
+							/>
+						</span>
+					</button>
+					<button
+						type="button"
+						class="choice-btn"
+						class:selected={solver.step3.selected ===
+							"repeated_real"}
+						onclick={() => solver.checkStep3("repeated_real")}
+					>
+						<strong>Repeated Real Roots</strong>
+						<span class="choice-sub">
+							<MathText
+								text={String.raw`$(C_1 + C_2 t) e^{r t}$`}
+							/>
+						</span>
+					</button>
+					<button
+						type="button"
+						class="choice-btn"
+						class:selected={solver.step3.selected ===
+							"complex_conjugate"}
+						onclick={() => solver.checkStep3("complex_conjugate")}
+					>
+						<strong>Complex Conjugate Roots</strong>
+						<span class="choice-sub">
+							<MathText
+								text={String.raw`$e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
+							/>
+						</span>
+					</button>
 				</div>
 			</div>
 			{@render feedbackAndHints()}
@@ -1134,49 +1129,27 @@
 
 		{#if solver.currentStep === 6}
 			<div class="step-body">
-				<!-- Part 6A: Target Initial Values -->
-				<div
-					class="subpart-block"
-					class:subpart-done={solver.step6.subSteps.target_values
-						.isValid}
-				>
-					<div class="subpart-header">
-						<span class="subpart-badge">Part 6A</span>
-						<h4 class="subpart-title">
-							<MathText
-								text={problem.params.order === 1
-									? "Compute Target Homogeneous Value $y_h(0^+)$"
-									: "Compute Target Homogeneous Values $y_h(0^+)$ & $y_h'(0^+)$"}
-							/>
-						</h4>
-						{#if solver.step6.subSteps.target_values.isValid}
-							<span class="substep-check-badge"
-								><span class="check-icon">✓</span> Verified</span
-							>
-						{/if}
-					</div>
-
-					{#if !solver.step6.subSteps.target_values.isValid}
+				<!-- 1st-Order Step 6: Direct Initial Condition & Constant C_1 -->
+				{#if problem.params.order === 1}
+					<div class="subpart-block">
 						<p class="step-prompt">
 							<MathText
-								text={problem.params.order === 1
-									? String.raw`Subtract $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ from $y(0^-) = ${problem.initialConditions.y0}$:`
-									: String.raw`Subtract the particular solution offsets $y_p(0^+) = ${toFractionLatex(problem.itsData.step6.yp0)}$ and $y_p'(0^+) = ${toFractionLatex(problem.itsData.step6.dyp0 ?? 0)}$ from initial conditions $y(0^-) = ${problem.initialConditions.y0}, \; y'(0^-) = ${problem.initialConditions.dy0 ?? 0}$:`}
+								text={String.raw`The complete response satisfies $y(0^+) = y_h(0^+) + y_p(0^+) = ${problem.initialConditions.y0}$. Calculate the integration constant $C_1 = y_h(0^+) = y(0^+) - y_p(0^+)$:`}
 							/>
 						</p>
 
 						<div class="input-row-grid">
 							<div class="input-pair">
 								<label
-									for="ode-yh0-input"
+									for="ode-c1-single-input"
 									class="field-label"
 								>
 									<MathText
-										text={"Target $y_h(0^+) = y(0^+) - y_p(0^+)$:"}
+										text={"Constant $C_1 = y_h(0^+)$:"}
 									/>
 								</label>
 								<input
-									id="ode-yh0-input"
+									id="ode-c1-single-input"
 									type="text"
 									class="text-input"
 									placeholder="e.g. 2"
@@ -1186,7 +1159,67 @@
 										solver.checkStep6TargetValues()}
 								/>
 							</div>
-							{#if problem.params.order === 2}
+						</div>
+
+						<div class="step-actions">
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => solver.checkStep6TargetValues()}
+							>
+								Check Constant →
+							</button>
+						</div>
+					</div>
+				{:else}
+					<!-- 2nd-Order Step 6A: Target Homogeneous Initial Values -->
+					<div
+						class="subpart-block"
+						class:subpart-done={solver.step6.subSteps.target_values
+							.isValid}
+					>
+						<div class="subpart-header">
+							<span class="subpart-badge">Part 6A</span>
+							<h4 class="subpart-title">
+								<MathText
+									text={"Compute Target Homogeneous Initial Values"}
+								/>
+							</h4>
+							{#if solver.step6.subSteps.target_values.isValid}
+								<span class="substep-check-badge"
+									><span class="check-icon">✓</span> Verified</span
+								>
+							{/if}
+						</div>
+
+						{#if !solver.step6.subSteps.target_values.isValid}
+							<p class="step-prompt">
+								<MathText
+									text={String.raw`Subtract the particular solution values from the total initial conditions ($y(0^+) = ${problem.initialConditions.y0}, \quad y'(0^+) = ${problem.initialConditions.dy0}$):`}
+								/>
+							</p>
+
+							<div class="input-row-grid">
+								<div class="input-pair">
+									<label
+										for="ode-yh0-input"
+										class="field-label"
+									>
+										<MathText
+											text={"Target $y_h(0^+) = y(0^+) - y_p(0^+)$:"}
+										/>
+									</label>
+									<input
+										id="ode-yh0-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. 2"
+										bind:value={solver.step6.yh0}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep6TargetValues()}
+									/>
+								</div>
 								<div class="input-pair">
 									<label
 										for="ode-dyh0-input"
@@ -1207,79 +1240,75 @@
 											solver.checkStep6TargetValues()}
 									/>
 								</div>
-							{/if}
-						</div>
+							</div>
 
-						<div class="step-actions">
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => solver.checkStep6TargetValues()}
-							>
-								Verify Target Values →
-							</button>
-						</div>
-					{:else}
-						<div class="substep-verified-line">
-							<MathText
-								text={problem.params.order === 1
-									? `Target Value: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}$`
-									: `Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
-							/>
-						</div>
-					{/if}
-				</div>
-
-				<!-- Part 6B: Integration Constants Resolution -->
-				{#if solver.step6.subSteps.target_values.isValid}
-					<div class="subpart-block">
-						<div class="subpart-header">
-							<span class="subpart-badge">Part 6B</span>
-							<h4 class="subpart-title">
+							<div class="step-actions">
+								<button
+									type="button"
+									class="btn btn-primary"
+									onclick={() =>
+										solver.checkStep6TargetValues()}
+								>
+									Verify Target Values →
+								</button>
+							</div>
+						{:else}
+							<div class="substep-verified-line">
 								<MathText
-									text={problem.params.order === 1
-										? "Solve for Homogeneous Constant $C_1$"
-										: "Solve for Homogeneous Constants $C_1, C_2$"}
-								/>
-							</h4>
-						</div>
-
-						<p class="step-prompt">
-							<MathText
-								text={"Solve the linear system satisfying the homogeneous initial condition targets:"}
-							/>
-						</p>
-
-						{#if problem.itsData.step6.icSystemLatex}
-							<div class="ic-system-display">
-								<MathBlock
-									math={problem.itsData.step6.icSystemLatex}
-									compact={true}
-									hideHeader={true}
+									text={`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
 								/>
 							</div>
 						{/if}
+					</div>
 
-						<div class="input-row-grid">
-							<div class="input-pair">
-								<label
-									for="ode-c1-input"
-									class="field-label"
-								>
-									<MathText text={"Constant $C_1$:"} />
-								</label>
-								<input
-									id="ode-c1-input"
-									type="text"
-									class="text-input"
-									placeholder="e.g. 1"
-									bind:value={solver.step6.c1}
-									onkeydown={(e) =>
-										e.key === "Enter" &&
-										solver.checkStep6Constants()}
-								/>
+					<!-- 2nd-Order Part 6B: Integration Constants Resolution -->
+					{#if solver.step6.subSteps.target_values.isValid}
+						<div class="subpart-block">
+							<div class="subpart-header">
+								<span class="subpart-badge">Part 6B</span>
+								<h4 class="subpart-title">
+									<MathText
+										text={"Solve for Homogeneous Constants $C_1, C_2$"}
+									/>
+								</h4>
 							</div>
-							{#if problem.params.order === 2}
+
+							<p class="step-prompt">
+								<MathText
+									text={"Solve the linear system satisfying the homogeneous initial condition targets:"}
+								/>
+							</p>
+
+							{#if problem.itsData.step6.icSystemLatex}
+								<div class="ic-system-display">
+									<MathBlock
+										math={problem.itsData.step6
+											.icSystemLatex}
+										compact={true}
+										hideHeader={true}
+									/>
+								</div>
+							{/if}
+
+							<div class="input-row-grid">
+								<div class="input-pair">
+									<label
+										for="ode-c1-input"
+										class="field-label"
+									>
+										<MathText text={"Constant $C_1$:"} />
+									</label>
+									<input
+										id="ode-c1-input"
+										type="text"
+										class="text-input"
+										placeholder="e.g. 1"
+										bind:value={solver.step6.c1}
+										onkeydown={(e) =>
+											e.key === "Enter" &&
+											solver.checkStep6Constants()}
+									/>
+								</div>
 								<div class="input-pair">
 									<label
 										for="ode-c2-input"
@@ -1298,19 +1327,19 @@
 											solver.checkStep6Constants()}
 									/>
 								</div>
-							{/if}
-						</div>
+							</div>
 
-						<div class="step-actions">
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => solver.checkStep6Constants()}
-							>
-								Check Constants →
-							</button>
+							<div class="step-actions">
+								<button
+									type="button"
+									class="btn btn-primary"
+									onclick={() => solver.checkStep6Constants()}
+								>
+									Check Constants →
+								</button>
+							</div>
 						</div>
-					</div>
+					{/if}
 				{/if}
 			</div>
 			{@render feedbackAndHints()}
@@ -1384,24 +1413,26 @@
 						<p class="step-prompt">
 							<MathText
 								text={problem.params.order === 1
-									? String.raw`Find $y_{ZI}(t)$ by setting $x(t)=0$ and matching $y(0^-) = ${problem.initialConditions.y0}$:`
+									? String.raw`For $y_{ZI}(t) = C_{1,ZI} e^{rt}$ with $x(t)=0$, match the initial condition $y(0^-) = ${problem.initialConditions.y0}$ to find $C_{1,ZI}$:`
 									: String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching the original initial conditions $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$:`}
 							/>
 						</p>
 
 						<!-- Zero-Input Initial Conditions System Display -->
-						<div class="ic-system-display">
-							<span class="system-lead-label">
-								<MathText
-									text={"Zero-Input Initial Condition System ($x(t) = 0$):"}
+						{#if problem.params.order === 2}
+							<div class="ic-system-display">
+								<span class="system-lead-label">
+									<MathText
+										text={"Zero-Input Initial Condition System ($x(t) = 0$):"}
+									/>
+								</span>
+								<MathBlock
+									math={problem.itsData.step7.ziSystemLatex}
+									compact={true}
+									hideHeader={true}
 								/>
-							</span>
-							<MathBlock
-								math={problem.itsData.step7.ziSystemLatex}
-								compact={true}
-								hideHeader={true}
-							/>
-						</div>
+							</div>
+						{/if}
 
 						<div class="input-row-grid">
 							<div class="input-pair">
