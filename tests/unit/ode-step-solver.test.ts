@@ -800,4 +800,95 @@ describe("OdeStepSolverState Reactive Controller", () => {
 			label: "Part 3 of 3",
 		});
 	});
+
+	it("computes accurate Step 5 progress sequences for first-order problems", () => {
+		const p1Const = generateOdeProblem({
+			order: 1,
+			forcingType: "constant",
+			seed: 50,
+		});
+		const s1Const = new OdeStepSolverState(() => p1Const);
+		s1Const.step5.activeSubStepId = "first_deriv";
+		expect(s1Const.step5Progress).toEqual({
+			current: 1,
+			total: 2,
+			label: "Part 1 of 2",
+		});
+		s1Const.step5.activeSubStepId = "solve";
+		expect(s1Const.step5Progress).toEqual({
+			current: 2,
+			total: 2,
+			label: "Part 2 of 2",
+		});
+
+		const p1Sin = generateOdeProblem({
+			order: 1,
+			forcingType: "sinusoid",
+			seed: 51,
+		});
+		const s1Sin = new OdeStepSolverState(() => p1Sin);
+		s1Sin.step5.activeSubStepId = "first_deriv";
+		expect(s1Sin.step5Progress).toEqual({
+			current: 1,
+			total: 3,
+			label: "Part 1 of 3",
+		});
+		s1Sin.step5.activeSubStepId = "system_setup";
+		expect(s1Sin.step5Progress).toEqual({
+			current: 2,
+			total: 3,
+			label: "Part 2 of 3",
+		});
+		s1Sin.step5.activeSubStepId = "solve";
+		expect(s1Sin.step5Progress).toEqual({
+			current: 3,
+			total: 3,
+			label: "Part 3 of 3",
+		});
+	});
+
+	it("safely handles defensive runtime guard calls on first-order problems without state corruption", () => {
+		const p1 = generateOdeProblem({
+			order: 1,
+			forcingType: "constant",
+			seed: 60,
+		});
+		const solver = new OdeStepSolverState(() => p1);
+		solver.currentStep = 2;
+		solver.step2.activeSubStepId = "factoring_inputs";
+
+		// Illegal Step 2 quadratic classification call on 1st-order problem
+		solver.checkStep2QuadClass("distinct_real");
+		expect(solver.currentStep).toBe(2);
+		expect(solver.step2.activeSubStepId).toBe("factoring_inputs");
+		expect(solver.step2.quadClassChoice).toBeNull();
+		expect(solver.currentFeedback).toContain(
+			"linear and do not use quadratic classification",
+		);
+
+		// Illegal Step 2 discriminant check on 1st-order problem
+		solver.checkStep2Discriminant();
+		expect(solver.currentStep).toBe(2);
+		expect(solver.currentFeedback).toContain(
+			"do not have a quadratic discriminant",
+		);
+
+		// Illegal Step 2 quadratic roots check on 1st-order problem
+		solver.checkStep2QuadRoots();
+		expect(solver.currentStep).toBe(2);
+		expect(solver.currentFeedback).toContain(
+			"do not use quadratic root formulas",
+		);
+
+		// Illegal Step 5 second derivative check on 1st-order problem
+		solver.currentStep = 5;
+		solver.step5.activeSubStepId = "first_deriv";
+		const dummyOption = { id: "dummy", latex: "y''", isCorrect: true };
+		solver.checkStep5SecondDeriv(dummyOption);
+		expect(solver.currentStep).toBe(5);
+		expect(solver.step5.activeSubStepId).toBe("first_deriv");
+		expect(solver.currentFeedback).toContain(
+			"do not have a second derivative",
+		);
+	});
 });

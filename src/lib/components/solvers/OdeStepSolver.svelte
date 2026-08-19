@@ -479,24 +479,23 @@
 									>
 										Verify Discriminant
 									</button>
+									{#if solver.step2.quadDiscriminantVerified && "discriminant" in problem.itsData.step2}
+										<span class="disc-verified-badge">
+											<span class="check-icon">✓</span>
+											<MathText
+												text={solver.step2
+													.quadClassChoice ===
+												"complex_conjugate"
+													? String.raw`$\Delta = ${problem.itsData.step2.discriminant} < 0$ (Complex Roots)`
+													: solver.step2
+																.quadClassChoice ===
+														  "repeated_real"
+														? String.raw`$\Delta = 0$ (Repeated Real Root)`
+														: String.raw`$\Delta = ${problem.itsData.step2.discriminant} > 0$ (Distinct Real Roots)`}
+											/>
+										</span>
+									{/if}
 								</div>
-
-								{#if solver.step2.quadDiscriminantVerified}
-									<span class="disc-verified-badge">
-										<span class="check-icon">✓</span>
-										<MathText
-											text={solver.step2
-												.quadClassChoice ===
-											"complex_conjugate"
-												? String.raw`$\Delta = ${problem.itsData.step2.discriminant} < 0$ (Complex Roots)`
-												: solver.step2
-															.quadClassChoice ===
-													  "repeated_real"
-													? String.raw`$\Delta = 0$ (Repeated Real Root)`
-													: String.raw`$\Delta = ${problem.itsData.step2.discriminant} > 0$ (Distinct Real Roots)`}
-										/>
-									</span>
-								{/if}
 							</div>
 						</div>
 
@@ -508,7 +507,7 @@
 								</span>
 
 								{#if solver.step2.quadClassChoice === "complex_conjugate"}
-									<div class="input-row-grid">
+									<div class="input-row-horizontal">
 										<div class="input-pair">
 											<label
 												for="ode-sigma-input"
@@ -521,8 +520,8 @@
 											<input
 												id="ode-sigma-input"
 												type="text"
-												class="text-input"
-												placeholder="e.g. -1"
+												class="solver-input"
+												placeholder="e.g. -2"
 												bind:value={solver.step2.sigma}
 												onkeydown={(e) =>
 													e.key === "Enter" &&
@@ -531,17 +530,17 @@
 										</div>
 										<div class="input-pair">
 											<label
-												for="ode-omega-input"
+												for="ode-omegad-input"
 												class="field-label"
 											>
 												<MathText
-													text={"Imaginary Part $\\omega_d$:"}
+													text={"Damped Frequency $\\omega_d$:"}
 												/>
 											</label>
 											<input
-												id="ode-omega-input"
+												id="ode-omegad-input"
 												type="text"
-												class="text-input"
+												class="solver-input"
 												placeholder="e.g. 3"
 												bind:value={solver.step2.omegaD}
 												onkeydown={(e) =>
@@ -653,7 +652,7 @@
 						text={`$${problem.itsData.step2.symbolicRootsLatex}$`}
 					/>
 				</span>
-				{#if solver.step2.strategy === "quadratic" && problem.itsData.step2.isFactorable && problem.itsData.step2.factoredFormLatex}
+				{#if solver.step2.strategy === "quadratic" && "isFactorable" in problem.itsData.step2 && problem.itsData.step2.isFactorable && problem.itsData.step2.factoredFormLatex}
 					<span class="shortcut-tip-note">
 						<MathText
 							text={`(Factoring shortcut: $${problem.itsData.step2.factoredFormLatex}$)`}
@@ -689,8 +688,8 @@
 							type="button"
 							class="choice-btn"
 							class:selected={solver.step3.selected ===
-								"distinct_real"}
-							onclick={() => solver.checkStep3("distinct_real")}
+								"single_real"}
+							onclick={() => solver.checkStep3("single_real")}
 						>
 							<strong>Single Real Root</strong>
 							<span class="choice-sub">

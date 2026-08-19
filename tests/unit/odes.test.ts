@@ -348,7 +348,7 @@ describe("LCC ODE Math Engine", () => {
 				});
 				expect(problem.params.order).toBe(1);
 				expect(problem.params.a2).toBe(0);
-				expect(problem.params.rootType).toBe("distinct_real");
+				expect(problem.params.rootType).toBe("single_real");
 				expect(problem.itsData.step3.formLatex).not.toContain("C_2");
 				expect(problem.initialConditions.dy0).toBeUndefined();
 				expect(problem.itsData.step6.expectedC2).toBeUndefined();

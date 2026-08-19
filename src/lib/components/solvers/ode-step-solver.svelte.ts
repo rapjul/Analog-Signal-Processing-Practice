@@ -6,7 +6,13 @@ import {
 } from "$lib/math-engine/formatting";
 import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 import { approximatelyEqual } from "$lib/math-engine/numeric";
-import type { OdeItsOption, OdeProblem, RootType } from "$lib/math-engine/odes";
+import type {
+	OdeItsOption,
+	OdeProblem,
+	OdeRootType,
+	SecondOrderOdeItsStep2,
+	SecondOrderRootType,
+} from "$lib/math-engine/odes";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
@@ -55,7 +61,7 @@ export interface OdeStep2State extends MultiPartStepState<OdeStep2SubStepId> {
 	/** Imaginary part omega_d (for complex conjugate) */
 	omegaD: string;
 	/** Selected root classification in quadratic formula path */
-	quadClassChoice: RootType | null;
+	quadClassChoice: SecondOrderRootType | null;
 	/** Calculated discriminant input string (Delta = b^2 - 4ac) */
 	quadDiscriminantInput: string;
 	/** Whether the student selected an incorrect classification and must calculate Delta */
@@ -69,7 +75,7 @@ export interface OdeStep2State extends MultiPartStepState<OdeStep2SubStepId> {
  */
 export interface OdeStep3State extends BaseStepState {
 	/** Selected RootType template */
-	selected: RootType | null;
+	selected: OdeRootType | null;
 }
 
 /**
@@ -182,7 +188,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				r2: "",
 				sigma: "",
 				omegaD: "",
-				quadClassChoice: null as RootType | null,
+				quadClassChoice: null as SecondOrderRootType | null,
 				quadDiscriminantInput: "",
 				quadNeedsDiscriminantCalc: false,
 				quadDiscriminantVerified: false,
@@ -222,7 +228,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/** Step 3 State: Homogeneous Form Template */
 	step3: OdeStep3State = $state<OdeStep3State>(
-		createStepState({ selected: null as RootType | null }),
+		createStepState({ selected: null as OdeRootType | null }),
 	);
 
 	/** Step 4 State: Particular Solution Ansatz */
@@ -453,7 +459,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				current = 2;
 				break;
 			case "system_setup":
-				current = 3;
+				current = isSecondOrder ? 3 : 2;
 				break;
 			case "solve":
 				current = total;
@@ -649,9 +655,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/**
 	 * Legacy alias for selecting quadratic root classification in Step 2.
-	 * @param {RootType} choice Root classification choice
+	 * @param {SecondOrderRootType} choice Root classification choice
 	 */
-	selectQuadRootClassification(choice: RootType): void {
+	selectQuadRootClassification(choice: SecondOrderRootType): void {
 		this.checkStep2QuadClass(choice);
 	}
 
@@ -692,16 +698,18 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * @param {"factoring" | "quadratic"} strat Selected strategy
 	 */
 	selectStep2Strategy(strat: "factoring" | "quadratic"): void {
-		const s2Data = this.problem.itsData.step2;
 		this.clearFeedback();
 
-		if (strat === "factoring" && !s2Data.isFactorable) {
-			this.setMisconception(
-				this.step2,
-				s2Data.misconceptions.unfactorable_complex ||
-					s2Data.misconceptions.unfactorable_general,
-			);
-			return;
+		if (this.problem.params.order === 2) {
+			const s2Data = this.problem.itsData.step2 as SecondOrderOdeItsStep2;
+			if (strat === "factoring" && !s2Data.isFactorable) {
+				this.setMisconception(
+					this.step2,
+					s2Data.misconceptions.unfactorable_complex ||
+						s2Data.misconceptions.unfactorable_general,
+				);
+				return;
+			}
 		}
 
 		this.step2.strategy = strat;
@@ -753,12 +761,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			return;
 		}
 
-		if (!s2Data.isFactorable || rootType === "complex_conjugate") {
-			this.setIncorrect(
-				this.step2,
-				"This polynomial cannot be factored over real integers. Please use the quadratic formula strategy.",
-			);
-			return;
+		if (this.problem.params.order === 2) {
+			const s2Data = this.problem.itsData.step2 as SecondOrderOdeItsStep2;
+			if (!s2Data.isFactorable || rootType === "complex_conjugate") {
+				this.setIncorrect(
+					this.step2,
+					"This polynomial cannot be factored over real integers. Please use the quadratic formula strategy.",
+				);
+				return;
+			}
 		}
 
 		switch (rootType) {
@@ -861,10 +872,18 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/**
 	 * Validates Step 2 Quadratic Formula classification choice.
-	 * @param {RootType} choice Selected root classification
+	 * @param {SecondOrderRootType} choice Selected root classification
 	 */
-	checkStep2QuadClass(choice: RootType): void {
-		const s2Data = this.problem.itsData.step2;
+	checkStep2QuadClass(choice: SecondOrderRootType): void {
+		if (this.problem.params.order === 1) {
+			this.setSubStepValidation(
+				this.step2,
+				"factoring_inputs",
+				"First-order differential equations are linear and do not use quadratic classification.",
+			);
+			return;
+		}
+		const s2Data = this.problem.itsData.step2 as SecondOrderOdeItsStep2;
 		if (choice === s2Data.rootType) {
 			this.step2.quadClassChoice = choice;
 			this.step2.quadNeedsDiscriminantCalc = false;
@@ -889,7 +908,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Validates Step 2 Remedial Discriminant Calculation.
 	 */
 	checkStep2Discriminant(): void {
-		const s2Data = this.problem.itsData.step2;
+		if (this.problem.params.order === 1) {
+			this.setSubStepValidation(
+				this.step2,
+				"factoring_inputs",
+				"First-order differential equations do not have a quadratic discriminant.",
+			);
+			return;
+		}
+		const s2Data = this.problem.itsData.step2 as SecondOrderOdeItsStep2;
 		const vDisc = parseNumericInput(this.step2.quadDiscriminantInput);
 
 		if (Number.isNaN(vDisc)) {
@@ -924,7 +951,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Validates Step 2 Quadratic Formula root calculations.
 	 */
 	checkStep2QuadRoots(): void {
-		const s2Data = this.problem.itsData.step2;
+		if (this.problem.params.order === 1) {
+			this.setSubStepValidation(
+				this.step2,
+				"factoring_inputs",
+				"First-order differential equations do not use quadratic root formulas.",
+			);
+			return;
+		}
+		const s2Data = this.problem.itsData.step2 as SecondOrderOdeItsStep2;
 		const rootType = s2Data.rootType;
 
 		switch (rootType) {
@@ -1062,9 +1097,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 
 	/**
 	 * Validates Step 3 (Homogeneous Form Template Selection).
-	 * @param {RootType} template Selected template
+	 * @param {OdeRootType} template Selected template
 	 */
-	checkStep3(template: RootType): void {
+	checkStep3(template: OdeRootType): void {
 		const s3Data = this.problem.itsData.step3;
 		this.checkChoiceStep(
 			this.step3,
@@ -1127,6 +1162,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * @param {OdeItsOption} opt Selected derivative option
 	 */
 	checkStep5SecondDeriv(opt: OdeItsOption): void {
+		if (this.problem.params.order === 1) {
+			this.setSubStepValidation(
+				this.step5,
+				this.step5.activeSubStepId ?? "first_deriv",
+				"First-order differential equations do not have a second derivative.",
+			);
+			return;
+		}
 		this.step5.selectedSecondDeriv = opt.id;
 		if (opt.isCorrect) {
 			const nextSub =
@@ -1342,14 +1385,20 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.step7.ziC1.trim() !== "" ? this.step7.ziC1.trim() : "C_{1,ZI}";
 		const c2 =
 			this.step7.ziC2.trim() !== "" ? this.step7.ziC2.trim() : "C_{2,ZI}";
-		const rootType = this.problem.params.rootType;
-		const roots = this.problem.params.roots;
 
 		if (this.problem.params.order === 1) {
 			return sanitizeLatexMath(
-				formatSignedLinearTerm(c1, formatExpTerm(roots.r1), true),
+				formatSignedLinearTerm(
+					c1,
+					formatExpTerm(this.problem.params.roots.r1),
+					true,
+				),
 			);
 		}
+
+		const params = this.problem.params;
+		const rootType = params.rootType;
+		const roots = params.roots;
 
 		let raw = "";
 		switch (rootType) {
@@ -1375,12 +1424,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			case "complex_conjugate": {
 				const term1 = formatSignedLinearTerm(
 					c1,
-					`\\cos(${roots.im}t)`,
+					`\\cos(${roots.im ?? 0}t)`,
 					true,
 				);
 				const term2 = formatSignedLinearTerm(
 					c2,
-					`\\sin(${roots.im}t)`,
+					`\\sin(${roots.im ?? 0}t)`,
 					false,
 				);
 				const expTerm = roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";
@@ -1424,18 +1473,18 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	previewZS = $derived.by((): string => {
 		const c1 = this.derivedZSC1;
 		const c2 = this.derivedZSC2;
-		const rootType = this.problem.params.rootType;
-		const roots = this.problem.params.roots;
-		const yp = this.problem.solutions.y_p_latex;
 
 		let homoPart = "";
 		if (this.problem.params.order === 1) {
 			homoPart = formatSignedLinearTerm(
 				c1,
-				formatExpTerm(roots.r1),
+				formatExpTerm(this.problem.params.roots.r1),
 				true,
 			);
-		} else
+		} else {
+			const params = this.problem.params;
+			const rootType = params.rootType;
+			const roots = params.roots;
 			switch (rootType) {
 				case "distinct_real": {
 					const term1 = formatSignedLinearTerm(
@@ -1459,12 +1508,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				case "complex_conjugate": {
 					const term1 = formatSignedLinearTerm(
 						c1,
-						`\\cos(${roots.im}t)`,
+						`\\cos(${roots.im ?? 0}t)`,
 						true,
 					);
 					const term2 = formatSignedLinearTerm(
 						c2,
-						`\\sin(${roots.im}t)`,
+						`\\sin(${roots.im ?? 0}t)`,
 						false,
 					);
 					const expTerm =
@@ -1478,17 +1527,16 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					homoPart = `${c1} + ${c2}`;
 					break;
 			}
+		}
 
 		let full = "";
+		const yp = this.problem.solutions.y_p_latex;
 		if (yp === "0" || yp === "") {
 			full = homoPart;
+		} else if (homoPart === "0" || homoPart === "") {
+			full = yp;
 		} else {
-			const ypClean = yp.trim();
-			if (ypClean.startsWith("-") || ypClean.startsWith("+")) {
-				full = `${homoPart} ${ypClean}`;
-			} else {
-				full = `${homoPart} + ${ypClean}`;
-			}
+			full = `${homoPart} + ${yp}`;
 		}
 		return sanitizeLatexMath(full);
 	});
@@ -1646,7 +1694,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				r2: "",
 				sigma: "",
 				omegaD: "",
-				quadClassChoice: null as RootType | null,
+				quadClassChoice: null as SecondOrderRootType | null,
 				quadDiscriminantInput: "",
 				quadNeedsDiscriminantCalc: false,
 				quadDiscriminantVerified: false,
@@ -1687,7 +1735,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		if (this.problem.params.order === 1) {
 			this.selectStep2Strategy("factoring");
 		}
-		this.step3 = createStepState({ selected: null as RootType | null });
+		this.step3 = createStepState({ selected: null as OdeRootType | null });
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createMultiPartStepState(
 			{
@@ -1795,8 +1843,10 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 
 		if (
-			this.problem.itsData.step2.isFactorable &&
-			this.problem.params.rootType !== "complex_conjugate"
+			this.problem.params.order === 1 ||
+			("isFactorable" in this.problem.itsData.step2 &&
+				this.problem.itsData.step2.isFactorable &&
+				this.problem.params.rootType !== "complex_conjugate")
 		) {
 			states.push({
 				id: "ode.step-02.factoring-inputs",
@@ -2008,17 +2058,21 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			case "ode.step-02.remedial-discriminant": {
 				if (!this.devPrepareParentStep(2)) return false;
 				this.selectStep2Strategy("quadratic");
-				const wrongChoice: RootType =
-					this.problem.params.rootType === "distinct_real"
-						? "repeated_real"
-						: "distinct_real";
-				this.checkStep2QuadClass(wrongChoice);
+				if (this.problem.params.order === 2) {
+					const wrongChoice: SecondOrderRootType =
+						this.problem.params.rootType === "distinct_real"
+							? "repeated_real"
+							: "distinct_real";
+					this.checkStep2QuadClass(wrongChoice);
+				}
 				return this.step2.activeSubStepId === "remedial_discriminant";
 			}
 			case "ode.step-02.quadratic-roots":
 				if (!this.devPrepareParentStep(2)) return false;
 				this.selectStep2Strategy("quadratic");
-				this.checkStep2QuadClass(this.problem.params.rootType);
+				if (this.problem.params.order === 2) {
+					this.checkStep2QuadClass(this.problem.params.rootType);
+				}
 				return this.step2.activeSubStepId === "quad_root_inputs";
 			case "ode.step-03.homogeneous-form":
 				return this.devPrepareParentStep(3);
@@ -2128,26 +2182,29 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					this.step2.r1 = toFractionLatex(s2.r1);
 					this.checkStep2Factoring();
 				} else if (this.problem.params.rootType === "distinct_real") {
+					const s2Quad = s2 as SecondOrderOdeItsStep2;
 					this.step2.strategy = "quadratic";
 					this.step2.activeSubStepId = "quad_classification";
 					this.checkStep2QuadClass("distinct_real");
-					this.step2.r1 = toFractionLatex(s2.r1);
-					this.step2.r2 = toFractionLatex(s2.r2 ?? 0);
+					this.step2.r1 = toFractionLatex(s2Quad.r1);
+					this.step2.r2 = toFractionLatex(s2Quad.r2);
 					this.checkStep2QuadRoots();
 				} else if (this.problem.params.rootType === "repeated_real") {
+					const s2Quad = s2 as SecondOrderOdeItsStep2;
 					this.step2.strategy = "quadratic";
 					this.step2.activeSubStepId = "quad_classification";
 					this.checkStep2QuadClass("repeated_real");
-					this.step2.r1 = toFractionLatex(s2.r1);
+					this.step2.r1 = toFractionLatex(s2Quad.r1);
 					this.checkStep2QuadRoots();
 				} else if (
 					this.problem.params.rootType === "complex_conjugate"
 				) {
+					const s2Quad = s2 as SecondOrderOdeItsStep2;
 					this.step2.strategy = "quadratic";
 					this.step2.activeSubStepId = "quad_classification";
 					this.checkStep2QuadClass("complex_conjugate");
-					this.step2.sigma = toFractionLatex(s2.r1);
-					this.step2.omegaD = toFractionLatex(s2.im ?? 0);
+					this.step2.sigma = toFractionLatex(s2Quad.r1);
+					this.step2.omegaD = toFractionLatex(s2Quad.im ?? 0);
 					this.checkStep2QuadRoots();
 				} else {
 					this.advanceToStep(3);

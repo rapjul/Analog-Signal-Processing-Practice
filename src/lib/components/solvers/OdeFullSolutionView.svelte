@@ -74,21 +74,30 @@
 						Characteristic Roots & Classification
 					</h4>
 				</div>
-				<p class="step-prose">
-					<MathText
-						text={problem.params.order === 1
-							? String.raw`Solving the linear characteristic equation for its single root:`
-							: String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
+				{#if "discriminant" in problem.itsData.step2}
+					<p class="step-prose">
+						<MathText
+							text={String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
+						/>
+					</p>
+					<MathBlock
+						math={`s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+						compact={true}
+						hideHeader={true}
 					/>
-				</p>
-				<MathBlock
-					math={problem.params.order === 1
-						? `${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`
-						: `s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
-					compact={true}
-					hideHeader={true}
-				/>
-				{#if problem.itsData.step2.factoredFormLatex}
+				{:else}
+					<p class="step-prose">
+						<MathText
+							text={String.raw`Solving the linear characteristic equation for its single root:`}
+						/>
+					</p>
+					<MathBlock
+						math={`${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+						compact={true}
+						hideHeader={true}
+					/>
+				{/if}
+				{#if "factoredFormLatex" in problem.itsData.step2 && problem.itsData.step2.factoredFormLatex}
 					<p class="step-sub-prose">
 						<MathText
 							text={`Factored Form: $${problem.itsData.step2.factoredFormLatex}$`}
