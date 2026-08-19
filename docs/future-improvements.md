@@ -37,36 +37,48 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 - Convert all sin/cos series solutions to compact exponential form.
 - Add a new problem type where the Fourier series is given, and then the user needs to convert to another form.
 
+### 6. Linear ODEs: Unstable and Marginally Stable Systems
+
+- **Context:** The current Linear ODE problem generator focuses on asymptotically stable systems whose characteristic roots have strictly negative real parts.
+- **Improvement Idea:**
+    - Add a stability selector with `Random`, `Stable`, `Marginal`, and `Unstable` modes.
+    - Add unstable systems with at least one characteristic root in the right half-plane.
+    - Add marginally stable systems with simple zero or imaginary-axis roots, including persistent constant and undamped sinusoidal natural modes.
+    - Teach transient versus steady-state terminology conditionally when natural modes persist or grow, instead of assuming every homogeneous term decays.
+    - Add BIBO-stability questions that distinguish pole location, internal response, and bounded-input behavior.
+    - Scale plots safely for growing responses, including overflow guards and useful time-window selection.
+    - Test zero- and right-half-plane poles, persistent and growing natural modes, BIBO classifications, response decomposition, and plot scaling.
+
 ## Learning Experience & UX Enhancements
 
-### 6. Session & ITS Solver State Persistence
+### 7. Session & ITS Solver State Persistence
 
 - **Context:** If a student refreshes mid-problem, all interactive progress is lost.
 - **Improvement Idea:**
     - Save active ITS solver state, entered inputs, and revealed steps to `sessionStorage` or IndexedDB.
     - Restore in-progress problem states seamlessly upon browser reload or accidental navigation.
 
-### 7. Adaptive Difficulty & Spaced Repetition Progression
+### 8. Adaptive Difficulty & Spaced Repetition Progression
 
 - **Context:** All problems are currently randomly generated without difficulty progression.
 - **Improvement Idea:**
     - Implement a spaced repetition and adaptive difficulty progression engine.
     - Dynamically calibrate problem parameters and complexity based on student accuracy and mastery history.
 
-### 8. Global Keyboard Shortcuts for Power Users
+### 9. Global Keyboard Shortcuts for Power Users
 
 - **Context:** Power users and students drilling problems for exams currently rely exclusively on mouse/touch interaction.
 - **Improvement Idea:**
     - Add keyboard shortcuts for high-frequency actions (e.g. `Ctrl/Cmd + Enter` to Check Answer, `H` for Hint, `N` for Next Problem).
     - Provide an accessible shortcuts cheatsheet/modal.
 
-### 9. Dashboard / Home Page Per-Module Progress Tracking
+### 10. Dashboard / Home Page Per-Module Progress Tracking
 
 - **Context:** Dashboard cards all display static "▶ Practice Now" labels without indication of user progress.
 - **Improvement Idea:**
     - Connect the local database / persistence layer to display per-module mastery percentages, completion rates, and problem attempt counts directly on the dashboard cards.
 
-### 10. Automated Solved-Problem Screenshot Tool
+### 11. Automated Solved-Problem Screenshot Tool
 
 - **Context:** Verifying solver layouts, KaTeX rendering, progressive hints, and post-solve canvas visualizers manually across all problem archetypes is time-consuming.
 - **Proposal & Options:** See detailed design document at [automated-solved-problem-screenshot-tool.md](./automated-solved-problem-screenshot-tool.md).
