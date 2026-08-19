@@ -862,15 +862,13 @@ export function generateOdeProblem(
 					id: "d1",
 					latex: `y_p(t) = A \\cos(${w}t)`,
 					isCorrect: false,
-					feedback:
-						"Missing Sine Component: Derivatives of cosine generate sine terms ($y_p' \\propto \\sin$), so both $A \\cos(\\omega t)$ and $B \\sin(\\omega t)$ are required.",
+					feedback: `Missing Sine Component: Derivatives of cosine generate sine terms ($y_p' \\propto \\sin$), so both $A \\cos(${w}t)$ and $B \\sin(${w}t)$ are required.`,
 				},
 				{
 					id: "d2",
 					latex: `y_p(t) = K_p e^{j ${w}t}`,
 					isCorrect: false,
-					feedback:
-						"Complex Notation: Use the real-valued trigonometric pair $A \\cos(\\omega t) + B \\sin(\\omega t)$ for real differential equations.",
+					feedback: `Complex Notation: Use the real-valued trigonometric pair $A \\cos(${w}t) + B \\sin(${w}t)$ for real differential equations.`,
 				},
 				{
 					id: "d3",
