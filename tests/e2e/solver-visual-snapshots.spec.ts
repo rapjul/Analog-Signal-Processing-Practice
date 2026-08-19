@@ -1,6 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+	type VisualTimingContext,
+	type VisualTimingOperation,
+	type VisualTimingPhase,
+	VisualTimingRecorder,
+	writeVisualTimingReportAtomically,
+} from "./solver-visual-timing";
 
 /**
  * Deterministic visual-regression and inspection-artifact suite for SignalLab.
@@ -15,6 +23,8 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 const VISUAL_RUN_ENABLED = process.env.SIGNALLAB_VISUAL_REGRESSION === "1";
 const WRITE_INSPECTION_ARTIFACTS =
 	process.env.SIGNALLAB_VISUAL_ARTIFACTS === "1";
+const COPY_ACCEPTED_SNAPSHOTS =
+	process.env.SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS === "1";
 type VisualCaptureProfile = "full" | "dark" | "quick";
 const requestedCaptureProfile = process.env.SIGNALLAB_VISUAL_PROFILE ?? "full";
 if (!["full", "dark", "quick"].includes(requestedCaptureProfile)) {
@@ -23,6 +33,11 @@ if (!["full", "dark", "quick"].includes(requestedCaptureProfile)) {
 	);
 }
 const VISUAL_CAPTURE_PROFILE = requestedCaptureProfile as VisualCaptureProfile;
+const requestedPageMode = process.env.SIGNALLAB_VISUAL_PAGE_MODE ?? "reused";
+if (requestedPageMode !== "isolated" && requestedPageMode !== "reused") {
+	throw new Error(`Unknown SIGNALLAB_VISUAL_PAGE_MODE: ${requestedPageMode}`);
+}
+const VISUAL_PAGE_MODE = requestedPageMode as "isolated" | "reused";
 const CAPTURE_THEMES: readonly Theme[] =
 	VISUAL_CAPTURE_PROFILE === "full" ? ["dark", "light"] : ["dark"];
 const CAPTURE_ONLY_HINT_STATES = VISUAL_CAPTURE_PROFILE === "quick";
@@ -32,6 +47,11 @@ const SOLVERS_ROOT = path.resolve(
 );
 const CURRENT_RUN_DIR = path.join(SOLVERS_ROOT, "current");
 const CURRENT_MANIFEST = path.join(CURRENT_RUN_DIR, "manifest.json");
+const CURRENT_TIMINGS = path.join(CURRENT_RUN_DIR, "timings.json");
+const VISUAL_CAPTURE_HIDDEN_SELECTORS = [".navbar", ".update-toast"] as const;
+const VISUAL_CAPTURE_HIDDEN_CSS = `${VISUAL_CAPTURE_HIDDEN_SELECTORS.join(
+	", ",
+)} { display: none !important; }`;
 
 type Theme = "dark" | "light";
 type CaptureKind = "state" | "milestone";
@@ -96,6 +116,23 @@ const CAPTURE_VIEWPORTS =
 				(viewport) => viewport.name !== "tablet-768x1024",
 			)
 		: SNAPSHOT_VIEWPORTS;
+
+/** Viewport and theme pair used for one screenshot configuration. */
+interface CaptureConfiguration {
+	/** Viewport definition applied before capture. */
+	viewport: ViewportDefinition;
+	/** Application theme applied before capture. */
+	theme: Theme;
+}
+
+const MILESTONE_CONFIGURATIONS: CaptureConfiguration[] =
+	CAPTURE_VIEWPORTS.flatMap((viewport) =>
+		CAPTURE_THEMES.map((theme) => ({ viewport, theme })),
+	);
+const STATE_CONFIGURATIONS = MILESTONE_CONFIGURATIONS.filter(
+	({ viewport, theme }) =>
+		theme === "dark" && viewport.name !== "tablet-768x1024",
+);
 
 const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 	{
@@ -181,6 +218,52 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 ];
 
 const runArtifacts: VisualArtifactEntry[] = [];
+const runTimingRecorder = WRITE_INSPECTION_ARTIFACTS
+	? new VisualTimingRecorder()
+	: undefined;
+const runStartedAt = performance.now();
+
+/**
+ * Prints a compact phase summary for an artifact-generating visual run.
+ *
+ * @param report - Completed timing report to summarize.
+ */
+function printVisualTimingSummary(
+	report: ReturnType<VisualTimingRecorder["createReport"]>,
+): void {
+	console.log(
+		`Solver visual timing: ${report.run.profile}/${report.run.pageMode}, ${report.run.artifactCount} artifacts, ${report.totals.suiteElapsedMs.toFixed(1)} ms total`,
+	);
+	console.table(
+		Object.entries(report.phases).map(([phase, aggregate]) => ({
+			phase,
+			samples: aggregate.sampleCount,
+			totalMs: aggregate.totalMs,
+			percent: aggregate.percentageOfSuite,
+		})),
+	);
+	console.log(
+		`Unattributed: ${report.totals.unattributedMs.toFixed(1)} ms (${(100 - report.totals.measuredPercentage).toFixed(1)}%)`,
+	);
+}
+
+/**
+ * Measures an operation when inspection artifacts are enabled and otherwise
+ * executes it without recording or emitting output.
+ *
+ * @param phase - Non-overlapping timing phase assigned to the operation.
+ * @param context - Identifying metadata attached to the timing sample.
+ * @param operation - Asynchronous operation to execute.
+ * @returns The operation result.
+ */
+async function measureVisualPhase<Result>(
+	phase: VisualTimingPhase,
+	context: VisualTimingContext,
+	operation: VisualTimingOperation<Result>,
+): Promise<Result> {
+	if (!runTimingRecorder) return operation();
+	return runTimingRecorder.measure(phase, context, operation);
+}
 
 function safeFileSegment(value: string): string {
 	return value
@@ -258,35 +341,63 @@ async function installDeterministicBrowserState(
 	);
 }
 
-async function waitForStableLayout(page: Page): Promise<void> {
-	await page.evaluate(() => document.fonts.ready);
-	await expect(page.locator("body")).toBeVisible();
-	await page.evaluate(
-		() =>
-			new Promise<void>((resolve) => {
-				requestAnimationFrame(() =>
-					requestAnimationFrame(() => resolve()),
+async function waitForStableLayout(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase(
+		"layout-stabilization",
+		timingContext,
+		async () => {
+			await page.evaluate(() => document.fonts.ready);
+			await expect(page.locator("body")).toBeVisible();
+			const readyCanvases = page.locator("canvas[data-visual-ready]");
+			const canvasCount = await readyCanvases.count();
+			for (let index = 0; index < canvasCount; index += 1) {
+				await expect(readyCanvases.nth(index)).toHaveAttribute(
+					"data-visual-ready",
+					"true",
+					{ timeout: 10_000 },
 				);
-			}),
+			}
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) => {
+						requestAnimationFrame(() =>
+							requestAnimationFrame(() => resolve()),
+						);
+					}),
+			);
+		},
 	);
 }
 
-async function requireHarness(page: Page): Promise<void> {
-	await expect
-		.poll(() =>
-			page.evaluate(
-				() =>
-					typeof window.__signalLabDev?.getVisualStates ===
-						"function" &&
-					typeof window.__signalLabDev?.goToVisualState ===
-						"function",
-			),
-		)
-		.toBe(true);
+async function requireHarness(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase("state-preparation", timingContext, async () => {
+		await expect
+			.poll(() =>
+				page.evaluate(
+					() =>
+						typeof window.__signalLabDev?.getVisualStates ===
+							"function" &&
+						typeof window.__signalLabDev?.goToVisualState ===
+							"function",
+				),
+			)
+			.toBe(true);
+	});
 }
 
-async function getVisualStates(page: Page): Promise<HarnessVisualState[]> {
-	return page.evaluate(() => window.__signalLabDev?.getVisualStates() ?? []);
+async function getVisualStates(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<HarnessVisualState[]> {
+	return measureVisualPhase("state-preparation", timingContext, () =>
+		page.evaluate(() => window.__signalLabDev?.getVisualStates() ?? []),
+	);
 }
 
 /**
@@ -317,52 +428,73 @@ function getAutomatedHintSourceIds(states: HarnessVisualState[]): Set<string> {
 	);
 }
 
-async function goToVisualState(page: Page, stateId: string): Promise<void> {
-	const prepared = await page.evaluate(
-		(id) => window.__signalLabDev?.goToVisualState(id) ?? false,
-		stateId,
+async function goToVisualState(
+	page: Page,
+	stateId: string,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase(
+		"state-preparation",
+		{ ...timingContext, stateId },
+		async () => {
+			const prepared = await page.evaluate(
+				(id) => window.__signalLabDev?.goToVisualState(id) ?? false,
+				stateId,
+			);
+			expect(
+				prepared,
+				`developer harness could not prepare ${stateId}`,
+			).toBe(true);
+			await expect(page.locator(".step-card.active")).toHaveCount(1);
+		},
 	);
-	expect(prepared, `developer harness could not prepare ${stateId}`).toBe(
-		true,
-	);
-	await expect(page.locator(".step-card.active")).toHaveCount(1);
-	await waitForStableLayout(page);
+	await waitForStableLayout(page, { ...timingContext, stateId });
 }
 
-async function revealAllHints(page: Page): Promise<void> {
-	await page.evaluate(() => window.__signalLabDev?.revealAllHints());
-	const activeCard = page.locator(".step-card.active");
-	await expect(activeCard.locator(".hints-content")).toBeVisible();
-	await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
-		"All Hints Revealed",
-	);
-	const buttonLabel =
-		(await activeCard.locator(".hint-toggle-btn").textContent()) ?? "";
-	const countMatch = buttonLabel.match(/\((\d+)\/(\d+)\)/);
-	expect(
-		countMatch,
-		"all-hints button should report the revealed total",
-	).not.toBeNull();
-	const revealedCount = Number(countMatch?.[1]);
-	const totalCount = Number(countMatch?.[2]);
-	expect(revealedCount).toBe(totalCount);
-	expect(await activeCard.locator(".hint-line").count()).toBe(totalCount);
-	expect(totalCount).toBeGreaterThan(0);
-	await waitForStableLayout(page);
-}
-
-async function waitForCompletionVisuals(page: Page): Promise<void> {
-	await expect(page.locator(".completion-section")).toBeVisible();
-	const canvases = page.locator(".completion-section canvas");
-	const count = await canvases.count();
-	for (let index = 0; index < count; index += 1) {
-		await expect(canvases.nth(index)).toHaveAttribute(
-			"data-visual-ready",
-			"true",
-			{ timeout: 10_000 },
+async function revealAllHints(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase("hint-reveal", timingContext, async () => {
+		await page.evaluate(() => window.__signalLabDev?.revealAllHints());
+		const activeCard = page.locator(".step-card.active");
+		await expect(activeCard.locator(".hints-content")).toBeVisible();
+		await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
+			"All Hints Revealed",
 		);
-	}
-	await waitForStableLayout(page);
+		const buttonLabel =
+			(await activeCard.locator(".hint-toggle-btn").textContent()) ?? "";
+		const countMatch = buttonLabel.match(/\((\d+)\/(\d+)\)/);
+		expect(
+			countMatch,
+			"all-hints button should report the revealed total",
+		).not.toBeNull();
+		const revealedCount = Number(countMatch?.[1]);
+		const totalCount = Number(countMatch?.[2]);
+		expect(revealedCount).toBe(totalCount);
+		expect(await activeCard.locator(".hint-line").count()).toBe(totalCount);
+		expect(totalCount).toBeGreaterThan(0);
+	});
+	await waitForStableLayout(page, timingContext);
+}
+
+async function waitForCompletionVisuals(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase("state-preparation", timingContext, async () => {
+		await expect(page.locator(".completion-section")).toBeVisible();
+		const canvases = page.locator(".completion-section canvas");
+		const count = await canvases.count();
+		for (let index = 0; index < count; index += 1) {
+			await expect(canvases.nth(index)).toHaveAttribute(
+				"data-visual-ready",
+				"true",
+				{ timeout: 10_000 },
+			);
+		}
+	});
+	await waitForStableLayout(page, timingContext);
 }
 
 function artifactPath(
@@ -395,45 +527,66 @@ async function recordArtifact(args: {
 	theme: Theme;
 	viewport: ViewportDefinition;
 	captureKind: CaptureKind;
+	snapshotSegments: string[];
 }): Promise<void> {
 	if (!WRITE_INSPECTION_ARTIFACTS) return;
-	const { absolute, relative } = artifactPath(
-		args.archetype,
-		args.stateId,
-		args.theme,
-		args.viewport,
-	);
-	if (args.locator) {
-		await args.locator.screenshot({
-			path: absolute,
-			animations: "disabled",
-			caret: "hide",
-			scale: "css",
-		});
-	} else {
-		await args.page.screenshot({
-			path: absolute,
-			fullPage: true,
-			animations: "disabled",
-			caret: "hide",
-			scale: "css",
-		});
-	}
+	await measureVisualPhase(
+		"artifact-writing",
+		{
+			module: args.archetype.module,
+			archetype: args.archetype.slug,
+			stateId: args.stateId,
+			theme: args.theme,
+			viewport: args.viewport.name,
+			detail: args.captureKind,
+		},
+		async () => {
+			const { absolute, relative } = artifactPath(
+				args.archetype,
+				args.stateId,
+				args.theme,
+				args.viewport,
+			);
+			const acceptedSnapshot = test
+				.info()
+				.snapshotPath(...args.snapshotSegments);
+			const canCopyAcceptedSnapshot =
+				COPY_ACCEPTED_SNAPSHOTS && fs.existsSync(acceptedSnapshot);
+			if (canCopyAcceptedSnapshot) {
+				fs.copyFileSync(acceptedSnapshot, absolute);
+			} else if (args.locator) {
+				await args.locator.screenshot({
+					path: absolute,
+					animations: "disabled",
+					caret: "hide",
+					scale: "css",
+				});
+			} else {
+				await args.page.screenshot({
+					path: absolute,
+					fullPage: true,
+					animations: "disabled",
+					caret: "hide",
+					scale: "css",
+				});
+			}
 
-	runArtifacts.push({
-		module: args.archetype.module,
-		archetype: args.archetype.slug,
-		archetypeTitle: args.archetype.title,
-		stateId: args.stateId,
-		stateLabel: args.stateLabel,
-		stateKind: args.stateKind,
-		step: args.step,
-		subStep: args.subStep,
-		theme: args.theme,
-		viewport: args.viewport.name,
-		captureKind: args.captureKind,
-		relativePath: relative.split(path.sep).join("/"),
-	});
+			runArtifacts.push({
+				module: args.archetype.module,
+				archetype: args.archetype.slug,
+				archetypeTitle: args.archetype.title,
+				stateId: args.stateId,
+				stateLabel: args.stateLabel,
+				stateKind: args.stateKind,
+				step: args.step,
+				subStep: args.subStep,
+				theme: args.theme,
+				viewport: args.viewport.name,
+				captureKind: args.captureKind,
+				relativePath: relative.split(path.sep).join("/"),
+			});
+		},
+	);
 }
 
 function snapshotName(
@@ -457,26 +610,36 @@ async function assertAndRecordPageMilestone(args: {
 	theme: Theme;
 	viewport: ViewportDefinition;
 }): Promise<void> {
-	await expect
-		.soft(args.page)
-		.toHaveScreenshot(
-			snapshotName(
-				args.archetype,
-				args.stateId,
-				args.theme,
-				args.viewport,
-			),
-			{
+	const segments = snapshotName(
+		args.archetype,
+		args.stateId,
+		args.theme,
+		args.viewport,
+	);
+	await measureVisualPhase(
+		"snapshot-comparison",
+		{
+			module: args.archetype.module,
+			archetype: args.archetype.slug,
+			stateId: args.stateId,
+			theme: args.theme,
+			viewport: args.viewport.name,
+			detail: "milestone",
+		},
+		async () => {
+			await expect.soft(args.page).toHaveScreenshot(segments, {
 				fullPage: true,
 				animations: "disabled",
 				caret: "hide",
 				scale: "css",
-			},
-		);
+			});
+		},
+	);
 	await recordArtifact({
 		...args,
 		stateKind: "milestone",
 		captureKind: "milestone",
+		snapshotSegments: segments,
 	});
 }
 
@@ -492,65 +655,384 @@ async function assertAndRecordActiveState(args: {
 	viewport: ViewportDefinition;
 }): Promise<void> {
 	const activeCard = args.page.locator(".step-card.active");
-	await expect
-		.soft(activeCard)
-		.toHaveScreenshot(
-			snapshotName(
-				args.archetype,
-				args.stateId,
-				args.theme,
-				args.viewport,
-			),
-			{
+	const segments = snapshotName(
+		args.archetype,
+		args.stateId,
+		args.theme,
+		args.viewport,
+	);
+	await measureVisualPhase(
+		"snapshot-comparison",
+		{
+			module: args.archetype.module,
+			archetype: args.archetype.slug,
+			stateId: args.stateId,
+			theme: args.theme,
+			viewport: args.viewport.name,
+			detail: "state",
+		},
+		async () => {
+			await expect.soft(activeCard).toHaveScreenshot(segments, {
 				animations: "disabled",
 				caret: "hide",
 				scale: "css",
-			},
-		);
+			});
+		},
+	);
 	await recordArtifact({
 		...args,
 		locator: activeCard,
 		captureKind: "state",
+		snapshotSegments: segments,
 	});
 }
 
-async function prepareVisualCapturePage(page: Page): Promise<void> {
+/**
+ * Installs and verifies capture-only CSS for global chrome that must never
+ * appear in solver snapshots. The injected rule remains active if the update
+ * toast mounts after page preparation.
+ *
+ * @param page - Loaded solver page receiving the capture-only override.
+ */
+async function hideGlobalVisualCaptureChrome(page: Page): Promise<void> {
 	const navbar = page.locator(".navbar");
 	await expect(
 		navbar,
 		"visual captures require the application navbar",
 	).toHaveCount(1);
-	await page.addStyleTag({
-		content: ".navbar { display: none !important; }",
+	const style = await page.addStyleTag({
+		content: VISUAL_CAPTURE_HIDDEN_CSS,
 	});
-	await page.evaluate(() => window.scrollTo(0, 0));
-	await waitForStableLayout(page);
-	if (WRITE_INSPECTION_ARTIFACTS) {
-		const overflow = await page.evaluate(() => ({
-			viewportWidth: window.innerWidth,
-			documentWidth: document.documentElement.scrollWidth,
-		}));
-		if (overflow.documentWidth > overflow.viewportWidth) {
-			console.warn(
-				`Horizontal overflow captured at ${page.url()}: document ${overflow.documentWidth}px, viewport ${overflow.viewportWidth}px`,
+	await style.evaluate((element) => {
+		if (!(element instanceof HTMLStyleElement)) {
+			throw new Error(
+				"Expected the capture override to be a style element",
 			);
 		}
+		element.setAttribute("data-solver-visual-hidden-chrome", "true");
+	});
+	const installedRule = page.locator(
+		'style[data-solver-visual-hidden-chrome="true"]',
+	);
+	const installedRuleText = await installedRule.evaluate(
+		(element) => element.textContent ?? "",
+	);
+	await expect(
+		installedRuleText,
+		"solver capture CSS must suppress the global update toast",
+	).toContain(".update-toast");
+	for (const selector of VISUAL_CAPTURE_HIDDEN_SELECTORS) {
+		await expect(
+			page.locator(selector),
+			`${selector} must be hidden during solver visual captures`,
+		).toBeHidden();
+	}
+}
+
+/**
+ * Prepares a loaded solver page for deterministic visual capture.
+ *
+ * @param page - Loaded solver page.
+ * @param timingContext - Identifying metadata for phase timing.
+ */
+async function prepareVisualCapturePage(
+	page: Page,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	await measureVisualPhase("state-preparation", timingContext, async () => {
+		await hideGlobalVisualCaptureChrome(page);
+		await page.evaluate(() => window.scrollTo(0, 0));
+	});
+	await waitForStableLayout(page, timingContext);
+	await measureVisualPhase("state-preparation", timingContext, async () => {
+		if (WRITE_INSPECTION_ARTIFACTS) {
+			const overflow = await page.evaluate(() => ({
+				viewportWidth: window.innerWidth,
+				documentWidth: document.documentElement.scrollWidth,
+			}));
+			if (overflow.documentWidth > overflow.viewportWidth) {
+				console.warn(
+					`Horizontal overflow captured at ${page.url()}: document ${overflow.documentWidth}px, viewport ${overflow.viewportWidth}px`,
+				);
+			}
+			return;
+		}
+		await expect
+			.poll(
+				() =>
+					page.evaluate(
+						() =>
+							document.documentElement.scrollWidth <=
+							window.innerWidth,
+					),
+				{
+					message:
+						"solver page must not overflow the viewport horizontally",
+				},
+			)
+			.toBe(true);
+	});
+}
+
+/**
+ * Applies a viewport and theme to an already loaded visual-capture page.
+ * Canvas components receive the same event as the production theme control.
+ *
+ * @param page - Loaded solver page.
+ * @param configuration - Viewport and theme to apply.
+ * @param timingContext - Identifying metadata for phase timing.
+ */
+async function switchVisualEnvironment(
+	page: Page,
+	configuration: CaptureConfiguration,
+	timingContext: VisualTimingContext,
+): Promise<void> {
+	const context = {
+		...timingContext,
+		theme: configuration.theme,
+		viewport: configuration.viewport.name,
+	};
+	await measureVisualPhase("state-preparation", context, async () => {
+		await page.setViewportSize({
+			width: configuration.viewport.width,
+			height: configuration.viewport.height,
+		});
+		await page.evaluate((theme: Theme) => {
+			document.documentElement.setAttribute("data-theme", theme);
+			localStorage.setItem("theme", theme);
+			const themeColor = document.querySelector(
+				'meta[name="theme-color"]',
+			);
+			themeColor?.setAttribute(
+				"content",
+				theme === "dark" ? "#0f172a" : "#f8fafc",
+			);
+			window.dispatchEvent(
+				new CustomEvent("themechange", { detail: { theme } }),
+			);
+			window.scrollTo(0, 0);
+		}, configuration.theme);
+	});
+	await waitForStableLayout(page, context);
+}
+
+/**
+ * Captures one full-page milestone across the configured viewport/theme matrix.
+ *
+ * @param page - Reused solver page.
+ * @param archetype - Solver problem represented by the page.
+ * @param stateId - Stable milestone identifier.
+ * @param stateLabel - Human-readable milestone label.
+ * @param waitForCompletion - Whether completion canvases must be ready.
+ */
+async function captureReusedMilestoneMatrix(
+	page: Page,
+	archetype: ProblemArchetype,
+	stateId: string,
+	stateLabel: string,
+	waitForCompletion = false,
+): Promise<void> {
+	for (const configuration of MILESTONE_CONFIGURATIONS) {
+		const context: VisualTimingContext = {
+			module: archetype.module,
+			archetype: archetype.slug,
+			stateId,
+			theme: configuration.theme,
+			viewport: configuration.viewport.name,
+		};
+		await test.step(`${archetype.slug} · ${stateId} · ${configuration.viewport.name} · ${configuration.theme}`, async () => {
+			await switchVisualEnvironment(page, configuration, context);
+			if (waitForCompletion) {
+				await waitForCompletionVisuals(page, context);
+			}
+			await assertAndRecordPageMilestone({
+				page,
+				archetype,
+				stateId,
+				stateLabel,
+				theme: configuration.theme,
+				viewport: configuration.viewport,
+			});
+		});
+	}
+}
+
+/**
+ * Captures one active step state across the dark desktop/mobile matrix.
+ *
+ * @param page - Reused solver page.
+ * @param archetype - Solver problem represented by the page.
+ * @param state - Harness state metadata.
+ * @param stateId - Captured identifier, including generated hint variants.
+ * @param stateLabel - Captured human-readable label.
+ * @param stateKind - Captured state classification.
+ */
+async function captureReusedStateMatrix(
+	page: Page,
+	archetype: ProblemArchetype,
+	state: HarnessVisualState,
+	stateId: string,
+	stateLabel: string,
+	stateKind: HarnessVisualState["kind"],
+): Promise<void> {
+	for (const configuration of STATE_CONFIGURATIONS) {
+		await test.step(`${archetype.slug} · ${stateId} · ${configuration.viewport.name} · ${configuration.theme}`, async () => {
+			const context: VisualTimingContext = {
+				module: archetype.module,
+				archetype: archetype.slug,
+				stateId,
+				theme: configuration.theme,
+				viewport: configuration.viewport.name,
+			};
+			await switchVisualEnvironment(page, configuration, context);
+			await assertAndRecordActiveState({
+				page,
+				archetype,
+				stateId,
+				stateLabel,
+				stateKind,
+				step: state.step,
+				subStep: state.subStep,
+				theme: configuration.theme,
+				viewport: configuration.viewport,
+			});
+		});
+	}
+}
+
+/**
+ * Runs the complete visual matrix using one page and browser context per archetype.
+ *
+ * @param page - Playwright page dedicated to the archetype test.
+ * @param archetype - Solver problem to capture.
+ */
+async function captureReusedArchetype(
+	page: Page,
+	archetype: ProblemArchetype,
+): Promise<void> {
+	const pageErrors: string[] = [];
+	page.on("pageerror", (error) => pageErrors.push(error.message));
+	const initialConfiguration = MILESTONE_CONFIGURATIONS[0];
+	if (!initialConfiguration)
+		throw new Error("Visual capture matrix is empty");
+	const baseContext: VisualTimingContext = {
+		module: archetype.module,
+		archetype: archetype.slug,
+	};
+	await measureVisualPhase(
+		"state-preparation",
+		{ ...baseContext, detail: "browser-state" },
+		async () => {
+			await page.setViewportSize({
+				width: initialConfiguration.viewport.width,
+				height: initialConfiguration.viewport.height,
+			});
+			await installDeterministicBrowserState(
+				page,
+				initialConfiguration.theme,
+				archetype.seed,
+			);
+		},
+	);
+	await measureVisualPhase(
+		"navigation",
+		{ ...baseContext, detail: "initial-navigation" },
+		() => page.goto(archetype.path, { waitUntil: "domcontentloaded" }),
+	);
+	await prepareVisualCapturePage(page, {
+		...baseContext,
+		stateId: "milestone.initial",
+	});
+	if (archetype.isItsStepper) await requireHarness(page, baseContext);
+	await captureReusedMilestoneMatrix(
+		page,
+		archetype,
+		"milestone.initial",
+		"Initial Problem Setup",
+	);
+	if (!archetype.isItsStepper) {
+		expect.soft(pageErrors, "uncaught browser errors").toEqual([]);
 		return;
 	}
-	await expect
-		.poll(
-			() =>
-				page.evaluate(
-					() =>
-						document.documentElement.scrollWidth <=
-						window.innerWidth,
-				),
-			{
-				message:
-					"solver page must not overflow the viewport horizontally",
-			},
-		)
-		.toBe(true);
+
+	const states = await getVisualStates(page, {
+		...baseContext,
+		detail: "visual-state-catalog",
+	});
+	expect(states.length).toBeGreaterThan(0);
+	const diagnosticState = states.find((state) => state.kind === "diagnostic");
+	expect(diagnosticState).toBeDefined();
+	if (diagnosticState) {
+		await goToVisualState(page, diagnosticState.id, baseContext);
+		await captureReusedMilestoneMatrix(
+			page,
+			archetype,
+			"milestone.diagnostic",
+			diagnosticState.label,
+		);
+	}
+
+	const automatedHintSourceIds = getAutomatedHintSourceIds(states);
+	for (const state of states) {
+		await goToVisualState(page, state.id, baseContext);
+		if (state.kind === "hint") {
+			await revealAllHints(page, { ...baseContext, stateId: state.id });
+		}
+		if (!CAPTURE_ONLY_HINT_STATES || state.kind === "hint") {
+			await captureReusedStateMatrix(
+				page,
+				archetype,
+				state,
+				state.id,
+				state.label,
+				state.kind,
+			);
+		}
+		if (automatedHintSourceIds.has(state.id)) {
+			const hintStateId = `${state.id}.hints`;
+			await revealAllHints(page, {
+				...baseContext,
+				stateId: hintStateId,
+			});
+			await captureReusedStateMatrix(
+				page,
+				archetype,
+				state,
+				hintStateId,
+				`${state.label} · All Hints`,
+				"hint",
+			);
+		}
+	}
+
+	const resetState = states[0];
+	if (!resetState)
+		throw new Error("Cannot reset an empty visual state catalog");
+	await goToVisualState(page, resetState.id, {
+		...baseContext,
+		stateId: "milestone.completed",
+	});
+	await measureVisualPhase(
+		"state-preparation",
+		{ ...baseContext, stateId: "milestone.completed", detail: "solve-all" },
+		() =>
+			page.evaluate(() => {
+				if (!window.__signalLabDev) {
+					throw new Error(
+						"SignalLab developer harness is unavailable",
+					);
+				}
+				window.__signalLabDev.solveAll();
+			}),
+	);
+	await captureReusedMilestoneMatrix(
+		page,
+		archetype,
+		"milestone.completed",
+		"Completed Solution and Visualizer",
+		true,
+	);
+	expect.soft(pageErrors, "uncaught browser errors").toEqual([]);
 }
 
 test.skip(
@@ -560,143 +1042,234 @@ test.skip(
 
 test.describe("Deterministic solver visual states", () => {
 	test.describe.configure({ mode: "serial" });
-	test.setTimeout(120_000);
+	test.setTimeout(VISUAL_PAGE_MODE === "reused" ? 300_000 : 120_000);
 
-	test.beforeAll(() => {
-		if (WRITE_INSPECTION_ARTIFACTS) resetCurrentRunDirectory();
+	test.beforeAll(async () => {
+		if (!WRITE_INSPECTION_ARTIFACTS) return;
+		await measureVisualPhase(
+			"artifact-writing",
+			{ detail: "reset-current-directory" },
+			async () => resetCurrentRunDirectory(),
+		);
 	});
 
-	test.afterAll(() => {
-		if (WRITE_INSPECTION_ARTIFACTS) writeCurrentRunManifest();
+	test.afterAll(async () => {
+		if (!WRITE_INSPECTION_ARTIFACTS || !runTimingRecorder) return;
+		await measureVisualPhase(
+			"artifact-writing",
+			{ detail: "manifest" },
+			async () => writeCurrentRunManifest(),
+		);
+		const report = runTimingRecorder.createReport({
+			profile: VISUAL_CAPTURE_PROFILE,
+			pageMode: VISUAL_PAGE_MODE,
+			artifactCount: runArtifacts.length,
+			suiteElapsedMs: performance.now() - runStartedAt,
+		});
+		writeVisualTimingReportAtomically(CURRENT_TIMINGS, report);
+		printVisualTimingSummary(report);
 	});
 
-	for (const archetype of PROBLEM_ARCHETYPES) {
-		for (const viewport of CAPTURE_VIEWPORTS) {
-			for (const theme of CAPTURE_THEMES) {
-				test(`${archetype.slug} · ${viewport.name} · ${theme}`, async ({
-					page,
-				}) => {
-					const pageErrors: string[] = [];
-					page.on("pageerror", (error) =>
-						pageErrors.push(error.message),
-					);
-					await page.setViewportSize({
-						width: viewport.width,
-						height: viewport.height,
-					});
-					await installDeterministicBrowserState(
+	if (VISUAL_PAGE_MODE === "isolated") {
+		for (const archetype of PROBLEM_ARCHETYPES) {
+			for (const viewport of CAPTURE_VIEWPORTS) {
+				for (const theme of CAPTURE_THEMES) {
+					test(`${archetype.slug} · ${viewport.name} · ${theme}`, async ({
 						page,
-						theme,
-						archetype.seed,
-					);
-					await page.goto(archetype.path, {
-						waitUntil: "networkidle",
-					});
-					await prepareVisualCapturePage(page);
-
-					if (archetype.isItsStepper) await requireHarness(page);
-
-					await assertAndRecordPageMilestone({
-						page,
-						archetype,
-						stateId: "milestone.initial",
-						stateLabel: "Initial Problem Setup",
-						theme,
-						viewport,
-					});
-
-					if (archetype.isItsStepper) {
-						const states = await getVisualStates(page);
-						expect(states.length).toBeGreaterThan(0);
-
-						const diagnosticState = states.find(
-							(state) => state.kind === "diagnostic",
+					}) => {
+						const pageErrors: string[] = [];
+						page.on("pageerror", (error) =>
+							pageErrors.push(error.message),
 						);
-						expect(diagnosticState).toBeDefined();
-						if (diagnosticState) {
-							await goToVisualState(page, diagnosticState.id);
+						const timingContext: VisualTimingContext = {
+							module: archetype.module,
+							archetype: archetype.slug,
+							theme,
+							viewport: viewport.name,
+						};
+						await measureVisualPhase(
+							"state-preparation",
+							{ ...timingContext, detail: "browser-state" },
+							async () => {
+								await page.setViewportSize({
+									width: viewport.width,
+									height: viewport.height,
+								});
+								await installDeterministicBrowserState(
+									page,
+									theme,
+									archetype.seed,
+								);
+							},
+						);
+						await measureVisualPhase(
+							"navigation",
+							{ ...timingContext, detail: "initial-navigation" },
+							() =>
+								page.goto(archetype.path, {
+									waitUntil: "networkidle",
+								}),
+						);
+						await prepareVisualCapturePage(page, {
+							...timingContext,
+							stateId: "milestone.initial",
+						});
+
+						if (archetype.isItsStepper) {
+							await requireHarness(page, timingContext);
+						}
+
+						await assertAndRecordPageMilestone({
+							page,
+							archetype,
+							stateId: "milestone.initial",
+							stateLabel: "Initial Problem Setup",
+							theme,
+							viewport,
+						});
+
+						if (archetype.isItsStepper) {
+							const states = await getVisualStates(page, {
+								...timingContext,
+								detail: "visual-state-catalog",
+							});
+							expect(states.length).toBeGreaterThan(0);
+
+							const diagnosticState = states.find(
+								(state) => state.kind === "diagnostic",
+							);
+							expect(diagnosticState).toBeDefined();
+							if (diagnosticState) {
+								await goToVisualState(
+									page,
+									diagnosticState.id,
+									timingContext,
+								);
+								await assertAndRecordPageMilestone({
+									page,
+									archetype,
+									stateId: "milestone.diagnostic",
+									stateLabel: diagnosticState.label,
+									theme,
+									viewport,
+								});
+							}
+
+							const capturesAllStates =
+								theme === "dark" &&
+								viewport.name !== "tablet-768x1024";
+							if (capturesAllStates) {
+								const automatedHintSourceIds =
+									getAutomatedHintSourceIds(states);
+								for (const state of states) {
+									await goToVisualState(
+										page,
+										state.id,
+										timingContext,
+									);
+									if (state.kind === "hint") {
+										await revealAllHints(page, {
+											...timingContext,
+											stateId: state.id,
+										});
+									}
+									if (
+										!CAPTURE_ONLY_HINT_STATES ||
+										state.kind === "hint"
+									) {
+										await assertAndRecordActiveState({
+											page,
+											archetype,
+											stateId: state.id,
+											stateLabel: state.label,
+											stateKind: state.kind,
+											step: state.step,
+											subStep: state.subStep,
+											theme,
+											viewport,
+										});
+									}
+
+									if (automatedHintSourceIds.has(state.id)) {
+										const hintStateId = `${state.id}.hints`;
+										await revealAllHints(page, {
+											...timingContext,
+											stateId: hintStateId,
+										});
+										await assertAndRecordActiveState({
+											page,
+											archetype,
+											stateId: hintStateId,
+											stateLabel: `${state.label} · All Hints`,
+											stateKind: "hint",
+											step: state.step,
+											subStep: state.subStep,
+											theme,
+											viewport,
+										});
+									}
+								}
+							}
+
+							const completedTimingContext = {
+								...timingContext,
+								stateId: "milestone.completed",
+							};
+							await measureVisualPhase(
+								"navigation",
+								{
+									...completedTimingContext,
+									detail: "completion-reload",
+								},
+								() => page.reload({ waitUntil: "networkidle" }),
+							);
+							await prepareVisualCapturePage(
+								page,
+								completedTimingContext,
+							);
+							await requireHarness(page, completedTimingContext);
+							await measureVisualPhase(
+								"state-preparation",
+								{
+									...completedTimingContext,
+									detail: "solve-all",
+								},
+								() =>
+									page.evaluate(() => {
+										if (!window.__signalLabDev) {
+											throw new Error(
+												"SignalLab developer harness is unavailable",
+											);
+										}
+										window.__signalLabDev.solveAll();
+									}),
+							);
+							await waitForCompletionVisuals(
+								page,
+								completedTimingContext,
+							);
 							await assertAndRecordPageMilestone({
 								page,
 								archetype,
-								stateId: "milestone.diagnostic",
-								stateLabel: diagnosticState.label,
+								stateId: "milestone.completed",
+								stateLabel: "Completed Solution and Visualizer",
 								theme,
 								viewport,
 							});
 						}
 
-						const capturesAllStates =
-							theme === "dark" &&
-							viewport.name !== "tablet-768x1024";
-						if (capturesAllStates) {
-							const automatedHintSourceIds =
-								getAutomatedHintSourceIds(states);
-							for (const state of states) {
-								await goToVisualState(page, state.id);
-								if (state.kind === "hint") {
-									await revealAllHints(page);
-								}
-								if (
-									!CAPTURE_ONLY_HINT_STATES ||
-									state.kind === "hint"
-								) {
-									await assertAndRecordActiveState({
-										page,
-										archetype,
-										stateId: state.id,
-										stateLabel: state.label,
-										stateKind: state.kind,
-										step: state.step,
-										subStep: state.subStep,
-										theme,
-										viewport,
-									});
-								}
-
-								if (automatedHintSourceIds.has(state.id)) {
-									await revealAllHints(page);
-									await assertAndRecordActiveState({
-										page,
-										archetype,
-										stateId: `${state.id}.hints`,
-										stateLabel: `${state.label} · All Hints`,
-										stateKind: "hint",
-										step: state.step,
-										subStep: state.subStep,
-										theme,
-										viewport,
-									});
-								}
-							}
-						}
-
-						await page.reload({ waitUntil: "networkidle" });
-						await prepareVisualCapturePage(page);
-						await requireHarness(page);
-						await page.evaluate(() => {
-							if (!window.__signalLabDev) {
-								throw new Error(
-									"SignalLab developer harness is unavailable",
-								);
-							}
-							window.__signalLabDev.solveAll();
-						});
-						await waitForCompletionVisuals(page);
-						await assertAndRecordPageMilestone({
-							page,
-							archetype,
-							stateId: "milestone.completed",
-							stateLabel: "Completed Solution and Visualizer",
-							theme,
-							viewport,
-						});
-					}
-
-					expect
-						.soft(pageErrors, "uncaught browser errors")
-						.toEqual([]);
-				});
+						expect
+							.soft(pageErrors, "uncaught browser errors")
+							.toEqual([]);
+					});
+				}
 			}
+		}
+	} else {
+		for (const archetype of PROBLEM_ARCHETYPES) {
+			test(`${archetype.slug} · reused page`, async ({ page }) => {
+				await captureReusedArchetype(page, archetype);
+			});
 		}
 	}
 });
