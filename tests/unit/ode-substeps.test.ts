@@ -7,12 +7,29 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { OdeStepSolverState } from "../../src/lib/components/solvers/ode-step-solver.svelte";
-import { generateOdeProblem } from "../../src/lib/math-engine/odes";
+import {
+	type ForcingType,
+	generateOdeProblem,
+	type RootType,
+} from "../../src/lib/math-engine/odes";
+
+function generateSecondOrderProblem(
+	rootType: RootType | "random",
+	forcingType: ForcingType | "random" = "random",
+) {
+	return generateOdeProblem({
+		order: 2,
+		rootType,
+		forcingType,
+		leadingCoefficient: "monic",
+		resonance: "none",
+	});
+}
 
 describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 	describe("Step 2 State Machine Branches", () => {
 		it("Branch 1: Factoring Strategy Direct Path (distinct real roots)", () => {
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(2);
 
@@ -31,7 +48,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("Branch 2: Quadratic Formula Direct Correct Classification Path", () => {
-			const problem = generateOdeProblem("complex_conjugate");
+			const problem = generateSecondOrderProblem("complex_conjugate");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(2);
 
@@ -60,7 +77,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("Branch 3: Quadratic Formula Wrong Classification -> Remediation Loop Path", () => {
-			const problem = generateOdeProblem("complex_conjugate");
+			const problem = generateSecondOrderProblem("complex_conjugate");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(2);
 
@@ -101,7 +118,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("Branch 4: Non-factorable polynomial factoring strategy rejection", () => {
-			const problem = generateOdeProblem("complex_conjugate");
+			const problem = generateSecondOrderProblem("complex_conjugate");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(2);
 
@@ -118,9 +135,9 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 
 	describe("Step 5 Multi-Part Sub-Steps Flow", () => {
 		it("Sinusoidal 4-part flow: Part 5A-1 -> Part 5A-2 -> Part 5B -> Part 5C", () => {
-			let problem = generateOdeProblem("distinct_real");
+			let problem = generateSecondOrderProblem("distinct_real");
 			while (problem.forcing.type !== "sinusoid") {
-				problem = generateOdeProblem("distinct_real");
+				problem = generateSecondOrderProblem("distinct_real");
 			}
 
 			const solver = new OdeStepSolverState(() => problem);
@@ -171,9 +188,9 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("Constant/Exponential 3-part flow: Part 5A-1 -> Part 5A-2 -> Part 5C (solve)", () => {
-			let problem = generateOdeProblem("distinct_real");
+			let problem = generateSecondOrderProblem("distinct_real");
 			while (problem.forcing.type === "sinusoid") {
-				problem = generateOdeProblem("distinct_real");
+				problem = generateSecondOrderProblem("distinct_real");
 			}
 
 			const solver = new OdeStepSolverState(() => problem);
@@ -214,7 +231,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 
 	describe("Step 6 Multi-Part Sub-Steps Flow", () => {
 		it("Part 6A Target Values -> Part 6B Integration Constants", () => {
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(6);
 
@@ -246,7 +263,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 	describe("Step 7 Multi-Part Decomposition Flow", () => {
 		it("Part 7A -> Part 7B -> Part 7C with Completion Callback", () => {
 			const onComplete = vi.fn();
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(
 				() => problem,
 				() => onComplete,
@@ -287,7 +304,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 
 	describe("Hint Tier Isolation and Scoping", () => {
 		it("resets hint tier to 0 upon step transition", () => {
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(() => problem);
 
 			solver.revealNextHint();
@@ -304,7 +321,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("resets hint tier to 0 upon sub-step transition within multi-part step", () => {
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(6);
 
@@ -320,7 +337,7 @@ describe("ADR 0028: Exhaustive ODE State Machine & Remediation Paths", () => {
 		});
 
 		it("dynamically returns sub-step-scoped hints", () => {
-			const problem = generateOdeProblem("distinct_real");
+			const problem = generateSecondOrderProblem("distinct_real");
 			const solver = new OdeStepSolverState(() => problem);
 			solver.advanceToStep(6);
 

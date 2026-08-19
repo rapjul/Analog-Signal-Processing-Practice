@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { generateOdeProblem } from "../../src/lib/math-engine/odes";
+import {
+	type ForcingType,
+	generateOdeProblem,
+	type RootType,
+} from "../../src/lib/math-engine/odes";
+
+function generateSecondOrderProblem(
+	rootType: RootType | "random",
+	forcingType: ForcingType | "random" = "random",
+) {
+	return generateOdeProblem({
+		order: 2,
+		rootType,
+		forcingType,
+		leadingCoefficient: "monic",
+		resonance: "none",
+	});
+}
 
 describe("Linear ODE ITS Step Generator Engine", () => {
 	it("generates valid 7-step ITS data for distinct real roots with constant forcing", () => {
-		const problem = generateOdeProblem("distinct_real", "constant");
+		const problem = generateSecondOrderProblem("distinct_real", "constant");
 
 		expect(problem.title).toBe("Practice Problem: 2nd-Order LCC ODE");
 		expect(problem.itsData).toBeDefined();
@@ -66,7 +83,10 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 	});
 
 	it("generates valid 7-step ITS data for complex conjugate roots with sinusoidal forcing", () => {
-		const problem = generateOdeProblem("complex_conjugate", "sinusoid");
+		const problem = generateSecondOrderProblem(
+			"complex_conjugate",
+			"sinusoid",
+		);
 
 		// Step 1
 		expect(problem.itsData.step1.expectedA2).toBe(1);

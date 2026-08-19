@@ -18,12 +18,20 @@ import {
 	formatExpTerm,
 	formatLinearCombination,
 	formatOdeLhs,
+	formatPolynomial,
 	formatQuadraticPolynomial,
 	formatRootFactor,
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
 } from "./formatting";
 import { toFractionLatex } from "./fraction";
+import {
+	createRandomSeed,
+	createSeededPrng,
+	randomChoice,
+	randomInt,
+	shuffleWithRandom,
+} from "./random";
 import type { BaseItsStep, ItsOption } from "./types";
 
 /**
@@ -50,10 +58,25 @@ export type ForcingType =
 	/** Sinusoidal input x(t) = K cos(omega t) */
 	| "sinusoid";
 
+export type OdeOrder = 1 | 2;
+export type LeadingCoefficientType = "monic" | "non_monic";
+export type ResonanceType = "none" | "simple" | "repeated";
+
+/** Public controls for reproducible ODE problem generation. */
+export interface OdeGenerationOptions {
+	order?: OdeOrder | "random";
+	rootType?: RootType | "random";
+	forcingType?: ForcingType | "random";
+	leadingCoefficient?:
+		number | LeadingCoefficientType | "non-monic" | "random";
+	resonance?: ResonanceType | "nonresonant" | "resonant" | boolean | "random";
+	seed?: number;
+}
+
 /** Structural parameters defining a linear constant-coefficient ODE */
 export interface OdeParams {
 	/** Order of ODE (1 or 2) */
-	order: number;
+	order: OdeOrder;
 	/** Coefficient a2 for highest derivative y'' (defaults to 1 for monic polynomials) */
 	a2: number;
 	/** Coefficient a1 for first derivative y' */
@@ -92,6 +115,8 @@ export interface ParticularSolution {
 	evalDeriv: (t: number) => number;
 	/** Derived undetermined coefficients (Kp, A, B) */
 	coeffs: { Kp?: number; A?: number; B?: number };
+	/** Multiplicity of the forcing frequency as a characteristic root. */
+	resonanceMultiplicity: 0 | 1 | 2;
 }
 
 /** Interface representing natural homogeneous response y_h(t) */
@@ -101,7 +126,7 @@ export interface HomogeneousSolution {
 	/** Integration constant C1 */
 	C1: number;
 	/** Integration constant C2 */
-	C2: number;
+	C2?: number;
 	/** Evaluator function for y_h(t) at time t */
 	eval: (t: number) => number;
 }
@@ -211,15 +236,15 @@ export interface OdeItsStep6 extends BaseItsStep {
 	/** Solved constant C1 */
 	expectedC1: number;
 	/** Solved constant C2 */
-	expectedC2: number;
+	expectedC2?: number;
 	/** Particular value at t=0 */
 	yp0: number;
 	/** Particular derivative value at t=0 */
-	dyp0: number;
+	dyp0?: number;
 	/** Effective homogeneous target y_h(0+) = y(0+) - y_p(0+) */
 	targetYh0: number;
 	/** Effective homogeneous target y_h'(0+) = y'(0+) - y_p'(0+) */
-	targetDYh0: number;
+	targetDYh0?: number;
 	/** Concrete evaluated system of initial conditions LaTeX string */
 	icSystemLatex: string;
 	/** Sub-step-specific progressive hints */
@@ -233,9 +258,9 @@ export interface OdeItsStep7 extends BaseItsStep {
 	/** Zero-state LaTeX expression */
 	expectedZS: string;
 	/** Homogeneous constants for Zero-Input response (x(t) = 0) */
-	ziConstants: { C1: number; C2: number };
+	ziConstants: { C1: number; C2?: number };
 	/** Homogeneous constants for Zero-State response (initial conditions = 0) */
-	zsConstants: { C1: number; C2: number };
+	zsConstants: { C1: number; C2?: number };
 	/** Transient response LaTeX expression y_{tr}(t) */
 	y_tr_latex: string;
 	/** Steady-state response LaTeX expression y_{ss}(t) */
@@ -285,12 +310,14 @@ export interface OdeProblem {
 	title: string;
 	/** Subjective difficulty level classification */
 	difficulty: "easy" | "medium" | "hard";
+	/** Seed that fully reproduces this problem, including option ordering. */
+	seed: number;
 	/** Differential equation parameters */
 	params: OdeParams;
 	/** Input forcing function parameters */
 	forcing: ForcingFunction;
 	/** Initial conditions y(0+) and y'(0+) */
-	initialConditions: { y0: number; dy0: number };
+	initialConditions: { y0: number; dy0?: number };
 	/** Formatted LaTeX differential equation prompt text */
 	odeLatex: string;
 	/** Expected target analytical solution components */
@@ -330,19 +357,64 @@ export interface OdeProblem {
 	itsData: OdeItsData;
 }
 
+export interface CharacteristicEquationCoefficients {
+	order: OdeOrder;
+	a2?: number;
+	a1: number;
+	a0: number;
+}
+
 /**
- * Solves a 2nd order characteristic equation s^2 + a1*s + a0 = 0.
- * @param {number} a1 Coefficient of s
- * @param {number} a0 Constant term
- * @returns {OdeParams} Parameter object containing roots and classification
+ * Solves first- or second-order characteristic equations. The two-number form
+ * retains the historical monic quadratic API; the object form supports
+ * first-order and non-monic equations without positional ambiguity.
  */
-export function solveCharacteristicEquation(a1: number, a0: number): OdeParams {
-	const disc = a1 * a1 - 4 * a0;
+export function solveCharacteristicEquation(a1: number, a0: number): OdeParams;
+export function solveCharacteristicEquation(
+	coefficients: CharacteristicEquationCoefficients,
+): OdeParams;
+export function solveCharacteristicEquation(
+	a1OrCoefficients: number | CharacteristicEquationCoefficients,
+	a0Argument?: number,
+): OdeParams {
+	const coefficients =
+		typeof a1OrCoefficients === "number"
+			? {
+					order: 2 as const,
+					a2: 1,
+					a1: a1OrCoefficients,
+					a0: a0Argument ?? 0,
+				}
+			: a1OrCoefficients;
+	const { order, a1, a0 } = coefficients;
+	const a2 = order === 2 ? (coefficients.a2 ?? 1) : 0;
+
+	if (order === 1) {
+		if (Math.abs(a1) < 1e-12) {
+			throw new Error(
+				"First-order leading coefficient a1 must be non-zero",
+			);
+		}
+		return {
+			order,
+			a2: 0,
+			a1,
+			a0,
+			roots: { r1: -a0 / a1 },
+			rootType: "distinct_real",
+		};
+	}
+
+	if (Math.abs(a2) < 1e-12) {
+		throw new Error("Second-order leading coefficient a2 must be non-zero");
+	}
+
+	const disc = a1 * a1 - 4 * a2 * a0;
 	if (Math.abs(disc) < 1e-9) {
-		const r = -a1 / 2;
+		const r = -a1 / (2 * a2);
 		return {
 			order: 2,
-			a2: 1,
+			a2,
 			a1,
 			a0,
 			roots: { r1: r, r2: r },
@@ -350,22 +422,22 @@ export function solveCharacteristicEquation(a1: number, a0: number): OdeParams {
 		};
 	} else if (disc > 0) {
 		const sqrtDisc = Math.sqrt(disc);
-		const r1 = (-a1 + sqrtDisc) / 2;
-		const r2 = (-a1 - sqrtDisc) / 2;
+		const r1 = (-a1 + sqrtDisc) / (2 * a2);
+		const r2 = (-a1 - sqrtDisc) / (2 * a2);
 		return {
 			order: 2,
-			a2: 1,
+			a2,
 			a1,
 			a0,
 			roots: { r1, r2 },
 			rootType: "distinct_real",
 		};
 	} else {
-		const sigma = -a1 / 2;
-		const omega_d = Math.sqrt(-disc) / 2;
+		const sigma = -a1 / (2 * a2);
+		const omega_d = Math.sqrt(-disc) / (2 * Math.abs(a2));
 		return {
 			order: 2,
-			a2: 1,
+			a2,
 			a1,
 			a0,
 			roots: { r1: sigma, im: omega_d },
@@ -384,35 +456,55 @@ export function computeParticularSolution(
 	ode: OdeParams,
 	forcing: ForcingFunction,
 ): ParticularSolution {
-	const { a1, a0, rootType, roots } = ode;
+	const { order, a2, a1, a0 } = ode;
+	const polynomialAt = (s: number) =>
+		order === 1 ? a1 * s + a0 : a2 * s * s + a1 * s + a0;
+	const polynomialDerivativeAt = (s: number) =>
+		order === 1 ? a1 : 2 * a2 * s + a1;
+	const rootMultiplicityAt = (s: number): 0 | 1 | 2 => {
+		if (Math.abs(polynomialAt(s)) >= 1e-8) return 0;
+		if (order === 2 && Math.abs(polynomialDerivativeAt(s)) < 1e-8) return 2;
+		return 1;
+	};
 
 	switch (forcing.type) {
 		case "constant": {
 			const K = forcing.K;
-			if (Math.abs(a0) < 1e-9) {
-				throw new Error("a0 must be non-zero for constant forcing");
-			}
-			const Kp = K / a0;
+			const multiplicity = rootMultiplicityAt(0);
+			const Kp =
+				multiplicity === 0
+					? K / a0
+					: multiplicity === 1
+						? K / polynomialDerivativeAt(0)
+						: K / (2 * a2);
+			const power = multiplicity;
 			return {
-				formDescription: "y_p(t) = K_p",
-				latex: `${toFractionLatex(Kp)}`,
-				eval: () => Kp,
-				evalDeriv: () => 0,
+				formDescription:
+					power === 0
+						? "y_p(t) = K_p"
+						: power === 1
+							? "y_p(t) = K_p t"
+							: "y_p(t) = K_p t^2",
+				latex:
+					power === 0
+						? `${toFractionLatex(Kp)}`
+						: power === 1
+							? `${toFractionLatex(Kp)} t`
+							: `${toFractionLatex(Kp)} t^2`,
+				eval: (t: number) => Kp * t ** power,
+				evalDeriv: (t: number) =>
+					power === 0 ? 0 : power * Kp * t ** (power - 1),
 				coeffs: { Kp },
+				resonanceMultiplicity: multiplicity,
 			};
 		}
 		case "exponential": {
 			const K = forcing.K;
 			const p = forcing.p ?? -1;
+			const multiplicity = rootMultiplicityAt(p);
 
-			// Check if p is a characteristic root
-			const isRoot =
-				rootType === "distinct_real" &&
-				(Math.abs(p - roots.r1) < 1e-6 ||
-					Math.abs(p - (roots.r2 ?? 0)) < 1e-6);
-
-			if (!isRoot) {
-				const denom = p * p + a1 * p + a0;
+			if (multiplicity === 0) {
+				const denom = polynomialAt(p);
 				const Kp = K / denom;
 				return {
 					formDescription: "y_p(t) = K_p e^{p t}",
@@ -420,9 +512,12 @@ export function computeParticularSolution(
 					eval: (t: number) => Kp * Math.exp(p * t),
 					evalDeriv: (t: number) => Kp * p * Math.exp(p * t),
 					coeffs: { Kp },
+					resonanceMultiplicity: 0,
 				};
-			} else {
-				const denom = 2 * p + a1;
+			}
+
+			if (multiplicity === 1) {
+				const denom = polynomialDerivativeAt(p);
 				const Kp = K / denom;
 				return {
 					formDescription: "y_p(t) = K_p t e^{p t}",
@@ -431,8 +526,20 @@ export function computeParticularSolution(
 					evalDeriv: (t: number) =>
 						Kp * (1 + p * t) * Math.exp(p * t),
 					coeffs: { Kp },
+					resonanceMultiplicity: 1,
 				};
 			}
+
+			const Kp = K / (2 * a2);
+			return {
+				formDescription: "y_p(t) = K_p t^2 e^{p t}",
+				latex: `${toFractionLatex(Kp)} t^2 e^{${p} t}`,
+				eval: (t: number) => Kp * t * t * Math.exp(p * t),
+				evalDeriv: (t: number) =>
+					Kp * (2 * t + p * t * t) * Math.exp(p * t),
+				coeffs: { Kp },
+				resonanceMultiplicity: 2,
+			};
 		}
 		case "sinusoid": {
 			const K = forcing.K;
@@ -443,12 +550,34 @@ export function computeParticularSolution(
 			//   sin(w*t) term: -(a1*w)*A     + (a0 - w^2)*B = 0
 			// System matrix: [ m11  m12 ] [ A ] = [ K ]
 			//                [ m21  m22 ] [ B ]   [ 0 ]
-			const m11 = a0 - w * w;
+			const m11 = a0 - a2 * w * w;
 			const m12 = a1 * w;
 			const m21 = -a1 * w;
-			const m22 = a0 - w * w;
+			const m22 = a0 - a2 * w * w;
 
 			const det = m11 * m22 - m12 * m21;
+			if (Math.abs(det) < 1e-9) {
+				if (
+					order !== 2 ||
+					Math.abs(a1) >= 1e-9 ||
+					Math.abs(a2) < 1e-9
+				) {
+					throw new Error(
+						"Unsupported degenerate sinusoidal resonance",
+					);
+				}
+				const B = K / (2 * a2 * w);
+				return {
+					formDescription:
+						"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
+					latex: `${toFractionLatex(B)} t \\sin(${w}t)`,
+					eval: (t: number) => B * t * Math.sin(w * t),
+					evalDeriv: (t: number) =>
+						B * (Math.sin(w * t) + w * t * Math.cos(w * t)),
+					coeffs: { A: 0, B },
+					resonanceMultiplicity: 1,
+				};
+			}
 			const A = (K * m22) / det;
 			const B = (-K * m21) / det;
 
@@ -470,6 +599,7 @@ export function computeParticularSolution(
 				evalDeriv: (t: number) =>
 					-A * w * Math.sin(w * t) + B * w * Math.cos(w * t),
 				coeffs: { A, B },
+				resonanceMultiplicity: 0,
 			};
 		}
 		default: {
@@ -491,6 +621,19 @@ export function solveHomogeneousConstants(
 	targetDY0: number,
 ): HomogeneousSolution {
 	const { rootType, roots } = ode;
+
+	if (ode.order === 1) {
+		const C1 = targetY0;
+		const expTerm = formatExpTerm(roots.r1);
+		return {
+			latex:
+				sanitizeLatexMath(
+					formatSignedLinearTerm(toFractionLatex(C1), expTerm, true),
+				) || "0",
+			C1,
+			eval: (t: number) => C1 * Math.exp(roots.r1 * t),
+		};
+	}
 
 	switch (rootType) {
 		case "distinct_real": {
@@ -617,119 +760,182 @@ export function solveHomogeneousConstants(
  * @returns {OdeProblem} Fully formulated OdeProblem object
  */
 export function generateOdeProblem(
-	targetRootType: RootType | "random" = "random",
-	forcingType: ForcingType | "random" = "random",
+	options: OdeGenerationOptions = {},
 ): OdeProblem {
+	const seed = Number.isFinite(options.seed)
+		? Math.trunc(options.seed ?? 0) >>> 0
+		: createRandomSeed();
+	const random = createSeededPrng(seed);
+	const requestedOrder = options.order ?? "random";
+	let resolvedOrder: OdeOrder =
+		requestedOrder === "random"
+			? randomChoice(random, [1, 2] as const)
+			: requestedOrder;
+
+	const requestedResonance = options.resonance ?? "none";
+	let resolvedResonance: ResonanceType =
+		requestedResonance === true || requestedResonance === "resonant"
+			? "simple"
+			: requestedResonance === false ||
+				  requestedResonance === "nonresonant"
+				? "none"
+				: requestedResonance === "random"
+					? random() < 0.25
+						? resolvedOrder === 2 && random() < 0.5
+							? "repeated"
+							: "simple"
+						: "none"
+					: requestedResonance;
+
+	if (resolvedOrder === 1 && resolvedResonance === "repeated") {
+		resolvedResonance = "simple";
+	} else if (
+		resolvedResonance === "repeated" &&
+		requestedOrder === "random"
+	) {
+		resolvedOrder = 2;
+	}
 	const rootTypes: RootType[] = [
 		"distinct_real",
 		"repeated_real",
 		"complex_conjugate",
 	];
-	const resolvedRootType: RootType =
-		!targetRootType || targetRootType === "random"
-			? rootTypes[Math.floor(Math.random() * rootTypes.length)]
-			: targetRootType;
+	let resolvedRootType: RootType =
+		options.rootType === undefined || options.rootType === "random"
+			? randomChoice(random, rootTypes)
+			: options.rootType;
+	if (resolvedOrder === 1 || resolvedResonance === "simple") {
+		resolvedRootType = "distinct_real";
+	} else if (resolvedResonance === "repeated") {
+		resolvedRootType = "repeated_real";
+	}
 
 	const forcingTypes: ForcingType[] = ["constant", "exponential", "sinusoid"];
-	const resolvedForcingType: ForcingType =
-		!forcingType || forcingType === "random"
-			? forcingTypes[Math.floor(Math.random() * forcingTypes.length)]
-			: forcingType;
+	let resolvedForcingType: ForcingType =
+		options.forcingType === undefined || options.forcingType === "random"
+			? randomChoice(random, forcingTypes)
+			: options.forcingType;
+	if (resolvedResonance !== "none") resolvedForcingType = "exponential";
 
+	const requestedLeading = options.leadingCoefficient ?? "random";
+	let leadingCoefficient: number;
+	if (typeof requestedLeading === "number") {
+		if (!Number.isFinite(requestedLeading) || requestedLeading === 0) {
+			throw new Error(
+				"leadingCoefficient must be a finite non-zero number",
+			);
+		}
+		leadingCoefficient = requestedLeading;
+	} else if (requestedLeading === "monic") {
+		leadingCoefficient = 1;
+	} else if (
+		requestedLeading === "non_monic" ||
+		requestedLeading === "non-monic"
+	) {
+		leadingCoefficient = randomInt(random, 2, 4);
+	} else {
+		leadingCoefficient = randomChoice(random, [1, randomInt(random, 2, 4)]);
+	}
+
+	let a2 = resolvedOrder === 2 ? leadingCoefficient : 0;
 	let a1: number;
 	let a0: number;
 	let roots: { r1: number; r2?: number; im?: number };
 
-	switch (resolvedRootType) {
-		case "distinct_real": {
-			// Characteristic polynomial: Q(s) = (s - r1)(s - r2) = s^2 - (r1 + r2)s + r1*r2 = s^2 + a1*s + a0
-			const r1 = -Math.floor(Math.random() * 4 + 1); // -1 to -4
-			const r2 = -Math.floor(Math.random() * 4 + 5); // -5 to -8
-			a1 = -(r1 + r2);
-			a0 = r1 * r2;
-			roots = { r1, r2 };
-			break;
-		}
-		case "repeated_real": {
-			// Characteristic polynomial: Q(s) = (s - r)^2 = s^2 - 2r*s + r^2 = s^2 + a1*s + a0
-			const r = -Math.floor(Math.random() * 4 + 1); // -1 to -4
-			a1 = -2 * r;
-			a0 = r * r;
-			roots = { r1: r, r2: r };
-			break;
-		}
-		// Complex conjugate: r1 = sigma + j*omega_d
-		case "complex_conjugate": {
-			// Characteristic polynomial: Q(s) = (s - sigma)^2 + omega_d^2 = s^2 - 2*sigma*s + (sigma^2 + omega_d^2) = s^2 + a1*s + a0
-			const sigma = -Math.floor(Math.random() * 3 + 1); // -1 to -3
-			const omega_d = Math.floor(Math.random() * 4 + 2); // 2 to 5
-			a1 = -2 * sigma;
-			a0 = sigma * sigma + omega_d * omega_d;
-			roots = { r1: sigma, im: omega_d };
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
+	if (resolvedOrder === 1) {
+		const r = -randomInt(random, 1, 6);
+		a1 = leadingCoefficient;
+		a0 = -leadingCoefficient * r;
+		roots = { r1: r };
+	} else {
+		switch (resolvedRootType) {
+			case "distinct_real": {
+				const r1 = -randomInt(random, 1, 4);
+				const r2 = -randomInt(random, 5, 8);
+				a1 = -leadingCoefficient * (r1 + r2);
+				a0 = leadingCoefficient * r1 * r2;
+				roots = { r1, r2 };
+				break;
+			}
+			case "repeated_real": {
+				const r = -randomInt(random, 1, 4);
+				a1 = -2 * leadingCoefficient * r;
+				a0 = leadingCoefficient * r * r;
+				roots = { r1: r, r2: r };
+				break;
+			}
+			case "complex_conjugate": {
+				const sigma = -randomInt(random, 1, 3);
+				const omegaD = randomInt(random, 2, 5);
+				a1 = -2 * leadingCoefficient * sigma;
+				a0 = leadingCoefficient * (sigma * sigma + omegaD * omegaD);
+				roots = { r1: sigma, im: omegaD };
+				break;
+			}
 		}
 	}
 
 	const odeParams: OdeParams = {
-		order: 2,
-		a2: 1,
+		order: resolvedOrder,
+		a2,
 		a1,
 		a0,
 		roots,
 		rootType: resolvedRootType,
 	};
+	const polynomialAt = (s: number) =>
+		resolvedOrder === 1 ? a1 * s + a0 : a2 * s * s + a1 * s + a0;
+	const derivativeAt = (s: number) =>
+		resolvedOrder === 1 ? a1 : 2 * a2 * s + a1;
 
 	let forcing: ForcingFunction;
 	switch (resolvedForcingType) {
 		case "constant": {
-			const K = Math.floor(Math.random() * 6 + 1) * a0; // Multiple of a0 for clean y_p
-			forcing = {
-				type: "constant",
-				K,
-				latex: `${K}`,
-			};
+			const K = randomInt(random, 1, 6) * a0;
+			forcing = { type: "constant", K, latex: `${K}` };
 			break;
 		}
 		case "exponential": {
-			const K = Math.floor(Math.random() * 5 + 2) * 2;
-			const p = -Math.floor(Math.random() * 3 + 9); // -9 to -11 (avoid matching roots)
-			forcing = {
-				type: "exponential",
-				K,
-				p,
-				latex: `${K} e^{${p}t}`,
-			};
+			const p =
+				resolvedResonance === "none"
+					? -randomInt(random, 9, 11)
+					: roots.r1;
+			const targetKp = randomInt(random, 1, 5);
+			const K =
+				resolvedResonance === "none"
+					? targetKp * polynomialAt(p)
+					: resolvedResonance === "simple"
+						? targetKp * derivativeAt(p)
+						: targetKp * 2 * a2;
+			forcing = { type: "exponential", K, p, latex: `${K} e^{${p}t}` };
 			break;
 		}
 		case "sinusoid": {
-			const K = Math.floor(Math.random() * 10 + 2);
-			const w = Math.floor(Math.random() * 3 + 1); // w = 1, 2, 3
+			const K = randomInt(random, 2, 11);
+			const omega = randomInt(random, 1, 3);
 			forcing = {
 				type: "sinusoid",
 				K,
-				omega: w,
-				latex: `${K} \\cos(${w}t)`,
+				omega,
+				latex: `${K} \\cos(${omega}t)`,
 			};
 			break;
 		}
-		default: {
-			throw new Error(`Unhandled forcing function type: ${forcingType}`);
-		}
 	}
 
-	const initialConditions = {
-		y0: Math.floor(Math.random() * 6 - 2), // -2 to 3
-		dy0: Math.floor(Math.random() * 8 - 4), // -4 to 3
-	};
+	const initialConditions: OdeProblem["initialConditions"] =
+		resolvedOrder === 2
+			? {
+					y0: randomInt(random, -2, 3),
+					dy0: randomInt(random, -4, 3),
+				}
+			: { y0: randomInt(random, -2, 3) };
 
 	const particular = computeParticularSolution(odeParams, forcing);
 
 	// Complete Response Solution (Complete y_h matches y(0+) - y_p(0+) and y'(0+) - y_p'(0+))
 	const targetYh0 = initialConditions.y0 - particular.eval(0);
-	const targetDYh0 = initialConditions.dy0 - particular.evalDeriv(0);
+	const targetDYh0 = (initialConditions.dy0 ?? 0) - particular.evalDeriv(0);
 	const homogeneousComplete = solveHomogeneousConstants(
 		odeParams,
 		targetYh0,
@@ -740,7 +946,7 @@ export function generateOdeProblem(
 	const homogeneousZI = solveHomogeneousConstants(
 		odeParams,
 		initialConditions.y0,
-		initialConditions.dy0,
+		initialConditions.dy0 ?? 0,
 	);
 
 	// Zero-State Response Solution (y(0-) = 0, y'(0-) = 0, driven by x(t))
@@ -752,7 +958,7 @@ export function generateOdeProblem(
 		targetDYhZS,
 	);
 
-	const odeLatex = `${formatOdeLhs(1, a1, a0)} = ${forcing.latex}`;
+	const odeLatex = `${formatOdeLhs(a2, a1, a0)} = ${forcing.latex}`;
 
 	const completeLatex =
 		particular.latex === "0"
@@ -767,30 +973,40 @@ export function generateOdeProblem(
 	const y_ss_latex = particular.latex;
 
 	// Characteristic Equation LHS for hint calculations
-	const charEqLhs = formatQuadraticPolynomial(1, a1, a0, "s").replace(
-		" = 0",
-		"",
+	const charEqLhs = formatPolynomial(
+		resolvedOrder === 1
+			? [{ coeff: a1, symbol: "s" }, { coeff: a0 }]
+			: [
+					{ coeff: a2, symbol: "s^2" },
+					{ coeff: a1, symbol: "s" },
+					{ coeff: a0 },
+				],
 	);
 
 	// Homogeneous Solution Form with Roots for Step 3
 	let step3Latex: string;
-	switch (resolvedRootType) {
-		case "distinct_real": {
-			step3Latex = `y_h(t) = C_1 e^{${roots.r1}t} + C_2 e^{${roots.r2}t}`;
-			break;
+	if (resolvedOrder === 1) {
+		step3Latex = `y_h(t) = C_1 e^{${roots.r1}t}`;
+	} else
+		switch (resolvedRootType) {
+			case "distinct_real": {
+				step3Latex = `y_h(t) = C_1 e^{${roots.r1}t} + C_2 e^{${roots.r2}t}`;
+				break;
+			}
+			case "repeated_real": {
+				step3Latex = `y_h(t) = (C_1 + C_2 t) e^{${roots.r1}t}`;
+				break;
+			}
+			case "complex_conjugate": {
+				step3Latex = `y_h(t) = e^{${roots.r1}t} [C_1 \\cos(${roots.im}t) + C_2 \\sin(${roots.im}t)]`;
+				break;
+			}
+			default: {
+				throw new Error(
+					`Unhandled target root type: ${resolvedRootType}`,
+				);
+			}
 		}
-		case "repeated_real": {
-			step3Latex = `y_h(t) = (C_1 + C_2 t) e^{${roots.r1}t}`;
-			break;
-		}
-		case "complex_conjugate": {
-			step3Latex = `y_h(t) = e^{${roots.r1}t} [C_1 \\cos(${roots.im}t) + C_2 \\sin(${roots.im}t)]`;
-			break;
-		}
-		default: {
-			throw new Error(`Unhandled target root type: ${resolvedRootType}`);
-		}
-	}
 
 	// Step 4 Particular Ansatz Options
 	let step4Options: OdeItsOption[];
@@ -824,8 +1040,15 @@ export function generateOdeProblem(
 		}
 		case "exponential": {
 			const p = forcing.p ?? 0;
+			const multiplier =
+				particular.resonanceMultiplicity === 0
+					? ""
+					: particular.resonanceMultiplicity === 1
+						? "t "
+						: "t^2 ";
+			const correctLatex = `y_p(t) = K_p ${multiplier}e^{${p}t}`;
 			step4Options = [
-				{ id: "c1", latex: `y_p(t) = K_p e^{${p}t}`, isCorrect: true },
+				{ id: "c1", latex: correctLatex, isCorrect: true },
 				{
 					id: "d1",
 					latex: "y_p(t) = K_p",
@@ -835,10 +1058,15 @@ export function generateOdeProblem(
 				},
 				{
 					id: "d2",
-					latex: `y_p(t) = K_p t e^{${p}t}`,
+					latex:
+						particular.resonanceMultiplicity === 1
+							? `y_p(t) = K_p t^2 e^{${p}t}`
+							: `y_p(t) = K_p t e^{${p}t}`,
 					isCorrect: false,
 					feedback:
-						"Resonance Multiplier Error: The factor of $t$ is only needed when the exponential frequency matches a characteristic root.",
+						particular.resonanceMultiplicity === 1
+							? "This is the correct multiplier for simple resonance, but it has already been used in the matching answer."
+							: "Resonance Multiplier Error: Use one factor of $t$ for each collision with a characteristic root.",
 				},
 				{
 					id: "d3",
@@ -900,10 +1128,10 @@ export function generateOdeProblem(
 	if (forcing.type === "sinusoid") {
 		const w = forcing.omega ?? 1;
 		const w2 = w * w;
-		const m11 = a0 - w2;
+		const m11 = a0 - a2 * w2;
 		const m12 = a1 * w;
 		const m21 = -a1 * w;
-		const m22 = a0 - w2;
+		const m22 = a0 - a2 * w2;
 
 		step5FirstDerivLatex = `y_p'(t) = -${w}A \\sin(${w}t) + ${w}B \\cos(${w}t)`;
 		step5SecondDerivLatex = `y_p''(t) = -${w2}A \\cos(${w}t) - ${w2}B \\sin(${w}t)`;
@@ -992,7 +1220,7 @@ export function generateOdeProblem(
 				id: "sys_sign_err",
 				latex: `\\begin{cases} (${m11})A - (${m12})B = ${forcing.K} \\\\ (${m12})A + (${m22})B = 0 \\end{cases}`,
 				isCorrect: false,
-				feedback: `Sign Error: Substituting $y_p', y_p''$ into $y'' + ${a1}y' + ${a0}y$ yields $(${m21})A + (${m22})B = 0$ for the sine equation.`,
+				feedback: `Sign Error: Substituting $y_p', y_p''$ into $${a2}y'' + ${a1}y' + ${a0}y$ yields $(${m21})A + (${m22})B = 0$ for the sine equation.`,
 			},
 			{
 				id: "sys_missing_factor",
@@ -1086,11 +1314,28 @@ export function generateOdeProblem(
 		];
 	} else {
 		const p = forcing.p ?? 0;
-		const polyAtP = p * p + a1 * p + a0;
-		step5FirstDerivLatex = `y_p'(t) = ${p} K_p e^{${p}t}`;
-		step5SecondDerivLatex = `y_p''(t) = ${p * p} K_p e^{${p}t}`;
+		const multiplicity = particular.resonanceMultiplicity;
+		const polyAtP = polynomialAt(p);
+		const systemCoefficient =
+			multiplicity === 0
+				? polyAtP
+				: multiplicity === 1
+					? derivativeAt(p)
+					: 2 * a2;
+		step5FirstDerivLatex =
+			multiplicity === 0
+				? `y_p'(t) = ${p} K_p e^{${p}t}`
+				: multiplicity === 1
+					? `y_p'(t) = K_p(1 + ${p}t)e^{${p}t}`
+					: `y_p'(t) = K_p(2t + ${p}t^2)e^{${p}t}`;
+		step5SecondDerivLatex =
+			multiplicity === 0
+				? `y_p''(t) = ${p * p} K_p e^{${p}t}`
+				: multiplicity === 1
+					? `y_p''(t) = K_p(${2 * p} + ${p * p}t)e^{${p}t}`
+					: `y_p''(t) = K_p(2 + ${4 * p}t + ${p * p}t^2)e^{${p}t}`;
 		step5DerivLatex = `${step5FirstDerivLatex}, \\quad ${step5SecondDerivLatex}`;
-		step5SysLatex = `${polyAtP} K_p = ${forcing.K}`;
+		step5SysLatex = `${systemCoefficient} K_p = ${forcing.K}`;
 
 		step5FirstDerivOptions = [
 			{
@@ -1350,14 +1595,17 @@ export function generateOdeProblem(
 	];
 
 	// Pick a concept question
-	const selectedConceptQ =
-		conceptQuestionsPool[
-			Math.floor(Math.random() * conceptQuestionsPool.length)
-		];
+	const selectedConceptBase = randomChoice(random, conceptQuestionsPool);
+	const selectedConceptQ = {
+		...selectedConceptBase,
+		options: shuffleWithRandom(selectedConceptBase.options, random),
+	};
 
 	// Formulate concrete initial condition system LaTeX
 	let icSystemLatex = "";
-	if (resolvedRootType === "distinct_real") {
+	if (resolvedOrder === 1) {
+		icSystemLatex = `C_1 = ${toFractionLatex(targetYh0)}`;
+	} else if (resolvedRootType === "distinct_real") {
 		const r1 = roots.r1;
 		const r2 = roots.r2 ?? 0;
 		const eq1 = `C_1 + C_2 = ${toFractionLatex(targetYh0)}`;
@@ -1383,19 +1631,21 @@ export function generateOdeProblem(
 
 	// Formulate Zero-Input initial condition system LaTeX matching y(0-) and y'(0-)
 	let ziSystemLatex = "";
-	if (resolvedRootType === "distinct_real") {
+	if (resolvedOrder === 1) {
+		ziSystemLatex = `C_{1,ZI} = ${toFractionLatex(initialConditions.y0)}`;
+	} else if (resolvedRootType === "distinct_real") {
 		const r1 = roots.r1;
 		const r2 = roots.r2 ?? 0;
 		const eq1 = `C_{1,ZI} + C_{2,ZI} = ${toFractionLatex(initialConditions.y0)}`;
 		const term1 = formatSignedLinearTerm(r1, "C_{1,ZI}", true);
 		const term2 = formatSignedLinearTerm(r2, "C_{2,ZI}", false);
-		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0)}`;
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0 ?? 0)}`;
 		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
 	} else if (resolvedRootType === "repeated_real") {
 		const r = roots.r1;
 		const eq1 = `C_{1,ZI} = ${toFractionLatex(initialConditions.y0)}`;
 		const term1 = formatSignedLinearTerm(r, "C_{1,ZI}", true);
-		const eq2 = `${term1} + C_{2,ZI} = ${toFractionLatex(initialConditions.dy0)}`;
+		const eq2 = `${term1} + C_{2,ZI} = ${toFractionLatex(initialConditions.dy0 ?? 0)}`;
 		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
 	} else {
 		const sig = roots.r1;
@@ -1403,20 +1653,32 @@ export function generateOdeProblem(
 		const eq1 = `C_{1,ZI} = ${toFractionLatex(initialConditions.y0)}`;
 		const term1 = formatSignedLinearTerm(sig, "C_{1,ZI}", true);
 		const term2 = formatSignedLinearTerm(wd, "C_{2,ZI}", false);
-		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0)}`;
+		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0 ?? 0)}`;
 		ziSystemLatex = `\\begin{cases} ${eq1} \\\\ ${eq2} \\end{cases}`;
 	}
 
-	const charEqFormatted = formatQuadraticPolynomial(1, a1, a0, "s");
+	const charEqFormatted =
+		resolvedOrder === 1
+			? `${charEqLhs} = 0`
+			: formatQuadraticPolynomial(a2, a1, a0, "s");
+	const discriminant = resolvedOrder === 1 ? 0 : a1 * a1 - 4 * a2 * a0;
+	const factoredLeadingCoefficient =
+		leadingCoefficient === 1
+			? ""
+			: `${toFractionLatex(leadingCoefficient)}`;
 	const itsData: OdeItsData = {
 		step1: {
-			expectedA2: 1,
+			expectedA2: a2,
 			expectedA1: a1,
 			expectedA0: a0,
 			latex: charEqFormatted,
 			hints: [
-				"Recall that differential operators map directly to powers of $s$: $\\frac{d^2}{dt^2} \\to s^2$, $\\frac{d}{dt} \\to s$, and $y(t) \\to 1$.",
-				"Set the unforced homogeneous right-hand side to $0$ ($x(t) = 0$) to obtain $a_2 s^2 + a_1 s + a_0 = 0$.",
+				resolvedOrder === 1
+					? "Map $\\frac{d}{dt}\\to s$ and $y(t)\\to1$."
+					: "Map $\\frac{d^2}{dt^2}\\to s^2$, $\\frac{d}{dt}\\to s$, and $y(t)\\to1$.",
+				resolvedOrder === 1
+					? "Set $x(t)=0$ to obtain $a_1s+a_0=0$."
+					: "Set $x(t)=0$ to obtain $a_2s^2+a_1s+a_0=0$.",
 				`For this differential equation, the characteristic equation is $${charEqFormatted}$.`,
 			],
 			misconceptions: {
@@ -1431,86 +1693,116 @@ export function generateOdeProblem(
 		step2: {
 			rootType: resolvedRootType,
 			isFactorable:
+				resolvedOrder === 1 ||
 				resolvedRootType === "distinct_real" ||
 				resolvedRootType === "repeated_real",
-			discriminant: a1 * a1 - 4 * 1 * a0,
+			discriminant,
 			quadSetup: {
-				a: 1,
+				a: a2,
 				b: a1,
 				c: a0,
 				negB: -a1,
-				disc: a1 * a1 - 4 * 1 * a0,
-				twoA: 2,
+				disc: discriminant,
+				twoA: 2 * a2,
 			},
 			symbolicRootsLatex:
-				resolvedRootType === "distinct_real"
-					? `r_1 = ${roots.r1}, \\quad r_2 = ${roots.r2}`
-					: resolvedRootType === "repeated_real"
-						? `r_1 = r_2 = ${roots.r1}`
-						: `s = ${roots.r1} \\pm j${roots.im}`,
+				resolvedOrder === 1
+					? `r = ${roots.r1}`
+					: resolvedRootType === "distinct_real"
+						? `r_1 = ${roots.r1}, \\quad r_2 = ${roots.r2}`
+						: resolvedRootType === "repeated_real"
+							? `r_1 = r_2 = ${roots.r1}`
+							: `s = ${roots.r1} \\pm j${roots.im}`,
 			factoredFormLatex:
-				resolvedRootType === "distinct_real"
-					? `${formatRootFactor(roots.r1, "s")}${formatRootFactor(roots.r2 ?? 0, "s")} = 0`
-					: resolvedRootType === "repeated_real"
-						? `${formatRootFactor(roots.r1, "s")}^2 = 0`
-						: undefined,
+				resolvedOrder === 1
+					? `${factoredLeadingCoefficient}${formatRootFactor(roots.r1, "s")} = 0`
+					: resolvedRootType === "distinct_real"
+						? `${factoredLeadingCoefficient}${formatRootFactor(roots.r1, "s")}${formatRootFactor(roots.r2 ?? 0, "s")} = 0`
+						: resolvedRootType === "repeated_real"
+							? `${factoredLeadingCoefficient}${formatRootFactor(roots.r1, "s")}^2 = 0`
+							: undefined,
 			r1: roots.r1,
 			r2: roots.r2,
 			im: roots.im,
 			hints: [
-				`To solve $${charEqLhs} = 0$, first inspect if it factors cleanly into $(s - r_1)(s - r_2) = 0$. You can check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$.`,
-				`The quadratic formula is $s = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. Setting up with $a = 1$, $b = ${a1}$, and $c = ${a0}$ gives $s = \\frac{-(${a1}) \\pm \\sqrt{(${a1})^2 - 4(1)(${a0})}}{2(1)} = \\frac{${-a1} \\pm \\sqrt{${a1 * a1 - 4 * a0}}}{2}$.`,
+				resolvedOrder === 1
+					? `Solve $${charEqLhs}=0$ by isolating $s$.`
+					: `Inspect whether $${charEqLhs}=0$ factors cleanly, or calculate $\\Delta=${discriminant}$.`,
+				resolvedOrder === 1
+					? `Use $s=-a_0/a_1=-(${a0})/(${a1})$.`
+					: `Use $s=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}$ with $a=${a2}$, $b=${a1}$, and $c=${a0}$.`,
 				resolvedRootType === "distinct_real"
-					? `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} > 0$ yields two distinct real roots: $r_1 = ${roots.r1}, \\quad r_2 = ${roots.r2}$.`
+					? resolvedOrder === 1
+						? `The single real root is $r=${roots.r1}$.`
+						: `The discriminant $\\Delta=${discriminant}>0$ yields $r_1=${roots.r1}$ and $r_2=${roots.r2}$.`
 					: resolvedRootType === "repeated_real"
 						? `The discriminant $\\Delta = 0$ yields a single repeated real root: $r = ${roots.r1}$.`
-						: `The discriminant $\\Delta = ${a1 * a1 - 4 * a0} < 0$ produces a negative value under the radical, yielding $\\sqrt{${a1 * a1 - 4 * a0}} = j${(roots.im ?? 0) * 2}$. Dividing by $2$ gives complex conjugate roots: $s = ${roots.r1} \\pm j${roots.im ?? 0}$.`,
+						: `The discriminant $\\Delta=${discriminant}<0$ yields $s=${roots.r1}\\pm j${roots.im ?? 0}$.`,
 			],
 			subStepHints: {
-				strategy_gate: [
-					"Inspect whether two integers multiply to $a_0$ and sum to $a_1$.",
-					"If integer factoring is not readily apparent, check whether the discriminant $b^2 - 4ac$ is positive, zero, or negative.",
-					"Select Factoring for clean integer roots or Quadratic Formula for guaranteed solution.",
-				],
+				strategy_gate:
+					resolvedOrder === 1
+						? [
+								"A first-order characteristic equation is linear, so isolate $s$ directly.",
+								`Move $a_0=${a0}$ to the other side and divide by $a_1=${a1}$.`,
+								`The root is $s=-a_0/a_1=${roots.r1}$.`,
+							]
+						: [
+								`After dividing by $a_2=${a2}$, inspect whether two numbers multiply to $a_0/a_2=${toFractionLatex(a0 / a2)}$ and sum to $-a_1/a_2=${toFractionLatex(-a1 / a2)}$.`,
+								"If integer factoring is not readily apparent, check whether the discriminant $b^2 - 4ac$ is positive, zero, or negative.",
+								"Select Factoring for clean integer roots or Quadratic Formula for guaranteed solution.",
+							],
 				factoring_inputs: [
-					`Find two numbers that multiply to $a_0 = ${a0}$ and add up to $a_1 = ${a1}$.`,
-					`Express in factored form $(s - r_1)(s - r_2) = 0$.`,
+					resolvedOrder === 1
+						? `Isolate $s$ in $${a1}s+${a0}=0$.`
+						: `Find roots whose product is $a_0/a_2=${toFractionLatex(a0 / a2)}$ and whose sum is $-a_1/a_2=${toFractionLatex(-a1 / a2)}$.`,
+					resolvedOrder === 1
+						? `Express the polynomial as $${factoredLeadingCoefficient}(s-r)=0$.`
+						: `Express it as $${factoredLeadingCoefficient}(s-r_1)(s-r_2)=0$.`,
 					`The roots are $r_1 = ${roots.r1}$ and $r_2 = ${roots.r2 ?? roots.r1}$.`,
 				],
 				quad_classification: [
-					`Compute the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$.`,
+					`Compute the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(${a2})(${a0}) = ${discriminant}$.`,
 					"If $\\Delta > 0$, roots are distinct real. If $\\Delta = 0$, roots are repeated real. If $\\Delta < 0$, roots are complex conjugate.",
-					`Since $\\Delta = ${a1 * a1 - 4 * a0}$, classify as ${resolvedRootType.replace("_", " ")}.`,
+					`Since $\\Delta = ${discriminant}$, classify as ${resolvedRootType.replace("_", " ")}.`,
 				],
 				remedial_discriminant: [
-					"Substitute into $\\Delta = b^2 - 4ac$ with $a=1$, $b=a_1$, and $c=a_0$.",
-					`Calculate $(${a1})^2 - 4(1)(${a0}) = ${a1 * a1} - ${4 * a0}$.`,
-					`The discriminant value is exactly $${a1 * a1 - 4 * a0}$.`,
+					`Substitute into $\\Delta=b^2-4ac$ with $a=${a2}$, $b=${a1}$, and $c=${a0}$.`,
+					`Calculate $(${a1})^2 - 4(${a2})(${a0})$.`,
+					`The discriminant value is exactly $${discriminant}$.`,
 				],
 				quad_root_inputs: [
 					"Apply $s = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$.",
-					`Evaluate $\\frac{${-a1} \\pm \\sqrt{${a1 * a1 - 4 * a0}}}{2}$.`,
+					`Evaluate $\\frac{${-a1} \\pm \\sqrt{${discriminant}}}{${2 * a2}}$.`,
 					resolvedRootType === "complex_conjugate"
 						? `Real part $\\sigma = ${roots.r1}$, imaginary frequency $\\omega_d = ${roots.im}$.`
 						: `The roots are $r_1 = ${roots.r1}$ and $r_2 = ${roots.r2 ?? roots.r1}$.`,
 				],
 			},
 			misconceptions: {
-				unfactorable_complex: `The polynomial $${charEqLhs} = 0$ cannot be factored over real integers because its discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0} < 0$. The negative quantity under the square root generates an imaginary component $\\pm j\\sqrt{${Math.abs(a1 * a1 - 4 * a0)}} = \\pm j${(roots.im ?? 0) * 2}$, requiring the quadratic formula.`,
-				unfactorable_general: `Check the discriminant $\\Delta = b^2 - 4ac = (${a1})^2 - 4(1)(${a0}) = ${a1 * a1 - 4 * a0}$. Because $\\Delta$ is not a non-negative perfect square, factoring by integer inspection does not work cleanly. Use the quadratic formula.`,
+				unfactorable_complex: `The polynomial $${charEqLhs}=0$ has $\\Delta=${discriminant}<0$, so use the quadratic formula.`,
+				unfactorable_general: `The discriminant is $\\Delta=${discriminant}$. Use the quadratic formula when integer factoring is not clean.`,
 			},
 		},
 		step3: {
 			correctTemplate: resolvedRootType,
 			formLatex: step3Latex,
 			hints: [
-				"Look at the roots found in Step 2: are they distinct real, repeated real, or complex conjugate?",
-				"Distinct roots produce $C_1 e^{r_1 t} + C_2 e^{r_2 t}$. Repeated roots produce $(C_1 + C_2 t) e^{r t}$. Complex roots produce $e^{\\sigma t}[C_1 \\cos(\\omega_d t) + C_2 \\sin(\\omega_d t)]$.",
-				`Since the roots are ${resolvedRootType.replace("_", " ")}, select the corresponding template.`,
+				resolvedOrder === 1
+					? "A first-order equation has one characteristic root and one natural mode."
+					: "Classify the two roots found in Step 2.",
+				resolvedOrder === 1
+					? "$y_h(t)=C_1e^{rt}$ for a single real root."
+					: "Use the distinct, repeated, or complex-conjugate template.",
+				resolvedOrder === 1
+					? `Substitute $r=${roots.r1}$.`
+					: `The roots are ${resolvedRootType.replace("_", " ")}.`,
 			],
 			misconceptions: {
 				distinct_real:
-					"Distinct real roots produce two separate exponential modes $C_1 e^{r_1 t} + C_2 e^{r_2 t}$.",
+					resolvedOrder === 1
+						? "A first-order equation has one exponential mode $C_1e^{rt}$."
+						: "Distinct real roots produce two separate exponential modes $C_1e^{r_1t}+C_2e^{r_2t}$.",
 				repeated_real:
 					"Repeated roots require the $(C_1 + C_2 t)$ multiplier to maintain two linearly independent basis solutions.",
 				complex_conjugate:
@@ -1518,6 +1810,8 @@ export function generateOdeProblem(
 			},
 		},
 		step4: {
+			// Ansatz choices keep their pedagogical order; only synthetic
+			// calculation distractors are shuffled below.
 			options: step4Options,
 			hints: [
 				`Inspect the forcing function $x(t) = ${forcing.latex}$. What form should the trial particular solution $y_p(t)$ take?`,
@@ -1529,21 +1823,33 @@ export function generateOdeProblem(
 			expectedKp: particular.coeffs.Kp,
 			expectedA: particular.coeffs.A,
 			expectedB: particular.coeffs.B,
-			derivativeOptions: step5DerivativeOptions,
-			firstDerivativeOptions: step5FirstDerivOptions,
-			secondDerivativeOptions: step5SecondDerivOptions,
-			systemOptions: step5SystemOptions,
+			derivativeOptions: shuffleWithRandom(
+				step5DerivativeOptions,
+				random,
+			),
+			firstDerivativeOptions: shuffleWithRandom(
+				step5FirstDerivOptions,
+				random,
+			),
+			secondDerivativeOptions:
+				resolvedOrder === 2
+					? shuffleWithRandom(step5SecondDerivOptions, random)
+					: undefined,
+			systemOptions: shuffleWithRandom(step5SystemOptions, random),
 			derivativesLatex: step5DerivLatex,
 			firstDerivLatex: step5FirstDerivLatex,
-			secondDerivLatex: step5SecondDerivLatex,
+			secondDerivLatex:
+				resolvedOrder === 2 ? step5SecondDerivLatex : undefined,
 			systemLatex: step5SysLatex,
 			hints: [
-				"Take derivatives of $y_p(t)$ ($y_p'$ and $y_p''$) and substitute them into the left-hand side of the ODE.",
+				resolvedOrder === 1
+					? "Find $y_p'(t)$ and substitute $y_p$, $y_p'$ into the ODE."
+					: "Find $y_p'(t)$ and $y_p''(t)$ and substitute them into the ODE.",
 				"Collect like terms and equate coefficients with the right-hand side forcing input $x(t)$.",
 				forcing.type === "constant"
-					? `Substitute $y_p = K_p, y_p'=0, y_p''=0$: $0 + 0 + ${a0} K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
+					? `Solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
 					: forcing.type === "exponential"
-						? `Substitute $y_p = K_p e^{${forcing.p}t}$: $(${(forcing.p ?? 0) ** 2 + a1 * (forcing.p ?? 0) + a0}) K_p = ${forcing.K} \\implies K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
+						? `After substitution, solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
 						: `Set up the $2\\times 2$ system for $A$ and $B$ and solve.`,
 			],
 			subStepHints: {
@@ -1552,7 +1858,9 @@ export function generateOdeProblem(
 					forcing.type === "sinusoid"
 						? `For $y_p(t) = A\\cos(${forcing.omega}t) + B\\sin(${forcing.omega}t)$, apply $\\frac{d}{dt}\\cos(${forcing.omega}t) = -${forcing.omega}\\sin(${forcing.omega}t)$ and $\\frac{d}{dt}\\sin(${forcing.omega}t) = +${forcing.omega}\\cos(${forcing.omega}t)$.`
 						: forcing.type === "exponential"
-							? `For $y_p(t) = K_p e^{${forcing.p}t}$, bring down the factor $p = ${forcing.p}$.`
+							? particular.resonanceMultiplicity === 0
+								? `For $y_p(t)=K_pe^{${forcing.p}t}$, bring down $p=${forcing.p}$.`
+								: "Apply the product rule to the resonance multiplier and the exponential."
 							: "The derivative of a constant is strictly zero.",
 					`$${step5FirstDerivLatex}$`,
 				],
@@ -1561,12 +1869,16 @@ export function generateOdeProblem(
 					forcing.type === "sinusoid"
 						? `Differentiating again multiplies each term by an additional factor of ${forcing.omega}, resulting in $(${forcing.omega})^2 = ${(forcing.omega ?? 1) ** 2}$.`
 						: forcing.type === "exponential"
-							? `Differentiating again multiplies by $p = ${forcing.p}$, producing $p^2 = ${(forcing.p ?? 0) ** 2}$.`
+							? particular.resonanceMultiplicity === 0
+								? `Differentiating again produces $p^2=${(forcing.p ?? 0) ** 2}$.`
+								: "Apply the product rule again, retaining every polynomial-in-$t$ term."
 							: "The second derivative of a constant is strictly zero.",
 					`$${step5SecondDerivLatex}$`,
 				],
 				system_setup: [
-					`Substitute $y_p, y_p', y_p''$ into the ODE: $y'' + ${a1}y' + ${a0}y = x(t)$.`,
+					resolvedOrder === 1
+						? `Substitute $y_p$ and $y_p'$ into $${a1}y' + ${a0}y=x(t)$.`
+						: `Substitute $y_p$, $y_p'$, and $y_p''$ into $${a2}y'' + ${a1}y' + ${a0}y=x(t)$.`,
 					"Collect like functional terms on the left-hand side and equate their coefficients to the right-hand side forcing input.",
 					`Linear system: $${step5SysLatex}$`,
 				],
@@ -1587,25 +1899,41 @@ export function generateOdeProblem(
 			expectedC1: homogeneousComplete.C1,
 			expectedC2: homogeneousComplete.C2,
 			yp0: particular.eval(0),
-			dyp0: particular.evalDeriv(0),
+			dyp0: resolvedOrder === 2 ? particular.evalDeriv(0) : undefined,
 			targetYh0,
-			targetDYh0,
+			targetDYh0: resolvedOrder === 2 ? targetDYh0 : undefined,
 			icSystemLatex,
 			hints: [
-				"Remember initial conditions apply to the TOTAL solution $y(t) = y_h(t) + y_p(t)$. First find $y_p(0^+)$ and $y_p'(0^+)$.",
-				`Calculate the target homogeneous values: $y_h(0^+) = y(0^+) - y_p(0^+) = ${initialConditions.y0} - (${toFractionLatex(particular.eval(0))}) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${initialConditions.dy0} - (${toFractionLatex(particular.evalDeriv(0))}) = ${toFractionLatex(targetDYh0)}$.`,
-				String.raw`Solve the $2\times 2$ linear system for $C_1$ and $C_2$: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \quad C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
+				resolvedOrder === 1
+					? "Initial conditions apply to $y(t)=y_h(t)+y_p(t)$. Find $y_p(0^+)$ first."
+					: "Initial conditions apply to $y(t)=y_h(t)+y_p(t)$. Find $y_p(0^+)$ and $y_p'(0^+)$ first.",
+				resolvedOrder === 1
+					? `Calculate $y_h(0^+)=${initialConditions.y0}-(${toFractionLatex(particular.eval(0))})=${toFractionLatex(targetYh0)}$.`
+					: `Calculate $y_h(0^+)=${toFractionLatex(targetYh0)}$ and $y_h'(0^+)=${toFractionLatex(targetDYh0)}$.`,
+				resolvedOrder === 1
+					? `Solve $C_1=${toFractionLatex(homogeneousComplete.C1)}$.`
+					: `Solve $C_1=${toFractionLatex(homogeneousComplete.C1)}$ and $C_2=${toFractionLatex(homogeneousComplete.C2 ?? 0)}$.`,
 			],
 			subStepHints: {
 				target_values: [
-					"Evaluate $y_p(0^+)$ and $y_p'(0^+)$ by substituting $t = 0$ into your particular solution.",
-					`Subtract from total initial conditions: $y_h(0^+) = y(0^+) - y_p(0^+)$ and $y_h'(0^+) = y'(0^+) - y_p'(0^+)$.`,
-					`Target values: $y_h(0^+) = ${toFractionLatex(targetYh0)}$ and $y_h'(0^+) = ${toFractionLatex(targetDYh0)}$.`,
+					resolvedOrder === 1
+						? "Evaluate $y_p(0^+)$ at $t=0$."
+						: "Evaluate $y_p(0^+)$ and $y_p'(0^+)$ at $t=0$.",
+					resolvedOrder === 1
+						? "Use $y_h(0^+)=y(0^+)-y_p(0^+)$."
+						: "Subtract both particular-solution offsets from the total initial conditions.",
+					resolvedOrder === 1
+						? `Target: $y_h(0^+)=${toFractionLatex(targetYh0)}$.`
+						: `Targets: $y_h(0^+)=${toFractionLatex(targetYh0)}$, $y_h'(0^+)=${toFractionLatex(targetDYh0)}$.`,
 				],
 				solve_constants: [
-					`Match the homogeneous expression $y_h(t)$ and its derivative $y_h'(t)$ at $t = 0$ to the target values.`,
+					resolvedOrder === 1
+						? "Match $y_h(0^+)$ to the target value."
+						: "Match $y_h(0^+)$ and $y_h'(0^+)$ to the target values.",
 					`Solve the linear system: $${icSystemLatex}$.`,
-					`Constants: $C_1 = ${toFractionLatex(homogeneousComplete.C1)}, \\quad C_2 = ${toFractionLatex(homogeneousComplete.C2)}$.`,
+					resolvedOrder === 1
+						? `Constant: $C_1=${toFractionLatex(homogeneousComplete.C1)}$.`
+						: `Constants: $C_1=${toFractionLatex(homogeneousComplete.C1)}$, $C_2=${toFractionLatex(homogeneousComplete.C2 ?? 0)}$.`,
 				],
 			},
 		},
@@ -1622,8 +1950,8 @@ export function generateOdeProblem(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions,
-			steadyStateOptions,
+			transientOptions: shuffleWithRandom(transientOptions, random),
+			steadyStateOptions: shuffleWithRandom(steadyStateOptions, random),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -1634,8 +1962,12 @@ export function generateOdeProblem(
 			subStepHints: {
 				zi_zs: [
 					"Zero-Input ($y_{ZI}$) satisfies original initial conditions with forcing $x(t) = 0$.",
-					"Zero-State ($y_{ZS}$) is driven by the forcing $x(t)$ with zero initial conditions ($y(0^-)=0, y'(0^-)=0$).",
-					`$C_{1,ZI} = ${toFractionLatex(homogeneousZI.C1)}, \\quad C_{2,ZI} = ${toFractionLatex(homogeneousZI.C2)}$ and $C_{1,ZS} = C_1 - C_{1,ZI} = ${toFractionLatex(homogeneousZS.C1)}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${toFractionLatex(homogeneousZS.C2)}$.`,
+					resolvedOrder === 1
+						? "Zero-State ($y_{ZS}$) is driven by $x(t)$ with $y(0^-)=0$."
+						: "Zero-State ($y_{ZS}$) is driven by $x(t)$ with $y(0^-)=y'(0^-)=0$.",
+					resolvedOrder === 1
+						? `$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$ and $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$.`
+						: `$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$, $C_{2,ZI}=${toFractionLatex(homogeneousZI.C2 ?? 0)}$, $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$, and $C_{2,ZS}=${toFractionLatex(homogeneousZS.C2 ?? 0)}$.`,
 				],
 				tr_ss: [
 					"Transient response $y_{tr}(t)$ consists of natural homogeneous modes that decay to zero as $t \\to \\infty$.",
@@ -1666,9 +1998,10 @@ export function generateOdeProblem(
 				: "medium";
 
 	return {
-		id: `ode_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-		title: "Practice Problem: 2nd-Order LCC ODE",
+		id: `ode_${seed}`,
+		title: `Practice Problem: ${resolvedOrder === 1 ? "1st" : "2nd"}-Order LCC ODE`,
 		difficulty,
+		seed,
 		params: odeParams,
 		forcing,
 		initialConditions,
