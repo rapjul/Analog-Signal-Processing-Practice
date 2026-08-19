@@ -35,10 +35,16 @@ import {
 import type { BaseItsStep, ItsOption } from "./types";
 
 /**
+ * Classification of characteristic polynomial roots for first-order differential equations.
+ */
+export type FirstOrderRootType = "single_real";
+
+/**
  * Classification of characteristic polynomial roots for second-order differential equations.
+ *
  * Dictates the functional form of the natural/homogeneous response y_h(t).
  */
-export type RootType =
+export type SecondOrderRootType =
 	/** Two distinct real roots r1 != r2, producing real exponential terms e^(r1 t) and e^(r2 t) */
 	| "distinct_real"
 	/** Repeated real root r1 = r2, producing damped terms e^(r t) and t e^(r t) */
@@ -47,7 +53,18 @@ export type RootType =
 	| "complex_conjugate";
 
 /**
+ * Combined root type classification across all ODE orders.
+ */
+export type OdeRootType = FirstOrderRootType | SecondOrderRootType;
+
+/**
+ * @deprecated Use `SecondOrderRootType` for 2nd-order or `OdeRootType` for general ODEs.
+ */
+export type RootType = SecondOrderRootType;
+
+/**
  * Forcing function x(t) input type for differential equations.
+ *
  * Dictates the undetermined coefficient form for the particular solution y_p(t).
  */
 export type ForcingType =
@@ -837,7 +854,7 @@ export function generateOdeProblem(
 		leadingCoefficient = randomChoice(random, [1, randomInt(random, 2, 4)]);
 	}
 
-	let a2 = resolvedOrder === 2 ? leadingCoefficient : 0;
+	const a2 = resolvedOrder === 2 ? leadingCoefficient : 0;
 	let a1: number;
 	let a0: number;
 	let roots: { r1: number; r2?: number; im?: number };

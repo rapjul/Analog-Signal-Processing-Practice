@@ -21,43 +21,62 @@
 		type OdeGenerationOptions,
 		type OdeOrder,
 		type ResonanceType,
-		type RootType,
+		type SecondOrderRootType,
 	} from "$lib/math-engine/odes";
 	import { createRandomSeed } from "$lib/math-engine/random";
+	import {
+		normalizeOdeFilters,
+		type OdeFilterChangeSource,
+		type OdeFilterSelections,
+		parseOdeFilters,
+		serializeOdeFilters,
+	} from "$lib/problems/ode-filters";
 
-	let selectedOrder = $state<OdeOrder | "random">("random");
-	let selectedRootType = $state<RootType | "random">("random");
-	let selectedForcingType = $state<ForcingType | "random">("random");
-	let selectedLeadingCoefficient = $state<LeadingCoefficientType | "random">(
-		"random",
+	// Parse and normalize initial filters directly from URL state (no throwaway generation)
+	const initialFilters = parseOdeFilters(page.url.searchParams);
+
+	let selectedOrder = $state<OdeOrder | "random">(initialFilters.order);
+	let selectedRootType = $state<SecondOrderRootType | "random">(
+		initialFilters.rootType,
 	);
-	let selectedResonance = $state<ResonanceType | "random">("random");
-	let seed = $state(createRandomSeed());
+	let selectedForcingType = $state<ForcingType | "random">(
+		initialFilters.forcingType,
+	);
+	let selectedLeadingCoefficient = $state<LeadingCoefficientType | "random">(
+		initialFilters.leadingCoefficient,
+	);
+	let selectedResonance = $state<ResonanceType | "random">(
+		initialFilters.resonance,
+	);
+	let seed = $state(initialFilters.seed);
 
-	const allowedOrders = new Set(["1", "2", "random"]);
-	const allowedRoots = new Set<RootType | "random">([
-		"random",
-		"distinct_real",
-		"repeated_real",
-		"complex_conjugate",
-	]);
-	const allowedForcing = new Set<ForcingType | "random">([
-		"random",
-		"constant",
-		"exponential",
-		"sinusoid",
-	]);
-	const allowedLeading = new Set<LeadingCoefficientType | "random">([
-		"random",
-		"monic",
-		"non_monic",
-	]);
-	const allowedResonance = new Set<ResonanceType | "random">([
-		"random",
-		"none",
-		"simple",
-		"repeated",
-	]);
+	/**
+	 * Extracts current filter selections as an OdeFilterSelections structure.
+	 */
+	function getFilterSelections(): OdeFilterSelections {
+		return {
+			order: selectedOrder,
+			rootType: selectedRootType,
+			forcingType: selectedForcingType,
+			leadingCoefficient: selectedLeadingCoefficient,
+			resonance: selectedResonance,
+			seed,
+		};
+	}
+
+	/**
+	 * Synchronizes local reactive state with normalized filters.
+	 *
+	 * @param filters - Normalized ODE filter selections
+	 */
+	function applyFilterSelections(filters: OdeFilterSelections): void {
+		selectedOrder = filters.order;
+		selectedRootType = filters.rootType;
+		selectedForcingType = filters.forcingType;
+		selectedLeadingCoefficient = filters.leadingCoefficient;
+		selectedResonance = filters.resonance;
+		seed = filters.seed;
+	}
 
 	function generationOptions(): OdeGenerationOptions {
 		return {
@@ -70,100 +89,22 @@
 		};
 	}
 
-	function normalizeSelections(changedControl?: string): void {
-		if (
-			changedControl === "ode-order-select" &&
-			selectedOrder === "random"
-		) {
-			selectedRootType = "random";
-		}
-		if (selectedOrder === 1) {
-			selectedRootType = "random";
-			if (selectedResonance === "repeated") selectedResonance = "simple";
-		}
-
-		if (
-			changedControl === "forcing-type-select" &&
-			selectedForcingType !== "exponential"
-		) {
-			selectedResonance = "none";
-		}
-		if (
-			changedControl === "root-type-select" &&
-			selectedRootType !== "random"
-		) {
-			selectedResonance = "none";
-		}
-		if (selectedResonance === "simple") {
-			selectedForcingType = "exponential";
-			selectedRootType = selectedOrder === 2 ? "distinct_real" : "random";
-		}
-		if (selectedResonance === "repeated") {
-			selectedOrder = 2;
-			selectedRootType = "repeated_real";
-			selectedForcingType = "exponential";
-		}
-		if (
-			(selectedResonance === "none" || selectedResonance === "random") &&
-			selectedOrder === "random" &&
-			selectedRootType !== "random"
-		) {
-			selectedOrder = 2;
-		}
-	}
-
-	// Active problem state (default blind random exam practice)
+	// Active problem state (generated once with canonical initial filters)
 	let currentProblem = $state(generateOdeProblem(generationOptions()));
-
-	onMount(() => {
-		const params = page.url.searchParams;
-		const orderParam = params.get("order");
-		const rootParam = params.get("rootType") as RootType | "random" | null;
-		const forcingParam = params.get("forcing") as
-			ForcingType | "random" | null;
-		const leadingParam = params.get("leading") as
-			LeadingCoefficientType | "random" | null;
-		const resonanceParam = params.get("resonance") as
-			ResonanceType | "random" | null;
-		const seedParam = params.get("seed");
-		if (orderParam && allowedOrders.has(orderParam)) {
-			selectedOrder =
-				orderParam === "random"
-					? "random"
-					: (Number(orderParam) as OdeOrder);
-		}
-		if (rootParam && allowedRoots.has(rootParam))
-			selectedRootType = rootParam;
-		if (forcingParam && allowedForcing.has(forcingParam))
-			selectedForcingType = forcingParam;
-		if (leadingParam && allowedLeading.has(leadingParam))
-			selectedLeadingCoefficient = leadingParam;
-		if (resonanceParam && allowedResonance.has(resonanceParam))
-			selectedResonance = resonanceParam;
-		if (seedParam && /^\d{1,10}$/.test(seedParam)) {
-			const parsedSeed = Number(seedParam);
-			if (Number.isSafeInteger(parsedSeed) && parsedSeed <= 0xffff_ffff) {
-				seed = parsedSeed;
-			}
-		}
-		normalizeSelections();
-		currentProblem = generateOdeProblem(generationOptions());
-		// SvelteKit initializes its router immediately after component mount.
-		// Defer normalization by one task so router-level replaceState is safe.
-		window.setTimeout(syncShareableUrl, 0);
-	});
 
 	function syncShareableUrl(): void {
 		if (typeof window === "undefined") return;
-		const url = new URL(window.location.href);
-		url.searchParams.set("order", String(selectedOrder));
-		url.searchParams.set("rootType", selectedRootType);
-		url.searchParams.set("forcing", selectedForcingType);
-		url.searchParams.set("leading", selectedLeadingCoefficient);
-		url.searchParams.set("resonance", selectedResonance);
-		url.searchParams.set("seed", String(seed));
-		replaceState(`${url.pathname}${url.search}${url.hash}`, page.state);
+		const params = serializeOdeFilters(getFilterSelections());
+		replaceState(
+			`${window.location.pathname}?${params.toString()}${window.location.hash}`,
+			page.state,
+		);
 	}
+
+	onMount(() => {
+		// Sync canonical normalized query parameters on initial page load without adding history
+		window.setTimeout(syncShareableUrl, 0);
+	});
 
 	/**
 	 * Regenerates a new ODE problem using current selected options.
@@ -176,9 +117,17 @@
 
 	/**
 	 * Handles changes to root or forcing function selectors.
+	 *
+	 * @param event - DOM change event from filter select elements
 	 */
 	function handleOptionChange(event: Event) {
-		normalizeSelections((event.currentTarget as HTMLSelectElement).id);
+		const changeSource = (event.currentTarget as HTMLSelectElement)
+			.id as OdeFilterChangeSource;
+		const normalized = normalizeOdeFilters(
+			getFilterSelections(),
+			changeSource,
+		);
+		applyFilterSelections(normalized);
 		handleGenerateNext();
 	}
 </script>

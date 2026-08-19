@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { approximatelyEqual } from "$lib/math-engine/numeric";
 import {
 	computeParticularSolution,
 	type ForcingType,
@@ -7,7 +8,6 @@ import {
 	solveCharacteristicEquation,
 	solveHomogeneousConstants,
 } from "$lib/math-engine/odes";
-import { approximatelyEqual } from "$lib/math-engine/numeric";
 
 function generateSecondOrderProblem(
 	rootType: RootType | "random",
