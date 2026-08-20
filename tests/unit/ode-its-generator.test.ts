@@ -6,6 +6,13 @@ import {
 	type WithRandom,
 } from "../../src/lib/math-engine/odes/index";
 
+/**
+ * Helper to generate second-order ODE problem for ITS generator tests.
+ *
+ * @param {WithRandom<SecondOrderRootType>} rootType Target root type configuration
+ * @param {WithRandom<ForcingType>} [forcingType="random"] Target forcing function configuration
+ * @returns Generated second-order ODE problem
+ */
 function generateSecondOrderProblem(
 	rootType: WithRandom<SecondOrderRootType>,
 	forcingType: WithRandom<ForcingType> = "random",
@@ -20,6 +27,9 @@ function generateSecondOrderProblem(
 }
 
 describe("Linear ODE ITS Step Generator Engine", () => {
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for distinct real roots with constant forcing.
+	 */
 	it("generates valid 7-step ITS data for distinct real roots with constant forcing", () => {
 		const problem = generateSecondOrderProblem("distinct_real", "constant");
 
@@ -83,6 +93,9 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		).toBeGreaterThan(10);
 	});
 
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for complex conjugate roots with sinusoidal forcing.
+	 */
 	it("generates valid 7-step ITS data for complex conjugate roots with sinusoidal forcing", () => {
 		const problem = generateSecondOrderProblem(
 			"complex_conjugate",
@@ -114,8 +127,42 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		// Step 7
 		expect(problem.itsData.step7.ziConstants).toBeDefined();
 		expect(problem.itsData.step7.zsConstants).toBeDefined();
+		expect(problem.itsData.step7.ziSystemLatex).toContain("C_{1,ZI}");
 		expect(
 			problem.itsData.step7.conceptQuestion.options.length,
 		).toBeGreaterThanOrEqual(2);
+	});
+
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for repeated real roots.
+	 */
+	it("generates valid 7-step ITS data for repeated real roots", () => {
+		const problem = generateSecondOrderProblem(
+			"repeated_real",
+			"exponential",
+		);
+
+		expect(problem.itsData.step2.rootType).toBe("repeated_real");
+		expect(problem.itsData.step3.correctTemplate).toBe("repeated_real");
+		expect(problem.itsData.step7.ziSystemLatex).toContain("C_{2,ZI}");
+	});
+
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for first-order ODEs.
+	 */
+	it("generates valid ITS scaffolding data for first-order ODEs", () => {
+		const problem = generateOdeProblem({
+			order: 1,
+			rootType: "random",
+			forcingType: "constant",
+			seed: 555,
+		});
+
+		expect(problem.itsData.step1.expectedA2).toBe(0);
+		expect(problem.itsData.step1.expectedA1).toBe(problem.params.a1);
+		expect(problem.itsData.step2.rootType).toBe("single_real");
+		expect(problem.itsData.step3.correctTemplate).toBe("single_real");
+		expect(problem.itsData.step6.expectedC1).toBeDefined();
+		expect(problem.itsData.step7.ziConstants.C1).toBeDefined();
 	});
 });

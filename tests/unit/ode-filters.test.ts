@@ -211,6 +211,18 @@ describe("ode-filters module", () => {
 
 			expect(result).toEqual(input);
 		});
+
+		it("throws an error when an unhandled change source is provided", () => {
+			const input: OdeFilterSelections = { ...defaultFilters };
+			expect(() =>
+				normalizeOdeFilters(
+					input,
+					"invalid-change-source" as unknown as "ode-order-select",
+				),
+			).toThrow(
+				"Unhandled ODE filter change source: invalid-change-source",
+			);
+		});
 	});
 
 	describe("parseOdeFilters", () => {
