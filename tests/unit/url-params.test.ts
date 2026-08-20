@@ -237,6 +237,16 @@ describe("url-params utility", () => {
 				expect(result.isFallback).toBe(true);
 			}
 		});
+
+		it("generates default random seed fallback when options argument is omitted", () => {
+			const params = new URLSearchParams("");
+			const result = parseSafeSeedParam(params);
+
+			expect(result.isFallback).toBe(true);
+			expect(result.rawValue).toBeNull();
+			expect(result.value).toBeGreaterThanOrEqual(0);
+			expect(result.value).toBeLessThanOrEqual(4294967295);
+		});
 	});
 
 	describe("parseIntegerParam", () => {
@@ -294,9 +304,44 @@ describe("url-params utility", () => {
 			expect(result.value).toBe(20);
 			expect(result.isFallback).toBe(true);
 		});
+
+		it("falls back when integer parameter key is missing", () => {
+			const params = new URLSearchParams("");
+			const result = parseIntegerParam(params, {
+				key: "val",
+				fallback: 30,
+			});
+
+			expect(result.value).toBe(30);
+			expect(result.isFallback).toBe(true);
+			expect(result.rawValue).toBeNull();
+		});
+
+		it("falls back when integer exceeds safe integer bounds", () => {
+			const params = new URLSearchParams("val=9007199254740992999");
+			const result = parseIntegerParam(params, {
+				key: "val",
+				fallback: 40,
+			});
+
+			expect(result.value).toBe(40);
+			expect(result.isFallback).toBe(true);
+		});
 	});
 
 	describe("parseBooleanParam", () => {
+		it("falls back when boolean parameter key is missing", () => {
+			const params = new URLSearchParams("");
+			const result = parseBooleanParam(params, {
+				key: "flag",
+				fallback: true,
+			});
+
+			expect(result.value).toBe(true);
+			expect(result.isFallback).toBe(true);
+			expect(result.rawValue).toBeNull();
+		});
+
 		it("parses truthy values correctly", () => {
 			for (const val of ["true", "1", "yes", "on", "TRUE", "Yes"]) {
 				const params = new URLSearchParams(`flag=${val}`);

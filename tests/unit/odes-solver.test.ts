@@ -31,6 +31,19 @@ describe("LCC ODE Analytical Math Engine", () => {
 		});
 
 		/**
+		 * Verifies default parameter handling in characteristic equation overloads.
+		 */
+		it("handles default coefficient parameters when a2 is omitted in second-order object", () => {
+			const defaultA2 = solveCharacteristicEquation({
+				order: 2,
+				a1: 4,
+				a0: 4,
+			});
+			expect(defaultA2.a2).toBe(1);
+			expect(defaultA2.rootType).toBe("repeated_real");
+		});
+
+		/**
 		 * Verifies distinct real roots for second-order characteristic equations.
 		 */
 		it("solves distinct real roots s^2 + 5s + 6 = 0", () => {
@@ -386,6 +399,7 @@ describe("LCC ODE Analytical Math Engine", () => {
 			expect(sol.C1).toBe(2);
 			expect(sol.C2).toBe(1);
 			expect(sol.eval(0)).toBe(3);
+			expect(sol.eval(1)).toBeCloseTo(2 * Math.exp(-2) + Math.exp(-3));
 			expect(sol.latex).toContain("2 e^{-2t}");
 			expect(sol.latex).toContain("e^{-3t}");
 		});
@@ -408,6 +422,7 @@ describe("LCC ODE Analytical Math Engine", () => {
 			expect(sol.C1).toBe(4);
 			expect(sol.C2).toBe(3);
 			expect(sol.eval(0)).toBe(4);
+			expect(sol.eval(1)).toBeCloseTo(7 * Math.exp(-2));
 			expect(sol.latex).toBe("(4 + 3t) e^{-2t}");
 		});
 
@@ -429,6 +444,9 @@ describe("LCC ODE Analytical Math Engine", () => {
 			expect(sol.C1).toBe(2);
 			expect(sol.C2).toBe(3);
 			expect(sol.eval(0)).toBe(2);
+			expect(sol.eval(1)).toBeCloseTo(
+				Math.exp(-1) * (2 * Math.cos(2) + 3 * Math.sin(2)),
+			);
 			expect(sol.latex).toBe("e^{-t} [2 \\cos(2t) + 3 \\sin(2t)]");
 		});
 	});

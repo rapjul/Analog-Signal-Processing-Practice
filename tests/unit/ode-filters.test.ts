@@ -155,6 +155,30 @@ describe("ode-filters module", () => {
 			expect(result.resonance).toBe("none");
 		});
 
+		it("clamps repeated resonance on first order during interactive change source", () => {
+			const input: OdeFilterSelections = {
+				...defaultFilters,
+				order: 1,
+				resonance: "repeated",
+			};
+			const result = normalizeOdeFilters(input, "ode-order-select");
+
+			expect(result.order).toBe(1);
+			expect(result.resonance).toBe("simple");
+		});
+
+		it("forces order 2 when non-random rootType is preserved with random order across change sources", () => {
+			const input: OdeFilterSelections = {
+				...defaultFilters,
+				order: "random",
+				rootType: "complex_conjugate",
+			};
+			const result = normalizeOdeFilters(input, "forcing-type-select");
+
+			expect(result.order).toBe(2);
+			expect(result.rootType).toBe("complex_conjugate");
+		});
+
 		it("handles forcing type change to non-exponential", () => {
 			const input: OdeFilterSelections = {
 				...defaultFilters,
@@ -200,16 +224,32 @@ describe("ode-filters module", () => {
 
 		it("leading coefficient change leaves other filters untouched", () => {
 			const input: OdeFilterSelections = {
+				...defaultFilters,
 				order: 2,
-				rootType: "repeated_real",
+				rootType: "distinct_real",
 				forcingType: "exponential",
 				leadingCoefficient: "non_monic",
-				resonance: "repeated",
-				seed: 1234,
+				resonance: "simple",
 			};
 			const result = normalizeOdeFilters(input, "leading-coeff-select");
 
-			expect(result).toEqual(input);
+			expect(result.leadingCoefficient).toBe("non_monic");
+			expect(result.order).toBe(2);
+			expect(result.resonance).toBe("simple");
+		});
+
+		it("clamps repeated resonance on first order during leading coefficient change source", () => {
+			const input: OdeFilterSelections = {
+				...defaultFilters,
+				order: 1,
+				resonance: "repeated",
+				leadingCoefficient: "non_monic",
+			};
+			const result = normalizeOdeFilters(input, "leading-coeff-select");
+
+			expect(result.order).toBe(1);
+			expect(result.resonance).toBe("simple");
+			expect(result.leadingCoefficient).toBe("non_monic");
 		});
 
 		it("throws an error when an unhandled change source is provided", () => {

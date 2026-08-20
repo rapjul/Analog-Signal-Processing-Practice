@@ -244,4 +244,183 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		expect(problem.itsData.step7.subStepHints?.zi_zs?.length).toBe(3);
 		expect(problem.itsData.step7.subStepHints?.tr_ss?.length).toBe(3);
 	});
+
+	describe("Defensive Scaffolding Error Handling", () => {
+		/**
+		 * Verifies defensive error throwing for unhandled root types in Step 3 scaffolding builder.
+		 */
+		it("throws an error when an unhandled root type is passed to buildStep3Data", async () => {
+			const { buildStep3Data } =
+				await import("../../src/lib/math-engine/odes/its-scaffolding/step3-homogeneous");
+			expect(() =>
+				buildStep3Data({
+					resolvedOrder: 2,
+					resolvedRootType:
+						"invalid_type" as unknown as "distinct_real",
+					roots: { r1: -1, r2: -2 },
+				}),
+			).toThrow("Unhandled target root type: invalid_type");
+		});
+
+		/**
+		 * Verifies defensive error throwing for unhandled forcing types in Step 4 scaffolding builder.
+		 */
+		it("throws an error when an unhandled forcing type is passed to buildStep4Data", async () => {
+			const { buildStep4Data } =
+				await import("../../src/lib/math-engine/odes/its-scaffolding/step4-ansatz");
+			expect(() =>
+				buildStep4Data({
+					forcing: {
+						type: "unknown_forcing" as unknown as "constant",
+						K: 5,
+						latex: "5",
+					},
+					particular: {
+						formDescription: "",
+						latex: "",
+						eval: () => 0,
+						evalDeriv: () => 0,
+						coeffs: {},
+						resonanceMultiplicity: 0,
+					},
+				}),
+			).toThrow(
+				"Unhandled forcing type for Step 4 options: unknown_forcing",
+			);
+		});
+
+		/**
+		 * Verifies fallback branches in Step 6 and Step 7 scaffolding builders when optional fields are omitted.
+		 */
+		it("safely handles omitted optional fields in buildStep6Data and buildStep7Data", async () => {
+			const { buildStep6Data } =
+				await import("../../src/lib/math-engine/odes/its-scaffolding/step6-initial-conditions");
+			const { buildStep7Data } =
+				await import("../../src/lib/math-engine/odes/its-scaffolding/step7-decomposition");
+
+			// Test distinct real with omitted r2 and omitted homogeneousComplete.C2
+			const s6Distinct = buildStep6Data({
+				resolvedOrder: 2,
+				resolvedRootType: "distinct_real",
+				roots: { r1: -2 },
+				targetYh0: 3,
+				targetDYh0: -5,
+				initialConditions: { y0: 3, dy0: -5 },
+				particular: {
+					formDescription: "",
+					latex: "",
+					eval: () => 0,
+					evalDeriv: () => 0,
+					coeffs: {},
+					resonanceMultiplicity: 0,
+				},
+				homogeneousComplete: {
+					latex: "",
+					C1: 2,
+					eval: () => 0,
+				},
+			});
+			expect(s6Distinct.step6Data.expectedC2).toBe(0);
+
+			// Test complex conjugate with omitted im
+			const s6Complex = buildStep6Data({
+				resolvedOrder: 2,
+				resolvedRootType: "complex_conjugate",
+				roots: { r1: -1 },
+				targetYh0: 2,
+				targetDYh0: 4,
+				initialConditions: { y0: 2, dy0: 4 },
+				particular: {
+					formDescription: "",
+					latex: "",
+					eval: () => 0,
+					evalDeriv: () => 0,
+					coeffs: {},
+					resonanceMultiplicity: 0,
+				},
+				homogeneousComplete: {
+					latex: "",
+					C1: 2,
+					C2: 3,
+					eval: () => 0,
+				},
+			});
+			expect(s6Complex.icSystemLatex).toBeDefined();
+
+			// Test Step 7 distinct real with omitted r2 and dy0
+			const s7Distinct = buildStep7Data({
+				resolvedOrder: 2,
+				resolvedRootType: "distinct_real",
+				roots: { r1: -2 },
+				initialConditions: { y0: 3 },
+				particular: {
+					formDescription: "",
+					latex: "2",
+					eval: () => 2,
+					evalDeriv: () => 0,
+					coeffs: { Kp: 2 },
+					resonanceMultiplicity: 0,
+				},
+				homogeneousComplete: { latex: "", C1: 2, eval: () => 0 },
+				homogeneousZI: { latex: "", C1: 3, eval: () => 0 },
+				homogeneousZS: { latex: "", C1: -1, eval: () => 0 },
+				ziLatex: "3 e^{-2t}",
+				zsLatex: "-e^{-2t} + 2",
+				y_tr_latex: "2 e^{-2t}",
+				y_ss_latex: "2",
+				random: () => 0.5,
+			});
+			expect(s7Distinct.step7Data.expectedZI).toBe("3 e^{-2t}");
+
+			// Test Step 7 repeated real with omitted dy0
+			const s7Repeated = buildStep7Data({
+				resolvedOrder: 2,
+				resolvedRootType: "repeated_real",
+				roots: { r1: -2 },
+				initialConditions: { y0: 3 },
+				particular: {
+					formDescription: "",
+					latex: "2",
+					eval: () => 2,
+					evalDeriv: () => 0,
+					coeffs: { Kp: 2 },
+					resonanceMultiplicity: 0,
+				},
+				homogeneousComplete: { latex: "", C1: 2, eval: () => 0 },
+				homogeneousZI: { latex: "", C1: 3, eval: () => 0 },
+				homogeneousZS: { latex: "", C1: -1, eval: () => 0 },
+				ziLatex: "(3 + t) e^{-2t}",
+				zsLatex: "(-1) e^{-2t} + 2",
+				y_tr_latex: "2 e^{-2t}",
+				y_ss_latex: "2",
+				random: () => 0.5,
+			});
+			expect(s7Repeated.step7Data.expectedZI).toBe("(3 + t) e^{-2t}");
+
+			// Test Step 7 complex conjugate with omitted im and dy0
+			const s7Complex = buildStep7Data({
+				resolvedOrder: 2,
+				resolvedRootType: "complex_conjugate",
+				roots: { r1: -1 },
+				initialConditions: { y0: 2 },
+				particular: {
+					formDescription: "",
+					latex: "2",
+					eval: () => 2,
+					evalDeriv: () => 0,
+					coeffs: { Kp: 2 },
+					resonanceMultiplicity: 0,
+				},
+				homogeneousComplete: { latex: "", C1: 2, eval: () => 0 },
+				homogeneousZI: { latex: "", C1: 2, eval: () => 0 },
+				homogeneousZS: { latex: "", C1: 0, eval: () => 0 },
+				ziLatex: "2 e^{-t} \\cos(t)",
+				zsLatex: "2",
+				y_tr_latex: "2 e^{-t} \\cos(t)",
+				y_ss_latex: "2",
+				random: () => 0.5,
+			});
+			expect(s7Complex.step7Data.expectedZI).toBe("2 e^{-t} \\cos(t)");
+		});
+	});
 });

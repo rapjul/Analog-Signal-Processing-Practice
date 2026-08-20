@@ -202,5 +202,46 @@ describe("LCC ODE Problem Generator", () => {
 			expect(problem.params.rootType).toBe("complex_conjugate");
 			expect(problem.params.roots.im).toBeGreaterThan(0);
 		});
+
+		/**
+		 * Verifies order clamping when repeated resonance is requested for first-order or random order.
+		 */
+		it("clamps repeated resonance on first-order problems to simple resonance", () => {
+			const p1 = generateOdeProblem({
+				order: 1,
+				resonance: "repeated",
+				seed: 123,
+			});
+			expect(p1.params.order).toBe(1);
+			expect(p1.forcing.type).toBe("exponential");
+
+			const p2 = generateOdeProblem({
+				order: "random",
+				resonance: "repeated",
+				seed: 456,
+			});
+			expect(p2.params.order).toBe(2);
+			expect(p2.params.rootType).toBe("repeated_real");
+		});
+
+		/**
+		 * Verifies boolean and alias options for resonance in problem generation.
+		 */
+		it("handles boolean and alias strings for resonance correctly", () => {
+			const resonantProblem = generateOdeProblem({
+				order: 2,
+				resonance: true,
+				seed: 789,
+			});
+			expect(resonantProblem.forcing.type).toBe("exponential");
+
+			const nonResonantProblem = generateOdeProblem({
+				order: 2,
+				resonance: "nonresonant",
+				forcingType: "constant",
+				seed: 789,
+			});
+			expect(nonResonantProblem.forcing.type).toBe("constant");
+		});
 	});
 });
