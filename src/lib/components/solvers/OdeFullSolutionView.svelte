@@ -10,7 +10,7 @@
 	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import { toFractionLatex } from "$lib/math-engine/fraction";
-	import type { OdeProblem } from "$lib/math-engine/odes";
+	import type { OdeProblem } from "$lib/math-engine/odes/index";
 
 	interface Props {
 		/** Completed ODE problem instance */

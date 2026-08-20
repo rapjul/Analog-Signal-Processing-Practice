@@ -3,6 +3,7 @@
 	 * StepCard Svelte 5 Component.
 	 *
 	 * Reusable container card for a single ITS solver step.
+	 *
 	 * Encapsulates step badge, title (rendered via MathText), collapsed/completed
 	 * summary display, and active step body content via the children snippet.
 	 *
@@ -18,6 +19,8 @@
 	interface Props {
 		/** 1-based index of this step within the solver. */
 		stepNumber: number;
+		/** Custom badge label text (defaults to `Step ${stepNumber}`). */
+		badgeText?: string;
 		/** Step title, may contain $math$ expressions rendered via MathText. */
 		title: string;
 		/** Visual and interaction state of this step card. */
@@ -35,15 +38,19 @@
 		 * Takes precedence over summaryLatex when both are provided.
 		 */
 		summarySnippet?: Snippet;
+		/** Optional snippet rendered alongside the step header (e.g. PartProgressPill). */
+		headerExtra?: Snippet;
 	}
 
 	let {
 		stepNumber,
+		badgeText = `Step ${stepNumber}`,
 		title,
 		status,
 		summaryLatex,
 		children,
 		summarySnippet,
+		headerExtra,
 	}: Props = $props();
 </script>
 
@@ -59,11 +66,14 @@
 			class="step-badge"
 			aria-hidden="true"
 		>
-			Step {stepNumber}
+			{badgeText}
 		</div>
 		<h3 class="step-title">
 			<MathText text={title} />
 		</h3>
+		{#if headerExtra}
+			{@render headerExtra()}
+		{/if}
 	</div>
 
 	<!-- ── Body: Active step content ── -->

@@ -6,7 +6,7 @@
 	 * stepped solver, and deferred post-solve completion visualizer (WaveformCanvas).
 	 */
 
-	import type { OdeProblem } from "$lib/math-engine/odes";
+	import type { OdeProblem } from "$lib/math-engine/odes/index";
 	import WaveformCanvas from "../canvas/WaveformCanvas.svelte";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
