@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
 	type ForcingType,
 	generateOdeProblem,
-	type RootType,
-} from "../../src/lib/math-engine/odes";
+	type SecondOrderRootType,
+	type WithRandom,
+} from "../../src/lib/math-engine/odes/index";
 
 function generateSecondOrderProblem(
-	rootType: RootType | "random",
-	forcingType: ForcingType | "random" = "random",
+	rootType: WithRandom<SecondOrderRootType>,
+	forcingType: WithRandom<ForcingType> = "random",
 ) {
 	return generateOdeProblem({
 		order: 2,

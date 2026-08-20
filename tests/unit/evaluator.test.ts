@@ -68,13 +68,10 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 		});
 
 		it("evaluates expressions containing unit step functions u(t)", () => {
-			const val = evaluateLatexAt(String.raw`5 e^{-t} u(t)`, 1);
+			const val = evaluateLatexAt("5 e^{-t} u(t)", 1);
 			expect(val).toBeCloseTo(5 * Math.exp(-1), 4);
 
-			const shiftedVal = evaluateLatexAt(
-				String.raw`3 e^{-2(t-1)} u(t-1)`,
-				2,
-			);
+			const shiftedVal = evaluateLatexAt("3 e^{-2(t-1)} u(t-1)", 2);
 			expect(shiftedVal).toBeCloseTo(3 * Math.exp(-2), 4);
 		});
 
@@ -126,7 +123,7 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 
 		it("evaluates absolute value expressions (Abs AST operator)", () => {
 			// |t - 5| at t = 2 -> 3
-			const absVal = evaluateLatexAt(String.raw`|t - 5|`, 2);
+			const absVal = evaluateLatexAt("|t - 5|", 2);
 			expect(absVal).toBeCloseTo(3, 5);
 
 			const absLatexVal = evaluateLatexAt(

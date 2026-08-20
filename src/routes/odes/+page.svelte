@@ -22,7 +22,8 @@
 		type OdeOrder,
 		type ResonanceType,
 		type SecondOrderRootType,
-	} from "$lib/math-engine/odes";
+		type WithRandom,
+	} from "$lib/math-engine/odes/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
 	import {
 		normalizeOdeFilters,
@@ -35,17 +36,17 @@
 	// Parse and normalize initial filters directly from URL state (no throwaway generation)
 	const initialFilters = parseOdeFilters(page.url.searchParams);
 
-	let selectedOrder = $state<OdeOrder | "random">(initialFilters.order);
-	let selectedRootType = $state<SecondOrderRootType | "random">(
+	let selectedOrder = $state<WithRandom<OdeOrder>>(initialFilters.order);
+	let selectedRootType = $state<WithRandom<SecondOrderRootType>>(
 		initialFilters.rootType,
 	);
-	let selectedForcingType = $state<ForcingType | "random">(
+	let selectedForcingType = $state<WithRandom<ForcingType>>(
 		initialFilters.forcingType,
 	);
-	let selectedLeadingCoefficient = $state<LeadingCoefficientType | "random">(
+	let selectedLeadingCoefficient = $state<WithRandom<LeadingCoefficientType>>(
 		initialFilters.leadingCoefficient,
 	);
-	let selectedResonance = $state<ResonanceType | "random">(
+	let selectedResonance = $state<WithRandom<ResonanceType>>(
 		initialFilters.resonance,
 	);
 	let seed = $state(initialFilters.seed);

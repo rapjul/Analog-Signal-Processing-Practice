@@ -11,7 +11,8 @@ import type {
 	OdeOrder,
 	ResonanceType,
 	SecondOrderRootType,
-} from "../math-engine/odes";
+	WithRandom,
+} from "../math-engine/odes/index";
 import { createRandomSeed } from "../math-engine/random";
 import { parseEnumParam, parseSafeSeedParam } from "./url-params";
 
@@ -20,15 +21,15 @@ import { parseEnumParam, parseSafeSeedParam } from "./url-params";
  */
 export interface OdeFilterSelections {
 	/** ODE differential order constraint (1st order, 2nd order, or random) */
-	order: OdeOrder | "random";
+	order: WithRandom<OdeOrder>;
 	/** Second-order root classification constraint (distinct, repeated, complex, or random) */
-	rootType: SecondOrderRootType | "random";
+	rootType: WithRandom<SecondOrderRootType>;
 	/** Forcing function type constraint (constant, exponential, sinusoid, or random) */
-	forcingType: ForcingType | "random";
+	forcingType: WithRandom<ForcingType>;
 	/** Leading coefficient type constraint (monic, non-monic, or random) */
-	leadingCoefficient: LeadingCoefficientType | "random";
+	leadingCoefficient: WithRandom<LeadingCoefficientType>;
 	/** Resonance mode constraint (none, simple, repeated, or random) */
-	resonance: ResonanceType | "random";
+	resonance: WithRandom<ResonanceType>;
 	/** Unsigned 32-bit integer seed for deterministic problem reproducibility */
 	seed: number;
 }
@@ -44,24 +45,33 @@ export type OdeFilterChangeSource =
 	| "leading-coefficient-select"
 	| "resonance-select";
 
+/** Allowed URL and UI selection values for ODE differential order */
 export const ALLOWED_ODE_ORDERS = ["1", "2", "random"] as const;
+
+/** Allowed URL and UI selection values for characteristic root classification */
 export const ALLOWED_ODE_ROOT_TYPES = [
 	"random",
 	"distinct_real",
 	"repeated_real",
 	"complex_conjugate",
 ] as const;
+
+/** Allowed URL and UI selection values for forcing function shape */
 export const ALLOWED_ODE_FORCING_TYPES = [
 	"random",
 	"constant",
 	"exponential",
 	"sinusoid",
 ] as const;
+
+/** Allowed URL and UI selection values for leading coefficient normalization */
 export const ALLOWED_ODE_LEADING_TYPES = [
 	"random",
 	"monic",
 	"non_monic",
 ] as const;
+
+/** Allowed URL and UI selection values for system resonance modes */
 export const ALLOWED_ODE_RESONANCE_TYPES = [
 	"random",
 	"none",
@@ -72,9 +82,10 @@ export const ALLOWED_ODE_RESONANCE_TYPES = [
 /**
  * Normalizes filter selections according to domain precedence rules.
  *
- * When `changeSource` is supplied (interactive UI edits), the user's latest selection
+ * When `changeSource` is **supplied** (interactive UI edits), the user's latest selection
  * takes precedence and cascades adjustments to dependent filters.
- * When `changeSource` is undefined (URL parsing or batch initialization), fixed
+ *
+ * When `changeSource` is **undefined** (URL parsing or batch initialization), fixed
  * deterministic precedence resolves conflicts.
  *
  * @param filters - Raw or partially normalized filter selections
@@ -219,7 +230,7 @@ export function parseOdeFilters(
 		fallback: "random",
 	}).value;
 
-	const order: OdeOrder | "random" =
+	const order: WithRandom<OdeOrder> =
 		parsedOrderRaw === "random"
 			? "random"
 			: (Number(parsedOrderRaw) as OdeOrder);

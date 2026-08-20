@@ -4,14 +4,15 @@ import {
 	computeParticularSolution,
 	type ForcingType,
 	generateOdeProblem,
-	type RootType,
+	type SecondOrderRootType,
 	solveCharacteristicEquation,
 	solveHomogeneousConstants,
-} from "$lib/math-engine/odes";
+	type WithRandom,
+} from "$lib/math-engine/odes/index";
 
 function generateSecondOrderProblem(
-	rootType: RootType | "random",
-	forcingType: ForcingType | "random" = "random",
+	rootType: WithRandom<SecondOrderRootType>,
+	forcingType: WithRandom<ForcingType> = "random",
 ) {
 	return generateOdeProblem({
 		order: 2,
@@ -567,6 +568,25 @@ describe("LCC ODE Math Engine", () => {
 			expect(approximatelyEqual(0.00051, 0)).toBe(false);
 			expect(approximatelyEqual(10_001, 10_000)).toBe(true);
 			expect(approximatelyEqual(10_001.01, 10_000)).toBe(false);
+		});
+	});
+
+	describe("WithRandom<T> Generation Options", () => {
+		it("accepts 'random' as a valid option value for all parametric dimensions", () => {
+			const problem = generateOdeProblem({
+				order: "random",
+				rootType: "random",
+				forcingType: "random",
+				leadingCoefficient: "random",
+				resonance: "random",
+				seed: 12345,
+			});
+
+			expect(problem).toBeDefined();
+			expect([1, 2]).toContain(problem.params.order);
+			expect(["constant", "exponential", "sinusoid"]).toContain(
+				problem.forcing.type,
+			);
 		});
 	});
 });
