@@ -92,3 +92,27 @@ function synthesizeLatex(): string {
     	}
     }
     ```
+
+## 6. Git Commit Messages & Scope Taxonomy
+
+Follow the Conventional Commits standard (`<type>(<scope>): <subject>`) with bulleted functional descriptions.
+
+### Standard Scope Taxonomy
+
+Always use hierarchical, unambiguous domain scopes:
+
+| Scope                       | Scope Target / Domain                                                          | Example                                                              |
+| :-------------------------- | :----------------------------------------------------------------------------- | :------------------------------------------------------------------- |
+| `solvers`                   | Base solvers, shared feedback components, step harnesses                       | `feat(solvers): extract step feedback state machine`                 |
+| `solvers/ode`               | Linear Constant-Coefficient ODE solvers & generators                           | `feat(solvers/ode): add zero-state response breakdown`               |
+| `solvers/fourier-series`    | Trigonometric & exponential Fourier series solvers                             | `feat(solvers/fourier-series): calculate trigonometric coefficients` |
+| `solvers/fourier-transform` | Continuous-Time Fourier Transform (CTFT) solvers                               | `feat(solvers/fourier-transform): add duality transform steps`       |
+| `solvers/laplace`           | Laplace Transform ($s$-domain), ROC, and PFD                                   | `feat(solvers/laplace): compute partial fraction decomposition`      |
+| `solvers/convolution`       | Continuous-time graphical & analytical convolution                             | `feat(solvers/convolution): animate flip-and-shift integration`      |
+| `solvers/circuits`          | Circuit analysis ($s$-domain impedance, RLC transfer)                          | `feat(solvers/circuits): calculate second-order damping ratio`       |
+| `math-engine`               | Shared mathematical bedrock (`evaluator`, `complex`, `fraction`, `formatting`) | `feat(math-engine): enhance LaTeX expression normalization`          |
+| `ui`                        | Shared UI layout, routes, cards (`PageLayout`, `DrillPanel`)                   | `feat(ui): add progressive disclosure sub-step views`                |
+| `ui/nav`                    | Navigation headers, drawer menus, route link orders                            | `refactor(ui/nav): reorder module progression`                       |
+| `ui/math-input`             | Interactive math inputs, phasor inputs, LaTeX editors                          | `feat(ui/math-input): support fractional LaTeX parsing`              |
+| `ui/canvas`                 | HTML5 Canvas visualizers, waveforms, pole-zero graphs                          | `feat(ui/canvas): add high-DPI retina rendering mode`                |
+| `docs/adr`                  | Architectural Decision Records in `docs/adrs/`                                 | `docs(adr): record reactive solver architecture`                     |
