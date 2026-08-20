@@ -58,6 +58,31 @@ describe("MathBlock.svelte Component", () => {
 		expect(katex).toBeTruthy();
 	});
 
+	it("does not doubly wrap environments if already wrapped", () => {
+		const { container } = render(MathBlock, {
+			props: {
+				math: "\\begin{aligned}\nx &= 1\n\\end{aligned}",
+				aligned: true,
+			},
+		});
+
+		const katex = container.querySelector(".katex-display");
+		expect(katex).toBeTruthy();
+	});
+
+	it("supports pmatrix, matrix, and responsive formatting options", () => {
+		const { container } = render(MathBlock, {
+			props: {
+				math: "1 & 0 \\\\\n0 & 1",
+				matrix: "pmatrix",
+				responsive: true,
+			},
+		});
+
+		const block = container.querySelector(".math-block");
+		expect(block?.classList.contains("math-block-responsive")).toBe(true);
+	});
+
 	it("wraps matrix expressions in bmatrix environment when matrix prop is specified", () => {
 		const { container } = render(MathBlock, {
 			props: {
