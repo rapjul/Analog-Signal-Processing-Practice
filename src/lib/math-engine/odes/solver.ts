@@ -184,7 +184,14 @@ export function computeParticularSolution(
 				const Kp = K / denom;
 				return {
 					formDescription: "y_p(t) = K_p e^{p t}",
-					latex: `${toFractionLatex(Kp)} e^{${p} t}`,
+					latex:
+						sanitizeLatexMath(
+							formatSignedLinearTerm(
+								toFractionLatex(Kp),
+								formatExpTerm(p),
+								true,
+							),
+						) || "0",
 					eval: (t: number) => Kp * Math.exp(p * t),
 					evalDeriv: (t: number) => Kp * p * Math.exp(p * t),
 					coeffs: { Kp },
@@ -197,7 +204,14 @@ export function computeParticularSolution(
 				const Kp = K / denom;
 				return {
 					formDescription: "y_p(t) = K_p t e^{p t}",
-					latex: `${toFractionLatex(Kp)} t e^{${p} t}`,
+					latex:
+						sanitizeLatexMath(
+							formatSignedLinearTerm(
+								toFractionLatex(Kp),
+								`t ${formatExpTerm(p)}`,
+								true,
+							),
+						) || "0",
 					eval: (t: number) => Kp * t * Math.exp(p * t),
 					evalDeriv: (t: number) =>
 						Kp * (1 + p * t) * Math.exp(p * t),
@@ -209,7 +223,14 @@ export function computeParticularSolution(
 			const Kp = K / (2 * a2);
 			return {
 				formDescription: "y_p(t) = K_p t^2 e^{p t}",
-				latex: `${toFractionLatex(Kp)} t^2 e^{${p} t}`,
+				latex:
+					sanitizeLatexMath(
+						formatSignedLinearTerm(
+							toFractionLatex(Kp),
+							`t^2 ${formatExpTerm(p)}`,
+							true,
+						),
+					) || "0",
 				eval: (t: number) => Kp * t * t * Math.exp(p * t),
 				evalDeriv: (t: number) =>
 					Kp * (2 * t + p * t * t) * Math.exp(p * t),
@@ -246,7 +267,14 @@ export function computeParticularSolution(
 				return {
 					formDescription:
 						"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
-					latex: `${toFractionLatex(B)} t \\sin(${w}t)`,
+					latex:
+						sanitizeLatexMath(
+							formatSignedLinearTerm(
+								toFractionLatex(B),
+								`t \\sin(${w}t)`,
+								true,
+							),
+						) || "0",
 					eval: (t: number) => B * t * Math.sin(w * t),
 					evalDeriv: (t: number) =>
 						B * (Math.sin(w * t) + w * t * Math.cos(w * t)),

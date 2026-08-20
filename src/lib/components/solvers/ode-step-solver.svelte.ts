@@ -2073,6 +2073,19 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				);
 				this.checkStep6TargetValues();
 				return this.step6.activeSubStepId === "solve_constants";
+			case "ode.step-06.integration-constants.hints":
+				if (!this.devPrepareParentStep(6)) return false;
+				this.step6.yh0 = toFractionLatex(
+					this.problem.itsData.step6.targetYh0,
+				);
+				this.step6.dyh0 = toFractionLatex(
+					this.problem.itsData.step6.targetDYh0 ?? 0,
+				);
+				this.checkStep6TargetValues();
+				if (this.step6.activeSubStepId !== "solve_constants")
+					return false;
+				this.devRevealAllHints();
+				return true;
 			case "ode.step-07.zero-input-state":
 				return this.devPrepareParentStep(7);
 			case "ode.step-07.transient-steady-state":
