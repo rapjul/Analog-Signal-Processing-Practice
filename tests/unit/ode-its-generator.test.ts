@@ -148,9 +148,9 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 	});
 
 	/**
-	 * Verifies 7-step ITS scaffolding data generation for first-order ODEs.
+	 * Verifies 7-step ITS scaffolding data generation for first-order ODEs with constant forcing.
 	 */
-	it("generates valid ITS scaffolding data for first-order ODEs", () => {
+	it("generates valid ITS scaffolding data for first-order ODEs with constant forcing", () => {
 		const problem = generateOdeProblem({
 			order: 1,
 			rootType: "random",
@@ -162,7 +162,86 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		expect(problem.itsData.step1.expectedA1).toBe(problem.params.a1);
 		expect(problem.itsData.step2.rootType).toBe("single_real");
 		expect(problem.itsData.step3.correctTemplate).toBe("single_real");
+		expect(problem.itsData.step5.expectedKp).toBeDefined();
+		expect(problem.itsData.step5.hints.length).toBe(3);
 		expect(problem.itsData.step6.expectedC1).toBeDefined();
+		expect(problem.itsData.step6.hints.length).toBe(3);
+		expect(problem.itsData.step6.subStepHints?.target_values?.length).toBe(
+			3,
+		);
 		expect(problem.itsData.step7.ziConstants.C1).toBeDefined();
+		expect(problem.itsData.step7.zsConstants.C1).toBeDefined();
+		expect(problem.itsData.step7.hints.length).toBe(3);
+	});
+
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for first-order ODEs with exponential forcing.
+	 */
+	it("generates valid ITS scaffolding data for first-order ODEs with exponential forcing", () => {
+		const problem = generateOdeProblem({
+			order: 1,
+			rootType: "random",
+			forcingType: "exponential",
+			seed: 1234,
+		});
+
+		expect(problem.itsData.step1.expectedA2).toBe(0);
+		expect(problem.itsData.step5.expectedKp).toBeDefined();
+		expect(problem.itsData.step5.subStepHints?.first_deriv?.length).toBe(3);
+		expect(problem.itsData.step5.subStepHints?.solve?.length).toBe(3);
+		expect(problem.itsData.step6.hints.length).toBe(3);
+		expect(problem.itsData.step7.y_tr_latex).toBeDefined();
+		expect(problem.itsData.step7.y_ss_latex).toBeDefined();
+	});
+
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for first-order ODEs with sinusoidal forcing.
+	 */
+	it("generates valid ITS scaffolding data for first-order ODEs with sinusoidal forcing", () => {
+		const problem = generateOdeProblem({
+			order: 1,
+			rootType: "random",
+			forcingType: "sinusoid",
+			seed: 9876,
+		});
+
+		expect(problem.itsData.step1.expectedA2).toBe(0);
+		expect(problem.itsData.step5.expectedA).toBeDefined();
+		expect(problem.itsData.step5.expectedB).toBeDefined();
+		expect(problem.itsData.step5.subStepHints?.first_deriv?.length).toBe(3);
+		expect(problem.itsData.step5.subStepHints?.system_setup?.length).toBe(
+			3,
+		);
+		expect(problem.itsData.step5.subStepHints?.solve?.length).toBe(3);
+		expect(problem.itsData.step6.targetYh0).toBeDefined();
+		expect(problem.itsData.step7.expectedZI).toBeDefined();
+		expect(problem.itsData.step7.expectedZS).toBeDefined();
+	});
+
+	/**
+	 * Verifies 7-step ITS scaffolding data generation for second-order resonant exponential forcing.
+	 */
+	it("generates valid ITS scaffolding data for second-order repeated-root resonant exponential forcing", () => {
+		const problem = generateOdeProblem({
+			order: 2,
+			rootType: "repeated_real",
+			forcingType: "exponential",
+			resonance: "repeated",
+			seed: 321,
+		});
+
+		expect(problem.itsData.step2.rootType).toBe("repeated_real");
+		expect(problem.itsData.step5.expectedKp).toBeDefined();
+		expect(problem.itsData.step5.subStepHints?.second_deriv?.length).toBe(
+			3,
+		);
+		expect(problem.itsData.step6.subStepHints?.target_values?.length).toBe(
+			3,
+		);
+		expect(
+			problem.itsData.step6.subStepHints?.solve_constants?.length,
+		).toBe(3);
+		expect(problem.itsData.step7.subStepHints?.zi_zs?.length).toBe(3);
+		expect(problem.itsData.step7.subStepHints?.tr_ss?.length).toBe(3);
 	});
 });

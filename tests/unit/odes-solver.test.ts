@@ -60,6 +60,33 @@ describe("LCC ODE Analytical Math Engine", () => {
 		});
 
 		/**
+		 * Verifies defensive error throwing when leading coefficient is zero.
+		 */
+		it("throws an error when first-order leading coefficient a1 is zero", () => {
+			expect(() =>
+				solveCharacteristicEquation({
+					order: 1,
+					a1: 0,
+					a0: 5,
+				}),
+			).toThrow("First-order leading coefficient a1 must be non-zero");
+		});
+
+		/**
+		 * Verifies defensive error throwing when second-order leading coefficient a2 is zero.
+		 */
+		it("throws an error when second-order leading coefficient a2 is zero", () => {
+			expect(() =>
+				solveCharacteristicEquation({
+					order: 2,
+					a2: 0,
+					a1: 3,
+					a0: 2,
+				}),
+			).toThrow("Second-order leading coefficient a2 must be non-zero");
+		});
+
+		/**
 		 * Verifies defensive error throwing for unhandled or invalid root types.
 		 */
 		it("throws an error when solving homogeneous constants for an unhandled root type", () => {
@@ -273,6 +300,28 @@ describe("LCC ODE Analytical Math Engine", () => {
 			expect(particular.eval(0)).toBe(0);
 			expect(particular.evalDeriv(0)).toBe(0);
 			expect(particular.latex).toBe("2 t \\sin(2t)");
+		});
+
+		/**
+		 * Verifies defensive error throwing for unsupported degenerate sinusoidal resonance.
+		 */
+		it("throws an error for unsupported degenerate sinusoidal resonance", () => {
+			const ode = {
+				order: 1 as const,
+				a2: 0 as const,
+				a1: 0,
+				a0: 0,
+				rootType: "single_real" as const,
+				roots: { r1: 0 },
+			};
+			expect(() =>
+				computeParticularSolution(ode, {
+					type: "sinusoid",
+					K: 5,
+					omega: 1,
+					latex: "5 \\cos(t)",
+				}),
+			).toThrow("Unsupported degenerate sinusoidal resonance");
 		});
 
 		/**

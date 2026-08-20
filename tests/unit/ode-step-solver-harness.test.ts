@@ -121,6 +121,47 @@ describe("OdeStepSolverState Developer Harness & Visual States", () => {
 				expect(solver.currentStep).toBe(state.step);
 			}
 		});
+
+		/**
+		 * Verifies devGoToVisualState navigation for second-order repeated-real and complex-conjugate problems.
+		 */
+		it("successfully navigates to all registered visual states for repeated real and complex conjugate problems", () => {
+			const repProblem = generateSecondOrderProblem(
+				"repeated_real",
+				"exponential",
+			);
+			const repSolver = new OdeStepSolverState(() => repProblem);
+			for (const state of repSolver.devGetVisualStates()) {
+				expect(repSolver.devGoToVisualState(state.id)).toBe(true);
+			}
+
+			const ccProblem = generateSecondOrderProblem(
+				"complex_conjugate",
+				"sinusoid",
+			);
+			const ccSolver = new OdeStepSolverState(() => ccProblem);
+			for (const state of ccSolver.devGetVisualStates()) {
+				expect(ccSolver.devGoToVisualState(state.id)).toBe(true);
+			}
+		});
+
+		/**
+		 * Verifies solver reset restores initial pristine state.
+		 */
+		it("resets solver state cleanly back to Step 1", () => {
+			const problem = generateSecondOrderProblem(
+				"distinct_real",
+				"constant",
+			);
+			const solver = new OdeStepSolverState(() => problem);
+			solver.devSolveAll();
+			expect(solver.isCompleted).toBe(true);
+
+			solver.reset();
+			expect(solver.currentStep).toBe(1);
+			expect(solver.isCompleted).toBe(false);
+			expect(solver.step1.isValid).toBe(false);
+		});
 	});
 
 	describe("devAutoFillStep Method", () => {

@@ -586,4 +586,152 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 			);
 		});
 	});
+
+	describe("First-Order Complete Interactive Validation", () => {
+		/**
+		 * Verifies complete first-order problem validation from Step 1 through Step 7.
+		 */
+		it("validates all steps for a first-order ODE with exponential forcing", () => {
+			const problem = generateOdeProblem({
+				order: 1,
+				forcingType: "exponential",
+				seed: 142,
+			});
+			const solver = new OdeStepSolverState(() => problem);
+
+			// Step 1
+			solver.step1.a1 = String(problem.params.a1);
+			solver.step1.a0 = String(problem.params.a0);
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(2);
+
+			// Step 2 Factoring
+			solver.step2.r1 = "nan";
+			solver.checkStep2Factoring();
+			expect(solver.currentFeedback).toContain(
+				"Please enter a numeric value or fraction",
+			);
+
+			solver.step2.r1 = "999";
+			solver.checkStep2Factoring();
+			expect(solver.currentFeedback).toContain("Incorrect root");
+
+			solver.step2.r1 = String(problem.itsData.step2.r1);
+			solver.checkStep2Factoring();
+			expect(solver.currentStep).toBe(3);
+
+			// Step 3 Homogeneous Template
+			solver.checkStep3("single_real");
+			expect(solver.currentStep).toBe(4);
+
+			// Step 4 Particular Ansatz
+			const correctAnsatz = problem.itsData.step4.options.find(
+				(o) => o.isCorrect,
+			);
+			if (correctAnsatz) {
+				solver.checkStep4(correctAnsatz);
+				expect(solver.currentStep).toBe(5);
+			}
+
+			// Step 5 First Derivative & Coeffs
+			const correctD1 =
+				problem.itsData.step5.firstDerivativeOptions?.find(
+					(o) => o.isCorrect,
+				);
+			if (correctD1) {
+				solver.checkStep5FirstDeriv(correctD1);
+				expect(solver.step5.activeSubStepId).toBe("solve");
+			}
+
+			solver.step5.kp = "nan";
+			solver.checkStep5Coeffs();
+			expect(solver.currentFeedback).toContain(
+				"Please enter a numeric value",
+			);
+
+			solver.step5.kp = "999";
+			solver.checkStep5Coeffs();
+			expect(solver.currentFeedback).toContain("Incorrect coefficient");
+
+			solver.step5.kp = String(problem.itsData.step5.expectedKp ?? 0);
+			solver.checkStep5();
+			expect(solver.currentStep).toBe(6);
+
+			// Step 6 Initial Condition
+			solver.step6.yh0 = "nan";
+			solver.checkStep6TargetValues();
+			expect(solver.currentFeedback).toContain(
+				"Please enter a numeric value",
+			);
+
+			solver.step6.yh0 = String(problem.initialConditions.y0);
+			if (problem.itsData.step6.yp0 !== 0) {
+				solver.checkStep6TargetValues();
+				expect(solver.currentFeedback).toContain(
+					"Forgetting Particular Contribution",
+				);
+			}
+
+			solver.step6.yh0 = String(problem.itsData.step6.targetYh0);
+			solver.checkStep6();
+			expect(solver.currentStep).toBe(7);
+
+			// Step 7 ZI/ZS
+			solver.step7.ziC1 = String(problem.itsData.step7.ziConstants.C1);
+			solver.checkStep7ZI();
+			expect(solver.step7.activeSubStepId).toBe("tr_ss");
+
+			const correctTr = problem.itsData.step7.transientOptions.find(
+				(o) => o.isCorrect,
+			);
+			const correctSS = problem.itsData.step7.steadyStateOptions.find(
+				(o) => o.isCorrect,
+			);
+			if (correctTr && correctSS) {
+				solver.step7.selectedTransient = correctTr.id;
+				solver.step7.selectedSteadyState = correctSS.id;
+				solver.checkStep7TrSS();
+				expect(solver.step7.activeSubStepId).toBe("concept");
+			}
+
+			const correctConcept =
+				problem.itsData.step7.conceptQuestion.options.find(
+					(o) => o.isCorrect,
+				);
+			if (correctConcept) {
+				solver.checkStep7Concept(correctConcept);
+				expect(solver.isCompleted).toBe(true);
+			}
+		});
+	});
+
+	describe("Preview and Derived Property Assertions", () => {
+		/**
+		 * Verifies previewZI and previewZS across repeated real and complex conjugate root types.
+		 */
+		it("generates correct previewZI and previewZS for repeated real and complex conjugate problems", () => {
+			const repProblem = generateSecondOrderProblem(
+				"repeated_real",
+				"constant",
+			);
+			const repSolver = new OdeStepSolverState(() => repProblem);
+			repSolver.step7.ziC1 = "2";
+			repSolver.step7.ziC2 = "3";
+			expect(repSolver.previewZI).toContain("e^{");
+			expect(repSolver.derivedZSC1).toBeDefined();
+			expect(repSolver.derivedZSC2).toBeDefined();
+			expect(repSolver.previewZS).toBeDefined();
+
+			const ccProblem = generateSecondOrderProblem(
+				"complex_conjugate",
+				"sinusoid",
+			);
+			const ccSolver = new OdeStepSolverState(() => ccProblem);
+			ccSolver.step7.ziC1 = "1";
+			ccSolver.step7.ziC2 = "2";
+			expect(ccSolver.previewZI).toContain("\\cos");
+			expect(ccSolver.previewZI).toContain("\\sin");
+			expect(ccSolver.previewZS).toBeDefined();
+		});
+	});
 });
