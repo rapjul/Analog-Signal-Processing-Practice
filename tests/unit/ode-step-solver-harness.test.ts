@@ -146,6 +146,44 @@ describe("OdeStepSolverState Developer Harness & Visual States", () => {
 		});
 
 		/**
+		 * Verifies devGoToVisualState specific target branches including misconceptions and hints.
+		 */
+		it("navigates to intermediate visual states, misconceptions, and hint disclosures", () => {
+			const problem = generateSecondOrderProblem(
+				"distinct_real",
+				"constant",
+			);
+			const solver = new OdeStepSolverState(() => problem);
+
+			expect(
+				solver.devGoToVisualState(
+					"ode.step-06.target-values.misconception",
+				),
+			).toBe(true);
+			expect(solver.currentFeedbackType).toBe("misconception");
+
+			expect(
+				solver.devGoToVisualState("ode.step-06.integration-constants"),
+			).toBe(true);
+			expect(solver.step6.activeSubStepId).toBe("solve_constants");
+
+			expect(
+				solver.devGoToVisualState(
+					"ode.step-06.integration-constants.hints",
+				),
+			).toBe(true);
+			expect(solver.hintTier).toBe(3);
+
+			expect(
+				solver.devGoToVisualState("ode.step-07.transient-steady-state"),
+			).toBe(true);
+			expect(solver.step7.activeSubStepId).toBe("tr_ss");
+
+			expect(solver.devGoToVisualState("ode.step-07.concept")).toBe(true);
+			expect(solver.step7.activeSubStepId).toBe("concept");
+		});
+
+		/**
 		 * Verifies solver reset restores initial pristine state.
 		 */
 		it("resets solver state cleanly back to Step 1", () => {
@@ -210,6 +248,22 @@ describe("OdeStepSolverState Developer Harness & Visual States", () => {
 				}
 				expect(solver.isCompleted).toBe(true);
 			}
+		});
+
+		/**
+		 * Verifies devAutoFillStep gracefully ignores out-of-bounds step indices.
+		 */
+		it("safely handles out-of-bounds step index calls in devAutoFillStep", () => {
+			const problem = generateSecondOrderProblem(
+				"distinct_real",
+				"constant",
+			);
+			const solver = new OdeStepSolverState(() => problem);
+			solver.devAutoFillStep(0);
+			expect(solver.currentStep).toBe(1);
+
+			solver.devAutoFillStep(99);
+			expect(solver.currentStep).toBe(1);
 		});
 	});
 

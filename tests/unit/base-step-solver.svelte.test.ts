@@ -346,4 +346,23 @@ describe("BaseStepSolverState Harness & State Management", () => {
 		expect(solver.isCompleted).toBe(true);
 		expect(onCompleteMock).toHaveBeenCalled();
 	});
+
+	/**
+	 * Verifies feedback title, icon, and hints fallbacks.
+	 */
+	it("handles fallback feedback properties and empty hint arrays safely", () => {
+		const solver = new TestSolverState();
+		solver.step1.feedbackType = "unknown" as unknown as "validation";
+		expect(solver.currentFeedbackTitle).toBe("Feedback:");
+		expect(solver.currentFeedbackIcon).toBe("ℹ️");
+
+		solver.advanceToStep(99);
+		expect(solver.currentStepState).toBeUndefined();
+		expect(solver.activeHints).toEqual([]);
+		solver.devRevealAllHints();
+		expect(solver.hintTier).toBe(0);
+
+		solver.devSimulateMisconception();
+		expect(solver.currentFeedback).toBe("");
+	});
 });

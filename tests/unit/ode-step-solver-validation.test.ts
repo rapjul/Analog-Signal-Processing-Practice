@@ -732,6 +732,52 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 			expect(ccSolver.previewZI).toContain("\\cos");
 			expect(ccSolver.previewZI).toContain("\\sin");
 			expect(ccSolver.previewZS).toBeDefined();
+
+			const distinctProblem = generateSecondOrderProblem(
+				"distinct_real",
+				"constant",
+			);
+			const distSolver = new OdeStepSolverState(() => distinctProblem);
+			distSolver.step7.ziC1 = "1";
+			distSolver.step7.ziC2 = "2";
+			expect(distSolver.previewZS).toBeDefined();
+		});
+
+		/**
+		 * Verifies Step 7 empty selection validations and total-vs-zero-input misconception.
+		 */
+		it("handles Step 7 validation errors and total-vs-zero-input misconception", () => {
+			const problem = generateSecondOrderProblem(
+				"distinct_real",
+				"constant",
+			);
+			const solver = new OdeStepSolverState(() => problem);
+			solver.advanceToStep(7);
+
+			// Entering step 6 total constants triggers total-vs-ZI misconception
+			solver.step7.ziC1 = String(problem.itsData.step6.expectedC1);
+			solver.step7.ziC2 = String(problem.itsData.step6.expectedC2 ?? 0);
+			if (
+				solver.step7.ziC1 !==
+					String(problem.itsData.step7.ziConstants.C1) ||
+				solver.step7.ziC2 !==
+					String(problem.itsData.step7.ziConstants.C2 ?? 0)
+			) {
+				solver.checkStep7ZI();
+				expect(solver.currentFeedback).toContain(
+					"Total vs Zero-Input Confusion",
+				);
+			}
+
+			// Empty selections in Step 7B & 7C
+			solver.step7.selectedTransient = null;
+			solver.step7.selectedSteadyState = null;
+			solver.checkStep7TrSS();
+			expect(solver.currentFeedback).toContain("Please select both");
+
+			solver.step7.selectedConcept = null;
+			solver.checkStep7Concept();
+			expect(solver.currentFeedback).toContain("Please select an answer");
 		});
 	});
 });
