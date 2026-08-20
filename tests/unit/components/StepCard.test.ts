@@ -23,7 +23,7 @@ describe("StepCard.svelte Component", () => {
 
 		const card = container.querySelector(".step-card");
 		expect(card).toBeTruthy();
-		expect(card?.classList.contains("step-card--active")).toBe(true);
+		expect(card?.classList.contains("active")).toBe(true);
 		expect(getByText("Step 1")).toBeTruthy();
 		expect(getByText("Find Characteristic Roots")).toBeTruthy();
 	});
@@ -39,7 +39,7 @@ describe("StepCard.svelte Component", () => {
 		});
 
 		const card = container.querySelector(".step-card");
-		expect(card?.classList.contains("step-card--completed")).toBe(true);
+		expect(card?.classList.contains("completed")).toBe(true);
 		expect(container.querySelector(".step-summary")).toBeTruthy();
 		expect(getByText("✓")).toBeTruthy();
 	});
@@ -54,7 +54,7 @@ describe("StepCard.svelte Component", () => {
 		});
 
 		const card = container.querySelector(".step-card");
-		expect(card?.classList.contains("step-card--locked")).toBe(true);
+		expect(card?.classList.contains("locked")).toBe(true);
 		expect(getByText("Total Response")).toBeTruthy();
 		// Body should not be rendered for locked steps
 		expect(container.querySelector(".step-card-body")).toBeNull();

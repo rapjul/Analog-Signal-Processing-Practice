@@ -65,11 +65,11 @@
 		{#if badges.length > 0 || category}
 			<div class="badges-row">
 				{#if category}
-					<span class="badge badge--primary">{category}</span>
+					<span class="badge primary">{category}</span>
 				{/if}
 				{#each badges as badge (badge.label)}
 					<span
-						class="badge badge--{badge.variant ??
+						class="badge {badge.variant ??
 							'primary'} capitalize"
 					>
 						{badge.label}
@@ -137,28 +137,28 @@
 	}
 
 	/* Primary — cyan (default) */
-	.badge--primary {
+	.badge.primary {
 		background: var(--accent-bg);
 		color: var(--accent-primary);
 		border: 1px solid var(--accent-primary);
 	}
 
 	/* Secondary — amber */
-	.badge--secondary {
+	.badge.secondary {
 		background: var(--color-warning-bg);
 		color: var(--color-warning);
 		border: 1px solid var(--color-warning);
 	}
 
 	/* Accent — green */
-	.badge--accent {
+	.badge.accent {
 		background: var(--color-success-bg);
 		color: var(--color-success);
 		border: 1px solid var(--color-success);
 	}
 
 	/* Category — muted neutral */
-	.badge--category {
+	.badge.category {
 		background: var(--white-10);
 		color: var(--text-secondary);
 		border: 1px solid var(--border-color);

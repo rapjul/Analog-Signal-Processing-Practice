@@ -31,16 +31,16 @@ describe("StepBreadcrumb.svelte Component", () => {
 
 		// Step 1 should be completed
 		const step1 = container.querySelector("#step-crumb-1");
-		expect(step1?.classList.contains("crumb-pill--completed")).toBe(true);
+		expect(step1?.classList.contains("completed")).toBe(true);
 
 		// Step 2 should be active with aria-current="step"
 		const step2 = container.querySelector("#step-crumb-2");
-		expect(step2?.classList.contains("crumb-pill--active")).toBe(true);
+		expect(step2?.classList.contains("active")).toBe(true);
 		expect(step2?.getAttribute("aria-current")).toBe("step");
 
 		// Step 3 & 4 should be locked
 		const step3 = container.querySelector("#step-crumb-3");
-		expect(step3?.classList.contains("crumb-pill--locked")).toBe(true);
+		expect(step3?.classList.contains("locked")).toBe(true);
 	});
 
 	it("calls onSelectStep callback when a completed step button is clicked", async () => {
@@ -78,6 +78,6 @@ describe("StepBreadcrumb.svelte Component", () => {
 		// Step 4 is locked and should NOT be a button
 		const step4 = container.querySelector("#step-crumb-4");
 		expect(step4?.tagName.toLowerCase()).toBe("div");
-		expect(step4?.classList.contains("crumb-pill--locked")).toBe(true);
+		expect(step4?.classList.contains("locked")).toBe(true);
 	});
 });

@@ -56,9 +56,9 @@
 
 <div
 	class="step-card"
-	class:step-card--active={status === "active"}
-	class:step-card--completed={status === "completed"}
-	class:step-card--locked={status === "locked"}
+	class:active={status === "active"}
+	class:completed={status === "completed"}
+	class:locked={status === "locked"}
 >
 	<!-- ── Step Header ── -->
 	<div class="step-header">
@@ -123,25 +123,25 @@
 	}
 
 	/* Active — accent border + subtle glow */
-	.step-card--active {
+	.step-card.active {
 		border-color: var(--accent-primary);
 		box-shadow: 0 2px 12px var(--accent-glow);
 	}
 
 	/* Completed — green tint, compact padding */
-	.step-card--completed {
+	.step-card.completed {
 		border-color: var(--color-success);
 		background: var(--color-success-bg);
 		padding: 0.75rem 1.25rem;
 	}
 
 	/* Locked — dimmed, pointer events disabled */
-	.step-card--locked {
+	.step-card.locked {
 		opacity: 0.65;
 		pointer-events: none;
 	}
 
-	.step-card--locked .step-badge {
+	.step-card.locked .step-badge {
 		background: var(--white-10);
 		color: var(--text-secondary);
 	}
@@ -217,7 +217,7 @@
 			padding: 0.75rem 0.85rem;
 		}
 
-		.step-card--completed {
+		.step-card.completed {
 			padding: 0.6rem 0.85rem;
 		}
 	}

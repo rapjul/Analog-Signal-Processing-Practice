@@ -88,7 +88,7 @@
 					<button
 						id="step-crumb-{step.number}"
 						type="button"
-						class="crumb-pill crumb-pill--{status}"
+						class="crumb-pill {status}"
 						onclick={() => onSelectStep?.(step.number)}
 						aria-label={`Go back to Step ${step.number}: ${step.shortTitle ?? step.title}`}
 					>
@@ -107,7 +107,7 @@
 					<!-- Active and locked steps are non-interactive -->
 					<div
 						id="step-crumb-{step.number}"
-						class="crumb-pill crumb-pill--{status}"
+						class="crumb-pill {status}"
 						role="listitem"
 						aria-label={`Step ${step.number}: ${step.shortTitle ?? step.title}${status === "active" ? " (Current)" : status === "locked" ? " (Locked)" : ""}`}
 						aria-current={status === "active" ? "step" : undefined}
@@ -195,7 +195,7 @@
 	}
 
 	/* Active – pulsing glow accent border */
-	.crumb-pill--active {
+	.crumb-pill.active {
 		border-color: var(--accent-primary);
 		color: var(--accent-primary);
 		background: var(--accent-bg-subtle);
@@ -203,14 +203,14 @@
 	}
 
 	/* Completed – muted green tint, clickable variant */
-	.crumb-pill--completed {
+	.crumb-pill.completed {
 		border-color: var(--color-success);
 		color: var(--color-success);
 		background: var(--color-success-bg);
 	}
 
 	/* Locked – greyed out, non-interactive */
-	.crumb-pill--locked {
+	.crumb-pill.locked {
 		border-color: var(--border-color);
 		color: var(--text-secondary);
 		background: transparent;
@@ -218,14 +218,14 @@
 	}
 
 	/* Button-specific states for completed/clickable pills */
-	button.crumb-pill--completed:hover {
+	button.crumb-pill.completed:hover {
 		background: var(--color-success-bg);
 		border-color: var(--color-success);
 		filter: brightness(1.15);
 		cursor: pointer;
 	}
 
-	button.crumb-pill--completed:focus-visible {
+	button.crumb-pill.completed:focus-visible {
 		outline: 2px solid var(--color-success);
 		outline-offset: 2px;
 	}

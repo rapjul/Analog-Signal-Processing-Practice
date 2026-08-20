@@ -348,13 +348,13 @@ interface BadgeItem {
 }
 
 /**
- * Derives the CSS modifier class for a badge variant.
- * Mirrors the `badge--{variant}` class pattern used in ProblemHeader.svelte.
+ * Derives the CSS variant class for a badge variant.
+ * Mirrors the `badge {variant}` class pattern used in ProblemHeader.svelte.
  * @param {BadgeVariant} [variant] Badge variant
  * @returns {string} CSS class string
  */
 function badgeClass(variant?: BadgeVariant): string {
-	return `badge--${variant ?? "primary"}`;
+	return variant ?? "primary";
 }
 
 /**
@@ -367,24 +367,24 @@ function resolveNextButtonLabel(override?: string): string {
 }
 
 describe("ProblemHeader — badge class derivation", () => {
-	it("defaults to badge--primary when variant is undefined", () => {
-		expect(badgeClass(undefined)).toBe("badge--primary");
+	it("defaults to primary when variant is undefined", () => {
+		expect(badgeClass(undefined)).toBe("primary");
 	});
 
-	it("returns badge--secondary for secondary variant", () => {
-		expect(badgeClass("secondary")).toBe("badge--secondary");
+	it("returns secondary for secondary variant", () => {
+		expect(badgeClass("secondary")).toBe("secondary");
 	});
 
-	it("returns badge--accent for accent variant", () => {
-		expect(badgeClass("accent")).toBe("badge--accent");
+	it("returns accent for accent variant", () => {
+		expect(badgeClass("accent")).toBe("accent");
 	});
 
-	it("returns badge--category for category variant", () => {
-		expect(badgeClass("category")).toBe("badge--category");
+	it("returns category for category variant", () => {
+		expect(badgeClass("category")).toBe("category");
 	});
 
-	it("returns badge--primary for explicit primary variant", () => {
-		expect(badgeClass("primary")).toBe("badge--primary");
+	it("returns primary for explicit primary variant", () => {
+		expect(badgeClass("primary")).toBe("primary");
 	});
 });
 
