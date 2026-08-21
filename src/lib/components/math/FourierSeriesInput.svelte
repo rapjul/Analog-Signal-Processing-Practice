@@ -3,7 +3,7 @@
 	 * FourierSeriesInput Svelte 5 Component.
 	 *
 	 * Structured Form Builder for Fourier Series representations.
-	 * Allows students and users to build Fourier coefficients (a0, an, bn, cn)
+	 * Allows students and users to build Fourier coefficients (a0, an, bn, Fn)
 	 * using intuitive Numerator/Denominator fraction inputs and Harmonics selectors
 	 * without requiring manual LaTeX coding. Includes live LaTeX preview cards.
 	 */
@@ -32,7 +32,7 @@
 
 	/** DC Offset inputs */
 	let a0 = $state("0");
-	let c0 = $state("0");
+	let F0 = $state("0");
 
 	// --- Structured Coefficients State ---
 
@@ -52,13 +52,13 @@
 	let bnCustomHarmonic = $state("");
 	let bnDirect = $state("\\frac{2}{n \\pi} (1 - (-1)^n)");
 
-	// Complex exponential coefficient c_n
-	let cnMode = $state<CoeffInputMode>("fraction");
-	let cnNum = $state("1");
-	let cnDen = $state("j n pi");
-	let cnHarmonic = $state<HarmonicOption>("none");
-	let cnCustomHarmonic = $state("");
-	let cnDirect = $state("\\frac{1}{j n \\pi}");
+	// Complex exponential coefficient F_n
+	let FnMode = $state<CoeffInputMode>("fraction");
+	let FnNum = $state("1");
+	let FnDen = $state("j n pi");
+	let FnHarmonic = $state<HarmonicOption>("none");
+	let FnCustomHarmonic = $state("");
+	let FnDirect = $state("\\frac{1}{j n \\pi}");
 
 	/**
 	 * Converts simple math symbols and normalizes backslashes in user input into valid LaTeX syntax.
@@ -146,14 +146,14 @@
 		),
 	);
 
-	let cnLatex = $derived(
+	let FnLatex = $derived(
 		buildCoeffLatex(
-			cnMode,
-			cnNum,
-			cnDen,
-			cnHarmonic,
-			cnCustomHarmonic,
-			cnDirect,
+			FnMode,
+			FnNum,
+			FnDen,
+			FnHarmonic,
+			FnCustomHarmonic,
+			FnDirect,
 		),
 	);
 
@@ -202,17 +202,17 @@
 	 * @returns {string} Exponential Fourier series LaTeX
 	 */
 	function synthesizeExp(): string {
-		const cleanC0 = c0.trim();
-		const cleanCn = cnLatex.trim();
+		const cleanF0 = F0.trim();
+		const cleanFn = FnLatex.trim();
 		const w0 = formatMathLatex(omega0) || "\\omega_0";
 
 		const sumPart =
-			cleanCn && cleanCn !== "0"
-				? `\\sum_{n=-\\infty, n \\neq 0}^{\\infty} \\left( ${cleanCn} \\right) e^{j n ${w0} t}`
+			cleanFn && cleanFn !== "0"
+				? `\\sum_{n=-\\infty, n \\neq 0}^{\\infty} \\left( ${cleanFn} \\right) e^{j n ${w0} t}`
 				: "";
 
-		if (cleanC0 && cleanC0 !== "0") {
-			return sumPart ? `${cleanC0} + ${sumPart}` : cleanC0;
+		if (cleanF0 && cleanF0 !== "0") {
+			return sumPart ? `${cleanF0} + ${sumPart}` : cleanF0;
 		}
 
 		return sumPart || "0";
@@ -267,7 +267,7 @@
 				updateValue();
 			}}
 		>
-			<MathText text={"Complex Exponential Series ($c_n$)"} />
+			<MathText text={"Complex Exponential Series ($F_n$)"} />
 		</button>
 	</div>
 
@@ -305,14 +305,14 @@
 			</div>
 		{:else}
 			<div class="param-item">
-				<label for="c0-input">
-					<MathText text={"DC Offset $c_0$:"} />
+				<label for="F0-input">
+					<MathText text={"DC Offset $F_0$:"} />
 				</label>
 				<input
-					id="c0-input"
+					id="F0-input"
 					type="text"
 					class="text-input sm"
-					bind:value={c0}
+					bind:value={F0}
 					oninput={updateValue}
 					placeholder="0"
 				/>
@@ -579,21 +579,21 @@
 				</div>
 			</div>
 		{:else}
-			<!-- Exponential Coefficient cn Builder -->
+			<!-- Exponential Coefficient Fn Builder -->
 			<div class="coeff-card">
 				<div class="coeff-header">
 					<span class="coeff-label">
 						<MathText
-							text={"Complex Exponential Coefficient $c_n$"}
+							text={"Complex Exponential Coefficient $F_n$"}
 						/>
 					</span>
 					<div class="input-mode-toggle">
 						<button
 							type="button"
 							class="toggle-btn"
-							class:active={cnMode === "zero"}
+							class:active={FnMode === "zero"}
 							onclick={() => {
-								cnMode = "zero";
+								FnMode = "zero";
 								updateValue();
 							}}
 						>
@@ -602,9 +602,9 @@
 						<button
 							type="button"
 							class="toggle-btn"
-							class:active={cnMode === "fraction"}
+							class:active={FnMode === "fraction"}
 							onclick={() => {
-								cnMode = "fraction";
+								FnMode = "fraction";
 								updateValue();
 							}}
 						>
@@ -613,9 +613,9 @@
 						<button
 							type="button"
 							class="toggle-btn"
-							class:active={cnMode === "direct"}
+							class:active={FnMode === "direct"}
 							onclick={() => {
-								cnMode = "direct";
+								FnMode = "direct";
 								updateValue();
 							}}
 						>
@@ -624,7 +624,7 @@
 					</div>
 				</div>
 
-				{#if cnMode === "fraction"}
+				{#if FnMode === "fraction"}
 					<div class="fraction-builder-grid">
 						<div class="fraction-column">
 							<div class="fraction-field">
@@ -632,7 +632,7 @@
 								<input
 									type="text"
 									class="text-input fraction-input"
-									bind:value={cnNum}
+									bind:value={FnNum}
 									oninput={updateValue}
 									placeholder="e.g. 1 or A"
 								/>
@@ -643,7 +643,7 @@
 								<input
 									type="text"
 									class="text-input fraction-input"
-									bind:value={cnDen}
+									bind:value={FnDen}
 									oninput={updateValue}
 									placeholder="e.g. j n \pi"
 								/>
@@ -656,7 +656,7 @@
 							</span>
 							<select
 								class="select-input"
-								bind:value={cnHarmonic}
+								bind:value={FnHarmonic}
 								onchange={updateValue}
 							>
 								<option value="none">None (1)</option>
@@ -674,25 +674,25 @@
 								</option>
 							</select>
 
-							{#if cnHarmonic === "custom"}
+							{#if FnHarmonic === "custom"}
 								<input
 									type="text"
 									class="text-input custom-mult-input"
-									bind:value={cnCustomHarmonic}
+									bind:value={FnCustomHarmonic}
 									oninput={updateValue}
 									placeholder="e.g. \sin(n \pi / 2)"
 								/>
 							{/if}
 						</div>
 					</div>
-				{:else if cnMode === "direct"}
+				{:else if FnMode === "direct"}
 					<div class="direct-input-row">
-						<label for="cn-direct-input">LaTeX / Expression:</label>
+						<label for="Fn-direct-input">LaTeX / Expression:</label>
 						<input
-							id="cn-direct-input"
+							id="Fn-direct-input"
 							type="text"
 							class="text-input mono flex-grow"
-							bind:value={cnDirect}
+							bind:value={FnDirect}
 							oninput={updateValue}
 							placeholder="e.g. 1 / (j n \pi)"
 						/>
@@ -703,7 +703,7 @@
 				<div class="coeff-preview">
 					<span class="preview-title">Built Expression:</span>
 					<MathInline
-						math={`c_n = ${cnLatex}`}
+						math={`F_n = ${FnLatex}`}
 						displayStyle
 					/>
 				</div>

@@ -78,8 +78,6 @@ export interface FourierCoefficients {
 	bn: (n: number) => number;
 	/** Exponential coefficient evaluator F_n for every integer n. */
 	Fn: (n: number) => ComplexCoefficient;
-	/** @deprecated Compatibility alias for Fn during the notation migration. */
-	cn: (n: number) => ComplexCoefficient;
 }
 
 /** Parseval power distribution analysis */
@@ -147,8 +145,14 @@ export interface FourierItsStep5 extends BaseItsStep {
 	options: FourierItsOption[];
 }
 
-/** ITS Step 6: Final series summation evaluation metadata */
+/** ITS Step 6: Evaluated Fourier coefficient metadata */
 export interface FourierItsStep6 extends BaseItsStep {
+	/** Shuffled multiple-choice options with distractors */
+	options: FourierItsOption[];
+}
+
+/** ITS Step 7: Final series summation evaluation metadata */
+export interface FourierItsStep7 extends BaseItsStep {
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
 }
@@ -165,8 +169,10 @@ export interface FourierItsData {
 	step4: FourierItsStep4;
 	/** Step 5: Integral Setup */
 	step5: FourierItsStep5;
-	/** Step 6: Final Series Expression */
+	/** Step 6: Harmonic Coefficient Evaluation */
 	step6: FourierItsStep6;
+	/** Step 7: Final Series Expression */
+	step7: FourierItsStep7;
 }
 
 /** Fourier Series practice problem definition */
@@ -191,8 +197,6 @@ export interface FourierSeriesProblem {
 	anLatex: string;
 	/** Closed-form bn LaTeX */
 	bnLatex: string;
-	/** Closed-form cn LaTeX */
-	cnLatex: string;
 	/** Closed-form exponential coefficient F_n LaTeX. */
 	FnLatex: string;
 	/** Step-by-step solution derivation */
@@ -292,7 +296,6 @@ export function computeFourierCoefficients(
 			an: definition.an,
 			bn: definition.bn,
 			Fn,
-			cn: Fn,
 		};
 	}
 
@@ -627,6 +630,150 @@ function getVanishingCoefficients(
 	}
 }
 
+/** Exact symbolic forms reused by the tutor, problem fields, and derivation. */
+interface FourierSymbolicDerivation {
+	a0Latex: string;
+	anLatex: string;
+	bnLatex: string;
+	FnLatex: string;
+	integralLatex: string;
+	evaluationLatex: string;
+	finalTrigLatex: string;
+	finalExpLatex: string;
+}
+
+/** Builds the exact symbolic derivation for one supported waveform. */
+function buildFourierSymbolicDerivation(
+	coeffs: FourierCoefficients,
+	w0Latex: string,
+): FourierSymbolicDerivation {
+	const { A, T0, waveformType } = coeffs;
+	const amplitude = `(${A})`;
+	const finalTrigLatex = buildFinalSeriesLatex(coeffs, w0Latex);
+	let a0Latex: string;
+	let anLatex: string;
+	let bnLatex: string;
+	let FnLatex: string;
+	let integralLatex: string;
+	let evaluationLatex: string;
+
+	switch (waveformType) {
+		case "square":
+		case "square_odd":
+			a0Latex = "0";
+			anLatex = "0";
+			bnLatex = `\\begin{cases}\\dfrac{4${amplitude}}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			FnLatex = `\\begin{cases}-j\\dfrac{2${amplitude}}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			integralLatex = `b_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\sin(n\\omega_0t)\\,dt`;
+			evaluationLatex = `b_n=\\frac{4${amplitude}}{T_0}\\left[-\\frac{\\cos(n\\omega_0t)}{n\\omega_0}\\right]_0^{T_0/2}=\\frac{2${amplitude}}{n\\pi}\\left(1-(-1)^n\\right)=${bnLatex}`;
+			break;
+		case "square_even":
+			a0Latex = "0";
+			anLatex = `\\frac{4${amplitude}}{n\\pi}\\sin\\left(\\frac{n\\pi}{2}\\right)`;
+			bnLatex = "0";
+			FnLatex = `\\begin{cases}0,&n=0\\\\\\dfrac{2${amplitude}}{n\\pi}\\sin\\left(\\dfrac{n\\pi}{2}\\right),&n\\ne0\\end{cases}`;
+			integralLatex = `a_n=\\frac{4}{T_0}\\left[\\int_0^{T_0/4}${A}\\cos(n\\omega_0t)\\,dt-\\int_{T_0/4}^{T_0/2}${A}\\cos(n\\omega_0t)\\,dt\\right]`;
+			evaluationLatex = `a_n=\\frac{4${amplitude}}{n\\pi}\\sin\\left(\\frac{n\\pi}{2}\\right),\\qquad b_n=0`;
+			break;
+		case "triangle":
+		case "triangle_even":
+			a0Latex = "0";
+			anLatex = `\\begin{cases}\\dfrac{8${amplitude}}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			bnLatex = "0";
+			FnLatex = `\\begin{cases}\\dfrac{4${amplitude}}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			integralLatex = `a_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\left(1-\\frac{4t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
+			evaluationLatex = `a_n=\\frac{4${amplitude}}{n^2\\pi^2}\\left(1-(-1)^n\\right)=${anLatex},\\qquad b_n=0`;
+			break;
+		case "triangle_odd":
+			a0Latex = "0";
+			anLatex = "0";
+			bnLatex = `\\frac{8${amplitude}}{n^2\\pi^2}\\sin\\left(\\frac{n\\pi}{2}\\right)`;
+			FnLatex = `\\begin{cases}-j\\dfrac{4${amplitude}}{n^2\\pi^2}\\sin\\left(\\dfrac{n\\pi}{2}\\right),&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			integralLatex = `b_n=\\frac{4}{T_0}\\left[\\int_0^{T_0/4}\\frac{4${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt+\\int_{T_0/4}^{T_0/2}\\left(2${amplitude}-\\frac{4${amplitude}t}{T_0}\\right)\\sin(n\\omega_0t)\\,dt\\right]`;
+			evaluationLatex = `b_n=\\frac{8${amplitude}}{n^2\\pi^2}\\sin\\left(\\frac{n\\pi}{2}\\right),\\qquad a_0=a_n=0`;
+			break;
+		case "sawtooth":
+			a0Latex = "0";
+			anLatex = "0";
+			bnLatex = `\\frac{2${amplitude}(-1)^{n+1}}{n\\pi}`;
+			FnLatex = `\\begin{cases}0,&n=0\\\\-j\\dfrac{${A}(-1)^{n+1}}{n\\pi},&n\\ne0\\end{cases}`;
+			integralLatex = `b_n=\\frac{4}{T_0}\\int_0^{T_0/2}\\frac{2${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt`;
+			evaluationLatex = `b_n=\\frac{8${amplitude}}{T_0^2}\\left[-\\frac{t\\cos(n\\omega_0t)}{n\\omega_0}+\\frac{\\sin(n\\omega_0t)}{n^2\\omega_0^2}\\right]_0^{T_0/2}=\\frac{2${amplitude}(-1)^{n+1}}{n\\pi}`;
+			break;
+		case "half_wave_sine":
+			a0Latex = `\\frac{2${amplitude}}{\\pi}`;
+			anLatex = `\\begin{cases}\\dfrac{2${amplitude}}{\\pi(1-n^2)},&n\\text{ even}\\\\0,&n\\text{ odd}\\end{cases}`;
+			bnLatex = `\\begin{cases}\\dfrac{${A}}{2},&n=1\\\\0,&n\\ne1\\end{cases}`;
+			FnLatex = `\\begin{cases}\\dfrac{${A}}{\\pi},&n=0\\\\-j\\dfrac{${A}}{4},&n=1\\\\j\\dfrac{${A}}{4},&n=-1\\\\\\dfrac{${A}}{\\pi(1-n^2)},&n\\ne0\\text{ even}\\\\0,&|n|>1\\text{ odd}\\end{cases}`;
+			integralLatex = `F_n=\\frac{1}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)e^{-jn\\omega_0t}\\,dt`;
+			evaluationLatex = `a_0=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)\\,dt=\\frac{2${amplitude}}{\\pi},\\quad b_1=\\frac{${A}}{2},\\quad a_n=${anLatex}`;
+			break;
+		case "full_wave_sine":
+			a0Latex = `\\frac{4${amplitude}}{\\pi}`;
+			anLatex = `-\\frac{4${amplitude}}{\\pi(4n^2-1)}`;
+			bnLatex = "0";
+			FnLatex = `\\begin{cases}\\dfrac{2${amplitude}}{\\pi},&n=0\\\\-\\dfrac{2${amplitude}}{\\pi(4n^2-1)},&n\\ne0\\end{cases}`;
+			integralLatex = `a_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\sin\\left(\\frac{\\pi t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
+			evaluationLatex = `a_0=\\frac{4${amplitude}}{\\pi},\\qquad a_n=-\\frac{4${amplitude}}{\\pi(4n^2-1)},\\qquad b_n=0`;
+			break;
+		default: {
+			const _exhaustiveCheck: never = waveformType;
+			throw new Error(
+				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
+			);
+		}
+	}
+
+	const finalExpLatex = `x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{jn${w0Latex}t},\\qquad F_n=${FnLatex}`;
+	return {
+		a0Latex,
+		anLatex,
+		bnLatex,
+		FnLatex,
+		integralLatex,
+		evaluationLatex,
+		finalTrigLatex,
+		finalExpLatex,
+	};
+}
+
+/** Builds one correct integral choice and three misconception-driven distractors. */
+function buildIntegralOptions(
+	derivation: FourierSymbolicDerivation,
+): FourierItsOption[] {
+	return [
+		{ id: "c1", latex: derivation.integralLatex, isCorrect: true },
+		{
+			id: "d1",
+			latex: "a_n=\\frac{1}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)\\cos(n\\omega_0t)\\,dt",
+			isCorrect: false,
+			feedback:
+				"Scaling Error: Trigonometric harmonic coefficients use $2/T_0$, with any symmetry reduction applied afterward.",
+		},
+		{
+			id: "d2",
+			latex: "b_n=\\frac{2}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)\\cos(n\\omega_0t)\\,dt",
+			isCorrect: false,
+			feedback:
+				"Kernel Error: $b_n$ is projected onto $\\sin(n\\omega_0t)$, not cosine.",
+		},
+		{
+			id: "d3",
+			latex: "F_n=\\frac{1}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)e^{+jn\\omega_0t}\\,dt",
+			isCorrect: false,
+			feedback:
+				"Sign Error: Exponential Fourier coefficients require the kernel $e^{-jn\\omega_0t}$.",
+		},
+	];
+}
+
+/** Formats all evaluated coefficient families in one answer card. */
+function buildCoefficientEvaluationLatex(
+	derivation: FourierSymbolicDerivation,
+): string {
+	return `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\\\F_n&=${derivation.FnLatex}\\end{aligned}`;
+}
+
 /**
  * Builds Intelligent Tutoring System (ITS) step-by-step metadata for Fourier Series problems.
  * @param {FourierCoefficients} coeffs Calculated waveform coefficients
@@ -745,205 +892,91 @@ export function generateFourierItsData(
 		},
 	};
 
-	// Step 5: Integral Setup
-	const step5OptionsRaw: FourierItsOption[] =
-		symmetry === "odd"
-			? [
-					{
-						id: "c1",
-						latex: `b_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-						isCorrect: true,
-					},
-					{
-						id: "d1",
-						latex: `b_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-						isCorrect: false,
-						feedback:
-							"Misconception: You used $1/T_0$. Trigonometric coefficients require a scaling factor of $2/T_0$.",
-					},
-					{
-						id: "d2",
-						latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
-						isCorrect: false,
-						feedback:
-							"Misconception: You are setting up the integral for $a_n$ (cosine), but we already determined $a_n=0$ due to odd symmetry!",
-					},
-					{
-						id: "d3",
-						latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
-						isCorrect: false,
-						feedback:
-							"Sign Error: Exponential Fourier coefficients require $e^{-j n \\omega_0 t}$ with a negative exponent.",
-					},
-				]
-			: symmetry === "even"
-				? [
-						{
-							id: "c1",
-							latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
-							isCorrect: true,
-						},
-						{
-							id: "d1",
-							latex: `a_n = \\frac{1}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
-							isCorrect: false,
-							feedback:
-								"Misconception: You used $1/T_0$. Trigonometric Fourier coefficients require $2/T_0$.",
-						},
-						{
-							id: "d2",
-							latex: `b_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\sin\\left(n ${w0Latex} t\\right) dt`,
-							isCorrect: false,
-							feedback:
-								"Misconception: You are setting up the integral for $b_n$ (sine), but $b_n=0$ for even symmetry!",
-						},
-						{
-							id: "d3",
-							latex: `a_n = \\frac{2}{${T0}} \\int_{-${T0 / 2}}^{${T0 / 2}} x(t) \\cos(2 n \\pi t) dt`,
-							isCorrect: false,
-							feedback:
-								"Frequency Error: Fundamental frequency must be $\\omega_0 = \\frac{2\\pi}{T_0}$, not $2\\pi$.",
-						},
-					]
-				: [
-						{
-							id: "c1",
-							latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
-							isCorrect: true,
-						},
-						{
-							id: "d1",
-							latex: `F_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
-							isCorrect: false,
-							feedback:
-								"Misconception: You used $2/T_0$. Exponential coefficients require a factor of $1/T_0$.",
-						},
-						{
-							id: "d2",
-							latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
-							isCorrect: false,
-							feedback:
-								"Sign Error: The exponential transform kernel requires $e^{-j n \\omega_0 t}$ with a negative sign.",
-						},
-						{
-							id: "d3",
-							latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
-							isCorrect: false,
-							feedback:
-								"Without symmetry, using Trigonometric form requires evaluating both $a_n$ and $b_n$. Exponential form $F_n$ is preferred.",
-						},
-					];
+	const derivation = buildFourierSymbolicDerivation(coeffs, w0Latex);
 
+	// Step 5: Piecewise Integral Setup
 	const step5: FourierItsStep5 = {
 		successMsg:
-			"Correct Integral Formulation! Notice the scaling constant and kernel match the symmetry.",
-		options: shuffleArray(step5OptionsRaw, random),
+			"Correct integral formulation. The scale, kernel, and non-zero piecewise intervals all match the waveform.",
+		options: shuffleArray(buildIntegralOptions(derivation), random),
 		hints: [
-			"Identify the standard definition for your chosen coefficient type ($a_n, b_n$, or $F_n$).",
-			`Use $\\frac{2}{T_0} \\int_{T_0} x(t) \\dots dt$ for trigonometric form or $\\frac{1}{T_0} \\int_{T_0} x(t) e^{-j n \\omega_0 t} dt$ for exponential form.`,
-			`Substitute $T_0 = ${T0}$ and $\\omega_0 = ${w0Latex}$ with proper integration bounds.`,
+			"Use symmetry to choose the non-zero coefficient family before writing an integral.",
+			"Trigonometric coefficients use $2/T_0$; exponential coefficients use $1/T_0$ and $e^{-jn\\omega_0t}$.",
+			"Split the integral exactly where the waveform definition changes and omit intervals where the signal is zero.",
 		],
 	};
 
-	// Step 6: Final Series Expression
-	const step6OptionsRaw: FourierItsOption[] =
-		symmetry === "odd"
-			? [
-					{
-						id: "c1",
-						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-						isCorrect: true,
-					},
-					{
-						id: "d1",
-						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"Trigonometric Mismatch: Odd signals must evaluate to sine harmonics, not cosines.",
-					},
-					{
-						id: "d2",
-						latex: `x(t) = \\frac{${A}}{2} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"DC Offset Error: Odd signals have zero average area, so $a_0 = 0$.",
-					},
-					{
-						id: "d3",
-						latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\sin\\left(n ${w0Latex} t\\right)`,
-						isCorrect: false,
-						feedback:
-							"Scale Factor Error: Missed a factor of 2 in coefficient integration evaluation.",
-					},
-				]
-			: symmetry === "even"
-				? [
-						{
-							id: "c1",
-							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: true,
-						},
-						{
-							id: "d1",
-							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"Harmonic Sign Error: Missing the alternating $\\sin(n\\pi/2)$ factor that alternates signs for odd $n$.",
-						},
-						{
-							id: "d2",
-							latex: `x(t) = \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{4(${A})}{n \\pi} \\sin\\left(n \\frac{\\pi}{2}\\right) \\sin\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"Trigonometric Mismatch: Even signals must be composed of cosine terms, not sines.",
-						},
-						{
-							id: "d3",
-							latex: `x(t) = ${A} + \\sum_{n=1,3,5\\dots}^{\\infty} \\frac{2(${A})}{n \\pi} \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"Multiple Errors: Check DC offset $a_0$ and the integration scaling factor.",
-						},
-					]
-				: [
-						{
-							id: "c1",
-							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: true,
-						},
-						{
-							id: "d1",
-							latex: `x(t) = \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"DC Offset Error: Rectified sines have a non-zero average DC value $a_0 = A/\\pi$.",
-						},
-						{
-							id: "d2",
-							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 + n^2)} \\cos\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"Denominator Sign Error: Check the $(1 - n^2)$ term from integration by parts.",
-						},
-						{
-							id: "d3",
-							latex: `x(t) = \\frac{${A}}{\\pi} + \\sum_{n=1}^{\\infty} \\frac{2(${A})}{\\pi(1 - n^2)} \\sin\\left(n ${w0Latex} t\\right)`,
-							isCorrect: false,
-							feedback:
-								"Harmonic Mismatch: Even harmonics of rectified waveforms appear with cosine basis functions.",
-						},
-					];
-	const finalSeriesLatex = buildFinalSeriesLatex(coeffs, w0Latex);
-	const waveformSpecificStep6Options = step6OptionsRaw.map((option) =>
-		option.isCorrect ? { ...option, latex: finalSeriesLatex } : option,
-	);
-
+	// Step 6: Harmonic Coefficient Evaluation
+	const coefficientLatex = buildCoefficientEvaluationLatex(derivation);
 	const step6: FourierItsStep6 = {
-		options: shuffleArray(waveformSpecificStep6Options, random),
+		options: shuffleArray(
+			[
+				{ id: "c1", latex: coefficientLatex, isCorrect: true },
+				{
+					id: "d1",
+					latex: `\\begin{aligned}a_0&=${A}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\end{aligned}`,
+					isCorrect: false,
+					feedback:
+						"DC Offset Error: $a_0$ is twice the signal average and must be evaluated from its own integral.",
+				},
+				{
+					id: "d2",
+					latex: `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.bnLatex}\\\\b_n&=${derivation.anLatex}\\end{aligned}`,
+					isCorrect: false,
+					feedback:
+						"Parity Error: The sine and cosine coefficient families have been interchanged.",
+				},
+				{
+					id: "d3",
+					latex: `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\\\F_n&=\\frac{a_n+jb_n}{2}\\end{aligned}`,
+					isCorrect: false,
+					feedback:
+						"Exponential Sign Error: $F_n=(a_n-jb_n)/2$ for positive harmonic indices.",
+				},
+			],
+			random,
+		),
 		hints: [
-			"Evaluate the definite integral over the non-zero intervals.",
-			`For odd $n$, substitute the bounds into $\\frac{2}{${T0}} \\int \\dots$. Remember $\\cos(n\\pi) = (-1)^n$.`,
-			"Combine the DC offset $a_0$ with the evaluated summation coefficients.",
+			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
+			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",
+			`The evaluated result is $${derivation.evaluationLatex}$. Then use $F_n=(a_n-jb_n)/2$.`,
+		],
+	};
+
+	// Step 7: Final Trigonometric and Exponential Series
+	const synthesisLatex = `\\begin{gathered}${derivation.finalTrigLatex}\\\\${derivation.finalExpLatex}\\end{gathered}`;
+	const step7: FourierItsStep7 = {
+		options: shuffleArray(
+			[
+				{ id: "c1", latex: synthesisLatex, isCorrect: true },
+				{
+					id: "d1",
+					latex: `x(t)=${A}+\\left(${derivation.finalTrigLatex.replace("x(t) = ", "")}\\right)`,
+					isCorrect: false,
+					feedback:
+						"DC Offset Error: This adds an extra constant that is not present in the evaluated $a_0/2$ term.",
+				},
+				{
+					id: "d2",
+					latex: `x(t)=\\frac{1}{2}\\left(${derivation.finalTrigLatex.replace("x(t) = ", "")}\\right)`,
+					isCorrect: false,
+					feedback:
+						"Scale Factor Error: The evaluated $a_n$ and $b_n$ already include the Fourier normalization.",
+				},
+				{
+					id: "d3",
+					latex: `${derivation.finalTrigLatex}+${A}\\sin(2\\omega_0t)`,
+					isCorrect: false,
+					feedback:
+						"Spurious Harmonic: The added sinusoid has no corresponding evaluated Fourier coefficient.",
+				},
+			],
+			random,
+		),
+		hints: [
+			"Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
+			"Keep only harmonic indices whose evaluated coefficients are non-zero.",
+			"For the exponential form, synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{jn\\omega_0t}$.",
 		],
 	};
 
@@ -954,6 +987,7 @@ export function generateFourierItsData(
 		step4,
 		step5,
 		step6,
+		step7,
 	};
 }
 
@@ -1042,7 +1076,7 @@ function buildSignalLatex(
  *    - Odd symmetry (x(-t) = -x(t)): a_0 = 0, a_n = 0, b_n = (4/T0) \int_0^{T0/2} x(t) \sin(n w0 t) dt.
  *    - Half-wave / Full-wave rectified sines: DC term a_0 = A / pi, even harmonics a_n = 2A / (pi (1 - n^2)).
  * 3. Converts to exponential Fourier series coefficients F_n = (a_n - j b_n) / 2.
- * 4. Synthesizes 6-step ITS metadata for interactive step-by-step guidance.
+ * 4. Synthesizes 7-step ITS metadata for interactive step-by-step guidance.
  *
  * @param {FourierWaveformType} waveformType Selected waveform category
  * @param {FourierGenerationOptions} [options] Deterministic generation controls
@@ -1064,39 +1098,56 @@ export function generateFourierSeriesProblem(
 	const coeffs = computeFourierCoefficients(waveformType, { A, T0 });
 	const id = `fs_${waveformType}_${seed}`;
 	const itsData = generateFourierItsData(coeffs, random);
+	const w0Latex = coeffs.w0 === Math.PI ? "\\pi" : "\\frac{\\pi}{2}";
+	const derivation = buildFourierSymbolicDerivation(coeffs, w0Latex);
 
 	const steps: SolutionStep[] = [
 		{
-			title: "Step 1: Period & Fundamental Frequency",
-			description: `Determine the fundamental period and frequency.`,
-			latex: `T_0 = ${T0}\\text{ s}, \\quad \\omega_0 = \\frac{2\\pi}{T_0} = ${coeffs.w0 === Math.PI ? "\\pi" : "\\frac{\\pi}{2}"}\\text{ rad/s}`,
+			title: "Period and Fundamental Frequency",
+			description:
+				"Read one complete repetition from the waveform and convert its period to angular frequency.",
+			latex: `T_0=${T0}\\text{ s},\\qquad \\omega_0=\\frac{2\\pi}{T_0}=\\frac{2\\pi}{${T0}}=${w0Latex}\\text{ rad/s}`,
 		},
 		{
-			title: "Step 2: Symmetry Classification",
-			description: `Determine signal symmetry (${coeffs.symmetry}).`,
-			latex: `\\text{Symmetry: } ${coeffs.symmetry} \\implies a_0 = ${coeffs.a0}`,
+			title: "Symmetry and Vanishing Terms",
+			description:
+				"Test origin parity and half-wave symmetry independently, then remove coefficient families that must vanish.",
+			latex: `\\begin{gathered}\\text{origin parity: }${coeffs.originParity},\\qquad \\text{half-wave symmetry: }${coeffs.hasHalfWaveSymmetry ? "\\text{yes}" : "\\text{no}"}\\\\${coeffs.originParity === "odd" ? "a_0=a_n=0" : coeffs.originParity === "even" ? "b_n=0" : "a_n\\text{ and }b_n\\text{ must both be evaluated}"}\\end{gathered}`,
 		},
 		{
-			title: "Step 3: Vanishing Coefficients",
-			description: `Identify vanishing harmonics based on symmetry shortcuts.`,
+			title: "Representation Selection",
+			description:
+				coeffs.originParity === "none"
+					? "Without centered parity, the exponential form evaluates both real and imaginary parts in one integral."
+					: "Centered parity leaves one real coefficient family, so the trigonometric form is most efficient.",
 			latex:
-				coeffs.symmetry === "odd"
-					? "a_0 = 0, \\; a_n = 0 \\quad (\\text{sine harmonics only})"
-					: coeffs.symmetry === "even"
-						? "b_n = 0 \\quad (\\text{cosine harmonics only})"
-						: "\\text{All coefficients must be computed.}",
+				coeffs.originParity === "none"
+					? "F_n=\\frac{1}{T_0}\\int_{T_0}x(t)e^{-jn\\omega_0t}\\,dt"
+					: "x(t)=\\frac{a_0}{2}+\\sum_{n=1}^{\\infty}[a_n\\cos(n\\omega_0t)+b_n\\sin(n\\omega_0t)]",
 		},
 		{
-			title: "Step 4: Calculate Coefficients",
+			title: "Piecewise Integral Setup",
 			description:
-				"Calculate non-zero harmonic coefficients over one period.",
-			latex: `a_n = ${coeffs.symmetry === "odd" ? "0" : `\\frac{4(${A})}{\\pi n}`}, \\quad b_n = ${coeffs.symmetry === "even" ? "0" : `\\frac{4(${A})}{\\pi n}`}`,
+				"Substitute the waveform on each non-zero interval, retaining the normalization and Fourier kernel.",
+			latex: derivation.integralLatex,
 		},
 		{
-			title: "Step 5: Convert to Exponential Series",
+			title: "Definite Integral Evaluation",
 			description:
-				"Exponential series coefficient relationship F_n = (a_n - j b_n)/2.",
-			latex: `F_n = \\frac{${A}}{\\pi n}`,
+				"Apply the bounds and simplify parity factors such as $(-1)^n$ and $\\sin(n\\pi/2)$.",
+			latex: derivation.evaluationLatex,
+		},
+		{
+			title: "DC Offset Derivation",
+			description:
+				"Evaluate the average separately; the constant appearing in the trigonometric series is $a_0/2$.",
+			latex: `a_0=\\frac{2}{T_0}\\int_{T_0}x(t)\\,dt=${derivation.a0Latex},\\qquad F_0=\\frac{a_0}{2}`,
+		},
+		{
+			title: "Trigonometric and Exponential Synthesis",
+			description:
+				"Insert only the evaluated non-zero coefficients into both canonical Fourier representations.",
+			latex: `\\begin{gathered}${derivation.finalTrigLatex}\\\\${derivation.finalExpLatex}\\end{gathered}`,
 		},
 	];
 
@@ -1108,13 +1159,12 @@ export function generateFourierSeriesProblem(
 		waveformType,
 		title: "Practice Problem: Periodic Waveform",
 		periodLatex: `T_0 = ${T0}\\text{ s}`,
-		omega0Latex: `\\omega_0 = \\frac{2\\pi}{${T0}} = ${coeffs.w0 === Math.PI ? "\\pi" : "\\frac{\\pi}{2}"}\\text{ rad/s}`,
+		omega0Latex: `\\omega_0 = \\frac{2\\pi}{${T0}} = ${w0Latex}\\text{ rad/s}`,
 		signalLatex,
-		a0Latex: `${coeffs.a0}`,
-		anLatex: coeffs.symmetry === "odd" ? "0" : `\\frac{4(${A})}{\\pi n}`,
-		bnLatex: coeffs.symmetry === "even" ? "0" : `\\frac{4(${A})}{\\pi n}`,
-		cnLatex: `\\frac{${A}}{\\pi n}`,
-		FnLatex: `\\frac{${A}}{\\pi n}`,
+		a0Latex: derivation.a0Latex,
+		anLatex: derivation.anLatex,
+		bnLatex: derivation.bnLatex,
+		FnLatex: derivation.FnLatex,
 		solutionSteps: steps,
 		coeffs,
 		itsData,

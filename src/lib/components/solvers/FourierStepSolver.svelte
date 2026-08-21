@@ -2,9 +2,10 @@
 	/**
 	 * FourierStepSolver Svelte 5 Component.
 	 *
-	 * 6-Step Intelligent Tutoring System (ITS) for Fourier Series.
+	 * 7-Step Intelligent Tutoring System (ITS) for Fourier Series.
 	 * Guides students sequentially through period/frequency, symmetry classification,
-	 * vanishing shortcuts, form selection, integral setup, and final series evaluation.
+	 * vanishing shortcuts, form selection, integral setup, coefficient evaluation,
+	 * and final series synthesis.
 	 */
 
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
@@ -17,7 +18,7 @@
 	interface Props {
 		/** Active Fourier series problem instance */
 		problem: FourierSeriesProblem;
-		/** Callback triggered when all 6 steps are completed */
+		/** Callback triggered when all 7 steps are completed */
 		onComplete?: () => void;
 	}
 
@@ -44,7 +45,7 @@
 	<StepFeedback {solver} />
 
 	<!-- Progressive Hints Utility -->
-	{#if solver.currentStep <= 6}
+	{#if solver.currentStep <= 7}
 		<div class="hints-box hint-container">
 			<div class="hints-header">
 				<button
@@ -419,7 +420,7 @@
 					>
 						<strong>Exponential Form</strong>
 						<span class="choice-sub">
-							<MathText text={"Single integral for $c_n$"} />
+							<MathText text={"Single integral for $F_n$"} />
 						</span>
 					</button>
 					<button
@@ -500,7 +501,7 @@
 		{/if}
 	</div>
 
-	<!-- Step 6: Final Series Expression -->
+	<!-- Step 6: Harmonic Coefficient Evaluation -->
 	<div
 		class="step-card"
 		class:active={solver.currentStep === 6}
@@ -509,14 +510,14 @@
 	>
 		<div class="step-header">
 			<div class="step-badge">Step 6</div>
-			<h3 class="step-title">Final Fourier Series Expression</h3>
+			<h3 class="step-title">Harmonic Coefficient Evaluation</h3>
 		</div>
 
 		{#if solver.currentStep === 6}
 			<div class="step-body">
 				<p class="step-prompt">
 					<MathText
-						text={String.raw`Select the evaluated closed-form Fourier Series representation for $x(t)$:`}
+						text={String.raw`Select the coefficient set obtained after applying the integration bounds and simplifying the harmonic-index factors:`}
 					/>
 				</p>
 				<div class="mcq-cards-grid">
@@ -538,6 +539,51 @@
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 6}
+			<div class="step-summary">
+				<span class="check-icon">✓</span>
+				<span>Harmonic Coefficients Evaluated</span>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Step 7: Final Series Expression -->
+	<div
+		class="step-card"
+		class:active={solver.currentStep === 7}
+		class:done={solver.currentStep > 7}
+		class:locked={solver.currentStep < 7}
+	>
+		<div class="step-header">
+			<div class="step-badge">Step 7</div>
+			<h3 class="step-title">Final Fourier Series Expression</h3>
+		</div>
+
+		{#if solver.currentStep === 7}
+			<div class="step-body">
+				<p class="step-prompt">
+					<MathText
+						text={String.raw`Select the matching trigonometric and exponential Fourier series for $x(t)$:`}
+					/>
+				</p>
+				<div class="mcq-cards-grid">
+					{#each problem.itsData.step7.options as opt}
+						<button
+							type="button"
+							class="mcq-card"
+							class:selected={solver.step7.selected === opt.id}
+							onclick={() => solver.checkStep7(opt)}
+						>
+							<MathBlock
+								math={opt.latex}
+								compact={true}
+								hideHeader={true}
+							/>
+						</button>
+					{/each}
+				</div>
+			</div>
+			{@render feedbackAndHints()}
+		{:else if solver.currentStep > 7}
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>Fourier Series Synthesized</span>

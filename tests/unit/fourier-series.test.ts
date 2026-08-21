@@ -113,13 +113,12 @@ describe("Fourier Series Math Engine", () => {
 			expect(sawtooth.hasHalfWaveSymmetry).toBe(false);
 		});
 
-		it("uses F_n for exponential coefficients and keeps cn as an alias", () => {
+		it("uses canonical F_n notation for exponential coefficients", () => {
 			const coeffs = computeFourierCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
 
-			expect(coeffs.Fn(1)).toEqual(coeffs.cn(1));
 			expect(coeffs.Fn(-1).re).toBeCloseTo(coeffs.Fn(1).re, 12);
 			expect(coeffs.Fn(-1).im).toBeCloseTo(-coeffs.Fn(1).im, 12);
 			expect(coeffs.Fn(0)).toEqual({ re: 0, im: 0 });
@@ -237,6 +236,9 @@ describe("Fourier Series Math Engine", () => {
 			expect(second.itsData.step6.options).toEqual(
 				first.itsData.step6.options,
 			);
+			expect(second.itsData.step7.options).toEqual(
+				first.itsData.step7.options,
+			);
 		});
 
 		it("generates a valid Fourier series problem for square wave", () => {
@@ -246,7 +248,7 @@ describe("Fourier Series Math Engine", () => {
 			expect(problem.a0Latex).toBeDefined();
 			expect(problem.anLatex).toBeDefined();
 			expect(problem.bnLatex).toBeDefined();
-			expect(problem.solutionSteps.length).toBeGreaterThan(0);
+			expect(problem.solutionSteps).toHaveLength(7);
 		});
 
 		it("generates a valid Fourier series problem for triangle wave", () => {

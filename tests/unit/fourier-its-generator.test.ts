@@ -24,7 +24,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 				A: 1,
 				T0: 2,
 			});
-			const correct = problem.itsData.step6.options.find(
+			const correct = problem.itsData.step7.options.find(
 				(option) => option.isCorrect,
 			);
 
@@ -60,13 +60,20 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step5.options.length).toBe(4);
 		const correctOpt5 = itsData.step5.options.find((o) => o.isCorrect);
 		expect(correctOpt5).toBeDefined();
-		expect(correctOpt5?.latex).toContain("b_n =");
+		expect(correctOpt5?.latex).toContain("b_n=");
 
-		// Step 6
+		// Step 6: evaluated coefficient set
 		expect(itsData.step6.options.length).toBe(4);
 		const correctOpt6 = itsData.step6.options.find((o) => o.isCorrect);
 		expect(correctOpt6).toBeDefined();
-		expect(correctOpt6?.latex).toContain("\\sin");
+		expect(correctOpt6?.latex).toContain("a_0");
+		expect(correctOpt6?.latex).toContain("F_n");
+
+		// Step 7: final series synthesis
+		expect(itsData.step7.options.length).toBe(4);
+		const correctOpt7 = itsData.step7.options.find((o) => o.isCorrect);
+		expect(correctOpt7?.latex).toContain("x(t)");
+		expect(correctOpt7?.latex).toContain("F_n");
 	});
 
 	it("generates valid ITS step data for even square wave", () => {
@@ -84,7 +91,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step4.correctForm).toBe("trig");
 
 		const correctOpt5 = itsData.step5.options.find((o) => o.isCorrect);
-		expect(correctOpt5?.latex).toContain("a_n =");
+		expect(correctOpt5?.latex).toContain("a_n=");
 	});
 
 	it("generates anti-spoiler title and complete ITS problem instance", () => {
@@ -92,6 +99,38 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(problem.title).toBe("Practice Problem: Periodic Waveform");
 		expect(problem.itsData).toBeDefined();
 		expect(problem.itsData.step1.expectedT).toBeGreaterThan(0);
-		expect(problem.solutionSteps.length).toBeGreaterThanOrEqual(3);
+		expect(problem.solutionSteps).toHaveLength(7);
+		expect(problem.solutionSteps[0].title).not.toContain("Step 1:");
 	});
+
+	it.each([
+		["square", "a_n", "F_n"],
+		["square_odd", "n\\text{ odd}", "-j"],
+		["square_even", "\\sin\\left(\\frac{n\\pi}{2}", "F_n"],
+		["triangle", "n^2\\pi^2", "F_n"],
+		["triangle_odd", "-j\\dfrac{4", "F_n"],
+		["triangle_even", "n\\text{ even}", "F_n"],
+		["sawtooth", "(-1)^{n+1}", "F_n"],
+		["half_wave_sine", "n=1", "n=-1"],
+		["full_wave_sine", "4n^2-1", "n\\ne0"],
+	] as const)(
+		"evaluates exact coefficient families for %s",
+		(waveform, expectedA, expectedB) => {
+			const problem = generateFourierSeriesProblem(waveform, {
+				seed: 7,
+				A: 1,
+				T0: 2,
+			});
+			const correct = problem.itsData.step6.options.find(
+				(option) => option.isCorrect,
+			);
+
+			expect(correct?.latex).toContain(expectedA);
+			expect(correct?.latex).toContain(expectedB);
+			expect(problem.a0Latex).toBeTruthy();
+			expect(problem.anLatex).toBeTruthy();
+			expect(problem.bnLatex).toBeTruthy();
+			expect(problem.FnLatex).toBeTruthy();
+		},
+	);
 });

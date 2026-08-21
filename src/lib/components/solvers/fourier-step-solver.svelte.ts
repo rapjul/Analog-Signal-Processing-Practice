@@ -39,7 +39,7 @@ export interface FourierSymmetryStepState extends FourierChoiceStepState {
 }
 
 /**
- * Reactive State and Controller for the 6-Step Fourier Series ITS Solver.
+ * Reactive State and Controller for the 7-Step Fourier Series ITS Solver.
  */
 export class FourierStepSolverState extends BaseStepSolverState {
 	/** Getter closure returning the active Fourier Series problem */
@@ -83,8 +83,13 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		createStepState({ selected: null as string | null }),
 	);
 
-	/** Step 6 State: Final series evaluation */
+	/** Step 6 State: Harmonic coefficient evaluation */
 	step6: FourierChoiceStepState = $state<FourierChoiceStepState>(
+		createStepState({ selected: null as string | null }),
+	);
+
+	/** Step 7 State: Final series synthesis */
+	step7: FourierChoiceStepState = $state<FourierChoiceStepState>(
 		createStepState({ selected: null as string | null }),
 	);
 
@@ -105,6 +110,8 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				return this.step5;
 			case 6:
 				return this.step6;
+			case 7:
+				return this.step7;
 			default:
 				return undefined;
 		}
@@ -127,6 +134,8 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				return this.problem.itsData.step5.hints;
 			case 6:
 				return this.problem.itsData.step6.hints;
+			case 7:
+				return this.problem.itsData.step7.hints;
 			default:
 				return [];
 		}
@@ -141,7 +150,7 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		getProblem: () => FourierSeriesProblem,
 		getOnComplete?: () => (() => void) | undefined,
 	) {
-		super(6, getOnComplete);
+		super(7, getOnComplete);
 		this.getProblem = getProblem;
 		this.reset();
 	}
@@ -298,16 +307,30 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 6 (Final Series Expression).
+	 * Validates Step 6 (Harmonic Coefficient Evaluation).
 	 * @param {FourierItsOption} opt Selected option
 	 */
 	checkStep6(opt: FourierItsOption): void {
 		this.checkOptionCardStep(
 			this.step6,
 			opt,
-			"Incorrect series expression. Check signs, DC offset $a_0$, and harmonic indices.",
-			"Please select a final trigonometric series option.",
+			"Incorrect coefficient evaluation. Check the applied bounds, parity factors, DC convention, and exponential sign.",
+			"Please select the evaluated coefficient set.",
 			7,
+		);
+	}
+
+	/**
+	 * Validates Step 7 (Final Series Synthesis).
+	 * @param {FourierItsOption} opt Selected option
+	 */
+	checkStep7(opt: FourierItsOption): void {
+		this.checkOptionCardStep(
+			this.step7,
+			opt,
+			"Incorrect series synthesis. Check the DC term, normalization, and non-zero harmonic indices.",
+			"Please select the final trigonometric and exponential series.",
+			8,
 		);
 	}
 
@@ -333,9 +356,10 @@ export class FourierStepSolverState extends BaseStepSolverState {
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createStepState({ selected: null as string | null });
 		this.step6 = createStepState({ selected: null as string | null });
+		this.step7 = createStepState({ selected: null as string | null });
 	}
 
-	/** Named visual states for the six-step Fourier Series solver. */
+	/** Named visual states for the seven-step Fourier Series solver. */
 	override devGetVisualStates(): SolverVisualStateDescriptor[] {
 		return [
 			{
@@ -381,9 +405,15 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				kind: "hint",
 			},
 			{
-				id: "fourier.step-06.final-series",
-				label: "Step 6 · Final Series",
+				id: "fourier.step-06.coefficient-evaluation",
+				label: "Step 6 · Coefficient Evaluation",
 				step: 6,
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-07.final-series",
+				label: "Step 7 · Final Series",
+				step: 7,
 				kind: "interactive",
 			},
 		];
@@ -438,8 +468,10 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				if (!this.devPrepareParentStep(5)) return false;
 				this.devRevealAllHints();
 				return true;
-			case "fourier.step-06.final-series":
+			case "fourier.step-06.coefficient-evaluation":
 				return this.devPrepareParentStep(6);
+			case "fourier.step-07.final-series":
+				return this.devPrepareParentStep(7);
 			default:
 				return false;
 		}
@@ -497,6 +529,17 @@ export class FourierStepSolverState extends BaseStepSolverState {
 					this.checkStep6(opt);
 				} else {
 					this.advanceToStep(7);
+				}
+				break;
+			}
+			case 7: {
+				const opt = this.problem.itsData.step7.options.find(
+					(o) => o.isCorrect,
+				);
+				if (opt) {
+					this.checkStep7(opt);
+				} else {
+					this.advanceToStep(8);
 				}
 				break;
 			}

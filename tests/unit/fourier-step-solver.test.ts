@@ -244,7 +244,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		}
 	});
 
-	it("validates Step 6 (final series expression) and executes onComplete callback", () => {
+	it("validates Step 6 coefficient evaluation before advancing", () => {
 		const onComplete = vi.fn();
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierStepSolverState(
@@ -277,6 +277,38 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(solver.step6.feedback).toBeNull();
 			expect(solver.step6.feedbackType).toBeNull();
 			expect(solver.currentStep).toBe(7);
+			expect(solver.isCompleted).toBe(false);
+			expect(onComplete).not.toHaveBeenCalled();
+		}
+	});
+
+	it("validates Step 7 synthesis and executes onComplete callback", () => {
+		const onComplete = vi.fn();
+		const problem = generateFourierSeriesProblem("square");
+		const solver = new FourierStepSolverState(
+			() => problem,
+			() => onComplete,
+		);
+		solver.advanceToStep(7);
+
+		const wrongOpt = problem.itsData.step7.options.find(
+			(option) => !option.isCorrect,
+		);
+		expect(wrongOpt).toBeDefined();
+		if (wrongOpt) {
+			solver.checkStep7(wrongOpt);
+			expect(solver.step7.feedbackType).toBe("misconception");
+			expect(solver.step7.feedback).toBe(wrongOpt.feedback);
+		}
+
+		const correctOpt = problem.itsData.step7.options.find(
+			(option) => option.isCorrect,
+		);
+		expect(correctOpt).toBeDefined();
+		if (correctOpt) {
+			solver.checkStep7(correctOpt);
+			expect(solver.step7.isValid).toBe(true);
+			expect(solver.currentStep).toBe(8);
 			expect(solver.isCompleted).toBe(true);
 			expect(onComplete).toHaveBeenCalledTimes(1);
 		}
@@ -296,15 +328,14 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			).toBe(true);
 		}
 
-		// Step 6 option math strings
-		for (const opt of problem.itsData.step6.options) {
+		// Step 6 and Step 7 option math strings
+		for (const opt of [
+			...problem.itsData.step6.options,
+			...problem.itsData.step7.options,
+		]) {
 			expect(opt.latex).toBeDefined();
 			expect(opt.latex.length).toBeGreaterThan(0);
-			expect(
-				opt.latex.includes("x(t)") ||
-					opt.latex.includes("\\sin") ||
-					opt.latex.includes("\\cos"),
-			).toBe(true);
+			expect(opt.latex).toContain("=");
 		}
 	});
 
@@ -330,5 +361,6 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.step4.selected).toBeNull();
 		expect(solver.step5.selected).toBeNull();
 		expect(solver.step6.selected).toBeNull();
+		expect(solver.step7.selected).toBeNull();
 	});
 });
