@@ -48,10 +48,6 @@
 			label: `${problem.waveformType.replace("_", " ")} Wave`,
 			variant: "secondary" as const,
 		},
-		{
-			label: `${problem.coeffs.symmetry} Symmetry`,
-			variant: "accent" as const,
-		},
 	]);
 </script>
 
@@ -101,6 +97,7 @@
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">
 				<FourierCanvas
+					coefficients={problem.coeffs}
 					waveformType={problem.waveformType}
 					harmonicCount={5}
 					title="Verified Harmonic Spectrum & Partial Sum Reconstruction"

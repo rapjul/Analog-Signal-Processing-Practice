@@ -6,6 +6,33 @@ import {
 } from "../../src/lib/math-engine/fourier-series";
 
 describe("Fourier Series ITS Step Generator Engine", () => {
+	it.each([
+		["square", "4(1)", "\\sin"],
+		["square_odd", "4(1)", "\\sin"],
+		["square_even", "\\sin\\left(\\frac{n\\pi}{2}", "\\cos"],
+		["triangle", "8(1)", "n^2\\pi^2"],
+		["triangle_odd", "8(1)", "\\sin\\left(\\frac{n\\pi}{2}"],
+		["triangle_even", "8(1)", "n^2\\pi^2"],
+		["sawtooth", "(-1)^{n+1}", "2(1)"],
+		["half_wave_sine", "\\frac{1}{2}\\sin", "1-4k^2"],
+		["full_wave_sine", "4n^2-1", "\\frac{2(1)}{\\pi}"],
+	] as const)(
+		"builds the exact final series for %s",
+		(waveform, expectedA, expectedB) => {
+			const problem = generateFourierSeriesProblem(waveform, {
+				seed: 1,
+				A: 1,
+				T0: 2,
+			});
+			const correct = problem.itsData.step6.options.find(
+				(option) => option.isCorrect,
+			);
+
+			expect(correct?.latex).toContain(expectedA);
+			expect(correct?.latex).toContain(expectedB);
+		},
+	);
+
 	it("generates valid ITS step data for odd square wave", () => {
 		const coeffs = computeFourierCoefficients("square", { A: 2, T0: 2 });
 		const itsData = generateFourierItsData(coeffs);
@@ -19,6 +46,8 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 
 		// Step 2
 		expect(itsData.step2.correctSymmetry).toBe("odd");
+		expect(itsData.step2.correctOriginParity).toBe("odd");
+		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step2.misconceptions.even).toBeDefined();
 
 		// Step 3
@@ -50,6 +79,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step1.expectedT).toBe(4);
 		expect(itsData.step1.w0Aliases).toContain("pi/2");
 		expect(itsData.step2.correctSymmetry).toBe("even");
+		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step3.correctVanishing).toBe("bn_zero");
 		expect(itsData.step4.correctForm).toBe("trig");
 

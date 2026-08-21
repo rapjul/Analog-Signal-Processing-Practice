@@ -211,7 +211,7 @@
 			<div class="step-body">
 				<p class="step-prompt">
 					<MathText
-						text={"Classify the symmetry of $x(t)$ across the origin and axes:"}
+						text={"First classify the parity of $x(t)$ about the time origin:"}
 					/>
 				</p>
 				<div class="button-grid-taxonomic">
@@ -219,7 +219,7 @@
 						type="button"
 						class="choice-btn"
 						class:selected={solver.step2.selected === "even"}
-						onclick={() => solver.checkStep2("even")}
+						onclick={() => (solver.step2.selected = "even")}
 					>
 						<strong>Even Symmetry</strong>
 						<span class="choice-sub">
@@ -230,7 +230,7 @@
 						type="button"
 						class="choice-btn"
 						class:selected={solver.step2.selected === "odd"}
-						onclick={() => solver.checkStep2("odd")}
+						onclick={() => (solver.step2.selected = "odd")}
 					>
 						<strong>Odd Symmetry</strong>
 						<span class="choice-sub">
@@ -241,21 +241,42 @@
 						type="button"
 						class="choice-btn"
 						class:selected={solver.step2.selected === "none"}
-						onclick={() => solver.checkStep2("none")}
+						onclick={() => (solver.step2.selected = "none")}
 					>
 						<strong>Neither Symmetry</strong>
 						<span class="choice-sub">Asymmetric / Shifted</span>
 					</button>
+				</div>
+				<p class="step-prompt">
+					<MathText
+						text={"Separately test for half-wave symmetry: $x(t+T_0/2)=-x(t)$."}
+					/>
+				</p>
+				<div class="button-grid-taxonomic">
 					<button
 						type="button"
 						class="choice-btn"
-						class:selected={solver.step2.selected === "half_wave"}
-						onclick={() => solver.checkStep2("half_wave")}
+						class:selected={solver.step2.selectedHalfWave === true}
+						onclick={() => (solver.step2.selectedHalfWave = true)}
 					>
-						<strong>Half-Wave Odd</strong>
-						<span class="choice-sub">
-							<MathText text={"$x(t - T_0/2) = -x(t)$"} />
-						</span>
+						<strong>Has Half-Wave Symmetry</strong>
+					</button>
+					<button
+						type="button"
+						class="choice-btn"
+						class:selected={solver.step2.selectedHalfWave === false}
+						onclick={() => (solver.step2.selectedHalfWave = false)}
+					>
+						<strong>No Half-Wave Symmetry</strong>
+					</button>
+				</div>
+				<div class="step-actions">
+					<button
+						type="button"
+						class="btn btn-primary"
+						onclick={() => solver.checkStep2()}
+					>
+						Check Symmetry →
 					</button>
 				</div>
 			</div>
@@ -264,8 +285,11 @@
 			<div class="step-summary">
 				<span class="check-icon">✓</span>
 				<span>
-					Symmetry: <strong class="capitalize">
-						{problem.coeffs.symmetry}
+					Origin parity: <strong class="capitalize">
+						{problem.coeffs.originParity}
+					</strong>; half-wave symmetry:
+					<strong>
+						{problem.coeffs.hasHalfWaveSymmetry ? "yes" : "no"}
 					</strong>
 				</span>
 			</div>

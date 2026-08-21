@@ -38,6 +38,9 @@ test.describe("Fourier Series Module", () => {
 		await expect(practiceCard.locator(".problem-title")).toHaveText(
 			/Practice Problem: Periodic Waveform/i,
 		);
+		await expect(practiceCard.locator(".problem-header")).not.toContainText(
+			/Symmetry/i,
+		);
 	});
 
 	/**
