@@ -97,6 +97,7 @@
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">
 				<FourierCanvas
+					coefficients={problem.coeffs}
 					waveformType={problem.waveformType}
 					harmonicCount={5}
 					title="Verified Harmonic Spectrum & Partial Sum Reconstruction"

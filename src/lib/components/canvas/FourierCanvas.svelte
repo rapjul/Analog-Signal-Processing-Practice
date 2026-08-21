@@ -10,12 +10,15 @@
 	import {
 		computeFourierCoefficients,
 		computePartialSum,
+		evaluateFourierWaveform,
 		type FourierCoefficients,
 		type FourierWaveformType,
 	} from "$lib/math-engine/fourier-series";
 	import MathInline from "../math/MathInline.svelte";
 
 	interface Props {
+		/** Exact coefficients for the generated problem. */
+		coefficients?: FourierCoefficients;
 		/** Selected waveform type */
 		waveformType?: FourierWaveformType;
 		/** Number of partial sum harmonics N (1 to 50) */
@@ -27,6 +30,7 @@
 	import { onMount, untrack } from "svelte";
 
 	let {
+		coefficients,
 		waveformType = "square",
 		harmonicCount = 5,
 		title = "Fourier Series Partial Sum & Harmonic Spectrum",
@@ -50,7 +54,7 @@
 
 	// Derived Fourier coefficients
 	let coeffs = $derived<FourierCoefficients>(
-		computeFourierCoefficients(waveformType),
+		coefficients ?? computeFourierCoefficients(waveformType),
 	);
 
 	let themeVersion = $state(0);
@@ -120,7 +124,7 @@
 		const targetMags = Array.from({ length: 51 }, () => 0);
 		for (let n = 1; n <= 50; n++) {
 			if (n <= targetDisplayN) {
-				const { re, im } = currentCoeffs.cn(n);
+				const { re, im } = currentCoeffs.Fn(n);
 				targetMags[n] = Math.sqrt(re * re + im * im);
 			} else {
 				targetMags[n] = 0;
@@ -191,15 +195,15 @@
 			ctxLower.fillRect(0, 0, widthLower, heightLower);
 
 			const padding = 35;
-			const tMin = -2;
-			const tMax = 2;
+			const tMin = -currentCoeffs.T0;
+			const tMax = currentCoeffs.T0;
 			const toX = (t: number) =>
 				padding +
 				((t - tMin) / (tMax - tMin)) * (widthUpper - padding * 2);
 
 			// --- Panel 1: Upper Time-Domain S_N(t) ---
 			const p1ZeroY = heightUpper / 2;
-			const p1ScaleY = (heightUpper - 40) / 2.5;
+			const p1ScaleY = (heightUpper - 40) / (2.6 * currentCoeffs.A);
 
 			ctxUpper.strokeStyle = borderColor;
 			ctxUpper.lineWidth = 1;
@@ -212,13 +216,34 @@
 			const numSamples = 1000;
 			const dt = (tMax - tMin) / numSamples;
 
+			// Ideal waveform reference, segmented at jump discontinuities.
+			ctxUpper.strokeStyle = textSecondary;
+			ctxUpper.lineWidth = 1.5;
+			ctxUpper.setLineDash([6, 5]);
+			ctxUpper.beginPath();
+			let previousIdeal: number | null = null;
+			for (let i = 0; i <= numSamples; i++) {
+				const t = tMin + i * dt;
+				const ideal = evaluateFourierWaveform(currentCoeffs, t);
+				const px = toX(t);
+				const py = p1ZeroY - ideal * p1ScaleY;
+				const crossesJump =
+					previousIdeal !== null &&
+					Math.abs(ideal - previousIdeal) > currentCoeffs.A;
+				if (i === 0 || crossesJump) ctxUpper.moveTo(px, py);
+				else ctxUpper.lineTo(px, py);
+				previousIdeal = ideal;
+			}
+			ctxUpper.stroke();
+			ctxUpper.setLineDash([]);
+
 			ctxUpper.strokeStyle = "#06b6d4";
 			ctxUpper.lineWidth = 2;
 			ctxUpper.beginPath();
 
 			for (let i = 0; i <= numSamples; i++) {
 				const t = tMin + i * dt;
-				const valSum = computePartialSum(coeffs, currentN, t);
+				const valSum = computePartialSum(currentCoeffs, currentN, t);
 				const px = toX(t);
 				const py = p1ZeroY - valSum * p1ScaleY;
 
@@ -227,7 +252,7 @@
 			}
 			ctxUpper.stroke();
 
-			// --- Panel 2: Lower Frequency-Domain Spectrum |c_n| Bar Chart ---
+			// --- Panel 2: Lower Frequency-Domain Spectrum |F_n| Bar Chart ---
 			// Added 35px top padding so bars don't touch upper boundary
 			const p2ZeroY = heightLower - 30;
 			const availableHeight = heightLower - 65; // 35px top margin + 30px bottom label margin
@@ -402,7 +427,12 @@
 			<span class="panel-title">
 				Time-Domain Partial Sum <MathInline
 					math={`S_{${currentN}}(t)`}
-				/> (Gibbs overshoot at jumps)
+				/>
+				{#if coeffs.hasJumpDiscontinuities}
+					(Gibbs overshoot at jumps)
+				{:else}
+					(Ideal waveform comparison)
+				{/if}
 			</span>
 		</div>
 		<canvas
@@ -411,6 +441,10 @@
 			aria-label="Time-Domain Partial Sum Canvas"
 		></canvas>
 		<div class="plot-legend">
+			<div class="legend-item">
+				<span class="dot ideal"></span>
+				<span class="label">Ideal waveform</span>
+			</div>
 			<div class="legend-item">
 				<span class="dot cyan"></span>
 				<span class="label">
@@ -423,7 +457,7 @@
 	<div class="plot-card lower-card">
 		<div class="panel-header">
 			<span class="panel-title">
-				Harmonic Spectrum Magnitude <MathInline math={"|c_n|"} />
+				Harmonic Spectrum Magnitude <MathInline math={"|F_n|"} />
 				<MathInline math={`(n = 1 \\dots ${Math.min(currentN, 30)})`} />
 			</span>
 		</div>
@@ -436,7 +470,7 @@
 			<div class="legend-item">
 				<span class="dot amber"></span>
 				<span class="label">
-					Harmonic Spectrum <MathInline math={"|c_n|"} />
+					Harmonic Spectrum <MathInline math={"|F_n|"} />
 				</span>
 			</div>
 		</div>
@@ -464,10 +498,17 @@
 				<MathInline math={`N = ${currentN}`} />
 			</span>
 		</div>
-		<span class="gibbs-hint">
-			💡 Notice ~9% Gibbs phenomenon overshoot near jump discontinuities
-			as <MathInline math={"N \\to \\infty"} />!
-		</span>
+		{#if coeffs.hasJumpDiscontinuities}
+			<span class="gibbs-hint">
+				💡 Notice the Gibbs phenomenon overshoot near jump
+				discontinuities as <MathInline math={"N \\to \\infty"} />.
+			</span>
+		{:else}
+			<span class="gibbs-hint">
+				Compare the partial sum with the dashed ideal waveform as
+				<MathInline math={"N"} /> increases.
+			</span>
+		{/if}
 	</div>
 </div>
 
@@ -505,6 +546,8 @@
 	.plot-legend {
 		display: flex;
 		justify-content: center;
+		flex-wrap: wrap;
+		gap: 1rem;
 		padding-left: 0.25rem;
 	}
 
@@ -528,6 +571,10 @@
 	}
 	.dot.amber {
 		background: #f59e0b;
+	}
+
+	.dot.ideal {
+		background: var(--text-secondary);
 	}
 
 	/* ── Plot card & canvas frames ─────────────────────────── */
