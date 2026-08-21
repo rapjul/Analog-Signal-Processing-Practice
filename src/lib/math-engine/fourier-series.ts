@@ -193,6 +193,8 @@ export interface FourierSeriesProblem {
 	bnLatex: string;
 	/** Closed-form cn LaTeX */
 	cnLatex: string;
+	/** Closed-form exponential coefficient F_n LaTeX. */
+	FnLatex: string;
 	/** Step-by-step solution derivation */
 	solutionSteps: SolutionStep[];
 	/** Mathematical coefficient evaluator instance */
@@ -698,7 +700,7 @@ export function generateFourierItsData(
 				? "Since only cosine terms are needed, all sine coefficients vanish: $b_n = 0$."
 				: symmetry === "odd"
 					? "Since only sine terms are needed, all cosine coefficients and DC offset vanish: $a_0 = 0, a_n = 0$."
-					: "No symmetry shortcuts apply: you must compute both $a_n$ and $b_n$ (or use $c_n$).",
+					: "No symmetry shortcuts apply: you must compute both $a_n$ and $b_n$ (or use $F_n$).",
 		],
 		misconceptions: {
 			an_zero:
@@ -724,15 +726,15 @@ export function generateFourierItsData(
 			symmetry !== "none"
 				? "You already know that half the coefficients are zero. Which form separates sine and cosine terms?"
 				: "Without symmetry, which representation evaluates both real and imaginary parts in a single integral?",
-			"Trigonometric form separates $a_n$ and $b_n$. Exponential form $c_n$ combines them using $e^{-j n \\omega_0 t}$.",
+			"Trigonometric form separates $a_n$ and $b_n$. Exponential form $F_n$ combines them using $e^{-j n \\omega_0 t}$.",
 			symmetry !== "none"
 				? "Since one set of coefficients is zero, the Trigonometric form is the most efficient (requiring only one real-valued integral)."
-				: "Evaluating $c_n$ via the Exponential form evaluates both components in one complex integral.",
+				: "Evaluating $F_n$ via the Exponential form evaluates both components in one complex integral.",
 		],
 		misconceptions: {
 			trig:
 				symmetry === "none"
-					? "Using Trigonometric form without symmetry requires solving two separate integrals ($a_n$ and $b_n$). Exponential form $c_n$ is faster."
+					? "Using Trigonometric form without symmetry requires solving two separate integrals ($a_n$ and $b_n$). Exponential form $F_n$ is faster."
 					: "Trigonometric form is preferred here.",
 			exp:
 				symmetry !== "none"
@@ -768,7 +770,7 @@ export function generateFourierItsData(
 					},
 					{
 						id: "d3",
-						latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
+						latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
 						isCorrect: false,
 						feedback:
 							"Sign Error: Exponential Fourier coefficients require $e^{-j n \\omega_0 t}$ with a negative exponent.",
@@ -806,19 +808,19 @@ export function generateFourierItsData(
 				: [
 						{
 							id: "c1",
-							latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
+							latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
 							isCorrect: true,
 						},
 						{
 							id: "d1",
-							latex: `c_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
+							latex: `F_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) e^{-j n ${w0Latex} t} dt`,
 							isCorrect: false,
 							feedback:
 								"Misconception: You used $2/T_0$. Exponential coefficients require a factor of $1/T_0$.",
 						},
 						{
 							id: "d2",
-							latex: `c_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
+							latex: `F_n = \\frac{1}{${T0}} \\int_{0}^{${T0}} x(t) e^{j n ${w0Latex} t} dt`,
 							isCorrect: false,
 							feedback:
 								"Sign Error: The exponential transform kernel requires $e^{-j n \\omega_0 t}$ with a negative sign.",
@@ -828,7 +830,7 @@ export function generateFourierItsData(
 							latex: `a_n = \\frac{2}{${T0}} \\int_{0}^{${T0}} x(t) \\cos\\left(n ${w0Latex} t\\right) dt`,
 							isCorrect: false,
 							feedback:
-								"Without symmetry, using Trigonometric form requires evaluating both $a_n$ and $b_n$. Exponential form $c_n$ is preferred.",
+								"Without symmetry, using Trigonometric form requires evaluating both $a_n$ and $b_n$. Exponential form $F_n$ is preferred.",
 						},
 					];
 
@@ -837,7 +839,7 @@ export function generateFourierItsData(
 			"Correct Integral Formulation! Notice the scaling constant and kernel match the symmetry.",
 		options: shuffleArray(step5OptionsRaw, random),
 		hints: [
-			"Identify the standard definition for your chosen coefficient type ($a_n, b_n$, or $c_n$).",
+			"Identify the standard definition for your chosen coefficient type ($a_n, b_n$, or $F_n$).",
 			`Use $\\frac{2}{T_0} \\int_{T_0} x(t) \\dots dt$ for trigonometric form or $\\frac{1}{T_0} \\int_{T_0} x(t) e^{-j n \\omega_0 t} dt$ for exponential form.`,
 			`Substitute $T_0 = ${T0}$ and $\\omega_0 = ${w0Latex}$ with proper integration bounds.`,
 		],
@@ -931,9 +933,13 @@ export function generateFourierItsData(
 								"Harmonic Mismatch: Even harmonics of rectified waveforms appear with cosine basis functions.",
 						},
 					];
+	const finalSeriesLatex = buildFinalSeriesLatex(coeffs, w0Latex);
+	const waveformSpecificStep6Options = step6OptionsRaw.map((option) =>
+		option.isCorrect ? { ...option, latex: finalSeriesLatex } : option,
+	);
 
 	const step6: FourierItsStep6 = {
-		options: shuffleArray(step6OptionsRaw, random),
+		options: shuffleArray(waveformSpecificStep6Options, random),
 		hints: [
 			"Evaluate the definite integral over the non-zero intervals.",
 			`For odd $n$, substitute the bounds into $\\frac{2}{${T0}} \\int \\dots$. Remember $\\cos(n\\pi) = (-1)^n$.`,
@@ -952,6 +958,81 @@ export function generateFourierItsData(
 }
 
 /**
+ * Builds the exact trigonometric Fourier series for a supported waveform.
+ * @param {FourierCoefficients} coeffs Waveform coefficients and parameters
+ * @param {string} w0Latex Fundamental radian frequency LaTeX
+ * @returns {string} Exact final Fourier series LaTeX
+ */
+function buildFinalSeriesLatex(
+	coeffs: FourierCoefficients,
+	w0Latex: string,
+): string {
+	const { A, waveformType } = coeffs;
+	switch (waveformType) {
+		case "square":
+		case "square_odd":
+			return `x(t) = \\sum_{n=1,3,5,\\dots}^{\\infty} \\frac{4(${A})}{n\\pi} \\sin\\left(n ${w0Latex} t\\right)`;
+		case "square_even":
+			return `x(t) = \\sum_{n=1,3,5,\\dots}^{\\infty} \\frac{4(${A})}{n\\pi} \\sin\\left(\\frac{n\\pi}{2}\\right) \\cos\\left(n ${w0Latex} t\\right)`;
+		case "triangle":
+		case "triangle_even":
+			return `x(t) = \\sum_{n=1,3,5,\\dots}^{\\infty} \\frac{8(${A})}{n^2\\pi^2} \\cos\\left(n ${w0Latex} t\\right)`;
+		case "triangle_odd":
+			return `x(t) = \\sum_{n=1,3,5,\\dots}^{\\infty} \\frac{8(${A})}{n^2\\pi^2} \\sin\\left(\\frac{n\\pi}{2}\\right) \\sin\\left(n ${w0Latex} t\\right)`;
+		case "sawtooth":
+			return `x(t) = \\sum_{n=1}^{\\infty} \\frac{2(${A})(-1)^{n+1}}{n\\pi} \\sin\\left(n ${w0Latex} t\\right)`;
+		case "half_wave_sine":
+			return `x(t) = \\frac{${A}}{\\pi} + \\frac{${A}}{2}\\sin\\left(${w0Latex}t\\right) + \\sum_{k=1}^{\\infty} \\frac{2(${A})}{\\pi(1-4k^2)} \\cos\\left(2k ${w0Latex} t\\right)`;
+		case "full_wave_sine":
+			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(n ${w0Latex} t\\right)`;
+		default: {
+			const _exhaustiveCheck: never = waveformType;
+			throw new Error(
+				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
+			);
+		}
+	}
+}
+
+/**
+ * Builds a waveform definition consistent with its coefficient convention.
+ * @param {FourierWaveformType} waveformType Waveform variant
+ * @param {number} A Peak amplitude
+ * @param {number} T0 Fundamental period
+ * @returns {string} One-period waveform LaTeX
+ */
+function buildSignalLatex(
+	waveformType: FourierWaveformType,
+	A: number,
+	T0: number,
+): string {
+	switch (waveformType) {
+		case "square":
+		case "square_odd":
+			return `x(t)=\\begin{cases}-${A}&-${T0 / 2}<t<0\\\\${A}&0<t<${T0 / 2}\\end{cases}`;
+		case "square_even":
+			return `x(t)=\\begin{cases}${A}&|t|<${T0 / 4}\\\\-${A}&${T0 / 4}<|t|<${T0 / 2}\\end{cases}`;
+		case "triangle":
+		case "triangle_even":
+			return `x(t)=${A}\\left(1-\\frac{4|t|}{${T0}}\\right),\\quad |t|<${T0 / 2}`;
+		case "triangle_odd":
+			return `x(t)=\\begin{cases}-2(${A})-\\frac{4(${A})}{${T0}}t&-${T0 / 2}<t<-${T0 / 4}\\\\\\frac{4(${A})}{${T0}}t&-${T0 / 4}<t<${T0 / 4}\\\\2(${A})-\\frac{4(${A})}{${T0}}t&${T0 / 4}<t<${T0 / 2}\\end{cases}`;
+		case "sawtooth":
+			return `x(t)=\\frac{2(${A})}{${T0}}t,\\quad -${T0 / 2}<t<${T0 / 2}`;
+		case "half_wave_sine":
+			return `x(t)=\\begin{cases}${A}\\sin(\\omega_0t)&0<t<${T0 / 2}\\\\0&${T0 / 2}<t<${T0}\\end{cases}`;
+		case "full_wave_sine":
+			return `x(t)=${A}\\left|\\sin\\left(\\frac{\\pi t}{${T0}}\\right)\\right|`;
+		default: {
+			const _exhaustiveCheck: never = waveformType;
+			throw new Error(
+				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
+			);
+		}
+	}
+}
+
+/**
  * Generates a practice Fourier Series problem with randomized parameters and ITS step metadata.
  *
  * Mathematical derivation process:
@@ -960,7 +1041,7 @@ export function generateFourierItsData(
  *    - Even symmetry (x(-t) = x(t)): b_n = 0, a_n = (4/T0) \int_0^{T0/2} x(t) \cos(n w0 t) dt.
  *    - Odd symmetry (x(-t) = -x(t)): a_0 = 0, a_n = 0, b_n = (4/T0) \int_0^{T0/2} x(t) \sin(n w0 t) dt.
  *    - Half-wave / Full-wave rectified sines: DC term a_0 = A / pi, even harmonics a_n = 2A / (pi (1 - n^2)).
- * 3. Converts to exponential Fourier series coefficients c_n = (a_n - j b_n) / 2.
+ * 3. Converts to exponential Fourier series coefficients F_n = (a_n - j b_n) / 2.
  * 4. Synthesizes 6-step ITS metadata for interactive step-by-step guidance.
  *
  * @param {FourierWaveformType} waveformType Selected waveform category
@@ -1012,22 +1093,14 @@ export function generateFourierSeriesProblem(
 			latex: `a_n = ${coeffs.symmetry === "odd" ? "0" : `\\frac{4(${A})}{\\pi n}`}, \\quad b_n = ${coeffs.symmetry === "even" ? "0" : `\\frac{4(${A})}{\\pi n}`}`,
 		},
 		{
-			title: "Step 5: Convert to Exponential Series (cn)",
+			title: "Step 5: Convert to Exponential Series",
 			description:
-				"Exponential series coefficient relationship c_n = (a_n - j b_n)/2.",
-			latex: `c_n = \\frac{${A}}{\\pi n}`,
+				"Exponential series coefficient relationship F_n = (a_n - j b_n)/2.",
+			latex: `F_n = \\frac{${A}}{\\pi n}`,
 		},
 	];
 
-	// Piecewise signal LaTeX representation for problem display
-	let signalLatex = `x(t) = \\begin{cases} ${A} & 0 < t < ${T0 / 2} \\\\ -${A} & ${T0 / 2} < t < ${T0} \\end{cases}`;
-	if (waveformType === "triangle" || waveformType === "triangle_even") {
-		signalLatex = `x(t) = ${A}\\left(1 - \\frac{2|t|}{${T0 / 2}}\\right) \\quad \\text{for } -${T0 / 2} < t < ${T0 / 2}`;
-	} else if (waveformType === "sawtooth") {
-		signalLatex = `x(t) = \\frac{2(${A})}{${T0}} t \\quad \\text{for } -${T0 / 2} < t < ${T0 / 2}`;
-	} else if (waveformType === "half_wave_sine") {
-		signalLatex = `x(t) = \\begin{cases} ${A} \\sin(\\omega_0 t) & 0 < t < ${T0 / 2} \\\\ 0 & ${T0 / 2} < t < ${T0} \\end{cases}`;
-	}
+	const signalLatex = buildSignalLatex(waveformType, A, T0);
 
 	return {
 		id,
@@ -1041,6 +1114,7 @@ export function generateFourierSeriesProblem(
 		anLatex: coeffs.symmetry === "odd" ? "0" : `\\frac{4(${A})}{\\pi n}`,
 		bnLatex: coeffs.symmetry === "even" ? "0" : `\\frac{4(${A})}{\\pi n}`,
 		cnLatex: `\\frac{${A}}{\\pi n}`,
+		FnLatex: `\\frac{${A}}{\\pi n}`,
 		solutionSteps: steps,
 		coeffs,
 		itsData,
