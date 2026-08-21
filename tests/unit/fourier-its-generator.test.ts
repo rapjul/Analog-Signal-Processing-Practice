@@ -19,6 +19,8 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 
 		// Step 2
 		expect(itsData.step2.correctSymmetry).toBe("odd");
+		expect(itsData.step2.correctOriginParity).toBe("odd");
+		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step2.misconceptions.even).toBeDefined();
 
 		// Step 3
@@ -50,6 +52,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step1.expectedT).toBe(4);
 		expect(itsData.step1.w0Aliases).toContain("pi/2");
 		expect(itsData.step2.correctSymmetry).toBe("even");
+		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step3.correctVanishing).toBe("bn_zero");
 		expect(itsData.step4.correctForm).toBe("trig");
 

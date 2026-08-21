@@ -113,8 +113,12 @@ export interface FourierItsStep1 extends BaseItsStep {
 
 /** ITS Step 2: Symmetry classification metadata */
 export interface FourierItsStep2 extends BaseItsStep {
-	/** Correct signal symmetry */
+	/** @deprecated Compatibility alias for correctOriginParity. */
 	correctSymmetry: SignalSymmetry;
+	/** Correct parity classification about the time origin. */
+	correctOriginParity: OriginParity;
+	/** Correct independent half-wave symmetry classification. */
+	correctHalfWaveSymmetry: boolean;
 	/** Diagnostic feedback for incorrect symmetry choices */
 	misconceptions: Record<string, string>;
 }
@@ -658,6 +662,8 @@ export function generateFourierItsData(
 	// Step 2: Symmetry
 	const step2: FourierItsStep2 = {
 		correctSymmetry: symmetry,
+		correctOriginParity: coeffs.originParity,
+		correctHalfWaveSymmetry: coeffs.hasHalfWaveSymmetry,
 		hints: [
 			"Test if the waveform mirrors across the vertical y-axis (even) or reflects through the origin (odd).",
 			"Check algebraically if $x(-t) = x(t)$ (even) or $x(-t) = -x(t)$ (odd).",
