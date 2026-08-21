@@ -204,4 +204,122 @@ test.describe("Fourier Series Module", () => {
 			);
 		}
 	});
+
+	test("centers compact-form math without nested interactive controls", async ({
+		page,
+	}) => {
+		const prepared = await page.evaluate(
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"fourier.step-04.representation-form",
+				) ?? false,
+		);
+		expect(prepared).toBe(true);
+
+		const choice = page.locator(".compact-form-choice");
+		const mathBlock = choice.locator(".math-block");
+		await expect(choice).toBeVisible();
+		await expect(mathBlock).toBeVisible();
+		await expect(choice.locator("button")).toHaveCount(0);
+
+		const [choiceBox, mathBox] = await Promise.all([
+			choice.boundingBox(),
+			mathBlock.boundingBox(),
+		]);
+		expect(choiceBox).not.toBeNull();
+		expect(mathBox).not.toBeNull();
+		if (choiceBox && mathBox) {
+			const choiceCenter = choiceBox.x + choiceBox.width / 2;
+			const mathCenter = mathBox.x + mathBox.width / 2;
+			expect(Math.abs(choiceCenter - mathCenter)).toBeLessThanOrEqual(1);
+		}
+	});
+
+	test("shows the complete solved derivation in one native disclosure", async ({
+		page,
+	}) => {
+		await page.evaluate(() => window.__signalLabDev?.solveAll());
+
+		const breakdown = page.locator("details.solution-breakdown");
+		await expect(breakdown).toBeVisible();
+		await expect(breakdown).not.toHaveAttribute("open", "");
+		await expect(
+			breakdown.locator("summary.solution-summary"),
+		).toContainText("All 7 Steps");
+		await expect(breakdown.locator(".solution-step")).toHaveCount(7);
+		await expect(breakdown.getByText(/Reveal Step|Reveal All/)).toHaveCount(
+			0,
+		);
+
+		await breakdown.locator("summary").click();
+		await expect(breakdown).toHaveAttribute("open", "");
+		await expect(breakdown.locator(".solution-step").first()).toBeVisible();
+		await expect(breakdown.locator(".solution-step").last()).toBeVisible();
+		await expect(breakdown.locator(".katex-error")).toHaveCount(0);
+	});
+
+	test("keeps plots and harmonic controls usable across responsive widths", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.evaluate(() => window.__signalLabDev?.solveAll());
+
+		const visualizer = page.locator(".fourier-canvas-wrapper");
+		await expect(visualizer).toBeVisible();
+		const desktopStyles = await visualizer.evaluate((element) => {
+			const plots = element.querySelector<HTMLElement>(".plots-grid");
+			const controls =
+				element.querySelector<HTMLElement>(".controls-bar");
+			return {
+				columns: plots
+					? getComputedStyle(plots).gridTemplateColumns.split(" ")
+							.length
+					: 0,
+				controlPosition: controls
+					? getComputedStyle(controls).position
+					: "",
+			};
+		});
+		expect(desktopStyles.columns).toBe(2);
+		expect(desktopStyles.controlPosition).toBe("sticky");
+
+		await page.setViewportSize({ width: 480, height: 800 });
+		await page.waitForTimeout(100);
+		const narrowStyles = await visualizer.evaluate((element) => {
+			const plots = element.querySelector<HTMLElement>(".plots-grid");
+			const metric = element.querySelector<HTMLElement>(".power-metric");
+			const metricStyle = metric ? getComputedStyle(metric) : null;
+			return {
+				columns: plots
+					? getComputedStyle(plots).gridTemplateColumns.split(" ")
+							.length
+					: 0,
+				flexDirection: metricStyle?.flexDirection,
+				flexWrap: metricStyle?.flexWrap,
+				alignContent: metricStyle?.alignContent,
+				justifyContent: metricStyle?.justifyContent,
+				alignItems: metricStyle?.alignItems,
+			};
+		});
+		expect(narrowStyles).toMatchObject({
+			columns: 1,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			alignContent: "center",
+			justifyContent: "space-evenly",
+			alignItems: "center",
+		});
+		await expect(
+			visualizer.locator(".power-thresholds > .math-text"),
+		).toHaveCount(1);
+
+		await page.setViewportSize({ width: 320, height: 568 });
+		await page.waitForTimeout(100);
+		const isOverflowing = await page.evaluate(
+			() =>
+				document.documentElement.scrollWidth >
+				document.documentElement.clientWidth,
+		);
+		expect(isOverflowing).toBe(false);
+	});
 });

@@ -18,6 +18,7 @@
 		type FourierWaveformType,
 	} from "$lib/math-engine/fourier-series";
 	import MathInline from "../math/MathInline.svelte";
+	import MathText from "../math/MathText.svelte";
 
 	interface Props {
 		/** Exact coefficients for the generated problem. */
@@ -233,6 +234,7 @@
 			ctxUpper.setLineDash([6, 5]);
 			ctxUpper.beginPath();
 			let previousIdeal: number | null = null;
+			let previousIdealY: number | null = null;
 			for (let i = 0; i <= numSamples; i++) {
 				const t = tMin + i * dt;
 				const ideal = evaluateFourierWaveform(currentCoeffs, t);
@@ -241,9 +243,16 @@
 				const crossesJump =
 					previousIdeal !== null &&
 					Math.abs(ideal - previousIdeal) > currentCoeffs.A;
-				if (i === 0 || crossesJump) ctxUpper.moveTo(px, py);
-				else ctxUpper.lineTo(px, py);
+				if (i === 0) {
+					ctxUpper.moveTo(px, py);
+				} else if (crossesJump && previousIdealY !== null) {
+					ctxUpper.lineTo(px, previousIdealY);
+					ctxUpper.lineTo(px, py);
+				} else {
+					ctxUpper.lineTo(px, py);
+				}
 				previousIdeal = ideal;
+				previousIdealY = py;
 			}
 			ctxUpper.stroke();
 			ctxUpper.setLineDash([]);
@@ -433,59 +442,100 @@
 		<span class="title">{title}</span>
 	</div>
 
-	<div class="plot-card upper-card">
-		<div class="panel-header">
-			<span class="panel-title">
-				Time-Domain Partial Sum <MathInline
-					math={`S_{${currentN}}(t)`}
-				/>
-				{#if coeffs.hasJumpDiscontinuities}
-					(Gibbs overshoot at jumps)
-				{:else}
-					(Ideal waveform comparison)
-				{/if}
+	<!-- Interactive Slider for Harmonic Count N -->
+	<div class="controls-bar">
+		<div class="slider-group">
+			<label
+				for="harmonic-slider"
+				class="slider-label"
+			>
+				Harmonic Limit:
+			</label>
+			<input
+				id="harmonic-slider"
+				type="range"
+				min="1"
+				max="50"
+				step="1"
+				bind:value={N}
+				class="range-input"
+			/>
+			<span class="value-badge">
+				<MathInline math={`N = ${currentN}`} />
 			</span>
 		</div>
-		<canvas
-			bind:this={canvasUpperEl}
-			class="fourier-canvas"
-			aria-label="Time-Domain Partial Sum Canvas"
-		></canvas>
-		<div class="plot-legend">
-			<div class="legend-item">
-				<span class="dot ideal"></span>
-				<span class="label">Ideal waveform</span>
-			</div>
-			<div class="legend-item">
-				<span class="dot cyan"></span>
-				<span class="label">
-					Partial Sum <MathInline math={`S_{${currentN}}(t)`} />
+	</div>
+
+	<div class="plots-grid">
+		<div class="plot-card upper-card">
+			<div class="panel-header">
+				<span class="panel-title">
+					Time-Domain Partial Sum <MathInline
+						math={`S_{${currentN}}(t)`}
+					/>
+					{#if coeffs.hasJumpDiscontinuities}
+						(Gibbs overshoot at jumps)
+					{:else}
+						(Ideal waveform comparison)
+					{/if}
 				</span>
+			</div>
+			<canvas
+				bind:this={canvasUpperEl}
+				class="fourier-canvas"
+				aria-label="Time-Domain Partial Sum Canvas"
+			></canvas>
+			<div class="plot-legend">
+				<div class="legend-item">
+					<span class="dot ideal"></span>
+					<span class="label">Ideal waveform</span>
+				</div>
+				<div class="legend-item">
+					<span class="dot cyan"></span>
+					<span class="label">
+						Partial Sum <MathInline math={`S_{${currentN}}(t)`} />
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="plot-card lower-card">
+			<div class="panel-header">
+				<span class="panel-title">
+					Harmonic Spectrum Magnitude <MathInline math={"|F_n|"} />
+					<MathInline
+						math={`(n = 1 \\dots ${Math.min(currentN, 30)})`}
+					/>
+				</span>
+			</div>
+			<canvas
+				bind:this={canvasLowerEl}
+				class="fourier-canvas"
+				aria-label="Harmonic Spectrum Magnitude Canvas"
+			></canvas>
+			<div class="plot-legend">
+				<div class="legend-item">
+					<span class="dot amber"></span>
+					<span class="label">
+						Harmonic Spectrum <MathInline math={"|F_n|"} />
+					</span>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<div class="plot-card lower-card">
-		<div class="panel-header">
-			<span class="panel-title">
-				Harmonic Spectrum Magnitude <MathInline math={"|F_n|"} />
-				<MathInline math={`(n = 1 \\dots ${Math.min(currentN, 30)})`} />
-			</span>
+	{#if coeffs.hasJumpDiscontinuities}
+		<div class="gibbs-hint">
+			💡 Notice the Gibbs phenomenon overshoot near jump discontinuities
+			as
+			<MathInline math={"N \\to \\infty"} />.
 		</div>
-		<canvas
-			bind:this={canvasLowerEl}
-			class="fourier-canvas"
-			aria-label="Harmonic Spectrum Magnitude Canvas"
-		></canvas>
-		<div class="plot-legend">
-			<div class="legend-item">
-				<span class="dot amber"></span>
-				<span class="label">
-					Harmonic Spectrum <MathInline math={"|F_n|"} />
-				</span>
-			</div>
+	{:else}
+		<div class="gibbs-hint">
+			Compare the partial sum with the dashed ideal waveform as
+			<MathInline math={"N"} /> increases.
 		</div>
-	</div>
+	{/if}
 
 	<section
 		class="power-card"
@@ -533,47 +583,11 @@
 		</div>
 
 		<div class="power-thresholds">
-			<span>Minimum harmonic limits:</span>
-			<MathInline math={`N_{90\\%}=${powerThresholds.n90}`} />
-			<MathInline math={`N_{95\\%}=${powerThresholds.n95}`} />
-			<MathInline math={`N_{99\\%}=${powerThresholds.n99}`} />
+			<MathText
+				text={`Minimum harmonic limits: $N_{90\\%} = ${powerThresholds.n90}$ $N_{95\\%} = ${powerThresholds.n95}$ $N_{99\\%} = ${powerThresholds.n99}$`}
+			/>
 		</div>
 	</section>
-
-	<!-- Interactive Slider for Harmonic Count N -->
-	<div class="controls-bar">
-		<div class="slider-group">
-			<label
-				for="harmonic-slider"
-				class="slider-label"
-			>
-				Harmonic Limit:
-			</label>
-			<input
-				id="harmonic-slider"
-				type="range"
-				min="1"
-				max="50"
-				step="1"
-				bind:value={N}
-				class="range-input"
-			/>
-			<span class="value-badge">
-				<MathInline math={`N = ${currentN}`} />
-			</span>
-		</div>
-		{#if coeffs.hasJumpDiscontinuities}
-			<span class="gibbs-hint">
-				💡 Notice the Gibbs phenomenon overshoot near jump
-				discontinuities as <MathInline math={"N \\to \\infty"} />.
-			</span>
-		{:else}
-			<span class="gibbs-hint">
-				Compare the partial sum with the dashed ideal waveform as
-				<MathInline math={"N"} /> increases.
-			</span>
-		{/if}
-	</div>
 </div>
 
 <style>
@@ -587,6 +601,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		container-type: inline-size;
 	}
 
 	/* ── Header bar & title ────────────────────────────────── */
@@ -643,6 +658,13 @@
 
 	/* ── Plot card & canvas frames ─────────────────────────── */
 
+	.plots-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.25rem;
+		min-width: 0;
+	}
+
 	.plot-card {
 		display: flex;
 		flex-direction: column;
@@ -667,7 +689,7 @@
 
 	.fourier-canvas {
 		width: 100%;
-		height: 200px;
+		height: clamp(170px, 22vw, 200px);
 		border-radius: var(--radius-sm);
 		background: var(--bg-primary);
 		display: block;
@@ -678,12 +700,14 @@
 	.controls-bar {
 		display: flex;
 		align-items: center;
-		gap: 1.5rem;
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
 		padding: 0.75rem 1rem;
-		flex-wrap: wrap;
+		position: sticky;
+		top: 4.25rem;
+		z-index: 10;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.slider-group {
@@ -694,6 +718,7 @@
 		font-size: 0.85rem;
 		font-weight: 600;
 		color: var(--text-secondary);
+		min-width: 0;
 	}
 
 	.slider-label {
@@ -710,11 +735,13 @@
 
 	.range-input {
 		flex: 1;
+		min-width: 0;
 		accent-color: var(--accent-primary);
 		cursor: pointer;
 	}
 
 	.gibbs-hint {
+		align-self: flex-start;
 		font-size: 0.85rem;
 		font-weight: 500;
 		color: var(--text-primary);
@@ -790,12 +817,15 @@
 	}
 
 	.power-thresholds {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem 1rem;
 		font-size: 0.82rem;
 		color: var(--text-secondary);
+		line-height: var(--leading-relaxed);
+	}
+
+	@container (min-width: 800px) {
+		.plots-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 
 	@container (max-width: 520px) {
@@ -805,6 +835,33 @@
 
 		.power-heading-row {
 			align-items: center;
+		}
+
+		.power-metric {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-content: center;
+			justify-content: space-evenly;
+			align-items: center;
+			gap: 0.4rem 0.75rem;
+		}
+
+		.controls-bar {
+			padding: 0.65rem 0.75rem;
+		}
+
+		.slider-group {
+			gap: 0.45rem;
+		}
+
+		.value-badge {
+			min-width: auto;
+		}
+	}
+
+	@media (max-width: 950px) {
+		.controls-bar {
+			top: 0.5rem;
 		}
 	}
 </style>

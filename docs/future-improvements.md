@@ -99,3 +99,11 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 - **Context:** Verifying solver layouts, KaTeX rendering, progressive hints, and post-solve canvas visualizers manually across all problem archetypes is time-consuming.
 - **Proposal & Options:** See detailed design document at [automated-solved-problem-screenshot-tool.md](./automated-solved-problem-screenshot-tool.md).
+
+### 13. Linear ODEs: Use a Native Worked-Solution Disclosure
+
+- **Context:** The Linear ODE completed solution currently imitates disclosure behavior with a button, local open state, and conditionally rendered content.
+- **Improvement Idea:**
+    - Replace the simulated control with native `<details>` and `<summary>` elements.
+    - Show the complete worked solution at once when the disclosure is opened, matching the Fourier Series completed-solution experience.
+    - Preserve keyboard access, focus styling, collapsed-by-default behavior, and narrow-screen reflow coverage.

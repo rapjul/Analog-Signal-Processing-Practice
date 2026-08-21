@@ -3,7 +3,7 @@
 	 * FourierPracticeCard Svelte 5 Component.
 	 *
 	 * Houses the Fourier Series problem prompt, 7-step Intelligent Tutoring System (ITS)
-	 * stepped solver, and deferred post-solve completion visualizers (FourierCanvas & StepReveal).
+	 * stepped solver, completed-solution disclosure, and deferred FourierCanvas visualizer.
 	 */
 
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
@@ -13,7 +13,6 @@
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
-	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */
@@ -95,7 +94,42 @@
 				description="You have derived the complete Fourier series representation. Explore the reconstructed partial sum and harmonic power spectrum below."
 			/>
 
-			<StepReveal steps={problem.solutionSteps} />
+			<details class="solution-breakdown">
+				<summary class="solution-summary">
+					<span class="solution-summary-title">
+						View Complete Worked Solution
+					</span>
+					<span class="solution-summary-badge">
+						All {problem.solutionSteps.length} Steps
+					</span>
+				</summary>
+
+				<div class="solution-steps">
+					{#each problem.solutionSteps as step, index}
+						<section class="solution-step">
+							<h4 class="solution-step-title">
+								Step {index + 1}: {step.title}
+							</h4>
+							{#if step.description}
+								<p class="solution-step-description">
+									<MathText text={step.description} />
+								</p>
+							{/if}
+							{#if step.latex && step.latex.trim().length > 0}
+								<MathBlock
+									math={step.latex}
+									aligned={step.aligned}
+									cases={step.cases}
+									matrix={step.matrix}
+									gathered={step.gathered}
+									responsive={step.responsive}
+									compact={true}
+								/>
+							{/if}
+						</section>
+					{/each}
+				</div>
+			</details>
 
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">
@@ -195,12 +229,122 @@
 		width: 100%;
 	}
 
+	/* ── Completed solution disclosure ─────────────────────── */
+
+	.solution-breakdown {
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+	}
+
+	.solution-breakdown[open] {
+		border-color: var(--accent-primary);
+	}
+
+	.solution-summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 1rem 1.25rem;
+		cursor: pointer;
+		list-style: none;
+		color: var(--text-primary);
+		font-weight: 700;
+		transition: background 0.15s ease;
+	}
+
+	.solution-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.solution-summary::before {
+		content: "▶";
+		color: var(--accent-primary);
+		font-size: var(--text-xs);
+		flex-shrink: 0;
+	}
+
+	.solution-breakdown[open] .solution-summary::before {
+		content: "▼";
+	}
+
+	.solution-summary:hover {
+		background: var(--bg-card-hover);
+	}
+
+	.solution-summary:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: -2px;
+	}
+
+	.solution-summary-title {
+		flex: 1;
+	}
+
+	.solution-summary-badge {
+		font-size: var(--text-xs);
+		font-weight: 600;
+		color: var(--accent-primary);
+		background: var(--accent-bg-subtle);
+		border: 1px solid rgba(6, 182, 212, 0.25);
+		border-radius: var(--radius-full);
+		padding: 0.2rem 0.55rem;
+		white-space: nowrap;
+	}
+
+	.solution-steps {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1rem;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.solution-step {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.85rem 1rem;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		min-width: 0;
+	}
+
+	.solution-step-title,
+	.solution-step-description {
+		margin: 0;
+	}
+
+	.solution-step-title {
+		font-size: var(--text-sm);
+		color: var(--text-primary);
+	}
+
+	.solution-step-description {
+		font-size: var(--text-sm);
+		line-height: var(--leading-relaxed);
+		color: var(--text-secondary);
+	}
+
 	/* ── Mobile media query (≤480px) ─────────────────────── */
 
 	@media (max-width: 480px) {
 		.fourier-practice-card {
 			padding: 1rem 0.85rem;
 			gap: 1rem;
+		}
+
+		.solution-summary {
+			align-items: flex-start;
+			flex-wrap: wrap;
+			padding: 0.85rem;
+		}
+
+		.solution-steps {
+			padding: 0.75rem;
 		}
 	}
 </style>
