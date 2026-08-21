@@ -6,24 +6,27 @@ import {
 	FOURIER_WAVEFORM_TYPES,
 	type FourierWaveformType,
 } from "../math-engine/fourier-series";
-import { createRandomSeed } from "../math-engine/random";
+import {
+	createRandomSeed,
+	createSeededPrng,
+	randomChoice,
+} from "../math-engine/random";
 import { parseEnumParam, parseSafeSeedParam } from "./url-params";
+
+/** Exact waveform selection or seeded random selection across all waveforms. */
+export type FourierWaveformSelection = FourierWaveformType | "random";
+
+/** URL-safe selector values, including the random sentinel. */
+export const FOURIER_WAVEFORM_SELECTIONS: readonly FourierWaveformSelection[] =
+	["random", ...FOURIER_WAVEFORM_TYPES] as const;
 
 /** Fourier filter selections stored in shareable URL state. */
 export interface FourierSeriesFilterSelections {
 	/** Selected periodic waveform variant. */
-	waveform: FourierWaveformType;
+	waveform: FourierWaveformSelection;
 	/** Unsigned 32-bit deterministic problem seed. */
 	seed: number;
 }
-
-/** Waveforms intentionally shown in the primary drill selector. */
-export const FOURIER_DRILL_WAVEFORMS: readonly FourierWaveformType[] = [
-	"square",
-	"triangle",
-	"sawtooth",
-	"half_wave_sine",
-] as const;
 
 /**
  * Parses a safe Fourier filter selection from URL query parameters.
@@ -37,7 +40,7 @@ export function parseFourierSeriesFilters(
 ): FourierSeriesFilterSelections {
 	const waveform = parseEnumParam(searchParams, {
 		key: "waveform",
-		allowedValues: FOURIER_WAVEFORM_TYPES,
+		allowedValues: FOURIER_WAVEFORM_SELECTIONS,
 		fallback: "square",
 	}).value;
 	const seed = parseSafeSeedParam(searchParams, {
@@ -61,13 +64,11 @@ export function serializeFourierSeriesFilters(
 	return params;
 }
 
-/**
- * Reports whether a waveform is part of the compact primary drill selector.
- * @param {FourierWaveformType} waveform Waveform variant
- * @returns {boolean} Whether the selector exposes the variant by default
- */
-export function isPrimaryFourierDrillWaveform(
-	waveform: FourierWaveformType,
-): boolean {
-	return FOURIER_DRILL_WAVEFORMS.some((candidate) => candidate === waveform);
+/** Resolves a concrete waveform while preserving deterministic random drills. */
+export function resolveFourierWaveformSelection(
+	selection: FourierWaveformSelection,
+	seed: number,
+): FourierWaveformType {
+	if (selection !== "random") return selection;
+	return randomChoice(createSeededPrng(seed), FOURIER_WAVEFORM_TYPES);
 }

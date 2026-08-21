@@ -14,25 +14,37 @@
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type FourierSeriesProblem,
-		type FourierWaveformType,
 		generateFourierSeriesProblem,
 	} from "$lib/math-engine/fourier-series";
 	import { createRandomSeed } from "$lib/math-engine/random";
 	import {
-		isPrimaryFourierDrillWaveform,
+		type FourierWaveformSelection,
 		parseFourierSeriesFilters,
+		resolveFourierWaveformSelection,
 		serializeFourierSeriesFilters,
 	} from "$lib/problems/fourier-series-filters";
 
 	const initialFilters = parseFourierSeriesFilters(page.url.searchParams);
-	let selectedWaveform = $state<FourierWaveformType>(initialFilters.waveform);
+	let selectedWaveform = $state<FourierWaveformSelection>(
+		initialFilters.waveform,
+	);
 	let seed = $state(initialFilters.seed);
+
+	/** Generates the concrete problem represented by selector state and seed. */
+	function generateSelectedProblem(
+		selection: FourierWaveformSelection,
+		problemSeed: number,
+	): FourierSeriesProblem {
+		const waveform = resolveFourierWaveformSelection(
+			selection,
+			problemSeed,
+		);
+		return generateFourierSeriesProblem(waveform, { seed: problemSeed });
+	}
 
 	// Active problem state generated once from canonical initial filters
 	let currentProblem = $state<FourierSeriesProblem>(
-		generateFourierSeriesProblem(initialFilters.waveform, {
-			seed: initialFilters.seed,
-		}),
+		generateSelectedProblem(initialFilters.waveform, initialFilters.seed),
 	);
 
 	/** Synchronizes the selected waveform and seed with shareable URL state. */
@@ -57,9 +69,7 @@
 	 */
 	function handleGenerateNext(): void {
 		seed = createRandomSeed();
-		currentProblem = generateFourierSeriesProblem(selectedWaveform, {
-			seed,
-		});
+		currentProblem = generateSelectedProblem(selectedWaveform, seed);
 		syncShareableUrl();
 	}
 
@@ -68,40 +78,6 @@
 	 */
 	function handleOptionChange(): void {
 		handleGenerateNext();
-	}
-
-	/**
-	 * Formats a waveform identifier for the conditional URL-only selector option.
-	 * @param {FourierWaveformType} waveform Waveform identifier
-	 * @returns {string} Human-readable label
-	 */
-	function formatWaveformLabel(waveform: FourierWaveformType): string {
-		switch (waveform) {
-			case "square":
-				return "Square Wave";
-			case "square_odd":
-				return "Odd Square Wave";
-			case "square_even":
-				return "Even Square Wave";
-			case "triangle":
-				return "Triangle Wave";
-			case "triangle_odd":
-				return "Odd Triangle Wave";
-			case "triangle_even":
-				return "Even Triangle Wave";
-			case "sawtooth":
-				return "Sawtooth Wave";
-			case "half_wave_sine":
-				return "Half-Wave Rectified Sine Wave";
-			case "full_wave_sine":
-				return "Full-Wave Rectified Sine Wave";
-			default: {
-				const _exhaustiveCheck: never = waveform;
-				throw new Error(
-					`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
-				);
-			}
-		}
 	}
 </script>
 
@@ -114,9 +90,11 @@
 	{#snippet controls()}
 		<DrillPanel
 			title="Targeted Drill & Waveform Customization"
-			badge={selectedWaveform === "square"
-				? "Default (Square Wave)"
-				: "Custom Waveform Selected"}
+			badge={selectedWaveform === "random"
+				? "Randomized Across All Waveforms"
+				: selectedWaveform === "square"
+					? "Default (Square Wave)"
+					: "Custom Waveform Selected"}
 		>
 			<input
 				type="hidden"
@@ -136,16 +114,19 @@
 					bind:value={selectedWaveform}
 					onchange={handleOptionChange}
 				>
-					{#if !isPrimaryFourierDrillWaveform(selectedWaveform)}
-						<option value={selectedWaveform}>
-							{formatWaveformLabel(selectedWaveform)} (URL Variant)
-						</option>
-					{/if}
+					<option value="random">Random (All Waveforms)</option>
 					<option value="square">Square Wave</option>
+					<option value="square_odd">Odd Square Wave</option>
+					<option value="square_even">Even Square Wave</option>
 					<option value="triangle">Triangle Wave</option>
+					<option value="triangle_odd">Odd Triangle Wave</option>
+					<option value="triangle_even">Even Triangle Wave</option>
 					<option value="sawtooth">Sawtooth Wave</option>
 					<option value="half_wave_sine">
 						Half-Wave Rectified Sine Wave
+					</option>
+					<option value="full_wave_sine">
+						Full-Wave Rectified Sine Wave
 					</option>
 				</select>
 			</div>

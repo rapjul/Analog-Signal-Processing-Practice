@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
  * End-to-End Test Suite: Fourier Series Practice Module (/fourier-series).
  *
  * Verifies periodic waveform preset selector, anti-spoiler practice headers,
- * 6-step interactive ITS tutor workflow, progressive hints, misconception diagnostics,
+ * 7-step interactive ITS tutor workflow, progressive hints, misconception diagnostics,
  * and deferred post-solve waveform & spectrum visualizer canvas.
  */
 
@@ -44,38 +44,55 @@ test.describe("Fourier Series Module", () => {
 	});
 
 	/**
-	 * Verifies changing periodic waveforms resets and updates problem generator.
+	 * Verifies all waveform variants and deterministic random mode.
 	 */
-	test("switches waveforms between square, triangle, sawtooth, and rectified sine", async ({
+	test("exposes every waveform and preserves seeded random drills", async ({
 		page,
 	}) => {
 		const drillSummary = page.locator(".drill-summary");
 		await drillSummary.click();
 
 		const waveformSelect = page.locator("#waveform-select");
+		const optionValues = await waveformSelect
+			.locator("option")
+			.evaluateAll((options) =>
+				options.map((option) => (option as HTMLOptionElement).value),
+			);
+		expect(optionValues).toEqual([
+			"random",
+			"square",
+			"square_odd",
+			"square_even",
+			"triangle",
+			"triangle_odd",
+			"triangle_even",
+			"sawtooth",
+			"half_wave_sine",
+			"full_wave_sine",
+		]);
 
-		// Select Triangle Wave
-		await waveformSelect.selectOption("triangle");
+		await waveformSelect.selectOption("full_wave_sine");
 		await page.waitForTimeout(300);
 		const card = page.locator(".fourier-practice-card");
 		await expect(card).toBeVisible();
 
-		// Select Sawtooth Wave
-		await waveformSelect.selectOption("sawtooth");
+		await waveformSelect.selectOption("random");
 		await page.waitForTimeout(300);
-		await expect(card).toBeVisible();
+		expect(page.url()).toContain("waveform=random");
+		const realizedBadge = await card
+			.locator(".badges-row .badge.secondary")
+			.textContent();
+		const sharedUrl = page.url();
 
-		// Next problem generation
-		const nextBtn = page.locator("#btn-next-problem");
-		if (await nextBtn.isVisible()) {
-			await nextBtn.click();
-			await page.waitForTimeout(300);
-			await expect(card).toBeVisible();
-		}
+		await page.goto(sharedUrl);
+		await page.waitForLoadState("networkidle");
+		await expect(page.locator(".badges-row .badge.secondary")).toHaveText(
+			realizedBadge ?? "",
+		);
 	});
 
 	/**
-	 * Verifies 6-step ITS workflow: Step 1 period inputs, hints toggle, and progressive progression.
+	 * Verifies 7-step ITS workflow: Step 1 period inputs, hints toggle, and progressive progression.
 	 */
 	test("steps through interactive ITS solver steps with hints and diagnostic feedback", async ({
 		page,
@@ -106,21 +123,25 @@ test.describe("Fourier Series Module", () => {
 		const feedbackAlert = page.locator(".feedback-alert");
 		await expect(feedbackAlert).toBeVisible();
 
-		// Detect whether generated problem has T_0 = 2 or T_0 = 4 from problem statement
-		const statementText =
-			(await page.locator(".problem-statement").textContent()) || "";
-		const isT4 = statementText.includes("4");
-		const tVal = isT4 ? "4" : "2";
-		const w0Val = isT4 ? "pi/2" : "pi";
-
-		// Fill correct answers for active waveform
-		await tInput.fill(tVal);
-		await w0Input.fill(w0Val);
+		// The anti-spoiler statement intentionally hides T0, so try both
+		// generator-supported period/frequency pairs.
+		await tInput.fill("2");
+		await w0Input.fill("pi");
 		await checkBtn.click();
 		await page.waitForTimeout(200);
 
-		// Should progress to Step 2: Waveform Symmetry
 		const step2 = page.locator(".step-card").nth(1);
+		if (
+			!(await step2.evaluate((element) =>
+				element.classList.contains("active"),
+			))
+		) {
+			await tInput.fill("4");
+			await w0Input.fill("pi/2");
+			await checkBtn.click();
+		}
+
+		// Should progress to Step 2: Waveform Symmetry
 		await expect(step2).toHaveClass(/active/);
 		await expect(step2.locator(".step-title")).toHaveText(
 			/Waveform Symmetry Analysis/i,
