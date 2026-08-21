@@ -5,11 +5,14 @@
 	 * Dual-panel visualizer displaying:
 	 * 1. Time Domain: Ideal signal x(t) (dashed) vs. N-harmonic partial sum S_N(t) (cyan),
 	 *    demonstrating Gibbs phenomenon overshoot at discontinuities.
-	 * 2. Frequency Domain: Bar chart spectrum of harmonic magnitudes |c_n| for n = 1 ... N.
+	 * 2. Frequency Domain: Bar chart spectrum of harmonic magnitudes |F_n| for n = 1 ... N.
+	 * 3. Parseval Analysis: Captured power and harmonic thresholds for the active N.
 	 */
 	import {
 		computeFourierCoefficients,
+		computeHarmonicPowerThresholds,
 		computePartialSum,
+		computeSignalPower,
 		evaluateFourierWaveform,
 		type FourierCoefficients,
 		type FourierWaveformType,
@@ -56,6 +59,14 @@
 	let coeffs = $derived<FourierCoefficients>(
 		coefficients ?? computeFourierCoefficients(waveformType),
 	);
+	let signalPower = $derived(computeSignalPower(coeffs, currentN));
+	let powerThresholds = $derived(computeHarmonicPowerThresholds(coeffs));
+	let capturedPowerPercent = $derived(signalPower.powerRatio * 100);
+
+	/** Formats power values without hiding small non-zero results. */
+	function formatPower(value: number): string {
+		return value >= 0.001 ? value.toFixed(3) : value.toExponential(2);
+	}
 
 	let themeVersion = $state(0);
 	let resizeVersion = $state(0);
@@ -476,6 +487,59 @@
 		</div>
 	</div>
 
+	<section
+		class="power-card"
+		aria-labelledby="parseval-power-title"
+	>
+		<div class="power-heading-row">
+			<div>
+				<h3 id="parseval-power-title">Parseval Power Distribution</h3>
+				<p>
+					Power captured by the DC term and harmonics through
+					<MathInline math={`N=${currentN}`} />.
+				</p>
+			</div>
+			<strong class="capture-ratio">
+				{capturedPowerPercent.toFixed(1)}%
+			</strong>
+		</div>
+
+		<progress
+			class="power-meter"
+			max="100"
+			value={capturedPowerPercent}
+			aria-label="Captured signal power percentage"
+		></progress>
+
+		<div class="power-metrics">
+			<div class="power-metric">
+				<span>Total power</span>
+				<MathInline
+					math={`P_x=${formatPower(signalPower.totalPower)}`}
+				/>
+			</div>
+			<div class="power-metric">
+				<span>Captured power</span>
+				<MathInline
+					math={`P_{${currentN}}=${formatPower(signalPower.harmonicPower)}`}
+				/>
+			</div>
+			<div class="power-metric">
+				<span>Capture ratio</span>
+				<MathInline
+					math={`\\eta(${currentN})=${capturedPowerPercent.toFixed(1)}\\%`}
+				/>
+			</div>
+		</div>
+
+		<div class="power-thresholds">
+			<span>Minimum harmonic limits:</span>
+			<MathInline math={`N_{90\\%}=${powerThresholds.n90}`} />
+			<MathInline math={`N_{95\\%}=${powerThresholds.n95}`} />
+			<MathInline math={`N_{99\\%}=${powerThresholds.n99}`} />
+		</div>
+	</section>
+
 	<!-- Interactive Slider for Harmonic Count N -->
 	<div class="controls-bar">
 		<div class="slider-group">
@@ -658,5 +722,89 @@
 		border: 1px solid rgba(245, 158, 11, 0.4);
 		padding: 0.4rem 0.75rem;
 		border-radius: var(--radius-sm);
+	}
+
+	/* ── Parseval power distribution ───────────────────────── */
+
+	.power-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-md);
+		padding: 1rem;
+	}
+
+	.power-heading-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.power-heading-row h3,
+	.power-heading-row p {
+		margin: 0;
+	}
+
+	.power-heading-row h3 {
+		font-size: 0.95rem;
+		color: var(--text-primary);
+	}
+
+	.power-heading-row p {
+		margin-top: 0.25rem;
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+	}
+
+	.capture-ratio {
+		font-size: 1.2rem;
+		color: var(--accent-primary);
+		white-space: nowrap;
+	}
+
+	.power-meter {
+		width: 100%;
+		height: 0.75rem;
+		accent-color: var(--accent-primary);
+	}
+
+	.power-metrics {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.power-metric {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		min-width: 0;
+		padding: 0.65rem;
+		background: var(--bg-primary);
+		border-radius: var(--radius-sm);
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+	}
+
+	.power-thresholds {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+	}
+
+	@container (max-width: 520px) {
+		.power-metrics {
+			grid-template-columns: 1fr;
+		}
+
+		.power-heading-row {
+			align-items: center;
+		}
 	}
 </style>

@@ -90,6 +90,16 @@ export interface SignalPower {
 	powerRatio: number;
 }
 
+/** Minimum harmonic limits required to capture common power targets. */
+export interface HarmonicPowerThresholds {
+	/** Smallest N with at least 90% captured power. */
+	n90: number;
+	/** Smallest N with at least 95% captured power. */
+	n95: number;
+	/** Smallest N with at least 99% captured power. */
+	n99: number;
+}
+
 /** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
 export type FourierItsOption = ItsOption;
 
@@ -595,6 +605,50 @@ export function computeSignalPower(
 		harmonicPower,
 		powerRatio: Math.min(1.0, powerRatio),
 	};
+}
+
+/**
+ * Finds the smallest harmonic limit that reaches 90%, 95%, and 99% power.
+ * The cumulative power includes the DC contribution at N = 0.
+ *
+ * @param {FourierCoefficients} coeffs Waveform coefficients
+ * @param {number} maxHarmonics Search guard for slowly converging spectra
+ * @returns {HarmonicPowerThresholds} Minimum harmonic limits for each target
+ */
+export function computeHarmonicPowerThresholds(
+	coeffs: FourierCoefficients,
+	maxHarmonics = 100_000,
+): HarmonicPowerThresholds {
+	if (!Number.isInteger(maxHarmonics) || maxHarmonics < 1) {
+		throw new RangeError(
+			"Fourier threshold search limit must be a positive integer.",
+		);
+	}
+
+	const totalPower = computeSignalPower(coeffs, 0).totalPower;
+	let cumulativePower = (coeffs.a0 * coeffs.a0) / 4;
+	let n90: number | undefined;
+	let n95: number | undefined;
+	let n99: number | undefined;
+
+	for (let n = 0; n <= maxHarmonics; n += 1) {
+		if (n > 0) {
+			const an = coeffs.an(n);
+			const bn = coeffs.bn(n);
+			cumulativePower += 0.5 * (an * an + bn * bn);
+		}
+		const ratio = cumulativePower / totalPower;
+		if (n90 === undefined && ratio >= 0.9) n90 = n;
+		if (n95 === undefined && ratio >= 0.95) n95 = n;
+		if (n99 === undefined && ratio >= 0.99) n99 = n;
+		if (n90 !== undefined && n95 !== undefined && n99 !== undefined) {
+			return { n90, n95, n99 };
+		}
+	}
+
+	throw new RangeError(
+		`Fourier power thresholds did not converge within ${maxHarmonics} harmonics.`,
+	);
 }
 
 /**

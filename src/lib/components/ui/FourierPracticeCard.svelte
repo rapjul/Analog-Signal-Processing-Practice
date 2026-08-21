@@ -2,7 +2,7 @@
 	/**
 	 * FourierPracticeCard Svelte 5 Component.
 	 *
-	 * Houses the Fourier Series problem prompt, 6-step Intelligent Tutoring System (ITS)
+	 * Houses the Fourier Series problem prompt, 7-step Intelligent Tutoring System (ITS)
 	 * stepped solver, and deferred post-solve completion visualizers (FourierCanvas & StepReveal).
 	 */
 
@@ -13,6 +13,7 @@
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
+	import StepReveal from "./StepReveal.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */
@@ -93,6 +94,8 @@
 				title="Problem Completed!"
 				description="You have derived the complete Fourier series representation. Explore the reconstructed partial sum and harmonic power spectrum below."
 			/>
+
+			<StepReveal steps={problem.solutionSteps} />
 
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">

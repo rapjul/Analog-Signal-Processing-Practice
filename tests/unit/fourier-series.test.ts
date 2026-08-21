@@ -6,9 +6,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	computeFourierCoefficients,
+	computeHarmonicPowerThresholds,
 	computePartialSum,
 	computeSignalPower,
 	evaluateFourierWaveform,
+	FOURIER_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
 	isFourierWaveformType,
 } from "$lib/math-engine/fourier-series";
@@ -202,6 +204,40 @@ describe("Fourier Series Math Engine", () => {
 			expect(dcOnly.harmonicPower).toBeCloseTo(
 				4 / (Math.PI * Math.PI),
 				12,
+			);
+		});
+
+		it.each(FOURIER_WAVEFORM_TYPES)(
+			"finds minimal 90/95/99 percent thresholds for %s",
+			(waveformType) => {
+				const coeffs = computeFourierCoefficients(waveformType, {
+					A: 1,
+					T0: 2,
+				});
+				const thresholds = computeHarmonicPowerThresholds(coeffs);
+
+				for (const [target, harmonicLimit] of [
+					[0.9, thresholds.n90],
+					[0.95, thresholds.n95],
+					[0.99, thresholds.n99],
+				] as const) {
+					expect(
+						computeSignalPower(coeffs, harmonicLimit).powerRatio,
+					).toBeGreaterThanOrEqual(target);
+					if (harmonicLimit > 0) {
+						expect(
+							computeSignalPower(coeffs, harmonicLimit - 1)
+								.powerRatio,
+						).toBeLessThan(target);
+					}
+				}
+			},
+		);
+
+		it("rejects an invalid threshold search limit", () => {
+			const coeffs = computeFourierCoefficients("square");
+			expect(() => computeHarmonicPowerThresholds(coeffs, 0)).toThrow(
+				RangeError,
 			);
 		});
 	});
