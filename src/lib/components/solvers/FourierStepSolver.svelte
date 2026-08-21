@@ -425,17 +425,19 @@
 					</button>
 					<button
 						type="button"
-						class="choice-btn"
+						class="choice-btn compact-form-choice"
 						class:selected={solver.step4.selected === "compact"}
 						onclick={() => solver.checkStep4("compact")}
 					>
 						<strong>Compact Harmonic Form</strong>
-						<span class="choice-sub">
-							Amplitude-Phase <MathBlock
+						<div class="choice-sub compact-form-content">
+							<span>Amplitude-Phase</span>
+							<MathBlock
 								math={"A_n \\cos(n \\omega_0 t + \\theta_n)"}
 								compact={true}
+								hideHeader={true}
 							/>
-						</span>
+						</div>
 					</button>
 				</div>
 			</div>
@@ -825,6 +827,27 @@
 	.choice-sub {
 		font-size: var(--text-xs);
 		color: var(--text-secondary);
+	}
+
+	.compact-form-choice {
+		align-items: stretch;
+	}
+
+	.compact-form-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		width: 100%;
+		text-align: center;
+	}
+
+	.compact-form-content :global(.math-block) {
+		width: 100%;
+		margin: 0;
+		background: transparent;
+		border: none;
 	}
 
 	/* ── Multiple choice math cards ────────────────────────── */

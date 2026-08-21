@@ -4,14 +4,14 @@
  * N-harmonic partial sums S_N(t), Parseval signal power, and problem generator.
  */
 
-import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 import {
 	createRandomSeed,
 	createSeededPrng,
+	type RandomSource,
 	randomChoice,
 	shuffleWithRandom,
-	type RandomSource,
 } from "./random";
+import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
 
 /** Supported classic periodic waveform categories */
 export type FourierWaveformType =
@@ -778,7 +778,7 @@ function buildFourierSymbolicDerivation(
 		}
 	}
 
-	const finalExpLatex = `x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{jn${w0Latex}t},\\qquad F_n=${FnLatex}`;
+	const finalExpLatex = `x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n ${w0Latex} t},\\qquad F_n=${FnLatex}`;
 	return {
 		a0Latex,
 		anLatex,
@@ -795,28 +795,42 @@ function buildFourierSymbolicDerivation(
 function buildIntegralOptions(
 	derivation: FourierSymbolicDerivation,
 ): FourierItsOption[] {
+	const correct = derivation.integralLatex;
+	const scalingDistractor = correct.includes("\\frac{4}{T_0}")
+		? correct.replace("\\frac{4}{T_0}", "\\frac{2}{T_0}")
+		: correct.replace("\\frac{1}{T_0}", "\\frac{2}{T_0}");
+	const kernelDistractor = correct.includes("e^{-jn\\omega_0t}")
+		? correct.replace("e^{-jn\\omega_0t}", "e^{+jn\\omega_0t}")
+		: correct.includes("\\cos(n\\omega_0t)")
+			? correct.replaceAll("\\cos(n\\omega_0t)", "\\sin(n\\omega_0t)")
+			: correct.replaceAll("\\sin(n\\omega_0t)", "\\cos(n\\omega_0t)");
+	const fullIntervalDistractor = correct.includes("\\int_0^{T_0/2}")
+		? correct.replace("\\int_0^{T_0/2}", "\\int_0^{T_0}")
+		: correct.replace("\\int_0^{T_0/4}", "\\int_0^{T_0/2}");
+
 	return [
-		{ id: "c1", latex: derivation.integralLatex, isCorrect: true },
+		{ id: "c1", latex: correct, isCorrect: true },
 		{
 			id: "d1",
-			latex: "a_n=\\frac{1}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)\\cos(n\\omega_0t)\\,dt",
+			latex: scalingDistractor,
 			isCorrect: false,
 			feedback:
-				"Scaling Error: Trigonometric harmonic coefficients use $2/T_0$, with any symmetry reduction applied afterward.",
+				"Scaling Error: The normalization no longer matches the selected Fourier representation and symmetry reduction.",
 		},
 		{
 			id: "d2",
-			latex: "b_n=\\frac{2}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)\\cos(n\\omega_0t)\\,dt",
+			latex: kernelDistractor,
 			isCorrect: false,
-			feedback:
-				"Kernel Error: $b_n$ is projected onto $\\sin(n\\omega_0t)$, not cosine.",
+			feedback: correct.includes("e^{-jn\\omega_0t}")
+				? "Sign Error: Exponential Fourier coefficients require the kernel $e^{-j n \\omega_0 t}$."
+				: "Kernel Error: The selected sine or cosine kernel does not match the non-zero coefficient family.",
 		},
 		{
 			id: "d3",
-			latex: "F_n=\\frac{1}{T_0}\\int_{-T_0/2}^{T_0/2}x(t)e^{+jn\\omega_0t}\\,dt",
+			latex: fullIntervalDistractor,
 			isCorrect: false,
 			feedback:
-				"Sign Error: Exponential Fourier coefficients require the kernel $e^{-jn\\omega_0t}$.",
+				"Interval Error: The bounds no longer match the non-zero waveform interval or one of its piecewise breakpoints.",
 		},
 	];
 }
@@ -1030,7 +1044,7 @@ export function generateFourierItsData(
 		hints: [
 			"Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
 			"Keep only harmonic indices whose evaluated coefficients are non-zero.",
-			"For the exponential form, synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{jn\\omega_0t}$.",
+			"For the exponential form, synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n \\omega_0 t}$.",
 		],
 	};
 
@@ -1070,7 +1084,7 @@ function buildFinalSeriesLatex(
 		case "sawtooth":
 			return `x(t) = \\sum_{n=1}^{\\infty} \\frac{2(${A})(-1)^{n+1}}{n\\pi} \\sin\\left(n ${w0Latex} t\\right)`;
 		case "half_wave_sine":
-			return `x(t) = \\frac{${A}}{\\pi} + \\frac{${A}}{2}\\sin\\left(${w0Latex}t\\right) + \\sum_{k=1}^{\\infty} \\frac{2(${A})}{\\pi(1-4k^2)} \\cos\\left(2k ${w0Latex} t\\right)`;
+			return `x(t) = \\frac{${A}}{\\pi} + \\frac{${A}}{2}\\sin\\left(${w0Latex} t\\right) + \\sum_{k=1}^{\\infty} \\frac{2(${A})}{\\pi(1-4k^2)} \\cos\\left(2k ${w0Latex} t\\right)`;
 		case "full_wave_sine":
 			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(n ${w0Latex} t\\right)`;
 		default: {

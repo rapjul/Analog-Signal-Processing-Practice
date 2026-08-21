@@ -6,6 +6,18 @@ import {
 } from "../../src/lib/math-engine/fourier-series";
 
 describe("Fourier Series ITS Step Generator Engine", () => {
+	const supportedWaveforms = [
+		"square",
+		"square_odd",
+		"square_even",
+		"triangle",
+		"triangle_odd",
+		"triangle_even",
+		"sawtooth",
+		"half_wave_sine",
+		"full_wave_sine",
+	] as const;
+
 	it.each([
 		["square", "4(1)", "\\sin"],
 		["square_odd", "4(1)", "\\sin"],
@@ -75,6 +87,55 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(correctOpt7?.latex).toContain("x(t)");
 		expect(correctOpt7?.latex).toContain("F_n");
 	});
+
+	it.each(supportedWaveforms)(
+		"substitutes the active waveform into every integral option for %s",
+		(waveform) => {
+			const problem = generateFourierSeriesProblem(waveform, {
+				seed: 42,
+				A: 5,
+				T0: 2,
+			});
+			const options = problem.itsData.step5.options;
+
+			expect(options).toHaveLength(4);
+			expect(options.filter((option) => option.isCorrect)).toHaveLength(
+				1,
+			);
+			expect(new Set(options.map((option) => option.latex)).size).toBe(4);
+			for (const option of options) {
+				expect(option.latex).toContain("5");
+				expect(option.latex).not.toContain("x(t)");
+			}
+		},
+	);
+
+	it.each(supportedWaveforms)(
+		"keeps pi commands separated from following symbols for %s",
+		(waveform) => {
+			const problem = generateFourierSeriesProblem(waveform, {
+				seed: 42,
+				A: 5,
+				T0: 2,
+			});
+			const generatedLatex = [
+				problem.signalLatex,
+				problem.omega0Latex,
+				problem.a0Latex,
+				problem.anLatex,
+				problem.bnLatex,
+				problem.FnLatex,
+				...problem.solutionSteps.map((step) => step.latex),
+				...problem.itsData.step5.options.map((option) => option.latex),
+				...problem.itsData.step6.options.map((option) => option.latex),
+				...problem.itsData.step7.options.map((option) => option.latex),
+			];
+
+			for (const latex of generatedLatex) {
+				expect(latex).not.toMatch(/\\pi[A-Za-z]/);
+			}
+		},
+	);
 
 	it("generates valid ITS step data for even square wave", () => {
 		const coeffs = computeFourierCoefficients("square_even", {
