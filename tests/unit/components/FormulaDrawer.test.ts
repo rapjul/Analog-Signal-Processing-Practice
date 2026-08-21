@@ -95,6 +95,30 @@ describe("FormulaDrawer.svelte Component", () => {
 		expect(container.querySelector(".drawer-content")).toBeTruthy();
 	});
 
+	it("shows canonical Fourier notation and convergence guidance", async () => {
+		const { getByText, container } = render(FormulaDrawer, {
+			props: {
+				isOpen: true,
+				onClose: vi.fn(),
+			},
+		});
+
+		await fireEvent.click(getByText("Fourier Series"));
+
+		expect(getByText("Dirichlet Conditions & Convergence")).toBeTruthy();
+		expect(getByText("Weak Dirichlet Condition:")).toBeTruthy();
+		expect(getByText("Strong Dirichlet Conditions:")).toBeTruthy();
+		expect(getByText("Discontinuity Midpoint Convergence:")).toBeTruthy();
+		expect(
+			container.querySelector(".drawer-content")?.textContent,
+		).toContain("finitely many discontinuities");
+
+		const fourierContent =
+			container.querySelector(".drawer-content")?.innerHTML;
+		expect(fourierContent).toContain("F_n");
+		expect(fourierContent).not.toContain("c_n");
+	});
+
 	it("triggers onClose when Escape key is pressed on window", async () => {
 		const handleClose = vi.fn();
 		render(FormulaDrawer, {
