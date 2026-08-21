@@ -5,6 +5,13 @@
  */
 
 import type { BaseItsStep, ItsOption, SolutionStep } from "./types";
+import {
+	createRandomSeed,
+	createSeededPrng,
+	randomChoice,
+	shuffleWithRandom,
+	type RandomSource,
+} from "./random";
 
 /** Supported classic periodic waveform categories */
 export type FourierWaveformType =
@@ -162,6 +169,8 @@ export interface FourierItsData {
 export interface FourierSeriesProblem {
 	/** Unique identifier */
 	id: string;
+	/** Unsigned seed used to reproduce this problem. */
+	seed: number;
 	/** Waveform type */
 	waveformType: FourierWaveformType;
 	/** Title of problem */
@@ -188,6 +197,16 @@ export interface FourierSeriesProblem {
 	itsData: FourierItsData;
 }
 
+/** Optional controls for deterministic Fourier problem generation. */
+export interface FourierGenerationOptions {
+	/** Explicit pseudo-random number generator seed. */
+	seed?: number;
+	/** Fixed amplitude override used by tests and authored examples. */
+	A?: number;
+	/** Fixed fundamental period override used by tests and authored examples. */
+	T0?: number;
+}
+
 /**
  * Derives exact Trigonometric and Exponential Fourier series coefficients.
  * @param {FourierWaveformType} waveformType Waveform category
@@ -203,10 +222,14 @@ export function computeFourierCoefficients(
 	const A = params?.A ?? 1;
 	const T0 = params?.T0 ?? 2;
 	if (!Number.isFinite(A) || A <= 0) {
-		throw new RangeError("Fourier amplitude A must be a positive finite number.");
+		throw new RangeError(
+			"Fourier amplitude A must be a positive finite number.",
+		);
 	}
 	if (!Number.isFinite(T0) || T0 <= 0) {
-		throw new RangeError("Fourier period T0 must be a positive finite number.");
+		throw new RangeError(
+			"Fourier period T0 must be a positive finite number.",
+		);
 	}
 	const w0 = (2 * Math.PI) / T0;
 
@@ -238,7 +261,9 @@ export function computeFourierCoefficients(
 		 */
 		const Fn = (n: number): ComplexCoefficient => {
 			if (!Number.isInteger(n)) {
-				throw new RangeError("Fourier harmonic index n must be an integer.");
+				throw new RangeError(
+					"Fourier harmonic index n must be an integer.",
+				);
 			}
 			if (n === 0) return { re: definition.a0 / 2, im: 0 };
 			const harmonic = Math.abs(n);
@@ -482,7 +507,9 @@ export function computePartialSum(
 	t: number,
 ): number {
 	if (!Number.isInteger(N) || N < 0) {
-		throw new RangeError("Fourier harmonic count N must be a non-negative integer.");
+		throw new RangeError(
+			"Fourier harmonic count N must be a non-negative integer.",
+		);
 	}
 	if (!Number.isFinite(t)) {
 		throw new RangeError("Fourier partial-sum time t must be finite.");
@@ -512,7 +539,9 @@ export function computeSignalPower(
 	N: number,
 ): SignalPower {
 	if (!Number.isInteger(N) || N < 0) {
-		throw new RangeError("Fourier harmonic count N must be a non-negative integer.");
+		throw new RangeError(
+			"Fourier harmonic count N must be a non-negative integer.",
+		);
 	}
 	let totalPower = 0;
 	switch (coeffs.waveformType) {
@@ -563,15 +592,11 @@ export function computeSignalPower(
  * Shuffles an array randomly to prevent positional distractor memorization.
  * @template T
  * @param {T[]} array Original array
+ * @param {RandomSource} random Pseudo-random source
  * @returns {T[]} Shuffled new array
  */
-function shuffleArray<T>(array: T[]): T[] {
-	const copy = [...array];
-	for (let i = copy.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[copy[i], copy[j]] = [copy[j], copy[i]];
-	}
-	return copy;
+function shuffleArray<T>(array: T[], random: RandomSource): T[] {
+	return shuffleWithRandom(array, random);
 }
 
 /**
@@ -599,10 +624,12 @@ function getVanishingCoefficients(
 /**
  * Builds Intelligent Tutoring System (ITS) step-by-step metadata for Fourier Series problems.
  * @param {FourierCoefficients} coeffs Calculated waveform coefficients
+ * @param {RandomSource} [random] Pseudo-random source for option ordering
  * @returns {FourierItsData} Complete ITS step data
  */
 export function generateFourierItsData(
 	coeffs: FourierCoefficients,
+	random: RandomSource = Math.random,
 ): FourierItsData {
 	const { A, T0, w0, symmetry } = coeffs;
 	const w0Latex = T0 === 2 ? "\\pi" : "\\frac{\\pi}{2}";
@@ -802,7 +829,7 @@ export function generateFourierItsData(
 	const step5: FourierItsStep5 = {
 		successMsg:
 			"Correct Integral Formulation! Notice the scaling constant and kernel match the symmetry.",
-		options: shuffleArray(step5OptionsRaw),
+		options: shuffleArray(step5OptionsRaw, random),
 		hints: [
 			"Identify the standard definition for your chosen coefficient type ($a_n, b_n$, or $c_n$).",
 			`Use $\\frac{2}{T_0} \\int_{T_0} x(t) \\dots dt$ for trigonometric form or $\\frac{1}{T_0} \\int_{T_0} x(t) e^{-j n \\omega_0 t} dt$ for exponential form.`,
@@ -900,7 +927,7 @@ export function generateFourierItsData(
 					];
 
 	const step6: FourierItsStep6 = {
-		options: shuffleArray(step6OptionsRaw),
+		options: shuffleArray(step6OptionsRaw, random),
 		hints: [
 			"Evaluate the definite integral over the non-zero intervals.",
 			`For odd $n$, substitute the bounds into $\\frac{2}{${T0}} \\int \\dots$. Remember $\\cos(n\\pi) = (-1)^n$.`,
@@ -931,19 +958,25 @@ export function generateFourierItsData(
  * 4. Synthesizes 6-step ITS metadata for interactive step-by-step guidance.
  *
  * @param {FourierWaveformType} waveformType Selected waveform category
+ * @param {FourierGenerationOptions} [options] Deterministic generation controls
  * @returns {FourierSeriesProblem} FourierSeriesProblem instance containing LaTeX representations and steps
  */
 export function generateFourierSeriesProblem(
 	waveformType: FourierWaveformType = "square",
+	options: FourierGenerationOptions = {},
 ): FourierSeriesProblem {
+	const seed = Number.isFinite(options.seed)
+		? Math.trunc(options.seed ?? 0) >>> 0
+		: createRandomSeed();
+	const random = createSeededPrng(seed);
 	const aValues = [1, 2, 3, 5, 10];
 	const t0Values = [2, 4];
-	const A = aValues[Math.floor(Math.random() * aValues.length)];
-	const T0 = t0Values[Math.floor(Math.random() * t0Values.length)];
+	const A = options.A ?? randomChoice(random, aValues);
+	const T0 = options.T0 ?? randomChoice(random, t0Values);
 
 	const coeffs = computeFourierCoefficients(waveformType, { A, T0 });
-	const id = `fs_${waveformType}_${Date.now()}`;
-	const itsData = generateFourierItsData(coeffs);
+	const id = `fs_${waveformType}_${seed}`;
+	const itsData = generateFourierItsData(coeffs, random);
 
 	const steps: SolutionStep[] = [
 		{
@@ -992,6 +1025,7 @@ export function generateFourierSeriesProblem(
 
 	return {
 		id,
+		seed,
 		waveformType,
 		title: "Practice Problem: Periodic Waveform",
 		periodLatex: `T_0 = ${T0}\\text{ s}`,

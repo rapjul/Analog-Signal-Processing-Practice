@@ -98,7 +98,10 @@ describe("Fourier Series Math Engine", () => {
 		});
 
 		it("models origin parity and half-wave symmetry independently", () => {
-			const square = computeFourierCoefficients("square", { A: 1, T0: 2 });
+			const square = computeFourierCoefficients("square", {
+				A: 1,
+				T0: 2,
+			});
 			const sawtooth = computeFourierCoefficients("sawtooth", {
 				A: 1,
 				T0: 2,
@@ -111,7 +114,10 @@ describe("Fourier Series Math Engine", () => {
 		});
 
 		it("uses F_n for exponential coefficients and keeps cn as an alias", () => {
-			const coeffs = computeFourierCoefficients("square", { A: 1, T0: 2 });
+			const coeffs = computeFourierCoefficients("square", {
+				A: 1,
+				T0: 2,
+			});
 
 			expect(coeffs.Fn(1)).toEqual(coeffs.cn(1));
 			expect(coeffs.Fn(-1).re).toBeCloseTo(coeffs.Fn(1).re, 12);
@@ -138,7 +144,10 @@ describe("Fourier Series Math Engine", () => {
 
 	describe("Ideal Waveform Evaluator", () => {
 		it("evaluates waveform aliases and shifted variants consistently", () => {
-			const square = computeFourierCoefficients("square", { A: 2, T0: 4 });
+			const square = computeFourierCoefficients("square", {
+				A: 2,
+				T0: 4,
+			});
 			const squareOdd = computeFourierCoefficients("square_odd", {
 				A: 2,
 				T0: 4,
@@ -151,7 +160,10 @@ describe("Fourier Series Math Engine", () => {
 			expect(evaluateFourierWaveform(square, 0.5)).toBe(2);
 			expect(evaluateFourierWaveform(squareOdd, 0.5)).toBe(2);
 			expect(evaluateFourierWaveform(triangleOdd, 0)).toBeCloseTo(0, 12);
-			expect(evaluateFourierWaveform(triangleOdd, 0.5)).toBeCloseTo(0.5, 12);
+			expect(evaluateFourierWaveform(triangleOdd, 0.5)).toBeCloseTo(
+				0.5,
+				12,
+			);
 		});
 
 		it("uses T0 as the fundamental period of the full-wave sine", () => {
@@ -188,7 +200,10 @@ describe("Fourier Series Math Engine", () => {
 			const dcOnly = computeSignalPower(coeffs, 0);
 
 			expect(dcOnly.totalPower).toBeCloseTo(1, 12);
-			expect(dcOnly.harmonicPower).toBeCloseTo(4 / (Math.PI * Math.PI), 12);
+			expect(dcOnly.harmonicPower).toBeCloseTo(
+				4 / (Math.PI * Math.PI),
+				12,
+			);
 		});
 	});
 
@@ -202,13 +217,28 @@ describe("Fourier Series Math Engine", () => {
 			expect(() =>
 				computeFourierCoefficients("square", { A: 0, T0: 2 }),
 			).toThrow(RangeError);
-		const coeffs = computeFourierCoefficients("square");
+			const coeffs = computeFourierCoefficients("square");
 			expect(() => computePartialSum(coeffs, -1, 0)).toThrow(RangeError);
 			expect(() => coeffs.Fn(0.5)).toThrow(RangeError);
 		});
 	});
 
 	describe("Problem Generator", () => {
+		it("reproduces parameters and shuffled options from a seed", () => {
+			const first = generateFourierSeriesProblem("square", { seed: 42 });
+			const second = generateFourierSeriesProblem("square", { seed: 42 });
+
+			expect(first.id).toBe("fs_square_42");
+			expect(second.coeffs.A).toBe(first.coeffs.A);
+			expect(second.coeffs.T0).toBe(first.coeffs.T0);
+			expect(second.itsData.step5.options).toEqual(
+				first.itsData.step5.options,
+			);
+			expect(second.itsData.step6.options).toEqual(
+				first.itsData.step6.options,
+			);
+		});
+
 		it("generates a valid Fourier series problem for square wave", () => {
 			const problem = generateFourierSeriesProblem("square");
 			expect(problem.waveformType).toBe("square");
