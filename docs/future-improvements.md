@@ -34,7 +34,10 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ### 5. Fourier Series: Convert to Trigonometric/Exponential/Compact Forms
 
-- Convert all sin/cos series solutions to compact exponential form.
+- Support deliberate conversion among trigonometric, exponential, and compact
+  Fourier series forms.
+- Preserve the textbook distinction between exponential coefficients $F_n$ and
+  compact-form amplitudes $c_n$; do not use `c_n` for both representations.
 - Add a new problem type where the Fourier series is given, and then the user needs to convert to another form.
 
 ### 6. Linear ODEs: Unstable and Marginally Stable Systems
