@@ -8,7 +8,9 @@ import {
 	computeFourierCoefficients,
 	computePartialSum,
 	computeSignalPower,
+	evaluateFourierWaveform,
 	generateFourierSeriesProblem,
+	isFourierWaveformType,
 } from "$lib/math-engine/fourier-series";
 
 describe("Fourier Series Math Engine", () => {
@@ -58,14 +60,15 @@ describe("Fourier Series Math Engine", () => {
 
 		it("calculates coefficients for Half-Wave Rectified Sine", () => {
 			// Half-wave rectified sine A=1, T0=2pi (w0=1)
-			// a0 = 1 / pi
+			// a0 = 2 / pi, so the DC component a0 / 2 = 1 / pi
 			// a_1 = 0, a_n = 2 / (pi (1 - n^2)) for even n
 			// b_1 = 1 / 2, b_n = 0 for n >= 2
 			const coeffs = computeFourierCoefficients("half_wave_sine", {
 				A: 1,
 				T0: 2 * Math.PI,
 			});
-			expect(coeffs.a0).toBeCloseTo(1 / Math.PI, 4);
+			expect(coeffs.a0).toBeCloseTo(2 / Math.PI, 4);
+			expect(coeffs.Fn(0).re).toBeCloseTo(1 / Math.PI, 4);
 			expect(coeffs.bn(1)).toBeCloseTo(0.5, 4);
 			expect(coeffs.bn(2)).toBe(0);
 			expect(coeffs.an(2)).toBeCloseTo(2 / (Math.PI * (1 - 4)), 4);
@@ -79,6 +82,7 @@ describe("Fourier Series Math Engine", () => {
 			expect(coeffs.symmetry).toBe("even");
 			expect(coeffs.bn(1)).toBe(0);
 			expect(coeffs.an(1)).toBeCloseTo(4 / Math.PI, 4);
+			expect(coeffs.hasHalfWaveSymmetry).toBe(true);
 		});
 
 		it("calculates coefficients for Full-Wave Rectified Sine (Even Symmetry)", () => {
@@ -86,9 +90,33 @@ describe("Fourier Series Math Engine", () => {
 				A: 1,
 				T0: Math.PI,
 			});
-			expect(coeffs.a0).toBeCloseTo(2 / Math.PI, 4);
+			expect(coeffs.a0).toBeCloseTo(4 / Math.PI, 4);
 			expect(coeffs.symmetry).toBe("even");
 			expect(coeffs.bn(1)).toBe(0);
+			expect(coeffs.an(1)).toBeCloseTo(-4 / (3 * Math.PI), 4);
+			expect(coeffs.hasHalfWaveSymmetry).toBe(false);
+		});
+
+		it("models origin parity and half-wave symmetry independently", () => {
+			const square = computeFourierCoefficients("square", { A: 1, T0: 2 });
+			const sawtooth = computeFourierCoefficients("sawtooth", {
+				A: 1,
+				T0: 2,
+			});
+
+			expect(square.originParity).toBe("odd");
+			expect(square.hasHalfWaveSymmetry).toBe(true);
+			expect(sawtooth.originParity).toBe("odd");
+			expect(sawtooth.hasHalfWaveSymmetry).toBe(false);
+		});
+
+		it("uses F_n for exponential coefficients and keeps cn as an alias", () => {
+			const coeffs = computeFourierCoefficients("square", { A: 1, T0: 2 });
+
+			expect(coeffs.Fn(1)).toEqual(coeffs.cn(1));
+			expect(coeffs.Fn(-1).re).toBeCloseTo(coeffs.Fn(1).re, 12);
+			expect(coeffs.Fn(-1).im).toBeCloseTo(-coeffs.Fn(1).im, 12);
+			expect(coeffs.Fn(0)).toEqual({ re: 0, im: 0 });
 		});
 	});
 
@@ -108,6 +136,36 @@ describe("Fourier Series Math Engine", () => {
 		});
 	});
 
+	describe("Ideal Waveform Evaluator", () => {
+		it("evaluates waveform aliases and shifted variants consistently", () => {
+			const square = computeFourierCoefficients("square", { A: 2, T0: 4 });
+			const squareOdd = computeFourierCoefficients("square_odd", {
+				A: 2,
+				T0: 4,
+			});
+			const triangleOdd = computeFourierCoefficients("triangle_odd", {
+				A: 1,
+				T0: 4,
+			});
+
+			expect(evaluateFourierWaveform(square, 0.5)).toBe(2);
+			expect(evaluateFourierWaveform(squareOdd, 0.5)).toBe(2);
+			expect(evaluateFourierWaveform(triangleOdd, 0)).toBeCloseTo(0, 12);
+			expect(evaluateFourierWaveform(triangleOdd, 0.5)).toBeCloseTo(0.5, 12);
+		});
+
+		it("uses T0 as the fundamental period of the full-wave sine", () => {
+			const coeffs = computeFourierCoefficients("full_wave_sine", {
+				A: 3,
+				T0: 4,
+			});
+
+			expect(evaluateFourierWaveform(coeffs, 0)).toBe(0);
+			expect(evaluateFourierWaveform(coeffs, 2)).toBeCloseTo(3, 12);
+			expect(evaluateFourierWaveform(coeffs, 4)).toBeCloseTo(0, 12);
+		});
+	});
+
 	describe("Parseval Power Calculator", () => {
 		it("computes total signal power and N-harmonic power fraction for square wave", () => {
 			const coeffs = computeFourierCoefficients("square", {
@@ -120,6 +178,33 @@ describe("Fourier Series Math Engine", () => {
 			// Power in first 5 harmonics ~ 95%+
 			expect(power.harmonicPower).toBeGreaterThan(0.9);
 			expect(power.powerRatio).toBeGreaterThan(0.9);
+		});
+
+		it("includes the a0/2 DC contribution for rectified waveforms", () => {
+			const coeffs = computeFourierCoefficients("half_wave_sine", {
+				A: 2,
+				T0: 4,
+			});
+			const dcOnly = computeSignalPower(coeffs, 0);
+
+			expect(dcOnly.totalPower).toBeCloseTo(1, 12);
+			expect(dcOnly.harmonicPower).toBeCloseTo(4 / (Math.PI * Math.PI), 12);
+		});
+	});
+
+	describe("Input Validation", () => {
+		it("validates waveform identifiers", () => {
+			expect(isFourierWaveformType("triangle_odd")).toBe(true);
+			expect(isFourierWaveformType("not-a-waveform")).toBe(false);
+		});
+
+		it("rejects invalid physical parameters and harmonic counts", () => {
+			expect(() =>
+				computeFourierCoefficients("square", { A: 0, T0: 2 }),
+			).toThrow(RangeError);
+		const coeffs = computeFourierCoefficients("square");
+			expect(() => computePartialSum(coeffs, -1, 0)).toThrow(RangeError);
+			expect(() => coeffs.Fn(0.5)).toThrow(RangeError);
 		});
 	});
 
