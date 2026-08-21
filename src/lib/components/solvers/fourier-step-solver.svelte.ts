@@ -152,28 +152,44 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
+		if (this.step1.periodUnit !== "s" && this.step1.periodUnit !== "ms") {
+			this.setValidation(
+				this.step1,
+				"Unsupported period unit. Choose seconds or milliseconds.",
+			);
+			return;
+		}
+		if (this.step1.freqUnit !== "rad/s" && this.step1.freqUnit !== "Hz") {
+			this.setValidation(
+				this.step1,
+				"Unsupported frequency unit. Choose radians per second or hertz.",
+			);
+			return;
+		}
 
+		const periodScale = this.step1.periodUnit === "ms" ? 0.001 : 1;
+		const frequencyScale = this.step1.freqUnit === "Hz" ? 2 * Math.PI : 1;
+		const periodSeconds = parseNumericInput(pTrimmed) * periodScale;
+		const frequencyRadiansPerSecond =
+			parseNumericInput(fTrimmed) * frequencyScale;
 		const pMatch =
-			s1Data.tAliases.some((alias) => pTrimmed === alias.toLowerCase()) ||
-			Math.abs(parseNumericInput(pTrimmed) - s1Data.expectedT) < 0.05;
+			(this.step1.periodUnit === "s" &&
+				s1Data.tAliases.some(
+					(alias) => pTrimmed === alias.toLowerCase(),
+				)) ||
+			Math.abs(periodSeconds - s1Data.expectedT) < 0.05;
 
 		const fMatch =
-			s1Data.w0Aliases.some(
-				(alias) => fTrimmed === alias.toLowerCase(),
-			) ||
-			Math.abs(parseNumericInput(fTrimmed) - s1Data.expectedW0) < 0.05;
+			(this.step1.freqUnit === "rad/s" &&
+				s1Data.w0Aliases.some(
+					(alias) => fTrimmed === alias.toLowerCase(),
+				)) ||
+			Math.abs(frequencyRadiansPerSecond - s1Data.expectedW0) < 0.05;
 
 		if (!pMatch) {
 			this.setIncorrect(
 				this.step1,
 				"Incorrect Period value: inspect the duration over which the waveform repeats itself.",
-			);
-			return;
-		}
-		if (this.step1.periodUnit !== "s") {
-			this.setValidation(
-				this.step1,
-				"Incorrect Period unit: period must be measured in seconds (s).",
 			);
 			return;
 		}
@@ -184,14 +200,6 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
-		if (this.step1.freqUnit !== "rad/s") {
-			this.setValidation(
-				this.step1,
-				"Incorrect Frequency unit: radian frequency $\\omega_0$ must be in $\\text{rad/s}$.",
-			);
-			return;
-		}
-
 		this.setPassed(this.step1, 2);
 	}
 

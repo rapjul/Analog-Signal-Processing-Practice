@@ -68,14 +68,14 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.step1.feedback).toContain("Incorrect Period value");
 		expect(solver.currentFeedback).toContain("Incorrect Period value");
 
-		// 2. Invalid period unit (validation)
+		// 2. Unsupported period unit (validation)
 		solver.step1.period = String(problem.itsData.step1.expectedT);
-		solver.step1.periodUnit = "ms";
+		solver.step1.periodUnit = "minutes";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
 		expect(solver.step1.feedbackType).toBe("validation");
 		expect(solver.currentFeedbackTitle).toBe("Input Required:");
-		expect(solver.step1.feedback).toContain("Incorrect Period unit");
+		expect(solver.step1.feedback).toContain("Unsupported period unit");
 
 		// 3. Invalid frequency value (incorrect)
 		solver.step1.periodUnit = "s";
@@ -88,14 +88,14 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			"Incorrect Fundamental Frequency",
 		);
 
-		// 4. Invalid frequency unit (validation)
+		// 4. Unsupported frequency unit (validation)
 		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
-		solver.step1.freqUnit = "Hz";
+		solver.step1.freqUnit = "cycles/min";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
 		expect(solver.step1.feedbackType).toBe("validation");
 		expect(solver.currentFeedbackTitle).toBe("Input Required:");
-		expect(solver.step1.feedback).toContain("Incorrect Frequency unit");
+		expect(solver.step1.feedback).toContain("Unsupported frequency unit");
 
 		// 5. Correct inputs
 		solver.step1.freqUnit = "rad/s";
@@ -105,6 +105,23 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.step1.feedbackType).toBeNull();
 		expect(solver.currentStep).toBe(2);
 		expect(solver.hintTier).toBe(0);
+	});
+
+	it("converts equivalent millisecond and hertz answers", () => {
+		const problem = generateFourierSeriesProblem("square", {
+			seed: 10,
+			T0: 4,
+		});
+		const solver = new FourierStepSolverState(() => problem);
+
+		solver.step1.period = "4000";
+		solver.step1.periodUnit = "ms";
+		solver.step1.freq = "0.25";
+		solver.step1.freqUnit = "Hz";
+		solver.checkStep1();
+
+		expect(solver.step1.isValid).toBe(true);
+		expect(solver.currentStep).toBe(2);
 	});
 
 	it("validates Step 2 (symmetry) with correct and misconception branches", () => {
