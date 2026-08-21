@@ -52,36 +52,50 @@ A running backlog of prospective UX, visual, and architectural improvements to c
     - Scale plots safely for growing responses, including overflow guards and useful time-window selection.
     - Test zero- and right-half-plane poles, persistent and growing natural modes, BIBO classifications, response decomposition, and plot scaling.
 
+### 7. Linear ODEs: Hide Root Classification Until the Student Derives It
+
+- **Context:** The Linear ODE problem header currently exposes the characteristic
+  root classification before the student reaches the corresponding ITS step.
+  This contradicts the solver anti-spoiler policy and gives away part of the
+  derivation.
+- **Improvement Idea:**
+    - Keep the initial problem header generic, consistent with the Fourier Series
+      practice card.
+    - Reveal the root classification only after the student determines it, or in
+      a completed-step summary.
+    - Add component and end-to-end assertions that the classification is absent
+      before the relevant step and visible afterward.
+
 ## Learning Experience & UX Enhancements
 
-### 7. Session & ITS Solver State Persistence
+### 8. Session & ITS Solver State Persistence
 
 - **Context:** If a student refreshes mid-problem, all interactive progress is lost.
 - **Improvement Idea:**
     - Save active ITS solver state, entered inputs, and revealed steps to `sessionStorage` or IndexedDB.
     - Restore in-progress problem states seamlessly upon browser reload or accidental navigation.
 
-### 8. Adaptive Difficulty & Spaced Repetition Progression
+### 9. Adaptive Difficulty & Spaced Repetition Progression
 
 - **Context:** All problems are currently randomly generated without difficulty progression.
 - **Improvement Idea:**
     - Implement a spaced repetition and adaptive difficulty progression engine.
     - Dynamically calibrate problem parameters and complexity based on student accuracy and mastery history.
 
-### 9. Global Keyboard Shortcuts for Power Users
+### 10. Global Keyboard Shortcuts for Power Users
 
 - **Context:** Power users and students drilling problems for exams currently rely exclusively on mouse/touch interaction.
 - **Improvement Idea:**
     - Add keyboard shortcuts for high-frequency actions (e.g. `Ctrl/Cmd + Enter` to Check Answer, `H` for Hint, `N` for Next Problem).
     - Provide an accessible shortcuts cheatsheet/modal.
 
-### 10. Dashboard / Home Page Per-Module Progress Tracking
+### 11. Dashboard / Home Page Per-Module Progress Tracking
 
 - **Context:** Dashboard cards all display static "▶ Practice Now" labels without indication of user progress.
 - **Improvement Idea:**
     - Connect the local database / persistence layer to display per-module mastery percentages, completion rates, and problem attempt counts directly on the dashboard cards.
 
-### 11. Automated Solved-Problem Screenshot Tool
+### 12. Automated Solved-Problem Screenshot Tool
 
 - **Context:** Verifying solver layouts, KaTeX rendering, progressive hints, and post-solve canvas visualizers manually across all problem archetypes is time-consuming.
 - **Proposal & Options:** See detailed design document at [automated-solved-problem-screenshot-tool.md](./automated-solved-problem-screenshot-tool.md).
