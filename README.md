@@ -23,14 +23,14 @@ An interactive, offline-first Intelligent Tutoring System (ITS) and practice lab
 
 ## 📚 Practice Modules
 
-| Module                                | Core Topics & Capabilities                                                                                                                                  |                     Route                      |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------: |
-| **Differential Equations**            | Characteristic equation roots, zero-input response ($y_{ZI}$), zero-state response ($y_{ZS}$), total response ($y_{\text{total}}$), and BIBO stability.     |           [`/odes`](src/routes/odes)           |
-| **Continuous-Time Convolution**       | Graphical convolution, sliding window integration, interval partitioning, and composite piece-wise response computation.                                    |    [`/convolution`](src/routes/convolution)    |
-| **Fourier Series Representation**     | Trigonometric & compact exponential Fourier series, Dirichlet conditions, line spectra, and harmonic synthesis.                                             | [`/fourier-series`](src/routes/fourier-series) |
-| **Continuous-Time Fourier Transform** | Forward and inverse CTFT, spectral density $                                                                                                                |                   X(j\omega)                   | $, phase spectra, duality, modulation, and differentiation properties. | [`/fourier-transform`](src/routes/fourier-transform) |
-| **Laplace Transform & ROC**           | Unilateral/bilateral Laplace transforms, pole-zero constellations, Region of Convergence ($\text{ROC}$), and Partial Fraction Decomposition ($\text{PFD}$). |        [`/laplace`](src/routes/laplace)        |
-| **Analog Circuit Analysis**           | $s$-domain impedance equivalence, nodal/mesh analysis, transfer function $H(s)$ derivation, and transient step/impulse responses.                           |       [`/circuits`](src/routes/circuits)       |
+| Module                                | Core Topics & Capabilities                                                                                                                                  |                        Route                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------: |
+| **Differential Equations**            | Characteristic equation roots, zero-input response ($y_{ZI}$), zero-state response ($y_{ZS}$), total response ($y_{\text{total}}$), and BIBO stability.     |              [`/odes`](src/routes/odes)              |
+| **Continuous-Time Convolution**       | Graphical convolution, sliding window integration, interval partitioning, and composite piece-wise response computation.                                    |       [`/convolution`](src/routes/convolution)       |
+| **Fourier Series Representation**     | Trigonometric & compact exponential Fourier series, Dirichlet conditions, line spectra, and harmonic synthesis.                                             |    [`/fourier-series`](src/routes/fourier-series)    |
+| **Continuous-Time Fourier Transform** | Forward and inverse CTFT, spectral density $\lvert X(j\omega) \rvert$, phase spectra, duality, modulation, and differentiation properties.                  | [`/fourier-transform`](src/routes/fourier-transform) |
+| **Laplace Transform & ROC**           | Unilateral/bilateral Laplace transforms, pole-zero constellations, Region of Convergence ($\text{ROC}$), and Partial Fraction Decomposition ($\text{PFD}$). |           [`/laplace`](src/routes/laplace)           |
+| **Analog Circuit Analysis**           | $s$-domain impedance equivalence, nodal/mesh analysis, transfer function $H(s)$ derivation, and transient step/impulse responses.                           |          [`/circuits`](src/routes/circuits)          |
 
 ---
 
@@ -71,7 +71,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to start pra
 
 - 🛠️ **[Development & Testing Guide](docs/development-and-testing.md)** — Contributor setup, dual-runtime Vitest architecture (ADR `0025`), Playwright E2E suites, AST math testing, and formatting standards.
 - 📐 **[Terminology & Mathematical Standards](docs/terminology-standards.md)** — Canonical signal processing symbols, operator conventions, and notation rules.
-- 🏛️ **[Architectural Decision Records (ADRs)](docs/adrs/)** — Index of 25 ADRs recording foundational design, mathematical engine, and UI decisions.
+- 🏛️ **[Architectural Decision Records (ADRs)](docs/adrs/)** — Index of 33 ADRs recording foundational design, mathematical engine, and UI decisions.
 - 🤖 **[Workspace Agent Rules](.agents/AGENTS.md)** — Development guidelines for LaTeX math formatting, component styling, and code quality.
 
 ---
