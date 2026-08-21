@@ -48,10 +48,6 @@
 			label: `${problem.waveformType.replace("_", " ")} Wave`,
 			variant: "secondary" as const,
 		},
-		{
-			label: `${problem.coeffs.symmetry} Symmetry`,
-			variant: "accent" as const,
-		},
 	]);
 </script>
 
