@@ -6,13 +6,16 @@
 	 *
 	 * Guides students sequentially through period/frequency, symmetry classification,
 	 * vanishing shortcuts, form selection, integral setup, coefficient evaluation,
-	 * and final series synthesis.
+	 * and final series synthesis using standardized StepCard and PartProgressPill
+	 * architecture (ADR-0034).
 	 */
 
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
+	import PartProgressPill from "../ui/PartProgressPill.svelte";
 	import Progress from "../ui/Progress.svelte";
+	import StepCard from "../ui/StepCard.svelte";
 	import StepFeedback from "../ui/StepFeedback.svelte";
 	import { FourierStepSolverState } from "./fourier-step-solver.svelte";
 
@@ -30,12 +33,24 @@
 		() => problem,
 		() => onComplete,
 	);
-	let activeStep5Part = $derived(
+
+	const activeStep5Index = $derived(
+		problem.itsData.step5.parts.findIndex(
+			({ id }) => id === solver.step5.activeSubStepId,
+		),
+	);
+	const activeStep5Part = $derived(
 		problem.itsData.step5.parts.find(
 			({ id }) => id === solver.step5.activeSubStepId,
 		),
 	);
-	let activeStep6Part = $derived(
+
+	const activeStep6Index = $derived(
+		problem.itsData.step6.parts.findIndex(
+			({ id }) => id === solver.step6.activeSubStepId,
+		),
+	);
+	const activeStep6Part = $derived(
 		problem.itsData.step6.parts.find(
 			({ id }) => id === solver.step6.activeSubStepId,
 		),
@@ -49,6 +64,57 @@
 			solver.reset();
 		}
 	});
+
+	/** Step status derivations */
+	const step1Status = $derived(
+		solver.currentStep === 1
+			? "active"
+			: solver.currentStep > 1
+				? "completed"
+				: "locked",
+	);
+	const step2Status = $derived(
+		solver.currentStep === 2
+			? "active"
+			: solver.currentStep > 2
+				? "completed"
+				: "locked",
+	);
+	const step3Status = $derived(
+		solver.currentStep === 3
+			? "active"
+			: solver.currentStep > 3
+				? "completed"
+				: "locked",
+	);
+	const step4Status = $derived(
+		solver.currentStep === 4
+			? "active"
+			: solver.currentStep > 4
+				? "completed"
+				: "locked",
+	);
+	const step5Status = $derived(
+		solver.currentStep === 5
+			? "active"
+			: solver.currentStep > 5
+				? "completed"
+				: "locked",
+	);
+	const step6Status = $derived(
+		solver.currentStep === 6
+			? "active"
+			: solver.currentStep > 6
+				? "completed"
+				: "locked",
+	);
+	const step7Status = $derived(
+		solver.currentStep === 7
+			? "active"
+			: solver.currentStep > 7
+				? "completed"
+				: "locked",
+	);
 </script>
 
 {#snippet feedbackAndHints()}
@@ -100,6 +166,67 @@
 	{/if}
 {/snippet}
 
+<!-- Header Extras for Multi-Part Steps -->
+{#snippet step2HeaderExtra()}
+	{#if step2Status === "active"}
+		<PartProgressPill progress={solver.step2Progress} />
+	{/if}
+{/snippet}
+
+{#snippet step5HeaderExtra()}
+	{#if step5Status === "active"}
+		<PartProgressPill progress={solver.step5Progress} />
+	{/if}
+{/snippet}
+
+{#snippet step6HeaderExtra()}
+	{#if step6Status === "active"}
+		<PartProgressPill progress={solver.step6Progress} />
+	{/if}
+{/snippet}
+
+<!-- Summaries for Completed Steps -->
+{#snippet step2Summary()}
+	<span>
+		Origin parity: <strong class="capitalize"
+			>{problem.coeffs.originParity}</strong
+		>; half-wave symmetry:
+		<strong>
+			{problem.coeffs.hasHalfWaveSymmetry ? "yes" : "no"}
+		</strong>
+	</span>
+{/snippet}
+
+{#snippet step3Summary()}
+	<span>
+		Shortcut:
+		{#if problem.coeffs.symmetry === "even"}
+			<MathText
+				text={String.raw`$b_n = 0 \implies$ Cosine harmonics only`}
+			/>
+		{:else if problem.coeffs.symmetry === "odd"}
+			<MathText
+				text={String.raw`$a_0 = 0, \; a_n = 0 \implies$ Sine harmonics only`}
+			/>
+		{:else}
+			All coefficients active
+		{/if}
+	</span>
+{/snippet}
+
+{#snippet step4Summary()}
+	<span>
+		Optimal Form:
+		<strong>
+			{#if problem.coeffs.symmetry !== "none"}
+				Trigonometric Form
+			{:else}
+				Exponential Form
+			{/if}
+		</strong>
+	</span>
+{/snippet}
+
 <div class="fourier-step-solver">
 	<Progress
 		currentStep={solver.currentStep}
@@ -107,128 +234,109 @@
 	/>
 
 	<!-- Step 1: Period and Frequency -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 1}
-		class:done={solver.currentStep > 1}
+	<StepCard
+		stepNumber={1}
+		title="Fundamental Period & Frequency"
+		status={step1Status}
+		summaryLatex={String.raw`T_0 = ${problem.periodLatex}, \quad \omega_0 = ${problem.omega0Latex}`}
 	>
-		<div class="step-header">
-			<div class="step-badge">Step 1</div>
-			<h3 class="step-title">Fundamental Period & Frequency</h3>
-		</div>
-
-		{#if solver.currentStep === 1}
-			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={String.raw`Enter the fundamental period $T_0$ and fundamental frequency $\omega_0$ from the waveform definition:`}
-					/>
-				</p>
-				<div class="input-row-grid">
-					<div class="input-pair">
-						<label
-							for="fourier-period-input"
-							class="field-label"
+		<div class="step-body">
+			<p class="step-prompt">
+				<MathText
+					text={String.raw`Enter the fundamental period $T_0$ and fundamental frequency $\omega_0$ from the waveform definition:`}
+				/>
+			</p>
+			<div class="input-row-grid">
+				<div class="input-pair">
+					<label
+						for="fourier-period-input"
+						class="field-label"
+					>
+						<MathText text={"Period $T_0$:"} />
+					</label>
+					<div class="input-with-unit">
+						<input
+							id="fourier-period-input"
+							type="text"
+							class="text-input"
+							placeholder="e.g. 2 or 1/4"
+							bind:value={solver.step1.period}
+							onkeydown={(e) =>
+								e.key === "Enter" && solver.checkStep1()}
+						/>
+						<select
+							class="unit-select"
+							bind:value={solver.step1.periodUnit}
+							aria-label="Period time unit"
 						>
-							<MathText text={"Period $T_0$:"} />
-						</label>
-						<div class="input-with-unit">
-							<input
-								id="fourier-period-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. 2 or 1/4"
-								bind:value={solver.step1.period}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep1()}
-							/>
-							<select
-								class="unit-select"
-								bind:value={solver.step1.periodUnit}
-								aria-label="Period time unit"
-							>
-								<option value="s">s</option>
-								<option value="ms">ms</option>
-							</select>
-						</div>
-					</div>
-
-					<div class="input-pair">
-						<label
-							for="fourier-freq-input"
-							class="field-label"
-						>
-							<MathText
-								text={String.raw`Fundamental Freq $\omega_0$:`}
-							/>
-						</label>
-						<div class="input-with-unit">
-							<input
-								id="fourier-freq-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. pi or pi/2"
-								bind:value={solver.step1.freq}
-								onkeydown={(e) =>
-									e.key === "Enter" && solver.checkStep1()}
-							/>
-							<select
-								class="unit-select"
-								bind:value={solver.step1.freqUnit}
-								aria-label="Frequency unit"
-							>
-								<option value="rad/s">rad/s</option>
-								<option value="Hz">Hz</option>
-							</select>
-						</div>
+							<option value="s">s</option>
+							<option value="ms">ms</option>
+						</select>
 					</div>
 				</div>
 
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep1()}
+				<div class="input-pair">
+					<label
+						for="fourier-freq-input"
+						class="field-label"
 					>
-						Check Period & Frequency →
-					</button>
+						<MathText
+							text={String.raw`Fundamental Freq $\omega_0$:`}
+						/>
+					</label>
+					<div class="input-with-unit">
+						<input
+							id="fourier-freq-input"
+							type="text"
+							class="text-input"
+							placeholder="e.g. pi or pi/2"
+							bind:value={solver.step1.freq}
+							onkeydown={(e) =>
+								e.key === "Enter" && solver.checkStep1()}
+						/>
+						<select
+							class="unit-select"
+							bind:value={solver.step1.freqUnit}
+							aria-label="Frequency unit"
+						>
+							<option value="rad/s">rad/s</option>
+							<option value="Hz">Hz</option>
+						</select>
+					</div>
 				</div>
 			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 1}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>
-					<MathText
-						text={String.raw`$T_0 = ${problem.periodLatex}, \quad \omega_0 = ${problem.omega0Latex}$`}
-					/>
-				</span>
-			</div>
-		{/if}
-	</div>
 
-	<!-- Step 2: Symmetry Analysis -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 2}
-		class:done={solver.currentStep > 2}
-		class:locked={solver.currentStep < 2}
-	>
-		<div class="step-header">
-			<div class="step-badge">Step 2</div>
-			<h3 class="step-title">Waveform Symmetry Analysis</h3>
+			<div class="step-actions">
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={() => solver.checkStep1()}
+				>
+					Check Period & Frequency →
+				</button>
+			</div>
 		</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
-		{#if solver.currentStep === 2}
-			<div class="step-body">
-				<div class="substep-heading">
-					<strong
-						>{solver.step2.subSteps[solver.step2.activeSubStepId]
-							.title}</strong
-					>
-					<span>{solver.step2Progress.label}</span>
-				</div>
-				{#if solver.step2.activeSubStepId === "origin-parity"}
+	<!-- Step 2: Symmetry Analysis (Multi-Part Step) -->
+	<StepCard
+		stepNumber={2}
+		title="Waveform Symmetry Analysis"
+		status={step2Status}
+		headerExtra={step2HeaderExtra}
+		summarySnippet={step2Summary}
+	>
+		<div class="step-body">
+			{#if solver.step2.activeSubStepId === "origin-parity"}
+				<!-- Part 2A: Origin Parity -->
+				<div class="subpart-block">
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 2A</span>
+						<h4 class="subpart-title">
+							<MathText text="Classify Origin Parity" />
+						</h4>
+					</div>
 					<p class="step-prompt">
 						<MathText
 							text={"Classify the parity of $x(t)$ about the time origin:"}
@@ -294,13 +402,33 @@
 							Check Origin Parity →
 						</button>
 					</div>
-				{:else}
-					<div class="carried-coefficients">
-						<div>
-							Origin parity validated: <strong class="capitalize"
-								>{problem.coeffs.originParity}</strong
-							>
-						</div>
+				</div>
+			{:else}
+				<!-- Verified Part 2A Summary -->
+				<div class="subpart-block subpart-done">
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 2A</span>
+						<h4 class="subpart-title">
+							<MathText text="Classify Origin Parity" />
+						</h4>
+						<span class="substep-check-badge">
+							<span class="check-icon">✓</span> Verified
+						</span>
+					</div>
+					<div class="substep-verified-line">
+						Origin parity validated: <strong class="capitalize"
+							>{problem.coeffs.originParity}</strong
+						>
+					</div>
+				</div>
+
+				<!-- Part 2B: Half-Wave Symmetry -->
+				<div class="subpart-block">
+					<div class="subpart-header">
+						<span class="subpart-badge">Part 2B</span>
+						<h4 class="subpart-title">
+							<MathText text="Test Half-Wave Symmetry" />
+						</h4>
 					</div>
 					<p class="step-prompt">
 						<MathText
@@ -343,214 +471,153 @@
 							Check Half-Wave Symmetry →
 						</button>
 					</div>
-				{/if}
-			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 2}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>
-					Origin parity: <strong class="capitalize">
-						{problem.coeffs.originParity}
-					</strong>; half-wave symmetry:
-					<strong>
-						{problem.coeffs.hasHalfWaveSymmetry ? "yes" : "no"}
-					</strong>
-				</span>
-			</div>
-		{/if}
-	</div>
+				</div>
+			{/if}
+		</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
 	<!-- Step 3: Coefficient Shortcuts -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 3}
-		class:done={solver.currentStep > 3}
-		class:locked={solver.currentStep < 3}
+	<StepCard
+		stepNumber={3}
+		title="Vanishing Coefficient Shortcuts"
+		status={step3Status}
+		summarySnippet={step3Summary}
 	>
-		<div class="step-header">
-			<div class="step-badge">Step 3</div>
-			<h3 class="step-title">Vanishing Coefficient Shortcuts</h3>
+		<div class="step-body">
+			<p class="step-prompt">
+				Based on the identified symmetry, which coefficients vanish:
+			</p>
+			<div class="button-grid-taxonomic">
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step3.selected === "bn_zero"}
+					onclick={() => solver.checkStep3("bn_zero")}
+				>
+					<strong><MathText text={"$b_n = 0$"} /></strong>
+					<span class="choice-sub">
+						<MathText text={"Only cosine terms ($a_n$) exist"} />
+					</span>
+				</button>
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step3.selected === "an_zero"}
+					onclick={() => solver.checkStep3("an_zero")}
+				>
+					<strong>
+						<MathText text={String.raw`$a_0 = 0, \; a_n = 0$`} />
+					</strong>
+					<span class="choice-sub">
+						<MathText text={"Only sine terms ($b_n$) exist"} />
+					</span>
+				</button>
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step3.selected === "none"}
+					onclick={() => solver.checkStep3("none")}
+				>
+					<strong>No Coefficients Vanish</strong>
+					<span class="choice-sub">
+						<MathText text={"Must compute both $a_n$ and $b_n$"} />
+					</span>
+				</button>
+			</div>
 		</div>
-
-		{#if solver.currentStep === 3}
-			<div class="step-body">
-				<p class="step-prompt">
-					Based on the identified symmetry, which coefficients vanish:
-				</p>
-				<div class="button-grid-taxonomic">
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected === "bn_zero"}
-						onclick={() => solver.checkStep3("bn_zero")}
-					>
-						<strong><MathText text={"$b_n = 0$"} /></strong>
-						<span class="choice-sub">
-							<MathText
-								text={"Only cosine terms ($a_n$) exist"}
-							/>
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected === "an_zero"}
-						onclick={() => solver.checkStep3("an_zero")}
-					>
-						<strong>
-							<MathText
-								text={String.raw`$a_0 = 0, \; a_n = 0$`}
-							/>
-						</strong>
-						<span class="choice-sub">
-							<MathText text={"Only sine terms ($b_n$) exist"} />
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step3.selected === "none"}
-						onclick={() => solver.checkStep3("none")}
-					>
-						<strong>No Coefficients Vanish</strong>
-						<span class="choice-sub">
-							<MathText
-								text={"Must compute both $a_n$ and $b_n$"}
-							/>
-						</span>
-					</button>
-				</div>
-			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 3}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>
-					Shortcut:
-					{#if problem.coeffs.symmetry === "even"}
-						<MathText
-							text={String.raw`$b_n = 0 \implies$ Cosine harmonics only`}
-						/>
-					{:else if problem.coeffs.symmetry === "odd"}
-						<MathText
-							text={String.raw`$a_0 = 0, \; a_n = 0 \implies$ Sine harmonics only`}
-						/>
-					{:else}
-						All coefficients active
-					{/if}
-				</span>
-			</div>
-		{/if}
-	</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
 	<!-- Step 4: Representation Form -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 4}
-		class:done={solver.currentStep > 4}
-		class:locked={solver.currentStep < 4}
+	<StepCard
+		stepNumber={4}
+		title="Optimal Representation Form"
+		status={step4Status}
+		summarySnippet={step4Summary}
 	>
-		<div class="step-header">
-			<div class="step-badge">Step 4</div>
-			<h3 class="step-title">Optimal Representation Form</h3>
+		<div class="step-body">
+			<p class="step-prompt">
+				Which Fourier series representation is most efficient to
+				calculate for this waveform?
+			</p>
+			<div class="button-grid-taxonomic">
+				<button
+					type="button"
+					class="choice-btn representation-choice"
+					class:selected={solver.step4.selected === "trig"}
+					onclick={() => solver.checkStep4("trig")}
+				>
+					<strong>Trigonometric Form</strong>
+					<div class="choice-sub representation-content">
+						<MathText
+							text={"Ideal when symmetries eliminate $a_n$ or $b_n$"}
+						/>
+						<MathBlock
+							math={"a_n \\cos(n \\omega_0 t) + b_n \\sin(n \\omega_0 t)"}
+							compact={true}
+							hideHeader={true}
+						/>
+					</div>
+				</button>
+				<button
+					type="button"
+					class="choice-btn representation-choice"
+					class:selected={solver.step4.selected === "exp"}
+					onclick={() => solver.checkStep4("exp")}
+				>
+					<strong>Exponential Form</strong>
+					<div class="choice-sub representation-content">
+						<MathText text={"Single integral for $F_n$"} />
+						<MathBlock
+							math={"F_n e^{j n \\omega_0 t}"}
+							compact={true}
+							hideHeader={true}
+						/>
+					</div>
+				</button>
+				<button
+					type="button"
+					class="choice-btn representation-choice"
+					class:selected={solver.step4.selected === "compact"}
+					onclick={() => solver.checkStep4("compact")}
+				>
+					<strong>Compact Harmonic Form</strong>
+					<div class="choice-sub representation-content">
+						<span>Amplitude-Phase</span>
+						<MathBlock
+							math={"c_n \\cos(n \\omega_0 t + \\theta_n)"}
+							compact={true}
+							hideHeader={true}
+						/>
+					</div>
+				</button>
+			</div>
 		</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
-		{#if solver.currentStep === 4}
-			<div class="step-body">
-				<p class="step-prompt">
-					Which Fourier series representation is most efficient to
-					calculate for this waveform?
-				</p>
-				<div class="button-grid-taxonomic">
-					<button
-						type="button"
-						class="choice-btn representation-choice"
-						class:selected={solver.step4.selected === "trig"}
-						onclick={() => solver.checkStep4("trig")}
-					>
-						<strong>Trigonometric Form</strong>
-						<div class="choice-sub representation-content">
-							<MathText
-								text={"Ideal when symmetries eliminate $a_n$ or $b_n$"}
-							/>
-							<MathBlock
-								math={"a_n \\cos(n \\omega_0 t) + b_n \\sin(n \\omega_0 t)"}
-								compact={true}
-								hideHeader={true}
-							/>
-						</div>
-					</button>
-					<button
-						type="button"
-						class="choice-btn representation-choice"
-						class:selected={solver.step4.selected === "exp"}
-						onclick={() => solver.checkStep4("exp")}
-					>
-						<strong>Exponential Form</strong>
-						<div class="choice-sub representation-content">
-							<MathText text={"Single integral for $F_n$"} />
-							<MathBlock
-								math={"F_n e^{j n \\omega_0 t}"}
-								compact={true}
-								hideHeader={true}
-							/>
-						</div>
-					</button>
-					<button
-						type="button"
-						class="choice-btn representation-choice"
-						class:selected={solver.step4.selected === "compact"}
-						onclick={() => solver.checkStep4("compact")}
-					>
-						<strong>Compact Harmonic Form</strong>
-						<div class="choice-sub representation-content">
-							<span>Amplitude-Phase</span>
-							<MathBlock
-								math={"c_n \\cos(n \\omega_0 t + \\theta_n)"}
-								compact={true}
-								hideHeader={true}
-							/>
-						</div>
-					</button>
-				</div>
-			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 4}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>
-					Optimal Form:
-					<strong>
-						{#if problem.coeffs.symmetry !== "none"}
-							Trigonometric Form
-						{:else}
-							Exponential Form
-						{/if}
-					</strong>
-				</span>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Step 5: Integral Setup -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 5}
-		class:done={solver.currentStep > 5}
-		class:locked={solver.currentStep < 5}
+	<!-- Step 5: Integral Setup (Multi-Part Step) -->
+	<StepCard
+		stepNumber={5}
+		title="Integral Setup Formulation"
+		status={step5Status}
+		headerExtra={step5HeaderExtra}
+		summaryLatex={"\\text{Integral Form: Validated}"}
 	>
-		<div class="step-header">
-			<div class="step-badge">Step 5</div>
-			<h3 class="step-title">Integral Setup Formulation</h3>
-		</div>
-
-		{#if solver.currentStep === 5}
-			<div class="step-body">
-				<div class="substep-heading">
-					<strong>{activeStep5Part?.title}</strong>
-					<span>{solver.step5Progress.label}</span>
+		<div class="step-body">
+			<div class="subpart-block">
+				<div class="subpart-header">
+					<span class="subpart-badge"
+						>Part 5{String.fromCharCode(
+							65 + Math.max(0, activeStep5Index),
+						)}</span
+					>
+					<h4 class="subpart-title">
+						<MathText text={activeStep5Part?.title ?? ""} />
+					</h4>
 				</div>
+
 				{#if problem.itsData.step5.carriedCoefficients.length > 0}
 					<div class="carried-coefficients">
 						{#each problem.itsData.step5.carriedCoefficients as carried}
@@ -562,6 +629,7 @@
 						{/each}
 					</div>
 				{/if}
+
 				<p class="step-prompt">
 					<MathText text={activeStep5Part?.prompt ?? ""} />
 				</p>
@@ -587,33 +655,31 @@
 					{/each}
 				</div>
 			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 5}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>Integral Form: Validated</span>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Step 6: Harmonic Coefficient Evaluation -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 6}
-		class:done={solver.currentStep > 6}
-		class:locked={solver.currentStep < 6}
-	>
-		<div class="step-header">
-			<div class="step-badge">Step 6</div>
-			<h3 class="step-title">Harmonic Coefficient Evaluation</h3>
 		</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
-		{#if solver.currentStep === 6}
-			<div class="step-body">
-				<div class="substep-heading">
-					<strong>{activeStep6Part?.title}</strong>
-					<span>{solver.step6Progress.label}</span>
+	<!-- Step 6: Harmonic Coefficient Evaluation (Multi-Part Step) -->
+	<StepCard
+		stepNumber={6}
+		title="Harmonic Coefficient Evaluation"
+		status={step6Status}
+		headerExtra={step6HeaderExtra}
+		summaryLatex={"\\text{Harmonic Coefficients Evaluated}"}
+	>
+		<div class="step-body">
+			<div class="subpart-block">
+				<div class="subpart-header">
+					<span class="subpart-badge"
+						>Part 6{String.fromCharCode(
+							65 + Math.max(0, activeStep6Index),
+						)}</span
+					>
+					<h4 class="subpart-title">
+						<MathText text={activeStep6Part?.title ?? ""} />
+					</h4>
 				</div>
+
 				{#if problem.itsData.step6.carriedCoefficients.length > 0}
 					<div class="carried-coefficients">
 						{#each problem.itsData.step6.carriedCoefficients as carried}
@@ -625,6 +691,7 @@
 						{/each}
 					</div>
 				{/if}
+
 				<p class="step-prompt">
 					<MathText text={activeStep6Part?.prompt ?? ""} />
 				</p>
@@ -650,59 +717,42 @@
 					{/each}
 				</div>
 			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 6}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>Harmonic Coefficients Evaluated</span>
-			</div>
-		{/if}
-	</div>
+		</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 
 	<!-- Step 7: Final Series Expression -->
-	<div
-		class="step-card"
-		class:active={solver.currentStep === 7}
-		class:done={solver.currentStep > 7}
-		class:locked={solver.currentStep < 7}
+	<StepCard
+		stepNumber={7}
+		title="Final Fourier Series Expression"
+		status={step7Status}
+		summaryLatex={"\\text{Fourier Series Synthesized}"}
 	>
-		<div class="step-header">
-			<div class="step-badge">Step 7</div>
-			<h3 class="step-title">Final Fourier Series Expression</h3>
+		<div class="step-body">
+			<p class="step-prompt">
+				<MathText
+					text={`Select the final ${problem.itsData.step7.form === "trig" ? "trigonometric" : "exponential"} Fourier series for $x(t)$:`}
+				/>
+			</p>
+			<div class="mcq-cards-grid">
+				{#each problem.itsData.step7.options as opt}
+					<button
+						type="button"
+						class="mcq-card"
+						class:selected={solver.step7.selected === opt.id}
+						onclick={() => solver.checkStep7(opt)}
+					>
+						<MathBlock
+							math={opt.latex}
+							compact={true}
+							hideHeader={true}
+						/>
+					</button>
+				{/each}
+			</div>
 		</div>
-
-		{#if solver.currentStep === 7}
-			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={`Select the final ${problem.itsData.step7.form === "trig" ? "trigonometric" : "exponential"} Fourier series for $x(t)$:`}
-					/>
-				</p>
-				<div class="mcq-cards-grid">
-					{#each problem.itsData.step7.options as opt}
-						<button
-							type="button"
-							class="mcq-card"
-							class:selected={solver.step7.selected === opt.id}
-							onclick={() => solver.checkStep7(opt)}
-						>
-							<MathBlock
-								math={opt.latex}
-								compact={true}
-								hideHeader={true}
-							/>
-						</button>
-					{/each}
-				</div>
-			</div>
-			{@render feedbackAndHints()}
-		{:else if solver.currentStep > 7}
-			<div class="step-summary">
-				<span class="check-icon">✓</span>
-				<span>Fourier Series Synthesized</span>
-			</div>
-		{/if}
-	</div>
+		{@render feedbackAndHints()}
+	</StepCard>
 </div>
 
 <style>
@@ -713,76 +763,7 @@
 		flex-direction: column;
 		gap: 1rem;
 		width: 100%;
-	}
-
-	/* ── Step card ─────────────────────────────────────────── */
-
-	.step-card {
-		container-type: inline-size;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-md);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		transition: all 0.2s ease;
-		max-width: 100%;
 		min-width: 0;
-	}
-
-	/* Active — accent primary border + subtle glow */
-	.step-card.active {
-		border-color: var(--accent-primary);
-		box-shadow: 0 2px 12px var(--accent-glow);
-	}
-
-	/* Done — green border tint, compact padding */
-	.step-card.done {
-		border-color: var(--color-success);
-		background: var(--color-success-bg);
-		padding: 0.75rem 1.25rem;
-	}
-
-	/* Locked — dimmed opacity */
-	.step-card.locked {
-		opacity: 0.65;
-	}
-
-	.step-card.locked .step-badge {
-		background: var(--white-10);
-		color: var(--text-secondary);
-	}
-
-	/* ── Step card header ──────────────────────────────────── */
-
-	.step-header {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.4rem 0.6rem;
-	}
-
-	.step-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		padding: 0.2rem 0.5rem;
-		background: var(--accent-bg);
-		color: var(--accent-primary);
-		border-radius: var(--radius-sm);
-		text-transform: uppercase;
-		flex-shrink: 0;
-	}
-
-	.step-title {
-		font-size: var(--text-base);
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
-		overflow-wrap: anywhere;
-		word-break: break-word;
-		min-width: 0;
-		line-height: var(--leading-tight);
 	}
 
 	/* ── Step body & prompt ────────────────────────────────── */
@@ -802,18 +783,60 @@
 		overflow-wrap: anywhere;
 	}
 
-	.substep-heading {
+	/* ── Subpart blocks & headers ──────────────────────────── */
+
+	.subpart-block {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
+		flex-direction: column;
 		gap: 0.75rem;
-		color: var(--text-primary);
+		width: 100%;
+		min-width: 0;
 	}
 
-	.substep-heading span {
-		color: var(--text-secondary);
+	.subpart-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.subpart-badge {
 		font-size: var(--text-xs);
+		font-weight: 700;
+		padding: 0.15rem 0.45rem;
+		background: var(--accent-bg);
+		color: var(--accent-primary);
+		border-radius: var(--radius-sm, 4px);
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+		flex-shrink: 0;
+	}
+
+	.subpart-title {
+		font-size: var(--text-sm);
+		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0;
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
+
+	.substep-check-badge {
+		font-size: var(--text-xs);
+		font-weight: 700;
+		color: var(--color-success, #10b981);
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
 		white-space: nowrap;
+	}
+
+	.substep-verified-line {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		font-weight: 600;
+		padding: 0.25rem 0;
 	}
 
 	.carried-coefficients {
@@ -825,15 +848,6 @@
 		background: var(--bg-secondary);
 		color: var(--text-secondary);
 		font-size: var(--text-xs);
-	}
-
-	.step-summary {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		font-size: var(--text-sm);
-		color: var(--text-secondary);
 	}
 
 	.check-icon {
@@ -1080,6 +1094,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.6rem;
+		margin-top: 0.75rem;
 	}
 
 	.hints-header {
@@ -1161,10 +1176,6 @@
 	/* ── Narrow viewport (≤360px) container query ─────────── */
 
 	@container (max-width: 360px) {
-		.step-card {
-			padding: 0.75rem 0.85rem;
-		}
-
 		.step-actions {
 			width: 100%;
 		}
@@ -1173,6 +1184,10 @@
 			width: 100%;
 			text-align: center;
 			justify-content: center;
+		}
+
+		.subpart-header {
+			gap: 0.35rem;
 		}
 	}
 
