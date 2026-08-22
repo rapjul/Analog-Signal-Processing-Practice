@@ -66,39 +66,40 @@ Every multi-part step must use `StepCard` and supply a `PartProgressPill` in the
 </StepCard>
 ```
 
-#### 2. Subpart Header & Body Layout
+#### 2. SubStepBlock Svelte Component Integration
 
-Within the active step body, each subpart is encapsulated in a `.subpart-block` with standardized class contracts:
+To eliminate markup and CSS duplication across step files, the Tier 2 subpart structure is encapsulated in the shared `<SubStepBlock>` UI component (`src/lib/components/ui/SubStepBlock.svelte`):
 
 ```svelte
-<div class="subpart-block">
-	<div class="subpart-header">
-		<span class="subpart-badge">Part {badgeId}</span>
-		<h4 class="subpart-title">
-			<MathText text={subpartTitle} />
-		</h4>
-		{#if isSubpartCompleted}
-			<span class="substep-check-badge">
-				<span class="check-icon">✓</span> Verified
-			</span>
-		{/if}
-	</div>
+<SubStepBlock
+	badge="Part 2A"
+	title="Classify Origin Parity"
+	isCompleted={isDone}
+>
+	{#snippet summarySnippet()}
+		<div class="substep-verified-line">
+			<MathText text="Signal is **Even**: $x(-t) = x(t)$" />
+		</div>
+	{/snippet}
 
-	<!-- Subpart interactive controls or verified summary -->
-</div>
+	<!-- Interactive controls rendered when active -->
+	<div class="options-grid">...</div>
+</SubStepBlock>
 ```
+
+`<SubStepBlock>` encapsulates the `.subpart-block`, `.subpart-header`, `.subpart-badge`, `.subpart-title` (via `<MathText>`), `.substep-check-badge`, and conditional `.subpart-done` state.
 
 #### 3. Standardized Class Contracts
 
 | Class Name               | Target Element                | Semantic Purpose                                               | Styling Rules                                                                                                                               |
 | :----------------------- | :---------------------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.part-progress-pill`    | `<span>` in `StepCard` header | Displays overall subpart progress (e.g. `Part 1 of 2`)         | Cyan pill (`rgba(6, 182, 212, 0.12)`), rounded full border, bold text, `margin-left: auto`.                                                 |
-| `.subpart-block`         | `<div>` in step body          | Container for a single subpart micro-challenge                 | `display: flex; flex-direction: column; gap: 0.75rem; width: 100%; min-width: 0;`                                                           |
-| `.subpart-header`        | `<div>` in `.subpart-block`   | Row containing the part badge, title, and verified status      | `display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;`                                                                         |
-| `.subpart-badge`         | `<span>` in `.subpart-header` | High-contrast label for the subpart (e.g. `Part 2A`, `Part 1`) | `font-size: var(--text-xs); font-weight: 700; background: var(--accent-bg); color: var(--accent-primary); border-radius: var(--radius-sm);` |
-| `.subpart-title`         | `<h4>` in `.subpart-header`   | Mathematical or descriptive title of the subpart               | `font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); margin: 0;`                                                       |
-| `.substep-check-badge`   | `<span>` in `.subpart-header` | Visual check indicator for completed subpart                   | `font-size: var(--text-xs); font-weight: 700; color: var(--color-success); margin-left: auto;`                                              |
-| `.substep-verified-line` | `<div>` in `.subpart-block`   | Compact summary line for a completed prior subpart             | `font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600;`                                                                |
+| `.subpart-block`         | `<div>` in `SubStepBlock`     | Container for a single subpart micro-challenge                 | `display: flex; flex-direction: column; gap: 0.75rem; width: 100%; min-width: 0;`                                                           |
+| `.subpart-header`        | `<div>` in `SubStepBlock`     | Row containing the part badge, title, and verified status      | `display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;`                                                                         |
+| `.subpart-badge`         | `<span>` in `SubStepBlock`    | High-contrast label for the subpart (e.g. `Part 2A`, `Part 1`) | `font-size: var(--text-xs); font-weight: 700; background: var(--accent-bg); color: var(--accent-primary); border-radius: var(--radius-sm);` |
+| `.subpart-title`         | `<h4>` in `SubStepBlock`      | Mathematical or descriptive title of the subpart               | `font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); margin: 0;`                                                       |
+| `.substep-check-badge`   | `<span>` in `SubStepBlock`    | Visual check indicator for completed subpart                   | `font-size: var(--text-xs); font-weight: 700; color: var(--color-success); margin-left: auto;`                                              |
+| `.substep-verified-line` | `<div>` in step summary       | Compact summary line for a completed prior subpart             | `font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600;`                                                                |
 
 #### 4. Responsive & Accessibility Guarantees
 
