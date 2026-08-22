@@ -24,20 +24,6 @@ import {
 	type SubStepProgress,
 } from "./base-step-solver.svelte";
 
-export type {
-	OdeStep1State,
-	OdeStep2State,
-	OdeStep2SubStepId,
-	OdeStep3State,
-	OdeStep4State,
-	OdeStep5State,
-	OdeStep5SubStepId,
-	OdeStep6State,
-	OdeStep6SubStepId,
-	OdeStep7State,
-	OdeStep7SubStepId,
-} from "./ode-solver-state/ode-step-types";
-
 import type {
 	OdeStep1State,
 	OdeStep2State,
@@ -51,6 +37,20 @@ import type {
 	OdeStep7State,
 	OdeStep7SubStepId,
 } from "./ode-solver-state/ode-step-types";
+
+export type {
+	OdeStep1State,
+	OdeStep2State,
+	OdeStep2SubStepId,
+	OdeStep3State,
+	OdeStep4State,
+	OdeStep5State,
+	OdeStep5SubStepId,
+	OdeStep6State,
+	OdeStep6SubStepId,
+	OdeStep7State,
+	OdeStep7SubStepId,
+};
 
 /**
  * Reactive Step-by-Step ODE Solver Controller Class.

@@ -3,6 +3,7 @@
 	 * OdeStep3Homogeneous Svelte 5 Component.
 	 *
 	 * Step 3: Homogeneous Form Template Selection.
+	 *
 	 * Prompts the student to select the general homogeneous solution template $y_h(t)$
 	 * matching the characteristic roots.
 	 */

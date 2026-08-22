@@ -3,6 +3,7 @@
 	 * OdeStep4Ansatz Svelte 5 Component.
 	 *
 	 * Step 4: Particular Solution Ansatz Form Selection.
+	 *
 	 * Prompts the student to choose the correct trial particular solution $y_p(t)$
 	 * based on the input forcing function $x(t)$ and resonance detection.
 	 */

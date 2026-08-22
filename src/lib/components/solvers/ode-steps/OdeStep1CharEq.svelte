@@ -3,6 +3,7 @@
 	 * OdeStep1CharEq Svelte 5 Component.
 	 *
 	 * Step 1: Characteristic Equation Setup ($a_2 s^2 + a_1 s + a_0 = 0$).
+	 *
 	 * Maps differential operators to algebraic polynomial s-powers with live equation preview.
 	 */
 

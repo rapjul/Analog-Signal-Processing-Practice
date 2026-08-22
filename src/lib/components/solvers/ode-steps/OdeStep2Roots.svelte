@@ -3,6 +3,7 @@
 	 * OdeStep2Roots Svelte 5 Component.
 	 *
 	 * Step 2: Characteristic Roots & Strategy State Machine.
+	 *
 	 * Guides students through strategy gate (factoring vs quadratic formula),
 	 * root classification, remedial discriminant calculation, and root verification.
 	 */

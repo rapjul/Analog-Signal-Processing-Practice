@@ -3,6 +3,7 @@
 	 * OdeStep6InitialConditions Svelte 5 Component.
 	 *
 	 * Step 6: Initial Conditions System & Solved Constants (Multi-Part Step).
+	 *
 	 * Computes effective homogeneous target values $y_h(0+) = y(0+) - y_p(0+)$ and solves the
 	 * linear system for arbitrary integration constants ($C_1, C_2$).
 	 */
@@ -13,6 +14,7 @@
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import { toFractionLatex } from "$lib/math-engine/fraction";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
 	import type { OdeStepSolverState } from "../ode-step-solver.svelte";
@@ -60,7 +62,11 @@
 	<div class="step-body">
 		<!-- 1st-Order Step 6: Direct Initial Condition & Constant C_1 -->
 		{#if problem.params.order === 1}
-			<div class="subpart-block">
+			<SubStepBlock
+				badge={solver.step6Badge}
+				title={"Find Constant $C_1$"}
+				isCompleted={false}
+			>
 				<p class="step-prompt">
 					<MathText
 						text={String.raw`The complete response satisfies $y(0^+) = y_h(0^+) + y_p(0^+) = ${problem.initialConditions.y0}$. Calculate the integration constant $C_1 = y_h(0^+) = y(0^+) - y_p(0^+)$:`}
@@ -97,107 +103,89 @@
 						Check Constant →
 					</button>
 				</div>
-			</div>
+			</SubStepBlock>
 		{:else}
 			<!-- 2nd-Order Step 6A: Target Homogeneous Initial Values -->
-			<div
-				class="subpart-block"
-				class:subpart-done={solver.step6.subSteps.target_values.isValid}
+			<SubStepBlock
+				badge="Part 6A"
+				title={"Compute Target Homogeneous Initial Values"}
+				isCompleted={solver.step6.subSteps.target_values.isValid}
 			>
-				<div class="subpart-header">
-					<span class="subpart-badge">Part 6A</span>
-					<h4 class="subpart-title">
-						<MathText
-							text={"Compute Target Homogeneous Initial Values"}
-						/>
-					</h4>
-					{#if solver.step6.subSteps.target_values.isValid}
-						<span class="substep-check-badge">
-							<span class="check-icon">✓</span> Verified
-						</span>
-					{/if}
-				</div>
-
-				{#if !solver.step6.subSteps.target_values.isValid}
-					<p class="step-prompt">
-						<MathText
-							text={String.raw`Subtract the particular solution values from the total initial conditions ($y(0^+) = ${problem.initialConditions.y0}, \quad y'(0^+) = ${problem.initialConditions.dy0}$):`}
-						/>
-					</p>
-
-					<div class="input-row-grid">
-						<div class="input-pair">
-							<label
-								for="ode-yh0-input"
-								class="field-label"
-							>
-								<MathText
-									text={"Target $y_h(0^+) = y(0^+) - y_p(0^+)$:"}
-								/>
-							</label>
-							<input
-								id="ode-yh0-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. 2"
-								bind:value={solver.step6.yh0}
-								onkeydown={(e) =>
-									e.key === "Enter" &&
-									solver.checkStep6TargetValues()}
-							/>
-						</div>
-						<div class="input-pair">
-							<label
-								for="ode-dyh0-input"
-								class="field-label"
-							>
-								<MathText
-									text={"Target $y_h'(0^+) = y'(0^+) - y_p'(0^+)$:"}
-								/>
-							</label>
-							<input
-								id="ode-dyh0-input"
-								type="text"
-								class="text-input"
-								placeholder="e.g. -3"
-								bind:value={solver.step6.dyh0}
-								onkeydown={(e) =>
-									e.key === "Enter" &&
-									solver.checkStep6TargetValues()}
-							/>
-						</div>
-					</div>
-
-					<div class="step-actions">
-						<button
-							type="button"
-							class="btn btn-primary"
-							onclick={() => solver.checkStep6TargetValues()}
-						>
-							Verify Target Values →
-						</button>
-					</div>
-				{:else}
+				{#snippet summarySnippet()}
 					<div class="substep-verified-line">
 						<MathText
 							text={`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
 						/>
 					</div>
-				{/if}
-			</div>
+				{/snippet}
+
+				<p class="step-prompt">
+					<MathText
+						text={String.raw`Subtract the particular solution values from the total initial conditions ($y(0^+) = ${problem.initialConditions.y0}, \quad y'(0^+) = ${problem.initialConditions.dy0}$):`}
+					/>
+				</p>
+
+				<div class="input-row-grid">
+					<div class="input-pair">
+						<label
+							for="ode-yh0-input"
+							class="field-label"
+						>
+							<MathText
+								text={"Target $y_h(0^+) = y(0^+) - y_p(0^+)$:"}
+							/>
+						</label>
+						<input
+							id="ode-yh0-input"
+							type="text"
+							class="text-input"
+							placeholder="e.g. 2"
+							bind:value={solver.step6.yh0}
+							onkeydown={(e) =>
+								e.key === "Enter" &&
+								solver.checkStep6TargetValues()}
+						/>
+					</div>
+					<div class="input-pair">
+						<label
+							for="ode-dyh0-input"
+							class="field-label"
+						>
+							<MathText
+								text={"Target $y_h'(0^+) = y'(0^+) - y_p'(0^+)$:"}
+							/>
+						</label>
+						<input
+							id="ode-dyh0-input"
+							type="text"
+							class="text-input"
+							placeholder="e.g. -3"
+							bind:value={solver.step6.dyh0}
+							onkeydown={(e) =>
+								e.key === "Enter" &&
+								solver.checkStep6TargetValues()}
+						/>
+					</div>
+				</div>
+
+				<div class="step-actions">
+					<button
+						type="button"
+						class="btn btn-primary"
+						onclick={() => solver.checkStep6TargetValues()}
+					>
+						Verify Target Values →
+					</button>
+				</div>
+			</SubStepBlock>
 
 			<!-- 2nd-Order Part 6B: Integration Constants Resolution -->
 			{#if solver.step6.subSteps.target_values.isValid}
-				<div class="subpart-block">
-					<div class="subpart-header">
-						<span class="subpart-badge">Part 6B</span>
-						<h4 class="subpart-title">
-							<MathText
-								text={"Solve for Homogeneous Constants $C_1, C_2$"}
-							/>
-						</h4>
-					</div>
-
+				<SubStepBlock
+					badge="Part 6B"
+					title={"Solve for Homogeneous Constants $C_1, C_2$"}
+					isCompleted={false}
+				>
 					<p class="step-prompt">
 						<MathText
 							text={"Solve the linear system satisfying the homogeneous initial condition targets:"}
@@ -262,7 +250,7 @@
 							Check Constants →
 						</button>
 					</div>
-				</div>
+				</SubStepBlock>
 			{/if}
 		{/if}
 
@@ -293,59 +281,7 @@
 		margin: 0;
 	}
 
-	.check-icon {
-		color: var(--color-success, #10b981);
-		font-weight: 800;
-	}
-
-	/* ── Subpart blocks ───────────────────────────────────── */
-
-	.subpart-block {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm, 6px);
-		padding: 0.85rem 1rem;
-		box-sizing: border-box;
-		width: 100%;
-	}
-
-	.subpart-block.subpart-done {
-		border-color: rgba(16, 185, 129, 0.35);
-		background: rgba(16, 185, 129, 0.04);
-	}
-
-	.subpart-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.subpart-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		padding: 0.15rem 0.45rem;
-		background: var(--accent-bg);
-		color: var(--accent-primary);
-		border-radius: var(--radius-sm, 4px);
-	}
-
-	.subpart-title {
-		font-size: var(--text-sm);
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
-	}
-
-	.substep-check-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		color: var(--color-success, #10b981);
-		margin-left: auto;
-	}
+	/* ── Subpart verified line ────────────────────────────── */
 
 	.substep-verified-line {
 		font-size: var(--text-sm);
