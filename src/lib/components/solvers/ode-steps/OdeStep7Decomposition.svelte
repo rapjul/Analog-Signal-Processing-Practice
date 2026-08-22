@@ -12,12 +12,12 @@
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import type { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
-	import type { OdeStepSolverState } from "../ode-step-solver.svelte";
 	import OdeStep7PartAZiZs from "./OdeStep7PartAZiZs.svelte";
 	import OdeStep7PartBTrSs from "./OdeStep7PartBTrSs.svelte";
 	import OdeStep7PartCConceptual from "./OdeStep7PartCConceptual.svelte";

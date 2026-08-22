@@ -9,9 +9,9 @@
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import type { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
-	import type { OdeStepSolverState } from "../ode-step-solver.svelte";
 
 	/**
 	 * Component properties for OdeStep7PartAZiZs.

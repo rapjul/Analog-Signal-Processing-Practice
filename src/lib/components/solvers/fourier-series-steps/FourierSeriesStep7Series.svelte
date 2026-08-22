@@ -10,11 +10,11 @@
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import type { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
-	import type { FourierSeriesStepSolverState } from "../fourier-series-step-solver.svelte";
 
 	interface Props {
 		/** Active Fourier series problem instance */

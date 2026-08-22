@@ -14,8 +14,8 @@
 	 * - Step 7: Final Fourier Series Expression (FourierStep7Series)
 	 */
 
+	import Progress from "$lib/components/ui/Progress.svelte";
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
-	import Progress from "../ui/Progress.svelte";
 	import { FourierSeriesStepSolverState } from "./fourier-series-step-solver.svelte";
 	import FourierSeriesStep1PeriodFreq from "./fourier-series-steps/FourierSeriesStep1PeriodFreq.svelte";
 	import FourierSeriesStep2Symmetry from "./fourier-series-steps/FourierSeriesStep2Symmetry.svelte";

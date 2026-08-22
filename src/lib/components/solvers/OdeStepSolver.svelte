@@ -14,8 +14,8 @@
 	 * - Step 7: Dual Response Decomposition & Conceptual Mastery (OdeStep7Decomposition)
 	 */
 
+	import Progress from "$lib/components/ui/Progress.svelte";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
-	import Progress from "../ui/Progress.svelte";
 	import { OdeStepSolverState } from "./ode-step-solver.svelte";
 	import OdeStep1CharEq from "./ode-steps/OdeStep1CharEq.svelte";
 	import OdeStep2Roots from "./ode-steps/OdeStep2Roots.svelte";
