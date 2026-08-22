@@ -1,7 +1,9 @@
 import type {
 	FourierCoefficientPart,
 	FourierItsOption,
+	FourierItsStep2,
 	FourierSeriesProblem,
+	OriginParity,
 } from "$lib/math-engine/fourier-series";
 import { parseNumericInput } from "$lib/math-engine/fraction";
 import {
@@ -87,10 +89,48 @@ function createCoefficientMultiPartState(
 	) as FourierCoefficientMultiPartState;
 }
 
-/** Step 2 state for independent parity and half-wave classifications. */
-export interface FourierSymmetryStepState extends FourierChoiceStepState {
-	/** Student half-wave symmetry selection. */
-	selectedHalfWave: boolean | null;
+/** Ordered identifiers for the two independent symmetry classifications. */
+export type FourierSymmetrySubStepId = "origin-parity" | "half-wave";
+
+/** Step 2 state for the sequential parity and half-wave classifications. */
+export interface FourierSymmetryStepState extends MultiPartStepState<FourierSymmetrySubStepId> {
+	subSteps: {
+		"origin-parity": BaseSubStepState & {
+			selected: OriginParity | null;
+		};
+		"half-wave": BaseSubStepState & {
+			selected: boolean | null;
+		};
+	};
+}
+
+/** Creates the two focused symmetry sub-steps and their independent hints. */
+function createSymmetryMultiPartState(
+	data: FourierItsStep2,
+): FourierSymmetryStepState {
+	const subStepOrder: FourierSymmetrySubStepId[] = [
+		"origin-parity",
+		"half-wave",
+	];
+	return createMultiPartStepState(
+		{},
+		subStepOrder,
+		{
+			"origin-parity": createSubStepState(
+				"origin-parity",
+				"Classify Origin Parity",
+				{ selected: null as OriginParity | null },
+				data.hints,
+			),
+			"half-wave": createSubStepState(
+				"half-wave",
+				"Test Half-Wave Symmetry",
+				{ selected: null as boolean | null },
+				data.halfWaveHints,
+			),
+		},
+		"origin-parity",
+	) as FourierSymmetryStepState;
 }
 
 /**
@@ -117,9 +157,13 @@ export class FourierStepSolverState extends BaseStepSolverState {
 
 	/** Step 2 State: Symmetry classification */
 	step2: FourierSymmetryStepState = $state<FourierSymmetryStepState>(
-		createStepState({
-			selected: null as string | null,
-			selectedHalfWave: null as boolean | null,
+		createSymmetryMultiPartState({
+			correctSymmetry: "none",
+			correctOriginParity: "none",
+			correctHalfWaveSymmetry: false,
+			hints: [],
+			halfWaveHints: [],
+			misconceptions: {},
 		}),
 	);
 
@@ -146,6 +190,11 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	/** Progress through Step 5 coefficient setup parts. */
 	get step5Progress(): SubStepProgress {
 		return this.getSubStepProgress(this.step5);
+	}
+
+	/** Progress through the two Step 2 symmetry classifications. */
+	get step2Progress(): SubStepProgress {
+		return this.getSubStepProgress(this.step2);
 	}
 
 	/** Progress through Step 6 coefficient evaluation parts. */
@@ -190,7 +239,9 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			case 1:
 				return this.problem.itsData.step1.hints;
 			case 2:
-				return this.problem.itsData.step2.hints;
+				return (
+					this.step2.subSteps[this.step2.activeSubStepId]?.hints ?? []
+				);
 			case 3:
 				return this.problem.itsData.step3.hints;
 			case 4:
@@ -291,40 +342,62 @@ export class FourierStepSolverState extends BaseStepSolverState {
 	}
 
 	/**
-	 * Validates Step 2 parity and half-wave symmetry selections.
-	 * @param {string | null} [originParity] Selected origin parity
-	 * @param {boolean | null} [hasHalfWaveSymmetry] Selected half-wave property
+	 * Validates Step 2 Part 1: parity about the time origin.
+	 * @param {OriginParity | null} [originParity] Selected origin parity
 	 */
-	checkStep2(
-		originParity: string | null = this.step2.selected,
-		hasHalfWaveSymmetry: boolean | null = this.step2.selectedHalfWave,
+	checkStep2OriginParity(
+		originParity: OriginParity | null = this.step2.subSteps["origin-parity"]
+			.selected,
 	): void {
 		const s2Data = this.problem.itsData.step2;
-		this.step2.selected = originParity;
-		this.step2.selectedHalfWave = hasHalfWaveSymmetry;
-		if (originParity === null || hasHalfWaveSymmetry === null) {
-			this.setValidation(
+		this.step2.subSteps["origin-parity"].selected = originParity;
+		if (originParity === null) {
+			this.setSubStepValidation(
 				this.step2,
-				"Classify both origin parity and half-wave symmetry.",
+				"origin-parity",
+				"Classify the signal's parity about the time origin.",
 			);
 			return;
 		}
 		if (originParity !== s2Data.correctOriginParity) {
-			this.setMisconception(
+			this.setSubStepMisconception(
 				this.step2,
+				"origin-parity",
 				s2Data.misconceptions[originParity] ??
 					"Test the waveform against $x(-t)=x(t)$ and $x(-t)=-x(t)$.",
 			);
 			return;
 		}
-		if (hasHalfWaveSymmetry !== s2Data.correctHalfWaveSymmetry) {
-			this.setMisconception(
+		this.setSubStepPassed(this.step2, "origin-parity", "half-wave");
+	}
+
+	/**
+	 * Validates Step 2 Part 2: half-wave symmetry.
+	 * @param {boolean | null} [hasHalfWaveSymmetry] Selected half-wave property
+	 */
+	checkStep2HalfWave(
+		hasHalfWaveSymmetry: boolean | null = this.step2.subSteps["half-wave"]
+			.selected,
+	): void {
+		const s2Data = this.problem.itsData.step2;
+		this.step2.subSteps["half-wave"].selected = hasHalfWaveSymmetry;
+		if (hasHalfWaveSymmetry === null) {
+			this.setSubStepValidation(
 				this.step2,
+				"half-wave",
+				"Select whether the signal has half-wave symmetry.",
+			);
+			return;
+		}
+		if (hasHalfWaveSymmetry !== s2Data.correctHalfWaveSymmetry) {
+			this.setSubStepMisconception(
+				this.step2,
+				"half-wave",
 				"Half-wave symmetry is independent of origin parity. Test whether $x(t+T_0/2)=-x(t)$.",
 			);
 			return;
 		}
-		this.setPassed(this.step2, 3);
+		this.setSubStepPassed(this.step2, "half-wave", undefined, 3);
 	}
 
 	/**
@@ -451,10 +524,7 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			freq: "",
 			freqUnit: "rad/s",
 		});
-		this.step2 = createStepState({
-			selected: null as string | null,
-			selectedHalfWave: null as boolean | null,
-		});
+		this.step2 = createSymmetryMultiPartState(this.problem.itsData.step2);
 		this.step3 = createStepState({ selected: null as string | null });
 		this.step4 = createStepState({ selected: null as string | null });
 		this.step5 = createCoefficientMultiPartState(
@@ -477,8 +547,16 @@ export class FourierStepSolverState extends BaseStepSolverState {
 			},
 			{
 				id: "fourier.step-02.symmetry",
-				label: "Step 2 · Waveform Symmetry",
+				label: "Step 2 · Origin Parity",
 				step: 2,
+				subStep: "origin-parity",
+				kind: "interactive",
+			},
+			{
+				id: "fourier.step-02.half-wave-symmetry",
+				label: "Step 2 · Half-Wave Symmetry",
+				step: 2,
+				subStep: "half-wave",
 				kind: "interactive",
 			},
 			{
@@ -551,6 +629,12 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				return this.devPrepareParentStep(1);
 			case "fourier.step-02.symmetry":
 				return this.devPrepareParentStep(2);
+			case "fourier.step-02.half-wave-symmetry":
+				if (!this.devPrepareParentStep(2)) return false;
+				this.checkStep2OriginParity(
+					this.problem.itsData.step2.correctOriginParity,
+				);
+				return this.step2.activeSubStepId === "half-wave";
 			case "fourier.step-02.symmetry.misconception": {
 				if (!this.devPrepareParentStep(2)) return false;
 				const choices = ["even", "odd", "none"];
@@ -559,10 +643,7 @@ export class FourierStepSolverState extends BaseStepSolverState {
 						choice !== this.problem.itsData.step2.correctSymmetry,
 				);
 				if (!wrong) return false;
-				this.checkStep2(
-					wrong,
-					this.problem.itsData.step2.correctHalfWaveSymmetry,
-				);
+				this.checkStep2OriginParity(wrong as OriginParity);
 				return this.currentFeedbackType === "misconception";
 			}
 			case "fourier.step-03.vanishing-coefficients":
@@ -603,10 +684,14 @@ export class FourierStepSolverState extends BaseStepSolverState {
 				break;
 			}
 			case 2: {
-				this.checkStep2(
+				this.checkStep2OriginParity(
 					this.problem.itsData.step2.correctOriginParity,
-					this.problem.itsData.step2.correctHalfWaveSymmetry,
 				);
+				if (this.currentStep === 2) {
+					this.checkStep2HalfWave(
+						this.problem.itsData.step2.correctHalfWaveSymmetry,
+					);
+				}
 				break;
 			}
 			case 3: {

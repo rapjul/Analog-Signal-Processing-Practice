@@ -183,6 +183,8 @@ export interface FourierItsStep2 extends BaseItsStep {
 	correctOriginParity: OriginParity;
 	/** Correct independent half-wave symmetry classification. */
 	correctHalfWaveSymmetry: boolean;
+	/** Progressive hints used only for the half-wave symmetry sub-step. */
+	halfWaveHints: string[];
 	/** Diagnostic feedback for incorrect symmetry choices */
 	misconceptions: Record<string, string>;
 }
@@ -1191,6 +1193,13 @@ export function generateFourierItsData(
 				: symmetry === "odd"
 					? "The signal satisfies $x(-t) = -x(t)$, reflecting through the origin: Odd symmetry."
 					: "The signal is shifted or asymmetric around $t=0$, so it has Neither centered symmetry.",
+		],
+		halfWaveHints: [
+			"Compare the second half of one period with the first. Half-wave symmetry requires the same shape flipped vertically.",
+			"Shift the signal by half a period and test whether every value changes sign: $x(t+T_0/2)=-x(t)$.",
+			coeffs.hasHalfWaveSymmetry
+				? "The second half-period is the sign-reversed copy of the first, so the signal has half-wave symmetry."
+				: "The shifted waveform is not the sign-reversed copy of the original for the entire period, so the signal does not have half-wave symmetry.",
 		],
 		misconceptions: {
 			even: "Even signals mirror across the vertical axis ($x(-t) = x(t)$).",

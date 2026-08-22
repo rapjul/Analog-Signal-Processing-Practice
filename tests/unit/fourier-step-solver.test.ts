@@ -124,29 +124,60 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.currentStep).toBe(2);
 	});
 
-	it("validates Step 2 (symmetry) with correct and misconception branches", () => {
+	it("advances through Step 2 parity and half-wave parts independently", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(2);
+		expect(solver.step2Progress).toEqual({
+			current: 1,
+			total: 2,
+			label: "Part 1 of 2",
+		});
+		expect(solver.activeHints).toBe(problem.itsData.step2.hints);
 
-		// Incorrect symmetry (misconception)
+		// An omitted Part 1 answer is a validation error.
+		solver.checkStep2OriginParity();
+		expect(solver.step2.feedbackType).toBe("validation");
+		expect(solver.step2.activeSubStepId).toBe("origin-parity");
+
+		// An incorrect Part 1 answer stays on the parity classification.
 		const wrongSymmetry =
 			problem.itsData.step2.correctOriginParity === "even"
 				? "odd"
 				: "even";
-		solver.checkStep2(
-			wrongSymmetry,
-			problem.itsData.step2.correctHalfWaveSymmetry,
-		);
+		solver.checkStep2OriginParity(wrongSymmetry);
 		expect(solver.step2.isValid).toBe(false);
 		expect(solver.step2.feedbackType).toBe("misconception");
 		expect(solver.currentFeedbackTitle).toBe("Misconception Detected:");
 		expect(solver.step2.feedback).toBeDefined();
 		expect(solver.currentFeedback).toBe(solver.step2.feedback);
+		expect(solver.step2.activeSubStepId).toBe("origin-parity");
 
-		// Correct symmetry
-		solver.checkStep2(
+		// A correct Part 1 answer advances within Step 2 and resets hints.
+		solver.revealNextHint();
+		solver.checkStep2OriginParity(
 			problem.itsData.step2.correctOriginParity,
+		);
+		expect(solver.currentStep).toBe(2);
+		expect(solver.step2.activeSubStepId).toBe("half-wave");
+		expect(solver.step2Progress.label).toBe("Part 2 of 2");
+		expect(solver.hintTier).toBe(0);
+		expect(solver.activeHints).toBe(problem.itsData.step2.halfWaveHints);
+
+		// An omitted Part 2 answer is a validation error.
+		solver.checkStep2HalfWave();
+		expect(solver.step2.feedbackType).toBe("validation");
+
+		// An incorrect Part 2 answer remains on the half-wave test.
+		solver.checkStep2HalfWave(
+			!problem.itsData.step2.correctHalfWaveSymmetry,
+		);
+		expect(solver.step2.feedbackType).toBe("misconception");
+		expect(solver.step2.feedback).toContain("independent");
+		expect(solver.currentStep).toBe(2);
+
+		// The correct Part 2 answer completes the parent step.
+		solver.checkStep2HalfWave(
 			problem.itsData.step2.correctHalfWaveSymmetry,
 		);
 		expect(solver.step2.isValid).toBe(true);
@@ -162,11 +193,25 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(2);
 
-		solver.checkStep2(problem.coeffs.originParity, false);
+		solver.checkStep2OriginParity(problem.coeffs.originParity);
+		solver.checkStep2HalfWave(false);
 		expect(solver.step2.feedbackType).toBe("misconception");
 		expect(solver.step2.feedback).toContain("independent");
 
-		solver.checkStep2(problem.coeffs.originParity, true);
+		solver.checkStep2HalfWave(true);
+		expect(solver.currentStep).toBe(3);
+	});
+
+	it("accepts a negative half-wave classification when the shifted waveform does not invert", () => {
+		const problem = generateFourierSeriesProblem("sawtooth", { seed: 8 });
+		const solver = new FourierStepSolverState(() => problem);
+		solver.advanceToStep(2);
+
+		solver.checkStep2OriginParity(problem.coeffs.originParity);
+		expect(solver.step2.activeSubStepId).toBe("half-wave");
+		solver.checkStep2HalfWave(false);
+
+		expect(problem.coeffs.hasHalfWaveSymmetry).toBe(false);
 		expect(solver.currentStep).toBe(3);
 	});
 
@@ -392,8 +437,9 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.hintTier).toBe(0);
 		expect(solver.step1.period).toBe("");
 		expect(solver.step1.isValid).toBe(false);
-		expect(solver.step2.selected).toBeNull();
-		expect(solver.step2.selectedHalfWave).toBeNull();
+		expect(solver.step2.activeSubStepId).toBe("origin-parity");
+		expect(solver.step2.subSteps["origin-parity"].selected).toBeNull();
+		expect(solver.step2.subSteps["half-wave"].selected).toBeNull();
 		expect(solver.step3.selected).toBeNull();
 		expect(solver.step4.selected).toBeNull();
 		expect(

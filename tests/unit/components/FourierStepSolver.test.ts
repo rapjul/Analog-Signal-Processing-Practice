@@ -24,11 +24,18 @@ describe("FourierStepSolver", () => {
 			{ target: { value: "pi" } },
 		);
 		await fireEvent.click(view.getByText("Check Period & Frequency →"));
+
+		await fireEvent.click(
+			view.getByText("Even Symmetry").closest("button")!,
+		);
+		await fireEvent.click(view.getByText("Check Origin Parity →"));
+		expect(view.getByText("Part 2 of 2")).toBeTruthy();
+		await fireEvent.click(
+			view.getByText("Has Half-Wave Symmetry").closest("button")!,
+		);
+		await fireEvent.click(view.getByText("Check Half-Wave Symmetry →"));
+
 		let buttons = view.getAllByRole("button");
-		await fireEvent.click(buttons[0]);
-		await fireEvent.click(buttons[3]);
-		await fireEvent.click(buttons[5]);
-		buttons = view.getAllByRole("button");
 		await fireEvent.click(buttons[0]);
 		buttons = view.getAllByRole("button");
 		await fireEvent.click(buttons[0]);

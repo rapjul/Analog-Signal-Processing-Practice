@@ -3,6 +3,7 @@
 	 * FourierStepSolver Svelte 5 Component.
 	 *
 	 * 7-Step Intelligent Tutoring System (ITS) for Fourier Series.
+	 *
 	 * Guides students sequentially through period/frequency, symmetry classification,
 	 * vanishing shortcuts, form selection, integral setup, coefficient evaluation,
 	 * and final series synthesis.
@@ -220,76 +221,129 @@
 
 		{#if solver.currentStep === 2}
 			<div class="step-body">
-				<p class="step-prompt">
-					<MathText
-						text={"First classify the parity of $x(t)$ about the time origin:"}
-					/>
-				</p>
-				<div class="button-grid-taxonomic">
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.selected === "even"}
-						onclick={() => (solver.step2.selected = "even")}
+				<div class="substep-heading">
+					<strong
+						>{solver.step2.subSteps[solver.step2.activeSubStepId]
+							.title}</strong
 					>
-						<strong>Even Symmetry</strong>
-						<span class="choice-sub">
-							<MathText text={"$x(-t) = x(t)$"} />
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.selected === "odd"}
-						onclick={() => (solver.step2.selected = "odd")}
-					>
-						<strong>Odd Symmetry</strong>
-						<span class="choice-sub">
-							<MathText text={"$x(-t) = -x(t)$"} />
-						</span>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.selected === "none"}
-						onclick={() => (solver.step2.selected = "none")}
-					>
-						<strong>Neither Symmetry</strong>
-						<span class="choice-sub">Asymmetric / Shifted</span>
-					</button>
+					<span>{solver.step2Progress.label}</span>
 				</div>
-				<p class="step-prompt">
-					<MathText
-						text={"Separately test for half-wave symmetry: $x(t+T_0/2)=-x(t)$."}
-					/>
-				</p>
-				<div class="button-grid-taxonomic">
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.selectedHalfWave === true}
-						onclick={() => (solver.step2.selectedHalfWave = true)}
+				{#if solver.step2.activeSubStepId === "origin-parity"}
+					<p class="step-prompt">
+						<MathText
+							text={"Classify the parity of $x(t)$ about the time origin:"}
+						/>
+					</p>
+					<div
+						class="button-grid-taxonomic"
+						data-testid="fourier-step2-origin-options"
 					>
-						<strong>Has Half-Wave Symmetry</strong>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.selectedHalfWave === false}
-						onclick={() => (solver.step2.selectedHalfWave = false)}
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step2.subSteps[
+								"origin-parity"
+							].selected === "even"}
+							onclick={() =>
+								(solver.step2.subSteps[
+									"origin-parity"
+								].selected = "even")}
+						>
+							<strong>Even Symmetry</strong>
+							<span class="choice-sub"
+								><MathText text={"$x(-t) = x(t)$"} /></span
+							>
+						</button>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step2.subSteps[
+								"origin-parity"
+							].selected === "odd"}
+							onclick={() =>
+								(solver.step2.subSteps[
+									"origin-parity"
+								].selected = "odd")}
+						>
+							<strong>Odd Symmetry</strong>
+							<span class="choice-sub"
+								><MathText text={"$x(-t) = -x(t)$"} /></span
+							>
+						</button>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step2.subSteps[
+								"origin-parity"
+							].selected === "none"}
+							onclick={() =>
+								(solver.step2.subSteps[
+									"origin-parity"
+								].selected = "none")}
+						>
+							<strong>Neither Symmetry</strong>
+							<span class="choice-sub">Asymmetric / Shifted</span>
+						</button>
+					</div>
+					<div class="step-actions">
+						<button
+							type="button"
+							class="btn btn-primary"
+							onclick={() => solver.checkStep2OriginParity()}
+						>
+							Check Origin Parity →
+						</button>
+					</div>
+				{:else}
+					<div class="carried-coefficients">
+						<div>
+							Origin parity validated: <strong class="capitalize"
+								>{problem.coeffs.originParity}</strong
+							>
+						</div>
+					</div>
+					<p class="step-prompt">
+						<MathText
+							text={"Half-wave symmetry means the second half of each period is an upside-down copy of the first half. Equivalently, shifting the signal by half a period reverses its sign: $x(t+T_0/2)=-x(t)$."}
+						/>
+					</p>
+					<div
+						class="button-grid-taxonomic"
+						data-testid="fourier-step2-half-wave-options"
 					>
-						<strong>No Half-Wave Symmetry</strong>
-					</button>
-				</div>
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep2()}
-					>
-						Check Symmetry →
-					</button>
-				</div>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step2.subSteps["half-wave"]
+								.selected === true}
+							onclick={() =>
+								(solver.step2.subSteps["half-wave"].selected =
+									true)}
+						>
+							<strong>Has Half-Wave Symmetry</strong>
+						</button>
+						<button
+							type="button"
+							class="choice-btn"
+							class:selected={solver.step2.subSteps["half-wave"]
+								.selected === false}
+							onclick={() =>
+								(solver.step2.subSteps["half-wave"].selected =
+									false)}
+						>
+							<strong>No Half-Wave Symmetry</strong>
+						</button>
+					</div>
+					<div class="step-actions">
+						<button
+							type="button"
+							class="btn btn-primary"
+							onclick={() => solver.checkStep2HalfWave()}
+						>
+							Check Half-Wave Symmetry →
+						</button>
+					</div>
+				{/if}
 			</div>
 			{@render feedbackAndHints()}
 		{:else if solver.currentStep > 2}
