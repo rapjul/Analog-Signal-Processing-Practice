@@ -1,0 +1,6 @@
+npx lint-staged
+
+# Fast incremental type checking: only runs if staged files include TypeScript, JavaScript, or Svelte
+if git diff --cached --name-only | grep -qE '\.(ts|js|svelte)$'; then
+  npx svelte-check --tsconfig ./tsconfig.json --threshold error --incremental
+fi

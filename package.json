@@ -7,7 +7,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "prepare": "svelte-kit sync || echo ''",
+    "prepare": "svelte-kit sync || echo ''; husky || echo ''",
+    "lint-staged": "lint-staged",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint:imports": "biome check --only=organizeImports .",
@@ -30,6 +31,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@playwright/test": "^1.62.1",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.63.0",
@@ -38,7 +41,9 @@
     "@types/katex": "^0.16.8",
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte": "^5.56.1",
@@ -52,5 +57,14 @@
     "@cortex-js/compute-engine": "^0.100.2",
     "idb": "^8.0.3",
     "katex": "^0.18.2"
+  },
+  "lint-staged": {
+    "*.{js,ts,svelte}": [
+      "biome check --write --no-errors-on-unmatched",
+      "prettier --write"
+    ],
+    "*.{json,json5,jsonc,css,md,yaml,yml,html,svg}": [
+      "prettier --write"
+    ]
   }
 }
