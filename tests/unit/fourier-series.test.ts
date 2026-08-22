@@ -11,6 +11,7 @@ import {
 	computeSignalPower,
 	evaluateFourierWaveform,
 	FOURIER_WAVEFORM_TYPES,
+	formatPowerCapturePercent,
 	generateFourierSeriesProblem,
 	isFourierWaveformType,
 } from "$lib/math-engine/fourier-series";
@@ -141,6 +142,22 @@ describe("Fourier Series Math Engine", () => {
 			// Approaching amplitude 1.0 (with Gibbs overshoot around discontinuity)
 			expect(sumN5).toBeGreaterThan(0.9);
 		});
+
+		it("evaluates cosine, sine, and DC contribution branches", () => {
+			const even = computeFourierCoefficients("square_even", {
+				A: 2,
+				T0: 2,
+			});
+			const rectified = computeFourierCoefficients("half_wave_sine", {
+				A: 2,
+				T0: 2,
+			});
+			expect(computePartialSum(even, 1, 0)).toBeCloseTo(8 / Math.PI, 12);
+			expect(computePartialSum(rectified, 0, 0)).toBeCloseTo(
+				2 / Math.PI,
+				12,
+			);
+		});
 	});
 
 	describe("Ideal Waveform Evaluator", () => {
@@ -177,6 +194,28 @@ describe("Fourier Series Math Engine", () => {
 			expect(evaluateFourierWaveform(coeffs, 2)).toBeCloseTo(3, 12);
 			expect(evaluateFourierWaveform(coeffs, 4)).toBeCloseTo(0, 12);
 		});
+
+		it.each([
+			["square_even", 0, 2],
+			["square_even", 1, -2],
+			["triangle", 0, 2],
+			["triangle_even", 0.5, 0],
+			["sawtooth", 0.5, 1],
+			["half_wave_sine", 0.5, 2],
+			["half_wave_sine", 1.5, 0],
+		] as const)(
+			"evaluates the %s waveform at t=%s",
+			(waveform, t, expected) => {
+				const coeffs = computeFourierCoefficients(waveform, {
+					A: 2,
+					T0: 2,
+				});
+				expect(evaluateFourierWaveform(coeffs, t)).toBeCloseTo(
+					expected,
+					12,
+				);
+			},
+		);
 	});
 
 	describe("Parseval Power Calculator", () => {
@@ -240,6 +279,35 @@ describe("Fourier Series Math Engine", () => {
 				RangeError,
 			);
 		});
+
+		it("formats capture ratios without rounding across thresholds", () => {
+			const coeffs = computeFourierCoefficients("square", {
+				A: 5,
+				T0: 2,
+			});
+			expect(
+				formatPowerCapturePercent(
+					computeSignalPower(coeffs, 39).powerRatio,
+				),
+			).toBe("98.99");
+			expect(
+				formatPowerCapturePercent(
+					computeSignalPower(coeffs, 40).powerRatio,
+				),
+			).toBe("98.99");
+			expect(
+				formatPowerCapturePercent(
+					computeSignalPower(coeffs, 41).powerRatio,
+				),
+			).toBe("99.04");
+			expect(formatPowerCapturePercent(0.9)).toBe("90.00");
+			expect(formatPowerCapturePercent(0.899999)).toBe("89.9999");
+			expect(formatPowerCapturePercent(-1)).toBe("0.00");
+			expect(formatPowerCapturePercent(2)).toBe("100.00");
+			expect(() => formatPowerCapturePercent(Number.NaN)).toThrow(
+				RangeError,
+			);
+		});
 	});
 
 	describe("Input Validation", () => {
@@ -252,9 +320,29 @@ describe("Fourier Series Math Engine", () => {
 			expect(() =>
 				computeFourierCoefficients("square", { A: 0, T0: 2 }),
 			).toThrow(RangeError);
+			expect(() =>
+				computeFourierCoefficients("square", { A: 1, T0: 0 }),
+			).toThrow(RangeError);
 			const coeffs = computeFourierCoefficients("square");
 			expect(() => computePartialSum(coeffs, -1, 0)).toThrow(RangeError);
+			expect(() => computePartialSum(coeffs, 1, Number.NaN)).toThrow(
+				RangeError,
+			);
+			expect(() => computeSignalPower(coeffs, -1)).toThrow(RangeError);
+			expect(() => evaluateFourierWaveform(coeffs, Number.NaN)).toThrow(
+				RangeError,
+			);
 			expect(() => coeffs.Fn(0.5)).toThrow(RangeError);
+			expect(() => computeHarmonicPowerThresholds(coeffs, 1)).toThrow(
+				RangeError,
+			);
+			const unsupported = {
+				...coeffs,
+				waveformType: "unsupported",
+			} as unknown as typeof coeffs;
+			expect(() => evaluateFourierWaveform(unsupported, 0)).toThrow(
+				/Unsupported waveform type/,
+			);
 		});
 	});
 

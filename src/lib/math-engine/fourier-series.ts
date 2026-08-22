@@ -100,6 +100,30 @@ export interface HarmonicPowerThresholds {
 	n99: number;
 }
 
+/**
+ * Formats a captured-power ratio without rounding across common Parseval
+ * thresholds. Two decimals are preferred; extra precision is used only when a
+ * rounded value would imply that 90%, 95%, or 99% has been reached incorrectly.
+ */
+export function formatPowerCapturePercent(powerRatio: number): string {
+	if (!Number.isFinite(powerRatio)) {
+		throw new RangeError("Fourier power ratio must be finite.");
+	}
+	const percent = Math.max(0, Math.min(1, powerRatio)) * 100;
+	const thresholds = [90, 95, 99];
+	for (let decimals = 2; decimals <= 8; decimals += 1) {
+		const formatted = percent.toFixed(decimals);
+		const rounded = Number(formatted);
+		const crossesThreshold = thresholds.some(
+			(target) =>
+				(percent < target && rounded >= target) ||
+				(percent >= target && rounded < target),
+		);
+		if (!crossesThreshold) return formatted;
+	}
+	return percent.toFixed(8);
+}
+
 /** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
 export type FourierItsOption = ItsOption;
 

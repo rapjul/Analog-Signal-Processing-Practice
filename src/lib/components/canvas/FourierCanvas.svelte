@@ -14,6 +14,7 @@
 		computePartialSum,
 		computeSignalPower,
 		evaluateFourierWaveform,
+		formatPowerCapturePercent,
 		type FourierCoefficients,
 		type FourierWaveformType,
 	} from "$lib/math-engine/fourier-series";
@@ -63,6 +64,9 @@
 	let signalPower = $derived(computeSignalPower(coeffs, currentN));
 	let powerThresholds = $derived(computeHarmonicPowerThresholds(coeffs));
 	let capturedPowerPercent = $derived(signalPower.powerRatio * 100);
+	let capturedPowerLabel = $derived(
+		formatPowerCapturePercent(signalPower.powerRatio),
+	);
 
 	/** Formats power values without hiding small non-zero results. */
 	function formatPower(value: number): string {
@@ -550,7 +554,7 @@
 				</p>
 			</div>
 			<strong class="capture-ratio">
-				{capturedPowerPercent.toFixed(1)}%
+				{capturedPowerLabel}%
 			</strong>
 		</div>
 
@@ -562,29 +566,26 @@
 		></progress>
 
 		<div class="power-metrics">
-			<div class="power-metric">
-				<span>Total power</span>
-				<MathInline
-					math={`P_x=${formatPower(signalPower.totalPower)}`}
+			<div class="power-stat">
+				<MathText
+					text={`Total power: $P_x=${formatPower(signalPower.totalPower)}$`}
 				/>
 			</div>
-			<div class="power-metric">
-				<span>Captured power</span>
-				<MathInline
-					math={`P_{${currentN}}=${formatPower(signalPower.harmonicPower)}`}
+			<div class="power-stat">
+				<MathText
+					text={`Captured power: $P_{${currentN}}=${formatPower(signalPower.harmonicPower)}$`}
 				/>
 			</div>
-			<div class="power-metric">
-				<span>Capture ratio</span>
-				<MathInline
-					math={`\\eta(${currentN})=${capturedPowerPercent.toFixed(1)}\\%`}
+			<div class="power-stat">
+				<MathText
+					text={String.raw`Capture ratio: $\eta(${currentN})=${capturedPowerLabel}\%$`}
 				/>
 			</div>
 		</div>
 
-		<div class="power-thresholds">
+		<div class="power-threshold-summary">
 			<MathText
-				text={`Minimum harmonic limits: $N_{90\\%} = ${powerThresholds.n90}$ $N_{95\\%} = ${powerThresholds.n95}$ $N_{99\\%} = ${powerThresholds.n99}$`}
+				text={String.raw`Minimum highest-harmonic limits: $N_{90\%}=${powerThresholds.n90}$; $N_{95\%}=${powerThresholds.n95}$; $N_{99\%}=${powerThresholds.n99}$. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
 			/>
 		</div>
 	</section>
@@ -804,22 +805,27 @@
 		gap: 0.75rem;
 	}
 
-	.power-metric {
+	.power-threshold-summary {
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+		line-height: var(--leading-relaxed);
+		padding: 0.65rem;
+	}
+
+	.power-stat {
 		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-content: center;
+		justify-content: space-evenly;
+		align-items: center;
+		gap: 0.4rem 0.75rem;
 		min-width: 0;
 		padding: 0.65rem;
 		background: var(--bg-primary);
 		border-radius: var(--radius-sm);
 		font-size: 0.82rem;
 		color: var(--text-secondary);
-	}
-
-	.power-thresholds {
-		font-size: 0.82rem;
-		color: var(--text-secondary);
-		line-height: var(--leading-relaxed);
 	}
 
 	@container (min-width: 800px) {
@@ -837,7 +843,7 @@
 			align-items: center;
 		}
 
-		.power-metric {
+		.power-stat {
 			flex-direction: row;
 			flex-wrap: wrap;
 			align-content: center;

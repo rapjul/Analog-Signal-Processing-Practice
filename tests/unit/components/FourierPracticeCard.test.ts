@@ -1,10 +1,19 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series";
 
 describe("FourierPracticeCard", () => {
-	afterEach(() => cleanup());
+	beforeEach(() => {
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+			null,
+		);
+	});
+
+	afterEach(() => {
+		cleanup();
+		vi.restoreAllMocks();
+	});
 
 	it("keeps conversions optional and reveals them after both parts pass", async () => {
 		const problem = generateFourierSeriesProblem("square", {

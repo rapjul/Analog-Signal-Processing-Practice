@@ -350,7 +350,7 @@ test.describe("Fourier Series Module", () => {
 		await page.waitForTimeout(100);
 		const narrowStyles = await visualizer.evaluate((element) => {
 			const plots = element.querySelector<HTMLElement>(".plots-grid");
-			const metric = element.querySelector<HTMLElement>(".power-metric");
+			const metric = element.querySelector<HTMLElement>(".power-stat");
 			const metricStyle = metric ? getComputedStyle(metric) : null;
 			return {
 				columns: plots
@@ -373,7 +373,7 @@ test.describe("Fourier Series Module", () => {
 			alignItems: "center",
 		});
 		await expect(
-			visualizer.locator(".power-thresholds > .math-text"),
+			visualizer.locator(".power-threshold-summary > .math-text"),
 		).toHaveCount(1);
 
 		await page.setViewportSize({ width: 320, height: 568 });
@@ -384,5 +384,37 @@ test.describe("Fourier Series Module", () => {
 				document.documentElement.clientWidth,
 		);
 		expect(isOverflowing).toBe(false);
+	});
+
+	test("does not round a sub-threshold square-wave ratio up to 99 percent", async ({
+		page,
+	}) => {
+		await page.goto("/fourier-series?waveform=square&seed=39");
+		await page.waitForLoadState("networkidle");
+		await page.evaluate(() => window.__signalLabDev?.solveAll());
+		const visualizer = page.locator(".fourier-canvas-wrapper");
+		const slider = visualizer.locator("#harmonic-slider");
+		await slider.evaluate((element) => {
+			const input = element as HTMLInputElement;
+			input.value = "39";
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+		await expect(visualizer.locator(".capture-ratio")).toHaveText("98.99%");
+		await expect(visualizer.locator(".power-stat").nth(2)).toContainText(
+			"98.99",
+		);
+		await expect(
+			visualizer.locator(".power-threshold-summary"),
+		).toContainText("highest included harmonic");
+		await expect(
+			visualizer.locator(".power-threshold-summary"),
+		).toContainText("41");
+
+		await slider.evaluate((element) => {
+			const input = element as HTMLInputElement;
+			input.value = "41";
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+		await expect(visualizer.locator(".capture-ratio")).toHaveText("99.04%");
 	});
 });
