@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { FourierStepSolverState } from "../../src/lib/components/solvers/fourier-step-solver.svelte";
-import { generateFourierSeriesProblem } from "../../src/lib/math-engine/fourier-series";
+import { FourierSeriesStepSolverState } from "../../src/lib/components/solvers/fourier-series-step-solver.svelte";
+import { generateFourierSeriesProblem } from "../../src/lib/math-engine/fourier-series/index";
 
-describe("FourierStepSolverState Reactive Controller", () => {
+describe("FourierSeriesStepSolverState Reactive Controller", () => {
 	it("initializes in pristine state on Step 1", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		expect(solver.currentStep).toBe(1);
 		expect(solver.isCompleted).toBe(false);
@@ -18,7 +18,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("reveals progressive hints up to Tier 3 and caps", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		expect(solver.hintTier).toBe(0);
 		solver.revealNextHint();
@@ -35,7 +35,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 	it("derives the hint cap from the active hint count", () => {
 		const problem = generateFourierSeriesProblem("square");
 		problem.itsData.step1.hints.push("Fourth hint", "Fifth hint");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		for (let index = 0; index < 6; index += 1) solver.revealNextHint();
 
@@ -45,7 +45,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("validates Step 1 with tolerance, units, and alias checking across all branches", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		// 0. Empty inputs (validation)
 		solver.step1.period = "";
@@ -112,7 +112,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			seed: 10,
 			T0: 4,
 		});
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		solver.step1.period = "4000";
 		solver.step1.periodUnit = "ms";
@@ -126,7 +126,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("advances through Step 2 parity and half-wave parts independently", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(2);
 		expect(solver.step2Progress).toEqual({
 			current: 1,
@@ -190,7 +190,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const problem = generateFourierSeriesProblem("square_even", {
 			seed: 5,
 		});
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(2);
 
 		solver.checkStep2OriginParity(problem.coeffs.originParity);
@@ -204,7 +204,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("accepts a negative half-wave classification when the shifted waveform does not invert", () => {
 		const problem = generateFourierSeriesProblem("sawtooth", { seed: 8 });
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(2);
 
 		solver.checkStep2OriginParity(problem.coeffs.originParity);
@@ -217,7 +217,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("validates Step 3 (vanishing) with correct and misconception branches", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(3);
 
 		// Incorrect vanishing (misconception)
@@ -237,7 +237,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("validates Step 4 (representation form) with correct and misconception branches", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(4);
 
 		// Incorrect form (misconception)
@@ -259,7 +259,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("validates Step 5 (integral setup) with incorrect distractor and correct option", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(5);
 		const part = problem.itsData.step5.parts[0];
 		solver.checkStep5(null);
@@ -291,7 +291,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 	it("validates Step 6 coefficient evaluation before advancing", () => {
 		const onComplete = vi.fn();
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(
+		const solver = new FourierSeriesStepSolverState(
 			() => problem,
 			() => onComplete,
 		);
@@ -331,7 +331,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			A: 5,
 			T0: 2,
 		});
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(5);
 		expect(solver.step5Progress).toEqual({
 			current: 1,
@@ -365,7 +365,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 	it("validates Step 7 synthesis and executes onComplete callback", () => {
 		const onComplete = vi.fn();
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(
+		const solver = new FourierSeriesStepSolverState(
 			() => problem,
 			() => onComplete,
 		);
@@ -423,7 +423,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 	it("resets state completely when reset() is called", () => {
 		const problem = generateFourierSeriesProblem("square");
-		const solver = new FourierStepSolverState(() => problem);
+		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		solver.step1.period = String(problem.itsData.step1.expectedT);
 		solver.step1.freq = problem.itsData.step1.w0Aliases[0];

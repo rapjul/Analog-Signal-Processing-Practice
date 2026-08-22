@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type {
-		FourierConversionChallenge,
-		FourierItsOption,
-	} from "$lib/math-engine/fourier-series";
+		FourierSeriesConversionChallenge,
+		FourierSeriesItsOption,
+	} from "$lib/math-engine/fourier-series/index";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
 	import {
@@ -13,7 +13,7 @@
 	} from "./base-step-solver.svelte";
 
 	interface Props {
-		challenge: FourierConversionChallenge;
+		challenge: FourierSeriesConversionChallenge;
 		onComplete?: () => void;
 	}
 
@@ -71,7 +71,7 @@
 		`Part ${challengeState.subStepOrder.indexOf(challengeState.activeSubStepId) + 1} of ${challengeState.subStepOrder.length}`,
 	);
 
-	function checkOption(option: FourierItsOption) {
+	function checkOption(option: FourierSeriesItsOption) {
 		activeState.selected = option.id;
 		if (!option.isCorrect) {
 			activeState.feedbackType = "misconception";

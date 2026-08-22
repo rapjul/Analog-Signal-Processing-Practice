@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import FourierCanvas from "$lib/components/canvas/FourierCanvas.svelte";
-import { computeFourierCoefficients } from "$lib/math-engine/fourier-series";
+import FourierSeriesCanvas from "$lib/components/canvas/FourierSeriesCanvas.svelte";
+import { computeFourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
 
-describe("FourierCanvas", () => {
+describe("FourierSeriesCanvas", () => {
 	beforeEach(() => {
 		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
 			null,
@@ -16,11 +16,11 @@ describe("FourierCanvas", () => {
 	});
 
 	it("uses threshold-safe Parseval labels and semantic metric layouts", async () => {
-		const coefficients = computeFourierCoefficients("square", {
+		const coefficients = computeFourierSeriesCoefficients("square", {
 			A: 5,
 			T0: 2,
 		});
-		const view = render(FourierCanvas, {
+		const view = render(FourierSeriesCanvas, {
 			coefficients,
 			waveformType: "square",
 			harmonicCount: 39,

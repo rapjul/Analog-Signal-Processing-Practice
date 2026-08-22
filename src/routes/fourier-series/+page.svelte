@@ -10,29 +10,29 @@
 	import { replaceState } from "$app/navigation";
 	import { page } from "$app/state";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
-	import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
+	import FourierSeriesPracticeCard from "$lib/components/ui/FourierSeriesPracticeCard.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
 		type FourierSeriesProblem,
 		generateFourierSeriesProblem,
-	} from "$lib/math-engine/fourier-series";
+	} from "$lib/math-engine/fourier-series/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
 	import {
-		type FourierWaveformSelection,
+		type FourierSeriesWaveformSelection,
 		parseFourierSeriesFilters,
 		resolveFourierWaveformSelection,
 		serializeFourierSeriesFilters,
 	} from "$lib/problems/fourier-series-filters";
 
 	const initialFilters = parseFourierSeriesFilters(page.url.searchParams);
-	let selectedWaveform = $state<FourierWaveformSelection>(
+	let selectedWaveform = $state<FourierSeriesWaveformSelection>(
 		initialFilters.waveform,
 	);
 	let seed = $state(initialFilters.seed);
 
 	/** Generates the concrete problem represented by selector state and seed. */
 	function generateSelectedProblem(
-		selection: FourierWaveformSelection,
+		selection: FourierSeriesWaveformSelection,
 		problemSeed: number,
 	): FourierSeriesProblem {
 		const waveform = resolveFourierWaveformSelection(
@@ -133,7 +133,7 @@
 		</DrillPanel>
 	{/snippet}
 
-	<FourierPracticeCard
+	<FourierSeriesPracticeCard
 		problem={currentProblem}
 		onNextProblem={handleGenerateNext}
 	/>

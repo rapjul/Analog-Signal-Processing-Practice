@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import FourierPracticeCard from "$lib/components/ui/FourierPracticeCard.svelte";
-import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series";
+import FourierSeriesPracticeCard from "$lib/components/ui/FourierSeriesPracticeCard.svelte";
+import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
-describe("FourierPracticeCard", () => {
+describe("FourierSeriesPracticeCard", () => {
 	beforeEach(() => {
 		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
 			null,
@@ -21,7 +21,7 @@ describe("FourierPracticeCard", () => {
 			A: 5,
 			T0: 2,
 		});
-		const view = render(FourierPracticeCard, {
+		const view = render(FourierSeriesPracticeCard, {
 			problem,
 			onNextProblem: vi.fn(),
 		});

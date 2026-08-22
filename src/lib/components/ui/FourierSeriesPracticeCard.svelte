@@ -6,12 +6,12 @@
 	 * stepped solver, completed-solution disclosure, and deferred FourierCanvas visualizer.
 	 */
 
-	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series";
-	import FourierCanvas from "../canvas/FourierCanvas.svelte";
+	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
+	import FourierSeriesCanvas from "../canvas/FourierSeriesCanvas.svelte";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
-	import FourierConversionChallenge from "../solvers/FourierConversionChallenge.svelte";
-	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
+	import FourierSeriesConversionChallenge from "../solvers/FourierSeriesConversionChallenge.svelte";
+	import FourierSeriesStepSolver from "../solvers/FourierSeriesStepSolver.svelte";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
 
@@ -88,7 +88,7 @@
 
 	<!-- Intelligent Tutoring Stepped Solver -->
 	<div class="solver-container">
-		<FourierStepSolver
+		<FourierSeriesStepSolver
 			{problem}
 			onComplete={handleProblemCompleted}
 		/>
@@ -102,7 +102,7 @@
 				description="You have derived the complete Fourier series representation. Explore the reconstructed partial sum and harmonic power spectrum below."
 			/>
 
-			<FourierConversionChallenge
+			<FourierSeriesConversionChallenge
 				challenge={problem.conversionChallenge}
 				onComplete={() => (conversionsCompleted = true)}
 			/>
@@ -146,7 +146,7 @@
 
 			<!-- Live Partial Sum & Power Spectrum Canvas -->
 			<div class="visualizer-wrapper">
-				<FourierCanvas
+				<FourierSeriesCanvas
 					coefficients={problem.coeffs}
 					waveformType={problem.waveformType}
 					harmonicCount={5}

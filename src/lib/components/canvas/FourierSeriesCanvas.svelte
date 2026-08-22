@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * FourierCanvas Svelte 5 Component.
+	 * FourierSeriesCanvas Svelte 5 Component.
 	 *
 	 * Dual-panel visualizer displaying:
 	 * 1. Time Domain: Ideal signal x(t) (dashed) vs. N-harmonic partial sum S_N(t) (cyan),
@@ -9,23 +9,23 @@
 	 * 3. Parseval Analysis: Captured power and harmonic thresholds for the active N.
 	 */
 	import {
-		computeFourierCoefficients,
+		computeFourierSeriesCoefficients,
 		computeHarmonicPowerThresholds,
 		computePartialSum,
 		computeSignalPower,
-		evaluateFourierWaveform,
-		type FourierCoefficients,
-		type FourierWaveformType,
+		evaluateFourierSeriesWaveform,
+		type FourierSeriesCoefficients,
+		type FourierSeriesWaveformType,
 		formatPowerCapturePercent,
-	} from "$lib/math-engine/fourier-series";
+	} from "$lib/math-engine/fourier-series/index";
 	import MathInline from "../math/MathInline.svelte";
 	import MathText from "../math/MathText.svelte";
 
 	interface Props {
 		/** Exact coefficients for the generated problem. */
-		coefficients?: FourierCoefficients;
+		coefficients?: FourierSeriesCoefficients;
 		/** Selected waveform type */
-		waveformType?: FourierWaveformType;
+		waveformType?: FourierSeriesWaveformType;
 		/** Number of partial sum harmonics N (1 to 50) */
 		harmonicCount?: number;
 		/** Title for visualizer */
@@ -58,8 +58,8 @@
 	let canvasLowerEl = $state<HTMLCanvasElement | null>(null);
 
 	// Derived Fourier coefficients
-	let coeffs = $derived<FourierCoefficients>(
-		coefficients ?? computeFourierCoefficients(waveformType),
+	let coeffs = $derived<FourierSeriesCoefficients>(
+		coefficients ?? computeFourierSeriesCoefficients(waveformType),
 	);
 	let signalPower = $derived(computeSignalPower(coeffs, currentN));
 	let powerThresholds = $derived(computeHarmonicPowerThresholds(coeffs));
@@ -241,7 +241,7 @@
 			let previousIdealY: number | null = null;
 			for (let i = 0; i <= numSamples; i++) {
 				const t = tMin + i * dt;
-				const ideal = evaluateFourierWaveform(currentCoeffs, t);
+				const ideal = evaluateFourierSeriesWaveform(currentCoeffs, t);
 				const px = toX(t);
 				const py = p1ZeroY - ideal * p1ScaleY;
 				const crossesJump =

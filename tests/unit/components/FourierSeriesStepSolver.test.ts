@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import FourierStepSolver from "$lib/components/solvers/FourierStepSolver.svelte";
-import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series";
+import FourierSeriesStepSolver from "$lib/components/solvers/FourierSeriesStepSolver.svelte";
+import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
-describe("FourierStepSolver", () => {
+describe("FourierSeriesStepSolver", () => {
 	afterEach(() => cleanup());
 
 	it("renders and advances multi-part steps with standardized StepCard and PartProgressPill hierarchy", async () => {
@@ -13,7 +13,7 @@ describe("FourierStepSolver", () => {
 			T0: 2,
 		});
 		const onComplete = vi.fn();
-		const view = render(FourierStepSolver, { problem, onComplete });
+		const view = render(FourierSeriesStepSolver, { problem, onComplete });
 
 		// Step 1
 		const periodInput = view.container.querySelector(
