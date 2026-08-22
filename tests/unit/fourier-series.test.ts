@@ -5,28 +5,28 @@
 
 import { describe, expect, it } from "vitest";
 import {
-	computeFourierCoefficients,
+	computeFourierSeriesCoefficients,
 	computeHarmonicPowerThresholds,
 	computePartialSum,
 	computeSignalPower,
-	evaluateFourierWaveform,
-	FOURIER_WAVEFORM_TYPES,
+	evaluateFourierSeriesWaveform,
+	FOURIER_SERIES_WAVEFORM_TYPES,
 	formatPowerCapturePercent,
 	generateFourierSeriesProblem,
-	isFourierWaveformType,
-} from "$lib/math-engine/fourier-series";
+	isFourierSeriesWaveformType,
+} from "$lib/math-engine/fourier-series/index";
 
 describe("Fourier Series Math Engine", () => {
 	describe("Coefficient Calculator & Symmetry Identifiers", () => {
 		it("calculates coefficients for Square Wave (Odd Symmetry, a0=0, an=0)", () => {
 			// Square wave amplitude A=1, period T0=2, w0=pi
 			// b_n = 4A / (n pi) for odd n, 0 for even n
-			const coeffs = computeFourierCoefficients("square", {
+			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
 			expect(coeffs.a0).toBe(0);
-			expect(coeffs.symmetry).toBe("odd");
+			expect(coeffs.originParity).toBe("odd");
 			expect(coeffs.an(1)).toBe(0);
 			expect(coeffs.an(2)).toBe(0);
 			expect(coeffs.bn(1)).toBeCloseTo(4 / Math.PI, 4);
@@ -37,12 +37,12 @@ describe("Fourier Series Math Engine", () => {
 		it("calculates coefficients for Triangle Wave (Even Symmetry, a0=0, bn=0)", () => {
 			// Triangle wave amplitude A=1, period T0=2
 			// a_n = 8A / (n^2 pi^2) for odd n, 0 for even n
-			const coeffs = computeFourierCoefficients("triangle", {
+			const coeffs = computeFourierSeriesCoefficients("triangle", {
 				A: 1,
 				T0: 2,
 			});
 			expect(coeffs.a0).toBe(0);
-			expect(coeffs.symmetry).toBe("even");
+			expect(coeffs.originParity).toBe("even");
 			expect(coeffs.bn(1)).toBe(0);
 			expect(coeffs.an(1)).toBeCloseTo(8 / (Math.PI * Math.PI), 4);
 			expect(coeffs.an(2)).toBe(0);
@@ -51,12 +51,12 @@ describe("Fourier Series Math Engine", () => {
 		it("calculates coefficients for Sawtooth Wave (Odd Symmetry, a0=0)", () => {
 			// Sawtooth amplitude A=1, period T0=2
 			// b_n = 2A / (n pi) (-1)^{n+1}
-			const coeffs = computeFourierCoefficients("sawtooth", {
+			const coeffs = computeFourierSeriesCoefficients("sawtooth", {
 				A: 1,
 				T0: 2,
 			});
 			expect(coeffs.a0).toBe(0);
-			expect(coeffs.symmetry).toBe("odd");
+			expect(coeffs.originParity).toBe("odd");
 			expect(coeffs.bn(1)).toBeCloseTo(2 / Math.PI, 4);
 			expect(coeffs.bn(2)).toBeCloseTo(-2 / (2 * Math.PI), 4);
 		});
@@ -66,7 +66,7 @@ describe("Fourier Series Math Engine", () => {
 			// a0 = 2 / pi, so the DC component a0 / 2 = 1 / pi
 			// a_1 = 0, a_n = 2 / (pi (1 - n^2)) for even n
 			// b_1 = 1 / 2, b_n = 0 for n >= 2
-			const coeffs = computeFourierCoefficients("half_wave_sine", {
+			const coeffs = computeFourierSeriesCoefficients("half_wave_sine", {
 				A: 1,
 				T0: 2 * Math.PI,
 			});
@@ -77,35 +77,35 @@ describe("Fourier Series Math Engine", () => {
 			expect(coeffs.an(2)).toBeCloseTo(2 / (Math.PI * (1 - 4)), 4);
 		});
 		it("calculates coefficients for Even Square Wave (Even Symmetry, bn=0)", () => {
-			const coeffs = computeFourierCoefficients("square_even", {
+			const coeffs = computeFourierSeriesCoefficients("square_even", {
 				A: 1,
 				T0: 2,
 			});
 			expect(coeffs.a0).toBe(0);
-			expect(coeffs.symmetry).toBe("even");
+			expect(coeffs.originParity).toBe("even");
 			expect(coeffs.bn(1)).toBe(0);
 			expect(coeffs.an(1)).toBeCloseTo(4 / Math.PI, 4);
 			expect(coeffs.hasHalfWaveSymmetry).toBe(true);
 		});
 
 		it("calculates coefficients for Full-Wave Rectified Sine (Even Symmetry)", () => {
-			const coeffs = computeFourierCoefficients("full_wave_sine", {
+			const coeffs = computeFourierSeriesCoefficients("full_wave_sine", {
 				A: 1,
 				T0: Math.PI,
 			});
 			expect(coeffs.a0).toBeCloseTo(4 / Math.PI, 4);
-			expect(coeffs.symmetry).toBe("even");
+			expect(coeffs.originParity).toBe("even");
 			expect(coeffs.bn(1)).toBe(0);
 			expect(coeffs.an(1)).toBeCloseTo(-4 / (3 * Math.PI), 4);
 			expect(coeffs.hasHalfWaveSymmetry).toBe(false);
 		});
 
 		it("models origin parity and half-wave symmetry independently", () => {
-			const square = computeFourierCoefficients("square", {
+			const square = computeFourierSeriesCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
-			const sawtooth = computeFourierCoefficients("sawtooth", {
+			const sawtooth = computeFourierSeriesCoefficients("sawtooth", {
 				A: 1,
 				T0: 2,
 			});
@@ -117,7 +117,7 @@ describe("Fourier Series Math Engine", () => {
 		});
 
 		it("uses canonical F_n notation for exponential coefficients", () => {
-			const coeffs = computeFourierCoefficients("square", {
+			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
@@ -130,7 +130,7 @@ describe("Fourier Series Math Engine", () => {
 
 	describe("Partial Sum Evaluator", () => {
 		it("evaluates N-harmonic partial sum for square wave at t = 0.5s", () => {
-			const coeffs = computeFourierCoefficients("square", {
+			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
@@ -144,14 +144,17 @@ describe("Fourier Series Math Engine", () => {
 		});
 
 		it("evaluates cosine, sine, and DC contribution branches", () => {
-			const even = computeFourierCoefficients("square_even", {
+			const even = computeFourierSeriesCoefficients("square_even", {
 				A: 2,
 				T0: 2,
 			});
-			const rectified = computeFourierCoefficients("half_wave_sine", {
-				A: 2,
-				T0: 2,
-			});
+			const rectified = computeFourierSeriesCoefficients(
+				"half_wave_sine",
+				{
+					A: 2,
+					T0: 2,
+				},
+			);
 			expect(computePartialSum(even, 1, 0)).toBeCloseTo(8 / Math.PI, 12);
 			expect(computePartialSum(rectified, 0, 0)).toBeCloseTo(
 				2 / Math.PI,
@@ -162,37 +165,43 @@ describe("Fourier Series Math Engine", () => {
 
 	describe("Ideal Waveform Evaluator", () => {
 		it("evaluates waveform aliases and shifted variants consistently", () => {
-			const square = computeFourierCoefficients("square", {
+			const square = computeFourierSeriesCoefficients("square", {
 				A: 2,
 				T0: 4,
 			});
-			const squareOdd = computeFourierCoefficients("square_odd", {
+			const squareOdd = computeFourierSeriesCoefficients("square_odd", {
 				A: 2,
 				T0: 4,
 			});
-			const triangleOdd = computeFourierCoefficients("triangle_odd", {
-				A: 1,
-				T0: 4,
-			});
+			const triangleOdd = computeFourierSeriesCoefficients(
+				"triangle_odd",
+				{
+					A: 1,
+					T0: 4,
+				},
+			);
 
-			expect(evaluateFourierWaveform(square, 0.5)).toBe(2);
-			expect(evaluateFourierWaveform(squareOdd, 0.5)).toBe(2);
-			expect(evaluateFourierWaveform(triangleOdd, 0)).toBeCloseTo(0, 12);
-			expect(evaluateFourierWaveform(triangleOdd, 0.5)).toBeCloseTo(
+			expect(evaluateFourierSeriesWaveform(square, 0.5)).toBe(2);
+			expect(evaluateFourierSeriesWaveform(squareOdd, 0.5)).toBe(2);
+			expect(evaluateFourierSeriesWaveform(triangleOdd, 0)).toBeCloseTo(
+				0,
+				12,
+			);
+			expect(evaluateFourierSeriesWaveform(triangleOdd, 0.5)).toBeCloseTo(
 				0.5,
 				12,
 			);
 		});
 
 		it("uses T0 as the fundamental period of the full-wave sine", () => {
-			const coeffs = computeFourierCoefficients("full_wave_sine", {
+			const coeffs = computeFourierSeriesCoefficients("full_wave_sine", {
 				A: 3,
 				T0: 4,
 			});
 
-			expect(evaluateFourierWaveform(coeffs, 0)).toBe(0);
-			expect(evaluateFourierWaveform(coeffs, 2)).toBeCloseTo(3, 12);
-			expect(evaluateFourierWaveform(coeffs, 4)).toBeCloseTo(0, 12);
+			expect(evaluateFourierSeriesWaveform(coeffs, 0)).toBe(0);
+			expect(evaluateFourierSeriesWaveform(coeffs, 2)).toBeCloseTo(3, 12);
+			expect(evaluateFourierSeriesWaveform(coeffs, 4)).toBeCloseTo(0, 12);
 		});
 
 		it.each([
@@ -206,11 +215,11 @@ describe("Fourier Series Math Engine", () => {
 		] as const)(
 			"evaluates the %s waveform at t=%s",
 			(waveform, t, expected) => {
-				const coeffs = computeFourierCoefficients(waveform, {
+				const coeffs = computeFourierSeriesCoefficients(waveform, {
 					A: 2,
 					T0: 2,
 				});
-				expect(evaluateFourierWaveform(coeffs, t)).toBeCloseTo(
+				expect(evaluateFourierSeriesWaveform(coeffs, t)).toBeCloseTo(
 					expected,
 					12,
 				);
@@ -220,7 +229,7 @@ describe("Fourier Series Math Engine", () => {
 
 	describe("Parseval Power Calculator", () => {
 		it("computes total signal power and N-harmonic power fraction for square wave", () => {
-			const coeffs = computeFourierCoefficients("square", {
+			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 1,
 				T0: 2,
 			});
@@ -233,7 +242,7 @@ describe("Fourier Series Math Engine", () => {
 		});
 
 		it("includes the a0/2 DC contribution for rectified waveforms", () => {
-			const coeffs = computeFourierCoefficients("half_wave_sine", {
+			const coeffs = computeFourierSeriesCoefficients("half_wave_sine", {
 				A: 2,
 				T0: 4,
 			});
@@ -246,10 +255,10 @@ describe("Fourier Series Math Engine", () => {
 			);
 		});
 
-		it.each(FOURIER_WAVEFORM_TYPES)(
+		it.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 			"finds minimal 90/95/99 percent thresholds for %s",
 			(waveformType) => {
-				const coeffs = computeFourierCoefficients(waveformType, {
+				const coeffs = computeFourierSeriesCoefficients(waveformType, {
 					A: 1,
 					T0: 2,
 				});
@@ -274,14 +283,14 @@ describe("Fourier Series Math Engine", () => {
 		);
 
 		it("rejects an invalid threshold search limit", () => {
-			const coeffs = computeFourierCoefficients("square");
+			const coeffs = computeFourierSeriesCoefficients("square");
 			expect(() => computeHarmonicPowerThresholds(coeffs, 0)).toThrow(
 				RangeError,
 			);
 		});
 
 		it("formats capture ratios without rounding across thresholds", () => {
-			const coeffs = computeFourierCoefficients("square", {
+			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 5,
 				T0: 2,
 			});
@@ -312,26 +321,26 @@ describe("Fourier Series Math Engine", () => {
 
 	describe("Input Validation", () => {
 		it("validates waveform identifiers", () => {
-			expect(isFourierWaveformType("triangle_odd")).toBe(true);
-			expect(isFourierWaveformType("not-a-waveform")).toBe(false);
+			expect(isFourierSeriesWaveformType("triangle_odd")).toBe(true);
+			expect(isFourierSeriesWaveformType("not-a-waveform")).toBe(false);
 		});
 
 		it("rejects invalid physical parameters and harmonic counts", () => {
 			expect(() =>
-				computeFourierCoefficients("square", { A: 0, T0: 2 }),
+				computeFourierSeriesCoefficients("square", { A: 0, T0: 2 }),
 			).toThrow(RangeError);
 			expect(() =>
-				computeFourierCoefficients("square", { A: 1, T0: 0 }),
+				computeFourierSeriesCoefficients("square", { A: 1, T0: 0 }),
 			).toThrow(RangeError);
-			const coeffs = computeFourierCoefficients("square");
+			const coeffs = computeFourierSeriesCoefficients("square");
 			expect(() => computePartialSum(coeffs, -1, 0)).toThrow(RangeError);
 			expect(() => computePartialSum(coeffs, 1, Number.NaN)).toThrow(
 				RangeError,
 			);
 			expect(() => computeSignalPower(coeffs, -1)).toThrow(RangeError);
-			expect(() => evaluateFourierWaveform(coeffs, Number.NaN)).toThrow(
-				RangeError,
-			);
+			expect(() =>
+				evaluateFourierSeriesWaveform(coeffs, Number.NaN),
+			).toThrow(RangeError);
 			expect(() => coeffs.Fn(0.5)).toThrow(RangeError);
 			expect(() => computeHarmonicPowerThresholds(coeffs, 1)).toThrow(
 				RangeError,
@@ -340,7 +349,7 @@ describe("Fourier Series Math Engine", () => {
 				...coeffs,
 				waveformType: "unsupported",
 			} as unknown as typeof coeffs;
-			expect(() => evaluateFourierWaveform(unsupported, 0)).toThrow(
+			expect(() => evaluateFourierSeriesWaveform(unsupported, 0)).toThrow(
 				/Unsupported waveform type/,
 			);
 		});
@@ -384,7 +393,7 @@ describe("Fourier Series Math Engine", () => {
 		it("generates a valid Fourier series problem for square_even wave", () => {
 			const problem = generateFourierSeriesProblem("square_even");
 			expect(problem.waveformType).toBe("square_even");
-			expect(problem.coeffs.symmetry).toBe("even");
+			expect(problem.coeffs.originParity).toBe("even");
 		});
 	});
 });

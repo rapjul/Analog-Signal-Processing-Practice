@@ -3,22 +3,28 @@
  */
 
 import {
-	FOURIER_WAVEFORM_TYPES,
-	type FourierWaveformType,
-} from "../math-engine/fourier-series";
+	FOURIER_SERIES_WAVEFORM_TYPES,
+	type FourierSeriesWaveformType,
+} from "../math-engine/fourier-series/index";
 import {
 	createRandomSeed,
 	createSeededPrng,
 	randomChoice,
 } from "../math-engine/random";
+import type { WithRandom } from "../math-engine/types";
 import { parseEnumParam, parseSafeSeedParam } from "./url-params";
 
 /** Exact waveform selection or seeded random selection across all waveforms. */
-export type FourierWaveformSelection = FourierWaveformType | "random";
+export type FourierSeriesWaveformSelection =
+	WithRandom<FourierSeriesWaveformType>;
 
 /** URL-safe selector values, including the random sentinel. */
-export const FOURIER_WAVEFORM_SELECTIONS: readonly FourierWaveformSelection[] =
-	["random", ...FOURIER_WAVEFORM_TYPES] as const;
+export const FOURIER_SERIES_WAVEFORM_SELECTIONS: readonly FourierSeriesWaveformSelection[] =
+	["random", ...FOURIER_SERIES_WAVEFORM_TYPES] as const;
+
+// Backward-compatibility aliases
+export type FourierWaveformSelection = FourierSeriesWaveformSelection;
+export const FOURIER_WAVEFORM_SELECTIONS = FOURIER_SERIES_WAVEFORM_SELECTIONS;
 
 /** Fourier filter selections stored in shareable URL state. */
 export interface FourierSeriesFilterSelections {
@@ -66,9 +72,9 @@ export function serializeFourierSeriesFilters(
 
 /** Resolves a concrete waveform while preserving deterministic random drills. */
 export function resolveFourierWaveformSelection(
-	selection: FourierWaveformSelection,
+	selection: FourierSeriesWaveformSelection,
 	seed: number,
-): FourierWaveformType {
+): FourierSeriesWaveformType {
 	if (selection !== "random") return selection;
-	return randomChoice(createSeededPrng(seed), FOURIER_WAVEFORM_TYPES);
+	return randomChoice(createSeededPrng(seed), FOURIER_SERIES_WAVEFORM_TYPES);
 }

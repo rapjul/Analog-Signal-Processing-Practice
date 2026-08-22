@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FOURIER_WAVEFORM_TYPES } from "$lib/math-engine/fourier-series";
+import { FOURIER_SERIES_WAVEFORM_TYPES } from "$lib/math-engine/fourier-series/index";
 import {
 	parseFourierSeriesFilters,
 	resolveFourierWaveformSelection,
@@ -32,7 +32,7 @@ describe("Fourier Series URL Filters", () => {
 		const second = resolveFourierWaveformSelection("random", 42);
 
 		expect(second).toBe(first);
-		expect(FOURIER_WAVEFORM_TYPES).toContain(first);
+		expect(FOURIER_SERIES_WAVEFORM_TYPES).toContain(first);
 		expect(resolveFourierWaveformSelection("full_wave_sine", 42)).toBe(
 			"full_wave_sine",
 		);

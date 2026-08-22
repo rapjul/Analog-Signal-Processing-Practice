@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-	computeFourierCoefficients,
-	generateFourierItsData,
+	computeFourierSeriesCoefficients,
+	generateFourierSeriesItsData,
 	generateFourierSeriesProblem,
-} from "../../src/lib/math-engine/fourier-series";
+} from "../../src/lib/math-engine/fourier-series/index";
 
 describe("Fourier Series ITS Step Generator Engine", () => {
 	const supportedWaveforms = [
@@ -46,8 +46,11 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 	);
 
 	it("generates valid ITS step data for odd square wave", () => {
-		const coeffs = computeFourierCoefficients("square", { A: 2, T0: 2 });
-		const itsData = generateFourierItsData(coeffs);
+		const coeffs = computeFourierSeriesCoefficients("square", {
+			A: 2,
+			T0: 2,
+		});
+		const itsData = generateFourierSeriesItsData(coeffs);
 
 		// Step 1
 		expect(itsData.step1.expectedT).toBe(2);
@@ -57,7 +60,6 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step1.hints.length).toBe(3);
 
 		// Step 2
-		expect(itsData.step2.correctSymmetry).toBe("odd");
 		expect(itsData.step2.correctOriginParity).toBe("odd");
 		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step2.hints).toHaveLength(3);
@@ -200,15 +202,15 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 	);
 
 	it("generates valid ITS step data for even square wave", () => {
-		const coeffs = computeFourierCoefficients("square_even", {
+		const coeffs = computeFourierSeriesCoefficients("square_even", {
 			A: 1,
 			T0: 4,
 		});
-		const itsData = generateFourierItsData(coeffs);
+		const itsData = generateFourierSeriesItsData(coeffs);
 
 		expect(itsData.step1.expectedT).toBe(4);
 		expect(itsData.step1.w0Aliases).toContain("pi/2");
-		expect(itsData.step2.correctSymmetry).toBe("even");
+		expect(itsData.step2.correctOriginParity).toBe("even");
 		expect(itsData.step2.correctHalfWaveSymmetry).toBe(true);
 		expect(itsData.step3.correctVanishing).toBe("bn_zero");
 		expect(itsData.step4.correctForm).toBe("trig");
@@ -238,13 +240,21 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 	it.each(supportedWaveforms)(
 		"builds deterministic, parallel coefficient branches for %s",
 		(waveform) => {
-			const coeffs = computeFourierCoefficients(waveform, {
+			const coeffs = computeFourierSeriesCoefficients(waveform, {
 				A: 5,
 				T0: 2,
 			});
 			for (const form of ["trig", "exp"] as const) {
-				const first = generateFourierItsData(coeffs, () => 0.25, form);
-				const second = generateFourierItsData(coeffs, () => 0.25, form);
+				const first = generateFourierSeriesItsData(
+					coeffs,
+					() => 0.25,
+					form,
+				);
+				const second = generateFourierSeriesItsData(
+					coeffs,
+					() => 0.25,
+					form,
+				);
 				expect(first.step5.parts).toEqual(second.step5.parts);
 				expect(first.step6.parts).toEqual(second.step6.parts);
 
