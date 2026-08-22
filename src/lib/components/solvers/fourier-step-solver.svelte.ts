@@ -6,8 +6,8 @@ import type {
 import { parseNumericInput } from "$lib/math-engine/fraction";
 import {
 	BaseStepSolverState,
-	type BaseSubStepState,
 	type BaseStepState,
+	type BaseSubStepState,
 	createMultiPartStepState,
 	createStepState,
 	createSubStepState,

@@ -3,14 +3,14 @@
 		FourierConversionChallenge,
 		FourierItsOption,
 	} from "$lib/math-engine/fourier-series";
+	import MathBlock from "../math/MathBlock.svelte";
+	import MathText from "../math/MathText.svelte";
 	import {
 		type BaseSubStepState,
 		createMultiPartStepState,
 		createSubStepState,
 		type MultiPartStepState,
 	} from "./base-step-solver.svelte";
-	import MathBlock from "../math/MathBlock.svelte";
-	import MathText from "../math/MathText.svelte";
 
 	interface Props {
 		challenge: FourierConversionChallenge;

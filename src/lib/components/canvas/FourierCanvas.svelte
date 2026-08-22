@@ -14,9 +14,9 @@
 		computePartialSum,
 		computeSignalPower,
 		evaluateFourierWaveform,
-		formatPowerCapturePercent,
 		type FourierCoefficients,
 		type FourierWaveformType,
+		formatPowerCapturePercent,
 	} from "$lib/math-engine/fourier-series";
 	import MathInline from "../math/MathInline.svelte";
 	import MathText from "../math/MathText.svelte";

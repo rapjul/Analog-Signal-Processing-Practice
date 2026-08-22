@@ -68,10 +68,7 @@
 					<span class="badge primary">{category}</span>
 				{/if}
 				{#each badges as badge (badge.label)}
-					<span
-						class="badge {badge.variant ??
-							'primary'} capitalize"
-					>
+					<span class="badge {badge.variant ?? 'primary'} capitalize">
 						{badge.label}
 					</span>
 				{/each}
