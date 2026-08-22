@@ -454,4 +454,91 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		).toBe(true);
 		expect(solver.step7.selected).toBeNull();
 	});
+
+	it("returns and navigates through all dev visual states deterministically", () => {
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+			A: 5,
+			T0: 2,
+		});
+		const solver = new FourierSeriesStepSolverState(() => problem);
+
+		const visualStates = solver.devGetVisualStates();
+		expect(visualStates.length).toBe(10);
+		expect(visualStates.map((s) => s.id)).toEqual([
+			"fourier.step-01.period-frequency",
+			"fourier.step-02.symmetry",
+			"fourier.step-02.half-wave-symmetry",
+			"fourier.step-02.symmetry.misconception",
+			"fourier.step-03.vanishing-coefficients",
+			"fourier.step-04.representation-form",
+			"fourier.step-05.integral-setup",
+			"fourier.step-05.integral-setup.hints",
+			"fourier.step-06.coefficient-evaluation",
+			"fourier.step-07.final-series",
+		]);
+
+		// Test each visual state navigation
+		for (const state of visualStates) {
+			const success = solver.devGoToVisualState(state.id);
+			expect(success).toBe(true);
+		}
+
+		// Test invalid visual state
+		expect(solver.devGoToVisualState("invalid.state.id")).toBe(false);
+	});
+
+	it("executes devSolveAll, devRevealAllHints, and devSimulateMisconception", () => {
+		const onComplete = vi.fn();
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+			A: 5,
+			T0: 2,
+		});
+		const solver = new FourierSeriesStepSolverState(
+			() => problem,
+			() => onComplete,
+		);
+
+		// Reveal all hints on Step 1
+		solver.devRevealAllHints();
+		expect(solver.hintTier).toBe(problem.itsData.step1.hints.length);
+
+		// Simulate misconception
+		solver.devSimulateMisconception("Custom diagnostic error message");
+		expect(solver.currentFeedback).toBe("Custom diagnostic error message");
+		expect(solver.currentFeedbackType).toBe("misconception");
+
+		// Solve all steps to completion
+		solver.devSolveAll();
+		expect(solver.isCompleted).toBe(true);
+		expect(solver.currentStep).toBe(8);
+		expect(solver.currentStepState).toBeUndefined();
+		expect(solver.activeHints).toEqual([]);
+		expect(onComplete).toHaveBeenCalled();
+
+		// Auto fill with unsupported step index
+		solver.devAutoFillStep(99);
+
+		// Auto fill step 7 when no option is marked correct
+		const modifiedProblem = {
+			...problem,
+			itsData: {
+				...problem.itsData,
+				step7: {
+					...problem.itsData.step7,
+					options: problem.itsData.step7.options.map((o) => ({
+						...o,
+						isCorrect: false,
+					})),
+				},
+			},
+		};
+		const solverNoCorrect = new FourierSeriesStepSolverState(
+			() => modifiedProblem,
+		);
+		solverNoCorrect.advanceToStep(7);
+		solverNoCorrect.devAutoFillStep(7);
+		expect(solverNoCorrect.currentStep).toBe(8);
+	});
 });

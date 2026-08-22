@@ -4,6 +4,7 @@ import {
 	generateFourierSeriesItsData,
 	generateFourierSeriesProblem,
 } from "../../src/lib/math-engine/fourier-series/index";
+import { getVanishingCoefficients } from "../../src/lib/math-engine/fourier-series/its-scaffolding/step3-shortcuts";
 
 describe("Fourier Series ITS Step Generator Engine", () => {
 	const supportedWaveforms = [
@@ -297,4 +298,10 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 			}
 		},
 	);
+
+	it("handles default fallback in getVanishingCoefficients for unknown origin parity", () => {
+		expect(
+			getVanishingCoefficients("unknown_parity" as unknown as "even"),
+		).toBe("none");
+	});
 });

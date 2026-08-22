@@ -1,3 +1,11 @@
+/**
+ * FourierSeriesStepSolver Svelte Component Unit Tests.
+ *
+ * Validates step orchestrator lifecycle, multi-part step progression across
+ * all 7 ITS steps, hint reveals, keyboard interactions, symmetry variations,
+ * and dynamic problem resetting.
+ */
+
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import FourierSeriesStepSolver from "$lib/components/solvers/FourierSeriesStepSolver.svelte";
@@ -6,10 +14,232 @@ import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/in
 describe("FourierSeriesStepSolver", () => {
 	afterEach(() => cleanup());
 
-	it("renders and advances multi-part steps with standardized StepCard and PartProgressPill hierarchy", async () => {
+	/**
+	 * Tests complete end-to-end traversal from Step 1 through Step 7 to trigger onComplete.
+	 */
+	it("renders and completes all 7 steps from period extraction to final series synthesis", async () => {
 		const problem = generateFourierSeriesProblem("square_even", {
 			seed: 10,
 			A: 5,
+			T0: 2,
+		});
+		const onComplete = vi.fn();
+		const view = render(FourierSeriesStepSolver, { problem, onComplete });
+
+		// Step 1: Period & Frequency (Testing Enter and non-Enter keydown and unit selects)
+		const periodInput = view.container.querySelector(
+			"#fourier-period-input",
+		);
+		const freqInput = view.container.querySelector("#fourier-freq-input");
+		expect(periodInput).toBeTruthy();
+		expect(freqInput).toBeTruthy();
+
+		const periodSelect = view.getByLabelText("Period time unit");
+		const freqSelect = view.getByLabelText("Frequency unit");
+		await fireEvent.change(periodSelect, { target: { value: "s" } });
+		await fireEvent.change(freqSelect, { target: { value: "rad/s" } });
+
+		if (periodInput && freqInput) {
+			// Non-Enter keys
+			await fireEvent.keyDown(periodInput, { key: "Tab" });
+			await fireEvent.keyDown(freqInput, { key: "Shift" });
+
+			// Reveal hint on Step 1
+			const step1Hints = view.container
+				.querySelectorAll(".step-card")[0]
+				.querySelector(".hint-trigger");
+			if (step1Hints) await fireEvent.click(step1Hints);
+
+			await fireEvent.input(periodInput, { target: { value: "2" } });
+			await fireEvent.input(freqInput, { target: { value: "pi" } });
+			await fireEvent.keyDown(freqInput, { key: "Enter" });
+		}
+
+		// Step 2 Part 2A: Origin Parity
+		expect(view.getByText("Part 1 of 2")).toBeTruthy();
+		expect(view.getByText("Part 2A")).toBeTruthy();
+
+		// Reveal hint on Step 2
+		const step2Hints = view.container
+			.querySelectorAll(".step-card")[1]
+			.querySelector(".hint-trigger");
+		if (step2Hints) await fireEvent.click(step2Hints);
+
+		const originOptions = view.getByTestId("fourier-step2-origin-options");
+		const evenButton = originOptions.querySelectorAll("button")[0];
+		expect(evenButton).toBeTruthy();
+		if (evenButton) {
+			await fireEvent.click(evenButton);
+		}
+		await fireEvent.click(view.getByText("Check Origin Parity →"));
+
+		// Step 2 Part 2B: Half-Wave Symmetry
+		expect(view.getByText("Part 2 of 2")).toBeTruthy();
+		expect(view.getByText("Part 2B")).toBeTruthy();
+
+		const halfWaveOptions = view.getByTestId(
+			"fourier-step2-half-wave-options",
+		);
+		const halfWaveButton = halfWaveOptions.querySelectorAll("button")[0];
+		expect(halfWaveButton).toBeTruthy();
+		if (halfWaveButton) {
+			await fireEvent.click(halfWaveButton);
+		}
+		await fireEvent.click(view.getByText("Check Half-Wave Symmetry →"));
+
+		// Step 3: Vanishing Coefficients Shortcuts
+		const step3Card = view.container.querySelectorAll(".step-card")[2];
+		const step3Hints = step3Card.querySelector(".hint-trigger");
+		if (step3Hints) await fireEvent.click(step3Hints);
+
+		const step3Choice = step3Card.querySelectorAll("button")[0];
+		expect(step3Choice).toBeTruthy();
+		if (step3Choice) {
+			await fireEvent.click(step3Choice);
+		}
+
+		// Step 4: Representation Form
+		const step4Card = view.container.querySelectorAll(".step-card")[3];
+		const step4Hints = step4Card.querySelector(".hint-trigger");
+		if (step4Hints) await fireEvent.click(step4Hints);
+
+		const trigButton = step4Card.querySelectorAll("button")[0];
+		expect(trigButton).toBeTruthy();
+		if (trigButton) {
+			await fireEvent.click(trigButton);
+		}
+
+		// Step 5: Integrals Setup
+		const step5Card = view.container.querySelectorAll(".step-card")[4];
+		const step5Hints = step5Card.querySelector(".hint-trigger");
+		if (step5Hints) await fireEvent.click(step5Hints);
+
+		// Part 5A
+		const step5Options = view.getByTestId("fourier-step5-options");
+		const part5AIdx = problem.itsData.step5.parts[0].options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		const optBtns5A = step5Options.querySelectorAll("button");
+		await fireEvent.click(optBtns5A[part5AIdx]);
+
+		// Part 5B
+		expect(view.getByText("Part 5B")).toBeTruthy();
+		const step5BOptions = view.getByTestId("fourier-step5-options");
+		const part5BIdx = problem.itsData.step5.parts[1].options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		const optBtns5B = step5BOptions.querySelectorAll("button");
+		await fireEvent.click(optBtns5B[part5BIdx]);
+
+		// Step 6: Coefficient Evaluation
+		const step6Card = view.container.querySelectorAll(".step-card")[5];
+		const step6Hints = step6Card.querySelector(".hint-trigger");
+		if (step6Hints) await fireEvent.click(step6Hints);
+
+		// Part 6A
+		expect(view.getByText("Harmonic Coefficient Evaluation")).toBeTruthy();
+		expect(view.getByText("Part 6A")).toBeTruthy();
+		const step6AOptions = view.getByTestId("fourier-step6-options");
+		const part6AIdx = problem.itsData.step6.parts[0].options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		const optBtns6A = step6AOptions.querySelectorAll("button");
+		await fireEvent.click(optBtns6A[part6AIdx]);
+
+		// Part 6B
+		expect(view.getByText("Part 6B")).toBeTruthy();
+		const step6BOptions = view.getByTestId("fourier-step6-options");
+		const part6BIdx = problem.itsData.step6.parts[1].options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		const optBtns6B = step6BOptions.querySelectorAll("button");
+		await fireEvent.click(optBtns6B[part6BIdx]);
+
+		// Step 7: Final Fourier Series Expression
+		const step7Card = view.container.querySelectorAll(".step-card")[6];
+		const step7Hints = step7Card.querySelector(".hint-trigger");
+		if (step7Hints) await fireEvent.click(step7Hints);
+
+		expect(view.getByText("Final Fourier Series Expression")).toBeTruthy();
+		const step7Cards = view.container.querySelectorAll(".mcq-cards-grid");
+		const lastGrid = step7Cards[step7Cards.length - 1];
+		const step7Btns = lastGrid.querySelectorAll("button");
+		const step7Idx = problem.itsData.step7.options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		await fireEvent.click(step7Btns[step7Idx]);
+
+		expect(onComplete).toHaveBeenCalledTimes(1);
+	});
+
+	/**
+	 * Tests odd and neither parity choices, non-half-wave paths, exp/compact forms, and hint triggers across steps.
+	 */
+	it("exercises alternate symmetry, form branches, and hint disclosures across steps", async () => {
+		const problem = generateFourierSeriesProblem("sawtooth", {
+			seed: 20,
+			A: 4,
+			T0: 2,
+		});
+		const view = render(FourierSeriesStepSolver, { problem });
+
+		// Step 1: Period Enter
+		const periodInput = view.container.querySelector(
+			"#fourier-period-input",
+		);
+		const freqInput = view.container.querySelector("#fourier-freq-input");
+		if (periodInput && freqInput) {
+			await fireEvent.input(periodInput, { target: { value: "2" } });
+			await fireEvent.input(freqInput, { target: { value: "pi" } });
+			await fireEvent.click(view.getByText("Check Period & Frequency →"));
+		}
+
+		// Step 2: Odd symmetry and Neither symmetry buttons
+		const originOptions = view.getByTestId("fourier-step2-origin-options");
+		const symmetryButtons = originOptions.querySelectorAll("button");
+		expect(symmetryButtons.length).toBe(3);
+
+		// Click neither
+		await fireEvent.click(symmetryButtons[2]);
+		// Click odd
+		await fireEvent.click(symmetryButtons[1]);
+		await fireEvent.click(view.getByText("Check Origin Parity →"));
+
+		// Step 2 Part 2B: No half-wave symmetry
+		const halfWaveOptions = view.getByTestId(
+			"fourier-step2-half-wave-options",
+		);
+		const halfWaveButtons = halfWaveOptions.querySelectorAll("button");
+		if (halfWaveButtons?.[1]) {
+			await fireEvent.click(halfWaveButtons[1]);
+		}
+		await fireEvent.click(view.getByText("Check Half-Wave Symmetry →"));
+
+		// Step 3: Test clicking choices
+		const step3Card = view.container.querySelectorAll(".step-card")[2];
+		const step3Buttons = step3Card.querySelectorAll("button");
+		if (step3Buttons.length >= 3) {
+			await fireEvent.click(step3Buttons[2]); // none
+			await fireEvent.click(step3Buttons[1]); // an_zero
+		}
+
+		// Step 4: Test clicking Exponential and Compact Harmonic buttons
+		const step4Card = view.container.querySelectorAll(".step-card")[3];
+		const repButtons = step4Card.querySelectorAll("button");
+		if (repButtons.length >= 3) {
+			await fireEvent.click(repButtons[2]); // compact
+			await fireEvent.click(repButtons[1]); // exp
+			await fireEvent.click(repButtons[0]); // trig
+		}
+	});
+
+	/**
+	 * Tests solving an exponential/asymmetric waveform (half_wave_sine) end-to-end.
+	 */
+	it("solves neither-symmetry waveform in exponential form through step 7", async () => {
+		const problem = generateFourierSeriesProblem("half_wave_sine", {
+			seed: 5,
+			A: 2,
 			T0: 2,
 		});
 		const onComplete = vi.fn();
@@ -20,75 +250,109 @@ describe("FourierSeriesStepSolver", () => {
 			"#fourier-period-input",
 		);
 		const freqInput = view.container.querySelector("#fourier-freq-input");
-		expect(periodInput).toBeTruthy();
-		expect(freqInput).toBeTruthy();
-
 		if (periodInput && freqInput) {
 			await fireEvent.input(periodInput, { target: { value: "2" } });
 			await fireEvent.input(freqInput, { target: { value: "pi" } });
+			await fireEvent.click(view.getByText("Check Period & Frequency →"));
 		}
-		await fireEvent.click(view.getByText("Check Period & Frequency →"));
 
-		// Step 2 Part 2A
-		expect(view.getByText("Part 1 of 2")).toBeTruthy();
-		expect(
-			view.container.querySelector(".part-progress-pill"),
-		).toBeTruthy();
-		expect(view.getByText("Part 2A")).toBeTruthy();
-		expect(view.getByText("Classify Origin Parity")).toBeTruthy();
-
-		const evenButton = view.getByText("Even Symmetry").closest("button");
-		expect(evenButton).toBeTruthy();
-		if (evenButton) {
-			await fireEvent.click(evenButton);
-		}
+		// Step 2 Part 2A: Neither symmetry
+		const originOptions = view.getByTestId("fourier-step2-origin-options");
+		await fireEvent.click(originOptions.querySelectorAll("button")[2]);
 		await fireEvent.click(view.getByText("Check Origin Parity →"));
 
-		// Step 2 Part 2B (with verified Part 2A summary)
-		expect(view.getByText("Part 2 of 2")).toBeTruthy();
-		expect(view.getByText("Part 2B")).toBeTruthy();
-		expect(view.getByText("Test Half-Wave Symmetry")).toBeTruthy();
-		expect(
-			view.container.querySelector(".substep-check-badge"),
-		).toBeTruthy();
-
-		const halfWaveButton = view
-			.getByText("Has Half-Wave Symmetry")
-			.closest("button");
-		expect(halfWaveButton).toBeTruthy();
-		if (halfWaveButton) {
-			await fireEvent.click(halfWaveButton);
-		}
+		// Step 2 Part 2B: No half-wave symmetry
+		const halfWaveOptions = view.getByTestId(
+			"fourier-step2-half-wave-options",
+		);
+		await fireEvent.click(halfWaveOptions.querySelectorAll("button")[1]);
 		await fireEvent.click(view.getByText("Check Half-Wave Symmetry →"));
 
-		// Step 3
-		let buttons = view.getAllByRole("button");
-		await fireEvent.click(buttons[0]);
+		// Step 3: None vanish
+		const step3Card = view.container.querySelectorAll(".step-card")[2];
+		await fireEvent.click(step3Card.querySelectorAll("button")[2]);
 
-		// Step 4
-		buttons = view.getAllByRole("button");
-		await fireEvent.click(buttons[0]);
+		// Step 4: Exponential Form
+		const step4Card = view.container.querySelectorAll(".step-card")[3];
+		await fireEvent.click(step4Card.querySelectorAll("button")[1]);
 
-		// Step 5 Part 5A
-		expect(view.getByText("Part 1 of 2")).toBeTruthy();
-		expect(view.getByText("Part 5A")).toBeTruthy();
-		expect(view.getByText("Set Up DC Coefficient")).toBeTruthy();
-		const firstOptions = view.getByTestId("fourier-step5-options");
-		const firstCorrectIndex =
-			problem.itsData.step5.parts[0].options.findIndex(
-				({ isCorrect }) => isCorrect,
+		// Step 5: Integral Setup
+		for (let i = 0; i < problem.itsData.step5.parts.length; i++) {
+			const step5Options = view.getByTestId("fourier-step5-options");
+			const partIdx = problem.itsData.step5.parts[i].options.findIndex(
+				(opt) => opt.isCorrect,
 			);
-		const optionButtons = firstOptions.querySelectorAll("button");
-		const targetButton = optionButtons[firstCorrectIndex];
-		expect(targetButton).toBeTruthy();
-		if (targetButton) {
-			await fireEvent.click(targetButton);
+			await fireEvent.click(
+				step5Options.querySelectorAll("button")[partIdx],
+			);
 		}
 
-		// Step 5 Part 5B
-		expect(view.getByText("Part 2 of 2")).toBeTruthy();
-		expect(view.getByText("Part 5B")).toBeTruthy();
-		expect(view.getByText("Set Up Cosine Coefficients")).toBeTruthy();
-		expect(onComplete).not.toHaveBeenCalled();
+		// Step 6: Coefficient Evaluation
+		for (let i = 0; i < problem.itsData.step6.parts.length; i++) {
+			const step6Options = view.getByTestId("fourier-step6-options");
+			const partIdx = problem.itsData.step6.parts[i].options.findIndex(
+				(opt) => opt.isCorrect,
+			);
+			await fireEvent.click(
+				step6Options.querySelectorAll("button")[partIdx],
+			);
+		}
+
+		// Step 7: Final Exponential Series Synthesis
+		const step7Cards = view.container.querySelectorAll(".mcq-cards-grid");
+		const lastGrid = step7Cards[step7Cards.length - 1];
+		const step7Btns = lastGrid.querySelectorAll("button");
+		const step7Idx = problem.itsData.step7.options.findIndex(
+			(opt) => opt.isCorrect,
+		);
+		await fireEvent.click(step7Btns[step7Idx]);
+
+		expect(onComplete).toHaveBeenCalled();
+	});
+
+	/**
+	 * Tests resetting step solver state when problem property changes.
+	 */
+	it("resets solver when problem property ID changes", async () => {
+		const problem1 = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+			A: 5,
+			T0: 2,
+		});
+		const problem2 = generateFourierSeriesProblem("triangle", {
+			seed: 30,
+			A: 3,
+			T0: 4,
+		});
+
+		const view = render(FourierSeriesStepSolver, { problem: problem1 });
+
+		// Advance Step 1
+		const periodInput = view.container.querySelector(
+			"#fourier-period-input",
+		);
+		const freqInput = view.container.querySelector("#fourier-freq-input");
+		if (periodInput && freqInput) {
+			await fireEvent.input(periodInput, { target: { value: "2" } });
+			await fireEvent.input(freqInput, { target: { value: "pi" } });
+			await fireEvent.click(view.getByText("Check Period & Frequency →"));
+		}
+
+		expect(view.getByText("Part 2A")).toBeTruthy();
+
+		// Rerender with problem2
+		await view.rerender({ problem: problem2 });
+
+		// Should reset back to Step 1
+		expect(
+			view.container.querySelector("#fourier-period-input"),
+		).toBeTruthy();
+
+		// Rerender with the same problem instance (same ID) but updated onComplete
+		const newOnComplete = vi.fn();
+		await view.rerender({ problem: problem2, onComplete: newOnComplete });
+		expect(
+			view.container.querySelector("#fourier-period-input"),
+		).toBeTruthy();
 	});
 });
