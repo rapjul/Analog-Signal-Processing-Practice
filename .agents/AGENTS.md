@@ -43,6 +43,7 @@ SignalLab is an interactive, client-side web application for practicing Analog S
     - `math-engine`: Shared mathematical infrastructure (`evaluator`, `formatting`, `complex`, `fraction`, centralized types).
     - `ui`: Shared UI shell/layout components (`PageLayout`, `DrillPanel`, `ui/nav`, `ui/math-input`, `ui/canvas`, `ui/theme`).
     - `docs/adr`: Architectural Decision Records in `docs/adrs/`.
+15. **Standardized `$lib` Path Aliases for Cross-Directory Imports**: All cross-directory imports across UI components (`$lib/components/ui/...`), math components (`$lib/components/math/...`), step solvers (`$lib/components/solvers/...`), math engines (`$lib/math-engine/...`), and test suites (`tests/**`) MUST use the `$lib/` path alias. Relative parent path climbing (`../` or `../../`) across directory boundaries is strictly prohibited. Relative imports are permitted exclusively for direct sibling files in the exact same physical directory (`./SiblingComponent.svelte`). (See [ADR-0035](../docs/adrs/0035-standardized-lib-path-aliases-for-components-and-solvers.md)).
 
 ## Detailed Guidelines
 
