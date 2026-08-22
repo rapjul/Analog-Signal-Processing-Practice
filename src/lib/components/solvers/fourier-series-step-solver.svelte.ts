@@ -518,40 +518,40 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	override devGetVisualStates(): SolverVisualStateDescriptor[] {
 		const states: SolverVisualStateDescriptor[] = [
 			{
-				id: "fourier.step-01.period-frequency",
+				id: "fourier-series.step-01.period-frequency",
 				label: "Step 1 · Period and Frequency",
 				step: 1,
 				kind: "interactive",
 			},
 			{
-				id: "fourier.step-02.symmetry",
+				id: "fourier-series.step-02.symmetry",
 				label: "Step 2A · Origin Parity",
 				step: 2,
 				subStep: "origin-parity",
 				kind: "interactive",
 			},
 			{
-				id: "fourier.step-02.half-wave-symmetry",
+				id: "fourier-series.step-02.half-wave-symmetry",
 				label: "Step 2B · Half-Wave Symmetry",
 				step: 2,
 				subStep: "half-wave",
 				kind: "interactive",
 			},
 			{
-				id: "fourier.step-02.symmetry.misconception",
+				id: "fourier-series.step-02.symmetry.misconception",
 				label: "Step 2A · Symmetry Misconception",
 				step: 2,
 				subStep: "origin-parity",
 				kind: "diagnostic",
 			},
 			{
-				id: "fourier.step-03.vanishing-coefficients",
+				id: "fourier-series.step-03.vanishing-coefficients",
 				label: "Step 3 · Vanishing Coefficients",
 				step: 3,
 				kind: "interactive",
 			},
 			{
-				id: "fourier.step-04.representation-form",
+				id: "fourier-series.step-04.representation-form",
 				label: "Step 4 · Representation Form",
 				step: 4,
 				kind: "interactive",
@@ -564,8 +564,8 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 				const partLetter = String.fromCharCode(65 + idx);
 				const id =
 					idx === 0
-						? "fourier.step-05.integral-setup"
-						: `fourier.step-05.integral-setup-${part.target}`;
+						? "fourier-series.step-05.integral-setup"
+						: `fourier-series.step-05.integral-setup-${part.target}`;
 				states.push(
 					{
 						id,
@@ -587,14 +587,14 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			const part = s5Parts[0];
 			states.push(
 				{
-					id: "fourier.step-05.integral-setup",
+					id: "fourier-series.step-05.integral-setup",
 					label: `Step 5 · ${part.title}`,
 					step: 5,
 					subStep: part.id,
 					kind: "interactive",
 				},
 				{
-					id: "fourier.step-05.integral-setup.hints",
+					id: "fourier-series.step-05.integral-setup.hints",
 					label: `Step 5 · ${part.title} · All Hints`,
 					step: 5,
 					subStep: part.id,
@@ -609,8 +609,8 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 				const partLetter = String.fromCharCode(65 + idx);
 				const id =
 					idx === 0
-						? "fourier.step-06.coefficient-evaluation"
-						: `fourier.step-06.coefficient-evaluation-${part.target}`;
+						? "fourier-series.step-06.coefficient-evaluation"
+						: `fourier-series.step-06.coefficient-evaluation-${part.target}`;
 				states.push(
 					{
 						id,
@@ -632,14 +632,14 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			const part = s6Parts[0];
 			states.push(
 				{
-					id: "fourier.step-06.coefficient-evaluation",
+					id: "fourier-series.step-06.coefficient-evaluation",
 					label: `Step 6 · ${part.title}`,
 					step: 6,
 					subStep: part.id,
 					kind: "interactive",
 				},
 				{
-					id: "fourier.step-06.coefficient-evaluation.hints",
+					id: "fourier-series.step-06.coefficient-evaluation.hints",
 					label: `Step 6 · ${part.title} · All Hints`,
 					step: 6,
 					subStep: part.id,
@@ -649,7 +649,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		}
 
 		states.push({
-			id: "fourier.step-07.final-series",
+			id: "fourier-series.step-07.final-series",
 			label: "Step 7 · Final Series",
 			step: 7,
 			kind: "interactive",
@@ -709,17 +709,17 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		}
 
 		switch (stateId) {
-			case "fourier.step-01.period-frequency":
+			case "fourier-series.step-01.period-frequency":
 				return this.devPrepareParentStep(1);
-			case "fourier.step-02.symmetry":
+			case "fourier-series.step-02.symmetry":
 				return this.devPrepareParentStep(2);
-			case "fourier.step-02.half-wave-symmetry":
+			case "fourier-series.step-02.half-wave-symmetry":
 				if (!this.devPrepareParentStep(2)) return false;
 				this.checkStep2OriginParity(
 					this.problem.itsData.step2.correctOriginParity,
 				);
 				return this.step2.activeSubStepId === "half-wave";
-			case "fourier.step-02.symmetry.misconception": {
+			case "fourier-series.step-02.symmetry.misconception": {
 				if (!this.devPrepareParentStep(2)) return false;
 				const choices = ["even", "odd", "none"];
 				const wrong = choices.find(
@@ -731,24 +731,24 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 				this.checkStep2OriginParity(wrong as OriginParity);
 				return this.currentFeedbackType === "misconception";
 			}
-			case "fourier.step-03.vanishing-coefficients":
+			case "fourier-series.step-03.vanishing-coefficients":
 				return this.devPrepareParentStep(3);
-			case "fourier.step-04.representation-form":
+			case "fourier-series.step-04.representation-form":
 				return this.devPrepareParentStep(4);
-			case "fourier.step-07.final-series":
+			case "fourier-series.step-07.final-series":
 				return this.devPrepareParentStep(7);
 			default:
 				break;
 		}
 
-		if (stateId.startsWith("fourier.step-05.")) {
+		if (stateId.startsWith("fourier-series.step-05.")) {
 			const isHints = stateId.endsWith(".hints");
 			const baseId = isHints ? stateId.slice(0, -6) : stateId;
 			const parts = this.problem.itsData.step5.parts;
 			let targetSubStepId = parts[0]?.id;
-			if (baseId !== "fourier.step-05.integral-setup") {
+			if (baseId !== "fourier-series.step-05.integral-setup") {
 				const suffix = baseId.replace(
-					"fourier.step-05.integral-setup-",
+					"fourier-series.step-05.integral-setup-",
 					"",
 				);
 				const matchedPart = parts.find(
@@ -767,14 +767,14 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			return true;
 		}
 
-		if (stateId.startsWith("fourier.step-06.")) {
+		if (stateId.startsWith("fourier-series.step-06.")) {
 			const isHints = stateId.endsWith(".hints");
 			const baseId = isHints ? stateId.slice(0, -6) : stateId;
 			const parts = this.problem.itsData.step6.parts;
 			let targetSubStepId = parts[0]?.id;
-			if (baseId !== "fourier.step-06.coefficient-evaluation") {
+			if (baseId !== "fourier-series.step-06.coefficient-evaluation") {
 				const suffix = baseId.replace(
-					"fourier.step-06.coefficient-evaluation-",
+					"fourier-series.step-06.coefficient-evaluation-",
 					"",
 				);
 				const matchedPart = parts.find(

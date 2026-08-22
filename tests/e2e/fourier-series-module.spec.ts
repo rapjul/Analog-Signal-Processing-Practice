@@ -161,7 +161,7 @@ test.describe("Fourier Series Module", () => {
 		const prepared = await page.evaluate(
 			() =>
 				window.__signalLabDev?.goToVisualState(
-					"fourier.step-02.symmetry",
+					"fourier-series.step-02.symmetry",
 				) ?? false,
 		);
 		expect(prepared).toBe(true);
@@ -259,7 +259,7 @@ test.describe("Fourier Series Module", () => {
 		const prepared = await page.evaluate(
 			() =>
 				window.__signalLabDev?.goToVisualState(
-					"fourier.step-04.representation-form",
+					"fourier-series.step-04.representation-form",
 				) ?? false,
 		);
 		expect(prepared).toBe(true);
@@ -288,7 +288,7 @@ test.describe("Fourier Series Module", () => {
 		const prepared = await page.evaluate(
 			() =>
 				window.__signalLabDev?.goToVisualState(
-					"fourier.step-05.integral-setup",
+					"fourier-series.step-05.integral-setup",
 				) ?? false,
 		);
 		expect(prepared).toBe(true);

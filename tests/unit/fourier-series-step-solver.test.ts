@@ -466,21 +466,21 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		const visualStatesEven = solverEven.devGetVisualStates();
 		expect(visualStatesEven.length).toBe(15);
 		expect(visualStatesEven.map((s) => s.id)).toEqual([
-			"fourier.step-01.period-frequency",
-			"fourier.step-02.symmetry",
-			"fourier.step-02.half-wave-symmetry",
-			"fourier.step-02.symmetry.misconception",
-			"fourier.step-03.vanishing-coefficients",
-			"fourier.step-04.representation-form",
-			"fourier.step-05.integral-setup",
-			"fourier.step-05.integral-setup.hints",
-			"fourier.step-05.integral-setup-an",
-			"fourier.step-05.integral-setup-an.hints",
-			"fourier.step-06.coefficient-evaluation",
-			"fourier.step-06.coefficient-evaluation.hints",
-			"fourier.step-06.coefficient-evaluation-an",
-			"fourier.step-06.coefficient-evaluation-an.hints",
-			"fourier.step-07.final-series",
+			"fourier-series.step-01.period-frequency",
+			"fourier-series.step-02.symmetry",
+			"fourier-series.step-02.half-wave-symmetry",
+			"fourier-series.step-02.symmetry.misconception",
+			"fourier-series.step-03.vanishing-coefficients",
+			"fourier-series.step-04.representation-form",
+			"fourier-series.step-05.integral-setup",
+			"fourier-series.step-05.integral-setup.hints",
+			"fourier-series.step-05.integral-setup-an",
+			"fourier-series.step-05.integral-setup-an.hints",
+			"fourier-series.step-06.coefficient-evaluation",
+			"fourier-series.step-06.coefficient-evaluation.hints",
+			"fourier-series.step-06.coefficient-evaluation-an",
+			"fourier-series.step-06.coefficient-evaluation-an.hints",
+			"fourier-series.step-07.final-series",
 		]);
 
 		// Verify labels
@@ -507,17 +507,17 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		const visualStatesOdd = solverOdd.devGetVisualStates();
 		expect(visualStatesOdd.length).toBe(11);
 		expect(visualStatesOdd.map((s) => s.id)).toEqual([
-			"fourier.step-01.period-frequency",
-			"fourier.step-02.symmetry",
-			"fourier.step-02.half-wave-symmetry",
-			"fourier.step-02.symmetry.misconception",
-			"fourier.step-03.vanishing-coefficients",
-			"fourier.step-04.representation-form",
-			"fourier.step-05.integral-setup",
-			"fourier.step-05.integral-setup.hints",
-			"fourier.step-06.coefficient-evaluation",
-			"fourier.step-06.coefficient-evaluation.hints",
-			"fourier.step-07.final-series",
+			"fourier-series.step-01.period-frequency",
+			"fourier-series.step-02.symmetry",
+			"fourier-series.step-02.half-wave-symmetry",
+			"fourier-series.step-02.symmetry.misconception",
+			"fourier-series.step-03.vanishing-coefficients",
+			"fourier-series.step-04.representation-form",
+			"fourier-series.step-05.integral-setup",
+			"fourier-series.step-05.integral-setup.hints",
+			"fourier-series.step-06.coefficient-evaluation",
+			"fourier-series.step-06.coefficient-evaluation.hints",
+			"fourier-series.step-07.final-series",
 		]);
 
 		for (const state of visualStatesOdd) {
