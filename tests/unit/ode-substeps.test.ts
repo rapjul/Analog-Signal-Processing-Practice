@@ -11,8 +11,8 @@ import {
 	type ForcingType,
 	generateOdeProblem,
 	type SecondOrderRootType,
-	type WithRandom,
 } from "../../src/lib/math-engine/odes/index";
+import type { WithRandom } from "../../src/lib/math-engine/types";
 
 function generateSecondOrderProblem(
 	rootType: WithRandom<SecondOrderRootType>,

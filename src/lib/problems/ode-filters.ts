@@ -11,9 +11,9 @@ import type {
 	OdeOrder,
 	ResonanceType,
 	SecondOrderRootType,
-	WithRandom,
 } from "../math-engine/odes/index";
 import { createRandomSeed } from "../math-engine/random";
+import type { WithRandom } from "../math-engine/types";
 import { parseEnumParam, parseSafeSeedParam } from "./url-params";
 
 /**

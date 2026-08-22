@@ -47,3 +47,8 @@ export interface BaseItsStep {
 	/** Diagnostic feedback for known misconceptions */
 	misconceptions?: Record<string, string>;
 }
+
+/**
+ * Generic type for domain filter options with an additional random choice.
+ */
+export type WithRandom<T> = T | "random";

@@ -5,7 +5,7 @@
  * and ITS step data contracts for 1st- and 2nd-order Linear Constant-Coefficient ODEs.
  */
 
-import type { BaseItsStep, ItsOption } from "../types";
+import type { BaseItsStep, ItsOption, WithRandom } from "../types";
 
 /**
  * Classification of characteristic polynomial roots for first-order differential equations.
@@ -51,13 +51,6 @@ export type LeadingCoefficientType = "monic" | "non_monic";
 
 /** System resonance status for exponential inputs */
 export type ResonanceType = "none" | "simple" | "repeated";
-
-/**
- * Utility type extending a given option type `T` with the sentinel value `"random"`.
- *
- * @template T The underlying option value type
- */
-export type WithRandom<T> = T | "random";
 
 /** Public controls for reproducible ODE problem generation. */
 export interface OdeGenerationOptions {

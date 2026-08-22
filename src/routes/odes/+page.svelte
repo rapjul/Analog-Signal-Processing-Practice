@@ -22,9 +22,9 @@
 		type OdeOrder,
 		type ResonanceType,
 		type SecondOrderRootType,
-		type WithRandom,
 	} from "$lib/math-engine/odes/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
+	import type { WithRandom } from "$lib/math-engine/types";
 	import {
 		normalizeOdeFilters,
 		type OdeFilterChangeSource,

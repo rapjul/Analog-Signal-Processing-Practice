@@ -4,8 +4,8 @@ import {
 	type ForcingType,
 	generateOdeProblem,
 	type SecondOrderRootType,
-	type WithRandom,
 } from "../../src/lib/math-engine/odes/index";
+import type { WithRandom } from "../../src/lib/math-engine/types";
 
 /**
  * Helper to generate second-order ODE problem for validation tests.
