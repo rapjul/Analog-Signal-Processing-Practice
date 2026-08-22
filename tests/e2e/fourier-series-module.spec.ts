@@ -146,6 +146,54 @@ test.describe("Fourier Series Module", () => {
 		await expect(step2.locator(".step-title")).toHaveText(
 			/Waveform Symmetry Analysis/i,
 		);
+		await expect(step2).toContainText("Part 1 of 2");
+		await expect(step2).toContainText("Classify Origin Parity");
+		await expect(
+			step2.getByTestId("fourier-step2-half-wave-options"),
+		).toHaveCount(0);
+	});
+
+	test("presents symmetry as two sequential parts with separate hints", async ({
+		page,
+	}) => {
+		await page.goto("/fourier-series?waveform=square_even&seed=10");
+		await page.waitForLoadState("networkidle");
+		const prepared = await page.evaluate(
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"fourier.step-02.symmetry",
+				) ?? false,
+		);
+		expect(prepared).toBe(true);
+
+		const step2 = page.locator(".step-card").nth(1);
+		await expect(step2).toContainText("Part 1 of 2");
+		await step2.getByRole("button", { name: /Even Symmetry/i }).click();
+		await step2
+			.getByRole("button", { name: /Check Origin Parity/i })
+			.click();
+
+		await expect(step2).toContainText("Part 2 of 2");
+		await expect(step2).toContainText("Test Half-Wave Symmetry");
+		await expect(step2).toContainText(
+			"the second half of each period is an upside-down copy of the first half",
+		);
+		await expect(
+			step2.getByTestId("fourier-step2-origin-options"),
+		).toHaveCount(0);
+
+		await step2.getByRole("button", { name: /Get Hint/i }).click();
+		await expect(step2.locator(".hints-content")).toContainText(
+			"Compare the second half of one period",
+		);
+
+		await step2
+			.getByRole("button", { name: /Has Half-Wave Symmetry/i })
+			.click();
+		await step2
+			.getByRole("button", { name: /Check Half-Wave Symmetry/i })
+			.click();
+		await expect(page.locator(".step-card").nth(2)).toHaveClass(/active/);
 	});
 
 	/**
