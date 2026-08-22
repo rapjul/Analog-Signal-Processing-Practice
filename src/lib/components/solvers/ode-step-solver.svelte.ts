@@ -41,12 +41,15 @@ export type {
 import type {
 	OdeStep1State,
 	OdeStep2State,
+	OdeStep2SubStepId,
 	OdeStep3State,
 	OdeStep4State,
 	OdeStep5State,
 	OdeStep5SubStepId,
 	OdeStep6State,
+	OdeStep6SubStepId,
 	OdeStep7State,
+	OdeStep7SubStepId,
 } from "./ode-solver-state/ode-step-types";
 
 /**
@@ -1613,6 +1616,27 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		this.isCompleted = false;
 		this.hintTier = 0;
 		this.step1 = createStepState({ a2: "", a1: "", a0: "" });
+		const isFactorable =
+			this.problem.params.order === 1 ||
+			("isFactorable" in this.problem.itsData.step2 &&
+				this.problem.itsData.step2.isFactorable &&
+				this.problem.params.rootType !== "complex_conjugate");
+
+		const s2Order: OdeStep2SubStepId[] = [];
+		if (this.problem.params.order === 2) {
+			s2Order.push("strategy_gate");
+		}
+		if (isFactorable) {
+			s2Order.push("factoring_inputs");
+		}
+		if (this.problem.params.order === 2) {
+			s2Order.push(
+				"quad_classification",
+				"remedial_discriminant",
+				"quad_root_inputs",
+			);
+		}
+
 		this.step2 = createMultiPartStepState(
 			{
 				strategy: null as "factoring" | "quadratic" | null,
@@ -1625,13 +1649,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				quadNeedsDiscriminantCalc: false,
 				quadDiscriminantVerified: false,
 			},
-			[
-				"strategy_gate",
-				"factoring_inputs",
-				"quad_classification",
-				"remedial_discriminant",
-				"quad_root_inputs",
-			],
+			s2Order,
 			{
 				strategy_gate: createSubStepState(
 					"strategy_gate",
@@ -1654,7 +1672,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 					"Quadratic Formula Roots",
 				),
 			},
-			"strategy_gate",
+			s2Order[0] ?? "strategy_gate",
 		);
 		// A first-order characteristic equation is linear, so there is no
 		// quadratic-strategy decision to make. Open the single-root input directly.
@@ -1663,6 +1681,15 @@ export class OdeStepSolverState extends BaseStepSolverState {
 		}
 		this.step3 = createStepState({ selected: null as OdeRootType | null });
 		this.step4 = createStepState({ selected: null as string | null });
+		const s5Order: OdeStep5SubStepId[] = ["first_deriv"];
+		if (this.problem.params.order === 2) {
+			s5Order.push("second_deriv");
+		}
+		if (this.problem.forcing.type === "sinusoid") {
+			s5Order.push("system_setup");
+		}
+		s5Order.push("solve");
+
 		this.step5 = createMultiPartStepState(
 			{
 				selectedFirstDeriv: null as string | null,
@@ -1673,7 +1700,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				a: "",
 				b: "",
 			},
-			["first_deriv", "second_deriv", "system_setup", "solve"],
+			s5Order,
 			{
 				first_deriv: createSubStepState(
 					"first_deriv",
@@ -1694,6 +1721,12 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			},
 			"first_deriv",
 		);
+
+		const s6Order: OdeStep6SubStepId[] =
+			this.problem.params.order === 1
+				? ["target_values"]
+				: ["target_values", "solve_constants"];
+
 		this.step6 = createMultiPartStepState(
 			{
 				yh0: "",
@@ -1701,7 +1734,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				c1: "",
 				c2: "",
 			},
-			["target_values", "solve_constants"],
+			s6Order,
 			{
 				target_values: createSubStepState(
 					"target_values",
