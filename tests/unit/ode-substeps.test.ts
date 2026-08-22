@@ -6,13 +6,13 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { OdeStepSolverState } from "../../src/lib/components/solvers/ode-step-solver.svelte";
+import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 import {
 	type ForcingType,
 	generateOdeProblem,
 	type SecondOrderRootType,
-} from "../../src/lib/math-engine/odes/index";
-import type { WithRandom } from "../../src/lib/math-engine/types";
+} from "$lib/math-engine/odes/index";
+import type { WithRandom } from "$lib/math-engine/types";
 
 function generateSecondOrderProblem(
 	rootType: WithRandom<SecondOrderRootType>,

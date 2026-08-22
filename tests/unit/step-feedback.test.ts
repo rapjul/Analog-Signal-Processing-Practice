@@ -4,7 +4,7 @@ import {
 	type BaseStepState,
 	createStepState,
 	FEEDBACK_META,
-} from "../../src/lib/components/solvers/base-step-solver.svelte";
+} from "$lib/components/solvers/base-step-solver.svelte";
 
 /**
  * Concrete test implementation of BaseStepSolverState for unit testing.

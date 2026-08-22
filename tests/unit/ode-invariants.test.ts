@@ -13,7 +13,7 @@ import {
 	type OdeProblem,
 	type ResonanceType,
 	type SecondOrderRootType,
-} from "../../src/lib/math-engine/odes/index";
+} from "$lib/math-engine/odes/index";
 
 /**
  * Computes exact input forcing value x(t) at time t.

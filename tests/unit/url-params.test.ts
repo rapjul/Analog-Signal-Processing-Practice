@@ -5,7 +5,7 @@ import {
 	parseIntegerParam,
 	parseSafeSeedParam,
 	sanitizeParamString,
-} from "../../src/lib/problems/url-params";
+} from "$lib/problems/url-params";
 
 describe("url-params utility", () => {
 	describe("sanitizeParamString", () => {

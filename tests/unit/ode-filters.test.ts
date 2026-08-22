@@ -4,7 +4,7 @@ import {
 	type OdeFilterSelections,
 	parseOdeFilters,
 	serializeOdeFilters,
-} from "../../src/lib/problems/ode-filters";
+} from "$lib/problems/ode-filters";
 
 describe("ode-filters module", () => {
 	const defaultFilters: OdeFilterSelections = {

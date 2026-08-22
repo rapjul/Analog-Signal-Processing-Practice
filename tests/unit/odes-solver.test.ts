@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { approximatelyEqual } from "../../src/lib/math-engine/numeric";
+import { approximatelyEqual } from "$lib/math-engine/numeric";
 import {
 	computeParticularSolution,
 	solveCharacteristicEquation,
 	solveHomogeneousConstants,
-} from "../../src/lib/math-engine/odes/solver";
+} from "$lib/math-engine/odes/solver";
 
 describe("LCC ODE Analytical Math Engine", () => {
 	describe("Characteristic Equation & Root Solving", () => {

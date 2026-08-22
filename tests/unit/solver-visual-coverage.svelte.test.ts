@@ -8,20 +8,20 @@ import {
 	createSubStepState,
 	type MultiPartStepState,
 	type SolverVisualStateDescriptor,
-} from "../../src/lib/components/solvers/base-step-solver.svelte";
-import { FourierSeriesStepSolverState } from "../../src/lib/components/solvers/fourier-series-step-solver.svelte";
-import { OdeStepSolverState } from "../../src/lib/components/solvers/ode-step-solver.svelte";
+} from "$lib/components/solvers/base-step-solver.svelte";
+import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
+import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
-} from "../../src/lib/math-engine/fourier-series/index";
+} from "$lib/math-engine/fourier-series/index";
 import {
 	type ForcingType,
 	generateOdeProblem,
 	type LeadingCoefficientType,
 	type ResonanceType,
 	type SecondOrderRootType,
-} from "../../src/lib/math-engine/odes/index";
+} from "$lib/math-engine/odes/index";
 
 /**
  * Introspects any BaseStepSolverState instance to dynamically discover all

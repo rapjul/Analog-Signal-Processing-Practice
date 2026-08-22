@@ -3,8 +3,8 @@ import {
 	type ForcingType,
 	generateOdeProblem,
 	type SecondOrderRootType,
-} from "../../src/lib/math-engine/odes/index";
-import type { WithRandom } from "../../src/lib/math-engine/types";
+} from "$lib/math-engine/odes/index";
+import type { WithRandom } from "$lib/math-engine/types";
 
 /**
  * Helper to generate second-order ODE problem for ITS generator tests.

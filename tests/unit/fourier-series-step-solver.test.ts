@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { FourierSeriesStepSolverState } from "../../src/lib/components/solvers/fourier-series-step-solver.svelte";
-import { generateFourierSeriesProblem } from "../../src/lib/math-engine/fourier-series/index";
+import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
+import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolverState Reactive Controller", () => {
 	it("initializes in pristine state on Step 1", () => {

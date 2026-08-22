@@ -3,8 +3,8 @@ import {
 	computeFourierSeriesCoefficients,
 	generateFourierSeriesItsData,
 	generateFourierSeriesProblem,
-} from "../../src/lib/math-engine/fourier-series/index";
-import { getVanishingCoefficients } from "../../src/lib/math-engine/fourier-series/its-scaffolding/step3-shortcuts";
+} from "$lib/math-engine/fourier-series/index";
+import { getVanishingCoefficients } from "$lib/math-engine/fourier-series/its-scaffolding/step3-shortcuts";
 
 describe("Fourier Series ITS Step Generator Engine", () => {
 	const supportedWaveforms = [
