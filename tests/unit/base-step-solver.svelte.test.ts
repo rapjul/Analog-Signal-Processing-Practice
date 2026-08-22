@@ -123,6 +123,18 @@ class TestSolverState extends BaseStepSolverState {
 	}
 }
 
+/** Minimal subclass using default base visual state methods. */
+class MinimalSolverState extends BaseStepSolverState {
+	get currentStepState() {
+		return undefined;
+	}
+	get activeHints() {
+		return [];
+	}
+	devAutoFillStep() {}
+	reset() {}
+}
+
 describe("BaseStepSolverState Harness & State Management", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -325,30 +337,37 @@ describe("BaseStepSolverState Harness & State Management", () => {
 		expect(window.__signalLabDev).toBeDefined();
 		expect(window.__signalLabDev?.activeSolver).toBe(solver);
 
-		solver.devRevealAllHints();
+		// Execute window harness callbacks
+		window.__signalLabDev?.revealAllHints();
 		expect(solver.hintTier).toBe(2);
 
-		solver.devSimulateMisconception("Custom misconception");
-		expect(solver.currentFeedback).toBe("Custom misconception");
+		window.__signalLabDev?.simulateMisconception("Window misconception");
+		expect(solver.currentFeedback).toBe("Window misconception");
 		expect(solver.currentFeedbackType).toBe("misconception");
 
-		const visualStates = solver.devGetVisualStates();
-		expect(visualStates.length).toBe(2);
-		expect(solver.devGoToVisualState("test.step-02.partA")).toBe(true);
+		const states = window.__signalLabDev?.getVisualStates() ?? [];
+		expect(states.length).toBe(2);
+		expect(
+			window.__signalLabDev?.goToVisualState("test.step-02.partA"),
+		).toBe(true);
 		expect(solver.currentStep).toBe(2);
-		expect(solver.devGoToVisualState("invalid.state")).toBe(false);
+		expect(window.__signalLabDev?.goToVisualState("invalid.state")).toBe(
+			false,
+		);
+
+		window.__signalLabDev?.autoFillStep(1);
 
 		solver.reset();
 		expect(solver.currentStep).toBe(1);
 		expect(solver.isCompleted).toBe(false);
 
-		solver.devSolveAll();
+		window.__signalLabDev?.solveAll();
 		expect(solver.isCompleted).toBe(true);
 		expect(onCompleteMock).toHaveBeenCalled();
 	});
 
 	/**
-	 * Verifies feedback title, icon, and hints fallbacks.
+	 * Verifies fallback feedback properties, empty hint arrays, and base visual state defaults.
 	 */
 	it("handles fallback feedback properties and empty hint arrays safely", () => {
 		const solver = new TestSolverState();
@@ -364,5 +383,9 @@ describe("BaseStepSolverState Harness & State Management", () => {
 
 		solver.devSimulateMisconception();
 		expect(solver.currentFeedback).toBe("");
+
+		const minimal = new MinimalSolverState(1);
+		expect(minimal.devGetVisualStates()).toEqual([]);
+		expect(minimal.devGoToVisualState("any")).toBe(false);
 	});
 });
