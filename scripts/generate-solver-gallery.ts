@@ -562,6 +562,16 @@ const html = `<!doctype html>
 
     const naturalCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
     const subStepOrder = new Map([
+      ['origin-parity', 0],
+      ['half-wave', 1],
+      ['setup-a0', 0],
+      ['setup-an', 1],
+      ['setup-bn', 2],
+      ['setup-Fn', 0],
+      ['eval-a0', 0],
+      ['eval-an', 1],
+      ['eval-bn', 2],
+      ['eval-Fn', 0],
       ['strategy_gate', 0],
       ['factoring_inputs', 1],
       ['quad_classification', 2],
