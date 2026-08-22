@@ -216,11 +216,12 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierStepSolverState(() => problem);
 		solver.advanceToStep(5);
+		const part = problem.itsData.step5.parts[0];
+		solver.checkStep5(null);
+		expect(solver.step5.feedbackType).toBe("validation");
 
 		// Incorrect option (misconception)
-		const wrongOpt = problem.itsData.step5.options.find(
-			(o) => !o.isCorrect,
-		);
+		const wrongOpt = part.options.find((o) => !o.isCorrect);
 		expect(wrongOpt).toBeDefined();
 		if (wrongOpt) {
 			solver.checkStep5(wrongOpt);
@@ -231,9 +232,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		}
 
 		// Correct option
-		const correctOpt = problem.itsData.step5.options.find(
-			(o) => o.isCorrect,
-		);
+		const correctOpt = part.options.find((o) => o.isCorrect);
 		expect(correctOpt).toBeDefined();
 		if (correctOpt) {
 			solver.checkStep5(correctOpt);
@@ -252,11 +251,12 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			() => onComplete,
 		);
 		solver.advanceToStep(6);
+		const part = problem.itsData.step6.parts[0];
+		solver.checkStep6(null);
+		expect(solver.step6.feedbackType).toBe("validation");
 
 		// Incorrect option (misconception)
-		const wrongOpt = problem.itsData.step6.options.find(
-			(o) => !o.isCorrect,
-		);
+		const wrongOpt = part.options.find((o) => !o.isCorrect);
 		expect(wrongOpt).toBeDefined();
 		if (wrongOpt) {
 			solver.checkStep6(wrongOpt);
@@ -267,9 +267,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		}
 
 		// Correct option
-		const correctOpt = problem.itsData.step6.options.find(
-			(o) => o.isCorrect,
-		);
+		const correctOpt = part.options.find((o) => o.isCorrect);
 		expect(correctOpt).toBeDefined();
 		if (correctOpt) {
 			solver.checkStep6(correctOpt);
@@ -280,6 +278,43 @@ describe("FourierStepSolverState Reactive Controller", () => {
 			expect(solver.isCompleted).toBe(false);
 			expect(onComplete).not.toHaveBeenCalled();
 		}
+	});
+
+	it("advances through each even-wave coefficient part independently", () => {
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+			A: 5,
+			T0: 2,
+		});
+		const solver = new FourierStepSolverState(() => problem);
+		solver.advanceToStep(5);
+		expect(solver.step5Progress).toEqual({
+			current: 1,
+			total: 2,
+			label: "Part 1 of 2",
+		});
+
+		const setupA0 = problem.itsData.step5.parts[0].options.find(
+			({ isCorrect }) => isCorrect,
+		);
+		expect(setupA0).toBeDefined();
+		solver.checkStep5(setupA0 ?? null);
+		expect(solver.currentStep).toBe(5);
+		expect(solver.step5.activeSubStepId).toBe("setup-an");
+		expect(solver.step5Progress.label).toBe("Part 2 of 2");
+
+		const setupAn = problem.itsData.step5.parts[1].options.find(
+			({ isCorrect }) => isCorrect,
+		);
+		solver.checkStep5(setupAn ?? null);
+		expect(solver.currentStep).toBe(6);
+
+		for (const part of problem.itsData.step6.parts) {
+			const correct = part.options.find(({ isCorrect }) => isCorrect);
+			solver.checkStep6(correct ?? null);
+		}
+		expect(solver.currentStep).toBe(7);
+		expect(solver.step6.isValid).toBe(true);
 	});
 
 	it("validates Step 7 synthesis and executes onComplete callback", () => {
@@ -318,7 +353,9 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		const problem = generateFourierSeriesProblem("sawtooth");
 
 		// Step 5 option math strings
-		for (const opt of problem.itsData.step5.options) {
+		for (const opt of problem.itsData.step5.parts.flatMap(
+			(part) => part.options,
+		)) {
 			expect(opt.latex).toBeDefined();
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
@@ -330,7 +367,7 @@ describe("FourierStepSolverState Reactive Controller", () => {
 
 		// Step 6 and Step 7 option math strings
 		for (const opt of [
-			...problem.itsData.step6.options,
+			...problem.itsData.step6.parts.flatMap((part) => part.options),
 			...problem.itsData.step7.options,
 		]) {
 			expect(opt.latex).toBeDefined();
@@ -359,8 +396,16 @@ describe("FourierStepSolverState Reactive Controller", () => {
 		expect(solver.step2.selectedHalfWave).toBeNull();
 		expect(solver.step3.selected).toBeNull();
 		expect(solver.step4.selected).toBeNull();
-		expect(solver.step5.selected).toBeNull();
-		expect(solver.step6.selected).toBeNull();
+		expect(
+			Object.values(solver.step5.subSteps).every(
+				(part) => part.selected === null,
+			),
+		).toBe(true);
+		expect(
+			Object.values(solver.step6.subSteps).every(
+				(part) => part.selected === null,
+			),
+		).toBe(true);
 		expect(solver.step7.selected).toBeNull();
 	});
 });

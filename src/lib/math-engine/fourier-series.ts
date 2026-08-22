@@ -183,8 +183,6 @@ export interface FourierItsStep4 extends BaseItsStep {
 export interface FourierItsStep5 extends BaseItsStep {
 	/** Success alert message */
 	successMsg: string;
-	/** Shuffled multiple-choice options with distractors */
-	options: FourierItsOption[];
 	/** Ordered setup parts for the selected primary representation. */
 	parts: FourierCoefficientPart[];
 	/** Coefficients already known from symmetry and not re-queried. */
@@ -193,8 +191,6 @@ export interface FourierItsStep5 extends BaseItsStep {
 
 /** ITS Step 6: Evaluated Fourier coefficient metadata */
 export interface FourierItsStep6 extends BaseItsStep {
-	/** Shuffled multiple-choice options with distractors */
-	options: FourierItsOption[];
 	/** Ordered evaluation parts matching Step 5. */
 	parts: FourierCoefficientPart[];
 	/** Coefficients already known from symmetry and not re-queried. */
@@ -203,8 +199,53 @@ export interface FourierItsStep6 extends BaseItsStep {
 
 /** ITS Step 7: Final series summation evaluation metadata */
 export interface FourierItsStep7 extends BaseItsStep {
+	/** Representation synthesized by the required workflow. */
+	form: FourierPrimaryForm;
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
+}
+
+/** Builds four full-series choices that differ without changing visual shape. */
+function buildPrimarySeriesOptions(
+	correct: string,
+	form: FourierPrimaryForm,
+): FourierItsOption[] {
+	const signDistractor = correct
+		.replace("x(t)=", "x(t)=-")
+		.replace("x(t) =", "x(t) = -");
+	const kernelDistractor =
+		form === "exp"
+			? correct.replace("e^{j n", "e^{-j n")
+			: correct.includes("\\sin\\left(")
+				? correct.replaceAll("\\sin\\left(", "\\cos\\left(")
+				: correct.replaceAll("\\cos\\left(", "\\sin\\left(");
+	const scaleDistractor = correct.replace("\\frac{", "\\frac{1}{2}\\frac{");
+	return [
+		{ id: "series-correct", latex: correct, isCorrect: true },
+		{
+			id: "series-sign",
+			latex: signDistractor,
+			isCorrect: false,
+			feedback:
+				"Sign Error: Preserve the signs of the evaluated coefficients during synthesis.",
+		},
+		{
+			id: "series-kernel",
+			latex: kernelDistractor,
+			isCorrect: false,
+			feedback:
+				form === "exp"
+					? "Kernel Sign Error: Synthesis uses $e^{j n \\omega_0 t}$ after analysis used the negative exponent."
+					: "Kernel Error: Match each evaluated coefficient family to its sine or cosine basis function.",
+		},
+		{
+			id: "series-scale",
+			latex: scaleDistractor,
+			isCorrect: false,
+			feedback:
+				"Scale Factor Error: The evaluated coefficients already include the Fourier normalization.",
+		},
+	];
 }
 
 /** Complete ITS problem data container */
@@ -1061,7 +1102,7 @@ export function generateFourierItsData(
 	random: RandomSource = Math.random,
 	primaryForm?: FourierPrimaryForm,
 ): FourierItsData {
-	const { A, T0, w0, symmetry } = coeffs;
+	const { T0, w0, symmetry } = coeffs;
 	const w0Latex = T0 === 2 ? "\\pi" : "\\frac{\\pi}{2}";
 
 	// Step 1: Period and Frequency
@@ -1185,7 +1226,6 @@ export function generateFourierItsData(
 	const step5: FourierItsStep5 = {
 		successMsg:
 			"Correct integral formulation. The scale, kernel, and non-zero piecewise intervals all match the waveform.",
-		options: coefficientParts.setup[0].options,
 		parts: coefficientParts.setup,
 		carriedCoefficients,
 		hints: [
@@ -1197,7 +1237,6 @@ export function generateFourierItsData(
 
 	// Step 6: Harmonic Coefficient Evaluation
 	const step6: FourierItsStep6 = {
-		options: coefficientParts.evaluation[0].options,
 		parts: coefficientParts.evaluation,
 		carriedCoefficients,
 		hints: [
@@ -1207,40 +1246,23 @@ export function generateFourierItsData(
 		],
 	};
 
-	// Step 7: Final Trigonometric and Exponential Series
-	const synthesisLatex = `\\begin{gathered}${derivation.finalTrigLatex}\\\\${derivation.finalExpLatex}\\end{gathered}`;
+	// Step 7: Final series in the selected primary representation
+	const synthesisLatex =
+		correctForm === "trig"
+			? derivation.finalTrigLatex
+			: derivation.finalExpLatex;
 	const step7: FourierItsStep7 = {
+		form: correctForm,
 		options: shuffleArray(
-			[
-				{ id: "c1", latex: synthesisLatex, isCorrect: true },
-				{
-					id: "d1",
-					latex: `x(t)=${A}+\\left(${derivation.finalTrigLatex.replace("x(t) = ", "")}\\right)`,
-					isCorrect: false,
-					feedback:
-						"DC Offset Error: This adds an extra constant that is not present in the evaluated $a_0/2$ term.",
-				},
-				{
-					id: "d2",
-					latex: `x(t)=\\frac{1}{2}\\left(${derivation.finalTrigLatex.replace("x(t) = ", "")}\\right)`,
-					isCorrect: false,
-					feedback:
-						"Scale Factor Error: The evaluated $a_n$ and $b_n$ already include the Fourier normalization.",
-				},
-				{
-					id: "d3",
-					latex: `${derivation.finalTrigLatex}+${A}\\sin(2\\omega_0t)`,
-					isCorrect: false,
-					feedback:
-						"Spurious Harmonic: The added sinusoid has no corresponding evaluated Fourier coefficient.",
-				},
-			],
+			buildPrimarySeriesOptions(synthesisLatex, correctForm),
 			random,
 		),
 		hints: [
 			"Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
 			"Keep only harmonic indices whose evaluated coefficients are non-zero.",
-			"For the exponential form, synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n \\omega_0 t}$.",
+			correctForm === "exp"
+				? "Synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n \\omega_0 t}$."
+				: "Synthesize with $x(t)=a_0/2+\\sum_{n=1}^{\\infty}[a_n\\cos(n\\omega_0t)+b_n\\sin(n\\omega_0t)]$.",
 		],
 	};
 
@@ -1408,10 +1430,16 @@ export function generateFourierSeriesProblem(
 			latex: `a_0=\\frac{2}{T_0}\\int_{T_0}x(t)\\,dt=${derivation.a0Latex},\\qquad F_0=\\frac{a_0}{2}`,
 		},
 		{
-			title: "Trigonometric and Exponential Synthesis",
+			title:
+				itsData.step4.correctForm === "trig"
+					? "Trigonometric Synthesis"
+					: "Exponential Synthesis",
 			description:
-				"Insert only the evaluated non-zero coefficients into both canonical Fourier representations.",
-			latex: `\\begin{gathered}${derivation.finalTrigLatex}\\\\${derivation.finalExpLatex}\\end{gathered}`,
+				"Insert only the evaluated non-zero coefficients into the selected primary Fourier representation.",
+			latex:
+				itsData.step4.correctForm === "trig"
+					? derivation.finalTrigLatex
+					: derivation.finalExpLatex,
 		},
 	];
 

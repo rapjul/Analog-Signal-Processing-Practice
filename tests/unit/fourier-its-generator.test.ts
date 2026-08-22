@@ -26,7 +26,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		["triangle_odd", "8(1)", "\\sin\\left(\\frac{n\\pi}{2}"],
 		["triangle_even", "8(1)", "n^2\\pi^2"],
 		["sawtooth", "(-1)^{n+1}", "2(1)"],
-		["half_wave_sine", "\\frac{1}{2}\\sin", "1-4k^2"],
+		["half_wave_sine", "F_n", "n=-1"],
 		["full_wave_sine", "4n^2-1", "\\frac{2(1)}{\\pi}"],
 	] as const)(
 		"builds the exact final series for %s",
@@ -71,7 +71,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		// Step 5
 		expect(itsData.step5.parts).toHaveLength(1);
 		expect(itsData.step5.parts[0].target).toBe("bn");
-		expect(itsData.step5.options.length).toBe(4);
+		expect(itsData.step5.parts[0].options.length).toBe(4);
 		const correctOpt5 = itsData.step5.parts[0].options.find(
 			(o) => o.isCorrect,
 		);
@@ -81,7 +81,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		// Step 6: one evaluated coefficient family
 		expect(itsData.step6.parts).toHaveLength(1);
 		expect(itsData.step6.parts[0].target).toBe("bn");
-		expect(itsData.step6.options.length).toBe(4);
+		expect(itsData.step6.parts[0].options.length).toBe(4);
 		const correctOpt6 = itsData.step6.parts[0].options.find(
 			(o) => o.isCorrect,
 		);
@@ -97,7 +97,8 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step7.options.length).toBe(4);
 		const correctOpt7 = itsData.step7.options.find((o) => o.isCorrect);
 		expect(correctOpt7?.latex).toContain("x(t)");
-		expect(correctOpt7?.latex).toContain("F_n");
+		expect(correctOpt7?.latex).not.toContain("F_n");
+		expect(itsData.step7.form).toBe("trig");
 	});
 
 	it.each(supportedWaveforms)(

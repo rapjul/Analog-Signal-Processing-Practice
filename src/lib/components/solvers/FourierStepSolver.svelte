@@ -29,6 +29,16 @@
 		() => problem,
 		() => onComplete,
 	);
+	let activeStep5Part = $derived(
+		problem.itsData.step5.parts.find(
+			({ id }) => id === solver.step5.activeSubStepId,
+		),
+	);
+	let activeStep6Part = $derived(
+		problem.itsData.step6.parts.find(
+			({ id }) => id === solver.step6.activeSubStepId,
+		),
+	);
 
 	// Reset state when problem instance changes
 	let lastProblemId = "";
@@ -483,16 +493,35 @@
 
 		{#if solver.currentStep === 5}
 			<div class="step-body">
+				<div class="substep-heading">
+					<strong>{activeStep5Part?.title}</strong>
+					<span>{solver.step5Progress.label}</span>
+				</div>
+				{#if problem.itsData.step5.carriedCoefficients.length > 0}
+					<div class="carried-coefficients">
+						{#each problem.itsData.step5.carriedCoefficients as carried}
+							<div>
+								<MathText
+									text={`$${carried.latex}$ — ${carried.reason}`}
+								/>
+							</div>
+						{/each}
+					</div>
+				{/if}
 				<p class="step-prompt">
-					Select the correct integral formulation to compute the
-					non-zero Fourier coefficients:
+					<MathText text={activeStep5Part?.prompt ?? ""} />
 				</p>
-				<div class="mcq-cards-grid">
-					{#each problem.itsData.step5.options as opt}
+				<div
+					class="mcq-cards-grid"
+					data-testid="fourier-step5-options"
+				>
+					{#each activeStep5Part?.options ?? [] as opt}
 						<button
 							type="button"
 							class="mcq-card"
-							class:selected={solver.step5.selected === opt.id}
+							class:selected={solver.step5.subSteps[
+								solver.step5.activeSubStepId
+							]?.selected === opt.id}
 							onclick={() => solver.checkStep5(opt)}
 						>
 							<MathBlock
@@ -527,17 +556,35 @@
 
 		{#if solver.currentStep === 6}
 			<div class="step-body">
+				<div class="substep-heading">
+					<strong>{activeStep6Part?.title}</strong>
+					<span>{solver.step6Progress.label}</span>
+				</div>
+				{#if problem.itsData.step6.carriedCoefficients.length > 0}
+					<div class="carried-coefficients">
+						{#each problem.itsData.step6.carriedCoefficients as carried}
+							<div>
+								<MathText
+									text={`$${carried.latex}$ — ${carried.reason}`}
+								/>
+							</div>
+						{/each}
+					</div>
+				{/if}
 				<p class="step-prompt">
-					<MathText
-						text={String.raw`Select the coefficient set obtained after applying the integration bounds and simplifying the harmonic-index factors:`}
-					/>
+					<MathText text={activeStep6Part?.prompt ?? ""} />
 				</p>
-				<div class="mcq-cards-grid">
-					{#each problem.itsData.step6.options as opt}
+				<div
+					class="mcq-cards-grid"
+					data-testid="fourier-step6-options"
+				>
+					{#each activeStep6Part?.options ?? [] as opt}
 						<button
 							type="button"
 							class="mcq-card"
-							class:selected={solver.step6.selected === opt.id}
+							class:selected={solver.step6.subSteps[
+								solver.step6.activeSubStepId
+							]?.selected === opt.id}
 							onclick={() => solver.checkStep6(opt)}
 						>
 							<MathBlock
@@ -574,7 +621,7 @@
 			<div class="step-body">
 				<p class="step-prompt">
 					<MathText
-						text={String.raw`Select the matching trigonometric and exponential Fourier series for $x(t)$:`}
+						text={`Select the final ${problem.itsData.step7.form === "trig" ? "trigonometric" : "exponential"} Fourier series for $x(t)$:`}
 					/>
 				</p>
 				<div class="mcq-cards-grid">
@@ -699,6 +746,31 @@
 		color: var(--text-primary);
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+
+	.substep-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		color: var(--text-primary);
+	}
+
+	.substep-heading span {
+		color: var(--text-secondary);
+		font-size: var(--text-xs);
+		white-space: nowrap;
+	}
+
+	.carried-coefficients {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		padding: 0.65rem 0.75rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		color: var(--text-secondary);
+		font-size: var(--text-xs);
 	}
 
 	.step-summary {

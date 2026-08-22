@@ -266,11 +266,11 @@ describe("Fourier Series Math Engine", () => {
 			expect(first.id).toBe("fs_square_42");
 			expect(second.coeffs.A).toBe(first.coeffs.A);
 			expect(second.coeffs.T0).toBe(first.coeffs.T0);
-			expect(second.itsData.step5.options).toEqual(
-				first.itsData.step5.options,
+			expect(second.itsData.step5.parts).toEqual(
+				first.itsData.step5.parts,
 			);
-			expect(second.itsData.step6.options).toEqual(
-				first.itsData.step6.options,
+			expect(second.itsData.step6.parts).toEqual(
+				first.itsData.step6.parts,
 			);
 			expect(second.itsData.step7.options).toEqual(
 				first.itsData.step7.options,

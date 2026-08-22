@@ -232,6 +232,34 @@ test.describe("Fourier Series Module", () => {
 		}
 	});
 
+	test("advances even-wave coefficient work as separate setup parts", async ({
+		page,
+	}) => {
+		await page.goto("/fourier-series?waveform=square_even&seed=10");
+		await page.waitForLoadState("networkidle");
+		const prepared = await page.evaluate(
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"fourier.step-05.integral-setup",
+				) ?? false,
+		);
+		expect(prepared).toBe(true);
+
+		const step5 = page.locator(".step-card").nth(4);
+		await expect(step5).toContainText("Part 1 of 2");
+		await expect(step5).toContainText("Set Up DC Coefficient");
+		await expect(step5.locator(".carried-coefficients")).toContainText(
+			"Even symmetry eliminates every sine coefficient",
+		);
+
+		const options = step5.locator(
+			'[data-testid="fourier-step5-options"] button',
+		);
+		await expect(options).toHaveCount(4);
+		await page.evaluate(() => window.__signalLabDev?.autoFillStep(5));
+		await expect(page.locator(".step-card").nth(5)).toHaveClass(/active/);
+	});
+
 	test("shows the complete solved derivation in one native disclosure", async ({
 		page,
 	}) => {
