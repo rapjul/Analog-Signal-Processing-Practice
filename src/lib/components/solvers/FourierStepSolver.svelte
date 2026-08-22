@@ -401,36 +401,46 @@
 				<div class="button-grid-taxonomic">
 					<button
 						type="button"
-						class="choice-btn"
+						class="choice-btn representation-choice"
 						class:selected={solver.step4.selected === "trig"}
 						onclick={() => solver.checkStep4("trig")}
 					>
 						<strong>Trigonometric Form</strong>
-						<span class="choice-sub">
+						<div class="choice-sub representation-content">
 							<MathText
 								text={"Ideal when symmetries eliminate $a_n$ or $b_n$"}
 							/>
-						</span>
+							<MathBlock
+								math={"a_n \\cos(n \\omega_0 t) + b_n \\sin(n \\omega_0 t)"}
+								compact={true}
+								hideHeader={true}
+							/>
+						</div>
 					</button>
 					<button
 						type="button"
-						class="choice-btn"
+						class="choice-btn representation-choice"
 						class:selected={solver.step4.selected === "exp"}
 						onclick={() => solver.checkStep4("exp")}
 					>
 						<strong>Exponential Form</strong>
-						<span class="choice-sub">
+						<div class="choice-sub representation-content">
 							<MathText text={"Single integral for $F_n$"} />
-						</span>
+							<MathBlock
+								math={"F_n e^{j n \\omega_0 t}"}
+								compact={true}
+								hideHeader={true}
+							/>
+						</div>
 					</button>
 					<button
 						type="button"
-						class="choice-btn compact-form-choice"
+						class="choice-btn representation-choice"
 						class:selected={solver.step4.selected === "compact"}
 						onclick={() => solver.checkStep4("compact")}
 					>
 						<strong>Compact Harmonic Form</strong>
-						<div class="choice-sub compact-form-content">
+						<div class="choice-sub representation-content">
 							<span>Amplitude-Phase</span>
 							<MathBlock
 								math={"A_n \\cos(n \\omega_0 t + \\theta_n)"}
@@ -829,25 +839,25 @@
 		color: var(--text-secondary);
 	}
 
-	.compact-form-choice {
-		align-items: stretch;
-	}
-
-	.compact-form-content {
+	.representation-content {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		justify-content: center;
+		align-items: flex-start;
 		gap: 0.25rem;
 		width: 100%;
-		text-align: center;
+		text-align: left;
 	}
 
-	.compact-form-content :global(.math-block) {
+	.representation-content :global(.math-block) {
 		width: 100%;
 		margin: 0;
 		background: transparent;
 		border: none;
+	}
+
+	.representation-content :global(.katex-display),
+	.representation-content :global(.katex-display > .katex) {
+		text-align: left;
 	}
 
 	/* ── Multiple choice math cards ────────────────────────── */

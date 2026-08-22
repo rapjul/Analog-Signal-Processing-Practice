@@ -205,7 +205,7 @@ test.describe("Fourier Series Module", () => {
 		}
 	});
 
-	test("centers compact-form math without nested interactive controls", async ({
+	test("left-aligns an example formula in every representation choice", async ({
 		page,
 	}) => {
 		const prepared = await page.evaluate(
@@ -216,22 +216,19 @@ test.describe("Fourier Series Module", () => {
 		);
 		expect(prepared).toBe(true);
 
-		const choice = page.locator(".compact-form-choice");
-		const mathBlock = choice.locator(".math-block");
-		await expect(choice).toBeVisible();
-		await expect(mathBlock).toBeVisible();
-		await expect(choice.locator("button")).toHaveCount(0);
+		const choices = page.locator(".representation-choice");
+		await expect(choices).toHaveCount(3);
+		await expect(choices.locator(".math-block")).toHaveCount(3);
+		await expect(choices.locator("button")).toHaveCount(0);
+		await expect(choices.locator(".katex-error")).toHaveCount(0);
 
-		const [choiceBox, mathBox] = await Promise.all([
-			choice.boundingBox(),
-			mathBlock.boundingBox(),
-		]);
-		expect(choiceBox).not.toBeNull();
-		expect(mathBox).not.toBeNull();
-		if (choiceBox && mathBox) {
-			const choiceCenter = choiceBox.x + choiceBox.width / 2;
-			const mathCenter = mathBox.x + mathBox.width / 2;
-			expect(Math.abs(choiceCenter - mathCenter)).toBeLessThanOrEqual(1);
+		for (let index = 0; index < 3; index++) {
+			const choice = choices.nth(index);
+			await expect(choice.locator(".math-block")).toBeVisible();
+			const alignment = await choice
+				.locator(".math-block .katex-display > .katex")
+				.evaluate((element) => getComputedStyle(element).textAlign);
+			expect(alignment).toBe("left");
 		}
 	});
 
