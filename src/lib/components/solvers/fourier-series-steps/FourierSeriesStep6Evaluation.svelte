@@ -63,6 +63,29 @@
 	summaryLatex={"\\text{Harmonic Coefficients Evaluated}"}
 >
 	<div class="step-body">
+		{#each problem.itsData.step6.parts.slice(0, activeStep6Index) as prevPart, idx}
+			<div class="subpart-block subpart-done">
+				<div class="subpart-header">
+					<span class="subpart-badge"
+						>Part 6{String.fromCharCode(65 + idx)}</span
+					>
+					<h4 class="subpart-title">
+						<MathText text={prevPart.title} />
+					</h4>
+					<span class="substep-check-badge">
+						<span class="check-icon">✓</span> Verified
+					</span>
+				</div>
+				<div class="substep-verified-line">
+					<MathBlock
+						math={prevPart.resultLatex}
+						compact={true}
+						hideHeader={true}
+					/>
+				</div>
+			</div>
+		{/each}
+
 		<div class="subpart-block">
 			<div class="subpart-header">
 				<span class="subpart-badge"
@@ -151,6 +174,10 @@
 		min-width: 0;
 	}
 
+	.subpart-done {
+		opacity: 0.92;
+	}
+
 	.subpart-header {
 		display: flex;
 		align-items: center;
@@ -177,6 +204,29 @@
 		margin: 0;
 		overflow-wrap: anywhere;
 		word-break: break-word;
+	}
+
+	.substep-check-badge {
+		font-size: var(--text-xs);
+		font-weight: 700;
+		color: var(--color-success, #10b981);
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
+	}
+
+	.substep-verified-line {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		font-weight: 600;
+		padding: 0.25rem 0;
+	}
+
+	.check-icon {
+		color: var(--color-success);
+		font-weight: 800;
 	}
 
 	.carried-coefficients {

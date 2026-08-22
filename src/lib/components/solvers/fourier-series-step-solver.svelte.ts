@@ -516,7 +516,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 
 	/** Named visual states for the seven-step Fourier Series solver. */
 	override devGetVisualStates(): SolverVisualStateDescriptor[] {
-		return [
+		const states: SolverVisualStateDescriptor[] = [
 			{
 				id: "fourier.step-01.period-frequency",
 				label: "Step 1 · Period and Frequency",
@@ -525,22 +525,23 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			},
 			{
 				id: "fourier.step-02.symmetry",
-				label: "Step 2 · Origin Parity",
+				label: "Step 2A · Origin Parity",
 				step: 2,
 				subStep: "origin-parity",
 				kind: "interactive",
 			},
 			{
 				id: "fourier.step-02.half-wave-symmetry",
-				label: "Step 2 · Half-Wave Symmetry",
+				label: "Step 2B · Half-Wave Symmetry",
 				step: 2,
 				subStep: "half-wave",
 				kind: "interactive",
 			},
 			{
 				id: "fourier.step-02.symmetry.misconception",
-				label: "Step 2 · Symmetry Misconception",
+				label: "Step 2A · Symmetry Misconception",
 				step: 2,
+				subStep: "origin-parity",
 				kind: "diagnostic",
 			},
 			{
@@ -555,31 +556,106 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 				step: 4,
 				kind: "interactive",
 			},
-			{
-				id: "fourier.step-05.integral-setup",
-				label: "Step 5 · Integral Setup",
-				step: 5,
-				kind: "interactive",
-			},
-			{
-				id: "fourier.step-05.integral-setup.hints",
-				label: "Step 5 · Integral Setup · All Hints",
-				step: 5,
-				kind: "hint",
-			},
-			{
-				id: "fourier.step-06.coefficient-evaluation",
-				label: "Step 6 · Coefficient Evaluation",
-				step: 6,
-				kind: "interactive",
-			},
-			{
-				id: "fourier.step-07.final-series",
-				label: "Step 7 · Final Series",
-				step: 7,
-				kind: "interactive",
-			},
 		];
+
+		const s5Parts = this.problem.itsData.step5.parts;
+		if (s5Parts.length > 1) {
+			s5Parts.forEach((part, idx) => {
+				const partLetter = String.fromCharCode(65 + idx);
+				const id =
+					idx === 0
+						? "fourier.step-05.integral-setup"
+						: `fourier.step-05.integral-setup-${part.target}`;
+				states.push(
+					{
+						id,
+						label: `Step 5${partLetter} · ${part.title}`,
+						step: 5,
+						subStep: part.id,
+						kind: "interactive",
+					},
+					{
+						id: `${id}.hints`,
+						label: `Step 5${partLetter} · ${part.title} · All Hints`,
+						step: 5,
+						subStep: part.id,
+						kind: "hint",
+					},
+				);
+			});
+		} else if (s5Parts.length === 1) {
+			const part = s5Parts[0];
+			states.push(
+				{
+					id: "fourier.step-05.integral-setup",
+					label: `Step 5 · ${part.title}`,
+					step: 5,
+					subStep: part.id,
+					kind: "interactive",
+				},
+				{
+					id: "fourier.step-05.integral-setup.hints",
+					label: `Step 5 · ${part.title} · All Hints`,
+					step: 5,
+					subStep: part.id,
+					kind: "hint",
+				},
+			);
+		}
+
+		const s6Parts = this.problem.itsData.step6.parts;
+		if (s6Parts.length > 1) {
+			s6Parts.forEach((part, idx) => {
+				const partLetter = String.fromCharCode(65 + idx);
+				const id =
+					idx === 0
+						? "fourier.step-06.coefficient-evaluation"
+						: `fourier.step-06.coefficient-evaluation-${part.target}`;
+				states.push(
+					{
+						id,
+						label: `Step 6${partLetter} · ${part.title}`,
+						step: 6,
+						subStep: part.id,
+						kind: "interactive",
+					},
+					{
+						id: `${id}.hints`,
+						label: `Step 6${partLetter} · ${part.title} · All Hints`,
+						step: 6,
+						subStep: part.id,
+						kind: "hint",
+					},
+				);
+			});
+		} else if (s6Parts.length === 1) {
+			const part = s6Parts[0];
+			states.push(
+				{
+					id: "fourier.step-06.coefficient-evaluation",
+					label: `Step 6 · ${part.title}`,
+					step: 6,
+					subStep: part.id,
+					kind: "interactive",
+				},
+				{
+					id: "fourier.step-06.coefficient-evaluation.hints",
+					label: `Step 6 · ${part.title} · All Hints`,
+					step: 6,
+					subStep: part.id,
+					kind: "hint",
+				},
+			);
+		}
+
+		states.push({
+			id: "fourier.step-07.final-series",
+			label: "Step 7 · Final Series",
+			step: 7,
+			kind: "interactive",
+		});
+
+		return states;
 	}
 
 	/** Advances through complete parent steps using the real validation methods. */
@@ -593,6 +669,36 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			guard += 1;
 		}
 		return this.currentStep === targetStep;
+	}
+
+	/** Advances through completed Step 5 parts until the target subpart is active. */
+	private devPrepareStep5SubStep(targetSubStepId: string): boolean {
+		if (!this.devPrepareParentStep(5)) return false;
+		const parts = this.problem.itsData.step5.parts;
+		const targetIndex = parts.findIndex(({ id }) => id === targetSubStepId);
+		if (targetIndex === -1) return false;
+		for (let i = 0; i < targetIndex; i++) {
+			const part = parts[i];
+			const opt = part.options.find((o) => o.isCorrect);
+			if (!opt) return false;
+			this.checkStep5(opt);
+		}
+		return this.step5.activeSubStepId === targetSubStepId;
+	}
+
+	/** Advances through completed Step 6 parts until the target subpart is active. */
+	private devPrepareStep6SubStep(targetSubStepId: string): boolean {
+		if (!this.devPrepareParentStep(6)) return false;
+		const parts = this.problem.itsData.step6.parts;
+		const targetIndex = parts.findIndex(({ id }) => id === targetSubStepId);
+		if (targetIndex === -1) return false;
+		for (let i = 0; i < targetIndex; i++) {
+			const part = parts[i];
+			const opt = part.options.find((o) => o.isCorrect);
+			if (!opt) return false;
+			this.checkStep6(opt);
+		}
+		return this.step6.activeSubStepId === targetSubStepId;
 	}
 
 	/** Resets and prepares one named Fourier visual state deterministically. */
@@ -629,19 +735,65 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 				return this.devPrepareParentStep(3);
 			case "fourier.step-04.representation-form":
 				return this.devPrepareParentStep(4);
-			case "fourier.step-05.integral-setup":
-				return this.devPrepareParentStep(5);
-			case "fourier.step-05.integral-setup.hints":
-				if (!this.devPrepareParentStep(5)) return false;
-				this.devRevealAllHints();
-				return true;
-			case "fourier.step-06.coefficient-evaluation":
-				return this.devPrepareParentStep(6);
 			case "fourier.step-07.final-series":
 				return this.devPrepareParentStep(7);
 			default:
-				return false;
+				break;
 		}
+
+		if (stateId.startsWith("fourier.step-05.")) {
+			const isHints = stateId.endsWith(".hints");
+			const baseId = isHints ? stateId.slice(0, -6) : stateId;
+			const parts = this.problem.itsData.step5.parts;
+			let targetSubStepId = parts[0]?.id;
+			if (baseId !== "fourier.step-05.integral-setup") {
+				const suffix = baseId.replace(
+					"fourier.step-05.integral-setup-",
+					"",
+				);
+				const matchedPart = parts.find(
+					(p) => p.target === suffix || p.id === suffix,
+				);
+				if (!matchedPart) return false;
+				targetSubStepId = matchedPart.id;
+			}
+			if (
+				!targetSubStepId ||
+				!this.devPrepareStep5SubStep(targetSubStepId)
+			) {
+				return false;
+			}
+			if (isHints) this.devRevealAllHints();
+			return true;
+		}
+
+		if (stateId.startsWith("fourier.step-06.")) {
+			const isHints = stateId.endsWith(".hints");
+			const baseId = isHints ? stateId.slice(0, -6) : stateId;
+			const parts = this.problem.itsData.step6.parts;
+			let targetSubStepId = parts[0]?.id;
+			if (baseId !== "fourier.step-06.coefficient-evaluation") {
+				const suffix = baseId.replace(
+					"fourier.step-06.coefficient-evaluation-",
+					"",
+				);
+				const matchedPart = parts.find(
+					(p) => p.target === suffix || p.id === suffix,
+				);
+				if (!matchedPart) return false;
+				targetSubStepId = matchedPart.id;
+			}
+			if (
+				!targetSubStepId ||
+				!this.devPrepareStep6SubStep(targetSubStepId)
+			) {
+				return false;
+			}
+			if (isHints) this.devRevealAllHints();
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

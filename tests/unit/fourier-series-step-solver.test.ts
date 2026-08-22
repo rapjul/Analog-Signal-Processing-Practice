@@ -455,17 +455,58 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		expect(solver.step7.selected).toBeNull();
 	});
 
-	it("returns and navigates through all dev visual states deterministically", () => {
-		const problem = generateFourierSeriesProblem("square_even", {
+	it("returns and navigates through all dev visual states deterministically for multi-part and single-part problems", () => {
+		const problemEven = generateFourierSeriesProblem("square_even", {
 			seed: 10,
 			A: 5,
 			T0: 2,
 		});
-		const solver = new FourierSeriesStepSolverState(() => problem);
+		const solverEven = new FourierSeriesStepSolverState(() => problemEven);
 
-		const visualStates = solver.devGetVisualStates();
-		expect(visualStates.length).toBe(10);
-		expect(visualStates.map((s) => s.id)).toEqual([
+		const visualStatesEven = solverEven.devGetVisualStates();
+		expect(visualStatesEven.length).toBe(15);
+		expect(visualStatesEven.map((s) => s.id)).toEqual([
+			"fourier.step-01.period-frequency",
+			"fourier.step-02.symmetry",
+			"fourier.step-02.half-wave-symmetry",
+			"fourier.step-02.symmetry.misconception",
+			"fourier.step-03.vanishing-coefficients",
+			"fourier.step-04.representation-form",
+			"fourier.step-05.integral-setup",
+			"fourier.step-05.integral-setup.hints",
+			"fourier.step-05.integral-setup-an",
+			"fourier.step-05.integral-setup-an.hints",
+			"fourier.step-06.coefficient-evaluation",
+			"fourier.step-06.coefficient-evaluation.hints",
+			"fourier.step-06.coefficient-evaluation-an",
+			"fourier.step-06.coefficient-evaluation-an.hints",
+			"fourier.step-07.final-series",
+		]);
+
+		// Verify labels
+		expect(visualStatesEven[1].label).toBe("Step 2A · Origin Parity");
+		expect(visualStatesEven[2].label).toBe("Step 2B · Half-Wave Symmetry");
+		expect(visualStatesEven[6].label).toContain("Step 5A");
+		expect(visualStatesEven[8].label).toContain("Step 5B");
+		expect(visualStatesEven[10].label).toContain("Step 6A");
+		expect(visualStatesEven[12].label).toContain("Step 6B");
+
+		// Test each visual state navigation on even problem
+		for (const state of visualStatesEven) {
+			const success = solverEven.devGoToVisualState(state.id);
+			expect(success).toBe(true);
+		}
+
+		// Single-part problem (odd symmetry -> bn only)
+		const problemOdd = generateFourierSeriesProblem("square", {
+			seed: 1,
+			A: 2,
+			T0: 2,
+		});
+		const solverOdd = new FourierSeriesStepSolverState(() => problemOdd);
+		const visualStatesOdd = solverOdd.devGetVisualStates();
+		expect(visualStatesOdd.length).toBe(11);
+		expect(visualStatesOdd.map((s) => s.id)).toEqual([
 			"fourier.step-01.period-frequency",
 			"fourier.step-02.symmetry",
 			"fourier.step-02.half-wave-symmetry",
@@ -475,17 +516,17 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			"fourier.step-05.integral-setup",
 			"fourier.step-05.integral-setup.hints",
 			"fourier.step-06.coefficient-evaluation",
+			"fourier.step-06.coefficient-evaluation.hints",
 			"fourier.step-07.final-series",
 		]);
 
-		// Test each visual state navigation
-		for (const state of visualStates) {
-			const success = solver.devGoToVisualState(state.id);
+		for (const state of visualStatesOdd) {
+			const success = solverOdd.devGoToVisualState(state.id);
 			expect(success).toBe(true);
 		}
 
 		// Test invalid visual state
-		expect(solver.devGoToVisualState("invalid.state.id")).toBe(false);
+		expect(solverEven.devGoToVisualState("invalid.state.id")).toBe(false);
 	});
 
 	it("executes devSolveAll, devRevealAllHints, and devSimulateMisconception", () => {
