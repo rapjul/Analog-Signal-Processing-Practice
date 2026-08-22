@@ -17,6 +17,7 @@
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 	import type { FourierSeriesStepSolverState } from "../fourier-series-step-solver.svelte";
 
@@ -64,40 +65,30 @@
 >
 	<div class="step-body">
 		{#each problem.itsData.step6.parts.slice(0, activeStep6Index) as prevPart, idx}
-			<div class="subpart-block subpart-done">
-				<div class="subpart-header">
-					<span class="subpart-badge"
-						>Part 6{String.fromCharCode(65 + idx)}</span
-					>
-					<h4 class="subpart-title">
-						<MathText text={prevPart.title} />
-					</h4>
-					<span class="substep-check-badge">
-						<span class="check-icon">✓</span> Verified
-					</span>
-				</div>
-				<div class="substep-verified-line">
-					<MathBlock
-						math={prevPart.resultLatex}
-						compact={true}
-						hideHeader={true}
-					/>
-				</div>
-			</div>
+			<SubStepBlock
+				badge={`Part 6${String.fromCharCode(65 + idx)}`}
+				title={prevPart.title}
+				isCompleted={true}
+			>
+				{#snippet summarySnippet()}
+					<div class="substep-verified-line">
+						<MathBlock
+							math={prevPart.resultLatex}
+							compact={true}
+							hideHeader={true}
+						/>
+					</div>
+				{/snippet}
+			</SubStepBlock>
 		{/each}
 
-		<div class="subpart-block">
-			<div class="subpart-header">
-				<span class="subpart-badge"
-					>Part 6{String.fromCharCode(
-						65 + Math.max(0, activeStep6Index),
-					)}</span
-				>
-				<h4 class="subpart-title">
-					<MathText text={activeStep6Part?.title ?? ""} />
-				</h4>
-			</div>
-
+		<SubStepBlock
+			badge={`Part 6${String.fromCharCode(
+				65 + Math.max(0, activeStep6Index),
+			)}`}
+			title={activeStep6Part?.title ?? ""}
+			isCompleted={false}
+		>
 			{#if problem.itsData.step6.carriedCoefficients.length > 0}
 				<div class="carried-coefficients">
 					{#each problem.itsData.step6.carriedCoefficients as carried}
@@ -134,7 +125,7 @@
 					</button>
 				{/each}
 			</div>
-		</div>
+		</SubStepBlock>
 
 		<!-- Feedback & Progressive Hints -->
 		<StepFeedback {solver} />
@@ -164,69 +155,13 @@
 		overflow-wrap: anywhere;
 	}
 
-	/* ── Subpart blocks & headers ──────────────────────────── */
-
-	.subpart-block {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		width: 100%;
-		min-width: 0;
-	}
-
-	.subpart-done {
-		opacity: 0.92;
-	}
-
-	.subpart-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.subpart-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		padding: 0.15rem 0.45rem;
-		background: var(--accent-bg);
-		color: var(--accent-primary);
-		border-radius: var(--radius-sm, 4px);
-		text-transform: uppercase;
-		letter-spacing: 0.02em;
-		flex-shrink: 0;
-	}
-
-	.subpart-title {
-		font-size: var(--text-sm);
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
-		overflow-wrap: anywhere;
-		word-break: break-word;
-	}
-
-	.substep-check-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		color: var(--color-success, #10b981);
-		margin-left: auto;
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		white-space: nowrap;
-	}
+	/* ── Subpart verified lines & carried coefficients ─────── */
 
 	.substep-verified-line {
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		font-weight: 600;
 		padding: 0.25rem 0;
-	}
-
-	.check-icon {
-		color: var(--color-success);
-		font-weight: 800;
 	}
 
 	.carried-coefficients {

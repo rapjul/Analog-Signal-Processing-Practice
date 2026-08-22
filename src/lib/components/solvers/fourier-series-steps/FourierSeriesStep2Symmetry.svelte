@@ -15,6 +15,7 @@
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 	import type { FourierSeriesStepSolverState } from "../fourier-series-step-solver.svelte";
 
@@ -61,102 +62,88 @@
 	{summarySnippet}
 >
 	<div class="step-body">
-		{#if solver.step2.activeSubStepId === "origin-parity"}
-			<!-- Part 2A: Origin Parity -->
-			<div class="subpart-block">
-				<div class="subpart-header">
-					<span class="subpart-badge">Part 2A</span>
-					<h4 class="subpart-title">
-						<MathText text="Classify Origin Parity" />
-					</h4>
-				</div>
-				<p class="step-prompt">
-					<MathText
-						text={"Classify the parity of $x(t)$ about the time origin:"}
-					/>
-				</p>
-				<div
-					class="button-grid-taxonomic"
-					data-testid="fourier-step2-origin-options"
-				>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.subSteps["origin-parity"]
-							.selected === "even"}
-						onclick={() =>
-							(solver.step2.subSteps["origin-parity"].selected =
-								"even")}
-					>
-						<strong>Even Symmetry</strong>
-						<span class="choice-sub"
-							><MathText text={"$x(-t) = x(t)$"} /></span
-						>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.subSteps["origin-parity"]
-							.selected === "odd"}
-						onclick={() =>
-							(solver.step2.subSteps["origin-parity"].selected =
-								"odd")}
-					>
-						<strong>Odd Symmetry</strong>
-						<span class="choice-sub"
-							><MathText text={"$x(-t) = -x(t)$"} /></span
-						>
-					</button>
-					<button
-						type="button"
-						class="choice-btn"
-						class:selected={solver.step2.subSteps["origin-parity"]
-							.selected === "none"}
-						onclick={() =>
-							(solver.step2.subSteps["origin-parity"].selected =
-								"none")}
-					>
-						<strong>Neither Symmetry</strong>
-						<span class="choice-sub">Asymmetric / Shifted</span>
-					</button>
-				</div>
-				<div class="step-actions">
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={() => solver.checkStep2OriginParity()}
-					>
-						Check Origin Parity →
-					</button>
-				</div>
-			</div>
-		{:else}
-			<!-- Verified Part 2A Summary -->
-			<div class="subpart-block subpart-done">
-				<div class="subpart-header">
-					<span class="subpart-badge">Part 2A</span>
-					<h4 class="subpart-title">
-						<MathText text="Classify Origin Parity" />
-					</h4>
-					<span class="substep-check-badge">
-						<span class="check-icon">✓</span> Verified
-					</span>
-				</div>
+		<!-- Part 2A: Origin Parity -->
+		<SubStepBlock
+			badge="Part 2A"
+			title="Classify Origin Parity"
+			isCompleted={solver.step2.activeSubStepId !== "origin-parity"}
+		>
+			{#snippet summarySnippet()}
 				<div class="substep-verified-line">
 					Origin parity validated: <strong class="capitalize"
 						>{problem.coeffs.originParity}</strong
 					>
 				</div>
-			</div>
+			{/snippet}
 
-			<!-- Part 2B: Half-Wave Symmetry -->
-			<div class="subpart-block">
-				<div class="subpart-header">
-					<span class="subpart-badge">Part 2B</span>
-					<h4 class="subpart-title">
-						<MathText text="Test Half-Wave Symmetry" />
-					</h4>
-				</div>
+			<p class="step-prompt">
+				<MathText
+					text={"Classify the parity of $x(t)$ about the time origin:"}
+				/>
+			</p>
+			<div
+				class="button-grid-taxonomic"
+				data-testid="fourier-step2-origin-options"
+			>
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step2.subSteps["origin-parity"]
+						.selected === "even"}
+					onclick={() =>
+						(solver.step2.subSteps["origin-parity"].selected =
+							"even")}
+				>
+					<strong>Even Symmetry</strong>
+					<span class="choice-sub"
+						><MathText text={"$x(-t) = x(t)$"} /></span
+					>
+				</button>
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step2.subSteps["origin-parity"]
+						.selected === "odd"}
+					onclick={() =>
+						(solver.step2.subSteps["origin-parity"].selected =
+							"odd")}
+				>
+					<strong>Odd Symmetry</strong>
+					<span class="choice-sub"
+						><MathText text={"$x(-t) = -x(t)$"} /></span
+					>
+				</button>
+				<button
+					type="button"
+					class="choice-btn"
+					class:selected={solver.step2.subSteps["origin-parity"]
+						.selected === "none"}
+					onclick={() =>
+						(solver.step2.subSteps["origin-parity"].selected =
+							"none")}
+				>
+					<strong>Neither Symmetry</strong>
+					<span class="choice-sub">Asymmetric / Shifted</span>
+				</button>
+			</div>
+			<div class="step-actions">
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={() => solver.checkStep2OriginParity()}
+				>
+					Check Origin Parity →
+				</button>
+			</div>
+		</SubStepBlock>
+
+		<!-- Part 2B: Half-Wave Symmetry -->
+		{#if solver.step2.activeSubStepId === "half-wave"}
+			<SubStepBlock
+				badge="Part 2B"
+				title="Test Half-Wave Symmetry"
+				isCompleted={false}
+			>
 				<p class="step-prompt">
 					<MathText
 						text={"Half-wave symmetry means the second half of each period is an upside-down copy of the first half. Equivalently, shifting the signal by half a period reverses its sign: $x(t+T_0/2)=-x(t)$."}
@@ -198,7 +185,7 @@
 						Check Half-Wave Symmetry →
 					</button>
 				</div>
-			</div>
+			</SubStepBlock>
 		{/if}
 
 		<!-- Feedback & Progressive Hints -->
@@ -229,65 +216,13 @@
 		overflow-wrap: anywhere;
 	}
 
-	/* ── Subpart blocks & headers ──────────────────────────── */
-
-	.subpart-block {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		width: 100%;
-		min-width: 0;
-	}
-
-	.subpart-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.subpart-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		padding: 0.15rem 0.45rem;
-		background: var(--accent-bg);
-		color: var(--accent-primary);
-		border-radius: var(--radius-sm, 4px);
-		text-transform: uppercase;
-		letter-spacing: 0.02em;
-		flex-shrink: 0;
-	}
-
-	.subpart-title {
-		font-size: var(--text-sm);
-		font-weight: 700;
-		color: var(--text-primary);
-		margin: 0;
-		overflow-wrap: anywhere;
-		word-break: break-word;
-	}
-
-	.substep-check-badge {
-		font-size: var(--text-xs);
-		font-weight: 700;
-		color: var(--color-success, #10b981);
-		margin-left: auto;
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		white-space: nowrap;
-	}
+	/* ── Subpart verified line & modifiers ─────────────────── */
 
 	.substep-verified-line {
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		font-weight: 600;
 		padding: 0.25rem 0;
-	}
-
-	.check-icon {
-		color: var(--color-success);
-		font-weight: 800;
 	}
 
 	.capitalize {
@@ -390,10 +325,6 @@
 			width: 100%;
 			text-align: center;
 			justify-content: center;
-		}
-
-		.subpart-header {
-			gap: 0.35rem;
 		}
 	}
 </style>
