@@ -148,11 +148,51 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 					part.options.map((option) => option.latex),
 				),
 				...problem.itsData.step7.options.map((option) => option.latex),
+				...problem.conversionChallenge.parts.flatMap((part) =>
+					part.options.map((option) => option.latex),
+				),
+				...problem.conversionSolutionSteps.map((step) => step.latex),
 			];
 
 			for (const latex of generatedLatex) {
 				expect(latex).not.toMatch(/\\pi[A-Za-z]/);
 			}
+		},
+	);
+
+	it.each(supportedWaveforms)(
+		"builds optional alternate and Compact conversion branches for %s",
+		(waveform) => {
+			const problem = generateFourierSeriesProblem(waveform, {
+				seed: 17,
+				A: 5,
+				T0: 2,
+			});
+			expect(
+				problem.conversionChallenge.parts.map(({ id }) => id),
+			).toEqual(["alternate", "compact"]);
+			expect(problem.conversionSolutionSteps).toHaveLength(2);
+			for (const part of problem.conversionChallenge.parts) {
+				expect(part.options).toHaveLength(4);
+				expect(
+					part.options.filter(({ isCorrect }) => isCorrect),
+				).toHaveLength(1);
+				expect(
+					new Set(part.options.map(({ latex }) => latex)).size,
+				).toBe(4);
+			}
+
+			const alternate = problem.conversionChallenge.parts[0].resultLatex;
+			if (problem.itsData.step4.correctForm === "trig") {
+				expect(alternate).toContain("F_n");
+			} else {
+				expect(alternate).not.toContain("F_n");
+				expect(alternate).toContain("x(t)");
+			}
+			const compact = problem.conversionChallenge.parts[1].resultLatex;
+			expect(compact).toContain("c_n");
+			expect(compact).toContain("\\theta_n");
+			expect(compact).not.toContain("A_n");
 		},
 	);
 

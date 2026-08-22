@@ -32,13 +32,13 @@ A running backlog of prospective UX, visual, and architectural improvements to c
     - Verify and audit the completed post-solve experience across Fourier Series and Linear ODEs.
     - Evaluate and decide whether to migrate or remove legacy `StepReveal` / solution breakdown blocks from the remaining practice modules (e.g., Convolution, Laplace, Fourier Transform, Circuits).
 
-### 5. Fourier Series: Convert to Trigonometric/Exponential/Compact Forms
+### 5. Fourier Series: Required Forms and Standalone Conversion Drills
 
-- Support deliberate conversion among trigonometric, exponential, and compact
-  Fourier series forms.
-- Preserve the textbook distinction between exponential coefficients $F_n$ and
-  compact-form amplitudes $c_n$; do not use `c_n` for both representations.
-- Add a new problem type where the Fourier series is given, and then the user needs to convert to another form.
+- Add problem modes for `Optimal`, `Trigonometric required`, and `Exponential required` derivation paths.
+- Make the selected derivation mode shareable in seeded problem URLs.
+- Teach valid but non-optimal derivation paths without presenting them as calculation errors.
+- Add standalone mandatory drills that begin with a supplied Fourier series and require conversion to a specified alternate or Compact form.
+- Preserve the textbook distinction between exponential coefficients $F_n$ and Compact-form amplitudes $c_n$ in every future mode.
 
 ### 6. Linear ODEs: Unstable and Marginally Stable Systems
 

@@ -453,7 +453,7 @@
 						<div class="choice-sub representation-content">
 							<span>Amplitude-Phase</span>
 							<MathBlock
-								math={"A_n \\cos(n \\omega_0 t + \\theta_n)"}
+								math={"c_n \\cos(n \\omega_0 t + \\theta_n)"}
 								compact={true}
 								hideHeader={true}
 							/>

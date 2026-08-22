@@ -10,6 +10,7 @@
 	import FourierCanvas from "../canvas/FourierCanvas.svelte";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
+	import FourierConversionChallenge from "../solvers/FourierConversionChallenge.svelte";
 	import FourierStepSolver from "../solvers/FourierStepSolver.svelte";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
@@ -24,11 +25,13 @@
 	let { problem, onNextProblem }: Props = $props();
 
 	let isCompleted = $state(false);
+	let conversionsCompleted = $state(false);
 
 	// Reset state when new problem loads
 	$effect(() => {
 		if (problem) {
 			isCompleted = false;
+			conversionsCompleted = false;
 		}
 	});
 
@@ -49,6 +52,11 @@
 			variant: "secondary" as const,
 		},
 	]);
+	const displayedSolutionSteps = $derived(
+		conversionsCompleted
+			? [...problem.solutionSteps, ...problem.conversionSolutionSteps]
+			: problem.solutionSteps,
+	);
 </script>
 
 <div class="fourier-practice-card">
@@ -94,18 +102,23 @@
 				description="You have derived the complete Fourier series representation. Explore the reconstructed partial sum and harmonic power spectrum below."
 			/>
 
+			<FourierConversionChallenge
+				challenge={problem.conversionChallenge}
+				onComplete={() => (conversionsCompleted = true)}
+			/>
+
 			<details class="solution-breakdown">
 				<summary class="solution-summary">
 					<span class="solution-summary-title">
 						View Complete Worked Solution
 					</span>
 					<span class="solution-summary-badge">
-						All {problem.solutionSteps.length} Steps
+						All {displayedSolutionSteps.length} Steps
 					</span>
 				</summary>
 
 				<div class="solution-steps">
-					{#each problem.solutionSteps as step, index}
+					{#each displayedSolutionSteps as step, index}
 						<section class="solution-step">
 							<h4 class="solution-step-title">
 								Step {index + 1}: {step.title}

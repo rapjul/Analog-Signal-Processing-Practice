@@ -205,6 +205,26 @@ export interface FourierItsStep7 extends BaseItsStep {
 	options: FourierItsOption[];
 }
 
+/** Optional post-completion conversion part. */
+export interface FourierConversionPart extends BaseItsStep {
+	/** Stable part identifier. */
+	id: "alternate" | "compact";
+	/** User-facing part title. */
+	title: string;
+	/** Conversion prompt. */
+	prompt: string;
+	/** Exact conversion revealed in the worked solution after completion. */
+	resultLatex: string;
+	/** Four structurally parallel conversion choices. */
+	options: FourierItsOption[];
+}
+
+/** Optional two-part conversion challenge metadata. */
+export interface FourierConversionChallenge {
+	/** Ordered alternate-representation and Compact-form parts. */
+	parts: [FourierConversionPart, FourierConversionPart];
+}
+
 /** Builds four full-series choices that differ without changing visual shape. */
 function buildPrimarySeriesOptions(
 	correct: string,
@@ -218,8 +238,12 @@ function buildPrimarySeriesOptions(
 			? correct.replace("e^{j n", "e^{-j n")
 			: correct.includes("\\sin\\left(")
 				? correct.replaceAll("\\sin\\left(", "\\cos\\left(")
-				: correct.replaceAll("\\cos\\left(", "\\sin\\left(");
-	const scaleDistractor = correct.replace("\\frac{", "\\frac{1}{2}\\frac{");
+				: correct.includes("\\cos\\left(")
+					? correct.replaceAll("\\cos\\left(", "\\sin\\left(")
+					: correct.replaceAll("\\cos(", "\\sin(");
+	const scaleDistractor = correct.includes("\\frac{")
+		? correct.replace("\\frac{", "\\frac{1}{2}\\frac{")
+		: correct.replace("\\dfrac{", "\\frac{1}{2}\\dfrac{");
 	return [
 		{ id: "series-correct", latex: correct, isCorrect: true },
 		{
@@ -296,6 +320,10 @@ export interface FourierSeriesProblem {
 	coeffs: FourierCoefficients;
 	/** Intelligent Tutoring System step-by-step metadata */
 	itsData: FourierItsData;
+	/** Optional post-completion representation-conversion challenge. */
+	conversionChallenge: FourierConversionChallenge;
+	/** Worked conversions appended only after the optional challenge is solved. */
+	conversionSolutionSteps: SolutionStep[];
 }
 
 /** Optional controls for deterministic Fourier problem generation. */
@@ -1314,6 +1342,54 @@ function buildFinalSeriesLatex(
 	}
 }
 
+/** Builds the amplitude-phase series with c_n >= 0 and explicit phase. */
+function buildCompactSeriesLatex(
+	coeffs: FourierCoefficients,
+	w0Latex: string,
+): string {
+	const { A, waveformType } = coeffs;
+	const harmonic = (body: string): string =>
+		`x(t)=\\frac{c_0}{2}+\\sum_{n=1}^{\\infty}c_n\\cos(n ${w0Latex} t+\\theta_n),\\qquad ${body}`;
+	switch (waveformType) {
+		case "square":
+		case "square_odd":
+			return harmonic(
+				`c_0=0,\\quad c_n=\\begin{cases}\\dfrac{4(${A})}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases},\\quad \\theta_n=-\\dfrac{\\pi}{2}\\ (n\\text{ odd})`,
+			);
+		case "square_even":
+			return harmonic(
+				`c_0=0,\\quad c_n=\\begin{cases}\\dfrac{4(${A})}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases},\\quad \\theta_n=\\begin{cases}0,&n\\equiv1\\pmod4\\\\\\pi,&n\\equiv3\\pmod4\\end{cases}`,
+			);
+		case "triangle":
+		case "triangle_even":
+			return harmonic(
+				`c_0=0,\\quad c_n=\\begin{cases}\\dfrac{8(${A})}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases},\\quad \\theta_n=0\\ (n\\text{ odd})`,
+			);
+		case "triangle_odd":
+			return harmonic(
+				`c_0=0,\\quad c_n=\\begin{cases}\\dfrac{8(${A})}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases},\\quad \\theta_n=\\begin{cases}-\\dfrac{\\pi}{2},&n\\equiv1\\pmod4\\\\\\dfrac{\\pi}{2},&n\\equiv3\\pmod4\\end{cases}`,
+			);
+		case "sawtooth":
+			return harmonic(
+				`c_0=0,\\quad c_n=\\dfrac{2(${A})}{n\\pi},\\quad \\theta_n=\\dfrac{(-1)^n\\pi}{2}`,
+			);
+		case "half_wave_sine":
+			return harmonic(
+				`c_0=\\dfrac{2(${A})}{\\pi},\\quad c_1=\\dfrac{${A}}{2},\\ \theta_1=-\\dfrac{\\pi}{2},\\quad c_{2k}=\\dfrac{2(${A})}{\\pi(4k^2-1)},\\ \theta_{2k}=\\pi,\\quad c_n=0\\ (n>1\\text{ odd})`,
+			);
+		case "full_wave_sine":
+			return harmonic(
+				`c_0=\\dfrac{4(${A})}{\\pi},\\quad c_n=\\dfrac{4(${A})}{\\pi(4n^2-1)},\\quad \\theta_n=\\pi`,
+			);
+		default: {
+			const _exhaustiveCheck: never = waveformType;
+			throw new Error(
+				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
+			);
+		}
+	}
+}
+
 /**
  * Builds a waveform definition consistent with its coefficient convention.
  * @param {FourierWaveformType} waveformType Waveform variant
@@ -1386,6 +1462,47 @@ export function generateFourierSeriesProblem(
 	const itsData = generateFourierItsData(coeffs, random);
 	const w0Latex = coeffs.w0 === Math.PI ? "\\pi" : "\\frac{\\pi}{2}";
 	const derivation = buildFourierSymbolicDerivation(coeffs, w0Latex);
+	const alternateForm: FourierPrimaryForm =
+		itsData.step4.correctForm === "trig" ? "exp" : "trig";
+	const alternateLatex =
+		alternateForm === "trig"
+			? derivation.finalTrigLatex
+			: derivation.finalExpLatex;
+	const compactLatex = buildCompactSeriesLatex(coeffs, w0Latex);
+	const conversionChallenge: FourierConversionChallenge = {
+		parts: [
+			{
+				id: "alternate",
+				title: `Convert to ${alternateForm === "trig" ? "Trigonometric" : "Exponential"} Form`,
+				prompt: `Convert the completed ${itsData.step4.correctForm === "trig" ? "trigonometric" : "exponential"} series to its equivalent ${alternateForm === "trig" ? "trigonometric" : "exponential"} representation.`,
+				resultLatex: alternateLatex,
+				options: shuffleArray(
+					buildPrimarySeriesOptions(alternateLatex, alternateForm),
+					random,
+				),
+				hints: [
+					"Use $F_0=a_0/2$ and $F_n=(a_n-jb_n)/2$ for positive indices.",
+					"For a real signal, pair $F_n$ with $F_{-n}=F_n^*$ when returning to trigonometric form.",
+					`The equivalent ${alternateForm === "trig" ? "trigonometric" : "exponential"} representation is $${alternateLatex}$.`,
+				],
+			},
+			{
+				id: "compact",
+				title: "Convert to Compact Harmonic Form",
+				prompt: "Convert the harmonic coefficients to nonnegative amplitudes $c_n$ and phases $\\theta_n$.",
+				resultLatex: compactLatex,
+				options: shuffleArray(
+					buildPrimarySeriesOptions(compactLatex, "trig"),
+					random,
+				),
+				hints: [
+					"Use $c_0=a_0=2F_0$ for the constant coefficient.",
+					"For $n>0$, use $c_n=2|F_n|=\\sqrt{a_n^2+b_n^2}$.",
+					"Assign phase only to nonzero harmonics with $\\theta_n=\\operatorname{atan2}(-b_n,a_n)=\\angle F_n$.",
+				],
+			},
+		],
+	};
 
 	const steps: SolutionStep[] = [
 		{
@@ -1460,5 +1577,20 @@ export function generateFourierSeriesProblem(
 		solutionSteps: steps,
 		coeffs,
 		itsData,
+		conversionChallenge,
+		conversionSolutionSteps: [
+			{
+				title: `${alternateForm === "trig" ? "Trigonometric" : "Exponential"} Form Conversion`,
+				description:
+					"Convert the primary coefficients without re-integrating the waveform.",
+				latex: alternateLatex,
+			},
+			{
+				title: "Compact Harmonic Form Conversion",
+				description:
+					"Use nonnegative harmonic amplitudes and define phase only where the amplitude is nonzero.",
+				latex: compactLatex,
+			},
+		],
 	};
 }

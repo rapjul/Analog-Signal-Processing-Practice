@@ -283,6 +283,44 @@ test.describe("Fourier Series Module", () => {
 		await expect(breakdown.locator(".katex-error")).toHaveCount(0);
 	});
 
+	test("offers conversion as an optional post-completion challenge", async ({
+		page,
+	}) => {
+		await page.evaluate(() => window.__signalLabDev?.solveAll());
+		const challenge = page.locator("details.conversion-challenge");
+		await expect(challenge).toBeVisible();
+		await expect(challenge).not.toHaveAttribute("open", "");
+		await expect(page.locator(".solution-summary-badge")).toHaveText(
+			"All 7 Steps",
+		);
+		await challenge.locator("summary").click();
+
+		for (const expectedProgress of [
+			"Part 2 of 2",
+			"Optional conversions completed",
+		]) {
+			const options = challenge.locator(
+				'[data-testid="fourier-conversion-options"] button',
+			);
+			for (let index = 0; index < 4; index += 1) {
+				await options.nth(index).click();
+				if (
+					await challenge
+						.getByText(new RegExp(expectedProgress))
+						.count()
+				)
+					break;
+			}
+			await expect(
+				challenge.getByText(new RegExp(expectedProgress)),
+			).toBeVisible();
+		}
+
+		await expect(page.locator(".solution-summary-badge")).toHaveText(
+			"All 9 Steps",
+		);
+	});
+
 	test("keeps plots and harmonic controls usable across responsive widths", async ({
 		page,
 	}) => {
