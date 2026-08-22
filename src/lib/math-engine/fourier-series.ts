@@ -103,6 +103,38 @@ export interface HarmonicPowerThresholds {
 /** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
 export type FourierItsOption = ItsOption;
 
+/** Fourier representation selected as the most efficient derivation path. */
+export type FourierPrimaryForm = "trig" | "exp";
+
+/** Coefficient family evaluated by one focused tutor sub-step. */
+export type FourierCoefficientTarget = "a0" | "an" | "bn" | "Fn";
+
+/** One coefficient that symmetry carries into the derivation without a quiz. */
+export interface FourierCarriedCoefficient {
+	/** Stable coefficient-family identifier. */
+	id: Exclude<FourierCoefficientTarget, "Fn">;
+	/** Exact carried result. */
+	latex: string;
+	/** Short explanation of the symmetry shortcut. */
+	reason: string;
+}
+
+/** One focused setup or evaluation part for a single coefficient family. */
+export interface FourierCoefficientPart extends BaseItsStep {
+	/** Stable sub-step identifier. */
+	id: string;
+	/** Coefficient family addressed by this part. */
+	target: FourierCoefficientTarget;
+	/** User-facing sub-step title. */
+	title: string;
+	/** User-facing prompt. */
+	prompt: string;
+	/** Exact result displayed in completed summaries. */
+	resultLatex: string;
+	/** Four structurally parallel, deterministic answer options. */
+	options: FourierItsOption[];
+}
+
 /** ITS Step 1: Period and Fundamental Frequency metadata */
 export interface FourierItsStep1 extends BaseItsStep {
 	/** Target period value */
@@ -142,7 +174,7 @@ export interface FourierItsStep3 extends BaseItsStep {
 /** ITS Step 4: Representation form selection metadata */
 export interface FourierItsStep4 extends BaseItsStep {
 	/** Correct representation form */
-	correctForm: "trig" | "exp" | "compact";
+	correctForm: FourierPrimaryForm;
 	/** Diagnostic feedback for incorrect form choices */
 	misconceptions: Record<string, string>;
 }
@@ -153,12 +185,20 @@ export interface FourierItsStep5 extends BaseItsStep {
 	successMsg: string;
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
+	/** Ordered setup parts for the selected primary representation. */
+	parts: FourierCoefficientPart[];
+	/** Coefficients already known from symmetry and not re-queried. */
+	carriedCoefficients: FourierCarriedCoefficient[];
 }
 
 /** ITS Step 6: Evaluated Fourier coefficient metadata */
 export interface FourierItsStep6 extends BaseItsStep {
 	/** Shuffled multiple-choice options with distractors */
 	options: FourierItsOption[];
+	/** Ordered evaluation parts matching Step 5. */
+	parts: FourierCoefficientPart[];
+	/** Coefficients already known from symmetry and not re-queried. */
+	carriedCoefficients: FourierCarriedCoefficient[];
 }
 
 /** ITS Step 7: Final series summation evaluation metadata */
@@ -690,7 +730,11 @@ interface FourierSymbolicDerivation {
 	anLatex: string;
 	bnLatex: string;
 	FnLatex: string;
+	a0IntegralLatex: string;
+	anIntegralLatex: string;
+	bnIntegralLatex: string;
 	integralLatex: string;
+	expIntegralLatex: string;
 	evaluationLatex: string;
 	finalTrigLatex: string;
 	finalExpLatex: string;
@@ -708,7 +752,9 @@ function buildFourierSymbolicDerivation(
 	let anLatex: string;
 	let bnLatex: string;
 	let FnLatex: string;
+	let a0IntegralLatex: string;
 	let integralLatex: string;
+	let expIntegralLatex: string;
 	let evaluationLatex: string;
 
 	switch (waveformType) {
@@ -718,7 +764,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = "0";
 			bnLatex = `\\begin{cases}\\dfrac{4${amplitude}}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
 			FnLatex = `\\begin{cases}-j\\dfrac{2${amplitude}}{n\\pi},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\,dt`;
 			integralLatex = `b_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\sin(n\\omega_0t)\\,dt`;
+			expIntegralLatex = `F_n=\\frac{1}{T_0}\\left[\\int_{-T_0/2}^{0}-${A}e^{-jn\\omega_0t}\\,dt+\\int_0^{T_0/2}${A}e^{-jn\\omega_0t}\\,dt\\right]`;
 			evaluationLatex = `b_n=\\frac{4${amplitude}}{T_0}\\left[-\\frac{\\cos(n\\omega_0t)}{n\\omega_0}\\right]_0^{T_0/2}=\\frac{2${amplitude}}{n\\pi}\\left(1-(-1)^n\\right)=${bnLatex}`;
 			break;
 		case "square_even":
@@ -726,7 +774,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = `\\frac{4${amplitude}}{n\\pi}\\sin\\left(\\frac{n\\pi}{2}\\right)`;
 			bnLatex = "0";
 			FnLatex = `\\begin{cases}0,&n=0\\\\\\dfrac{2${amplitude}}{n\\pi}\\sin\\left(\\dfrac{n\\pi}{2}\\right),&n\\ne0\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\left[\\int_0^{T_0/4}${A}\\,dt-\\int_{T_0/4}^{T_0/2}${A}\\,dt\\right]`;
 			integralLatex = `a_n=\\frac{4}{T_0}\\left[\\int_0^{T_0/4}${A}\\cos(n\\omega_0t)\\,dt-\\int_{T_0/4}^{T_0/2}${A}\\cos(n\\omega_0t)\\,dt\\right]`;
+			expIntegralLatex = `F_n=\\frac{2}{T_0}\\left[\\int_0^{T_0/4}${A}\\cos(n\\omega_0t)\\,dt-\\int_{T_0/4}^{T_0/2}${A}\\cos(n\\omega_0t)\\,dt\\right]`;
 			evaluationLatex = `a_n=\\frac{4${amplitude}}{n\\pi}\\sin\\left(\\frac{n\\pi}{2}\\right),\\qquad b_n=0`;
 			break;
 		case "triangle":
@@ -735,7 +785,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = `\\begin{cases}\\dfrac{8${amplitude}}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
 			bnLatex = "0";
 			FnLatex = `\\begin{cases}\\dfrac{4${amplitude}}{n^2\\pi^2},&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\left(1-\\frac{4t}{T_0}\\right)\\,dt`;
 			integralLatex = `a_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\left(1-\\frac{4t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
+			expIntegralLatex = `F_n=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\left(1-\\frac{4t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
 			evaluationLatex = `a_n=\\frac{4${amplitude}}{n^2\\pi^2}\\left(1-(-1)^n\\right)=${anLatex},\\qquad b_n=0`;
 			break;
 		case "triangle_odd":
@@ -743,7 +795,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = "0";
 			bnLatex = `\\frac{8${amplitude}}{n^2\\pi^2}\\sin\\left(\\frac{n\\pi}{2}\\right)`;
 			FnLatex = `\\begin{cases}-j\\dfrac{4${amplitude}}{n^2\\pi^2}\\sin\\left(\\dfrac{n\\pi}{2}\\right),&n\\text{ odd}\\\\0,&n\\text{ even}\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\left(1-\\frac{4t}{T_0}\\right)\\,dt`;
 			integralLatex = `b_n=\\frac{4}{T_0}\\left[\\int_0^{T_0/4}\\frac{4${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt+\\int_{T_0/4}^{T_0/2}\\left(2${amplitude}-\\frac{4${amplitude}t}{T_0}\\right)\\sin(n\\omega_0t)\\,dt\\right]`;
+			expIntegralLatex = `F_n=-\\frac{2j}{T_0}\\left[\\int_0^{T_0/4}\\frac{4${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt+\\int_{T_0/4}^{T_0/2}\\left(2${amplitude}-\\frac{4${amplitude}t}{T_0}\\right)\\sin(n\\omega_0t)\\,dt\\right]`;
 			evaluationLatex = `b_n=\\frac{8${amplitude}}{n^2\\pi^2}\\sin\\left(\\frac{n\\pi}{2}\\right),\\qquad a_0=a_n=0`;
 			break;
 		case "sawtooth":
@@ -751,7 +805,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = "0";
 			bnLatex = `\\frac{2${amplitude}(-1)^{n+1}}{n\\pi}`;
 			FnLatex = `\\begin{cases}0,&n=0\\\\-j\\dfrac{${A}(-1)^{n+1}}{n\\pi},&n\\ne0\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\int_0^{T_0/2}\\frac{2${amplitude}t}{T_0}\\,dt`;
 			integralLatex = `b_n=\\frac{4}{T_0}\\int_0^{T_0/2}\\frac{2${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt`;
+			expIntegralLatex = `F_n=-\\frac{2j}{T_0}\\int_0^{T_0/2}\\frac{2${amplitude}t}{T_0}\\sin(n\\omega_0t)\\,dt`;
 			evaluationLatex = `b_n=\\frac{8${amplitude}}{T_0^2}\\left[-\\frac{t\\cos(n\\omega_0t)}{n\\omega_0}+\\frac{\\sin(n\\omega_0t)}{n^2\\omega_0^2}\\right]_0^{T_0/2}=\\frac{2${amplitude}(-1)^{n+1}}{n\\pi}`;
 			break;
 		case "half_wave_sine":
@@ -759,7 +815,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = `\\begin{cases}\\dfrac{2${amplitude}}{\\pi(1-n^2)},&n\\text{ even}\\\\0,&n\\text{ odd}\\end{cases}`;
 			bnLatex = `\\begin{cases}\\dfrac{${A}}{2},&n=1\\\\0,&n\\ne1\\end{cases}`;
 			FnLatex = `\\begin{cases}\\dfrac{${A}}{\\pi},&n=0\\\\-j\\dfrac{${A}}{4},&n=1\\\\j\\dfrac{${A}}{4},&n=-1\\\\\\dfrac{${A}}{\\pi(1-n^2)},&n\\ne0\\text{ even}\\\\0,&|n|>1\\text{ odd}\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)\\,dt`;
 			integralLatex = `F_n=\\frac{1}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)e^{-jn\\omega_0t}\\,dt`;
+			expIntegralLatex = integralLatex;
 			evaluationLatex = `a_0=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)\\,dt=\\frac{2${amplitude}}{\\pi},\\quad b_1=\\frac{${A}}{2},\\quad a_n=${anLatex}`;
 			break;
 		case "full_wave_sine":
@@ -767,7 +825,9 @@ function buildFourierSymbolicDerivation(
 			anLatex = `-\\frac{4${amplitude}}{\\pi(4n^2-1)}`;
 			bnLatex = "0";
 			FnLatex = `\\begin{cases}\\dfrac{2${amplitude}}{\\pi},&n=0\\\\-\\dfrac{2${amplitude}}{\\pi(4n^2-1)},&n\\ne0\\end{cases}`;
+			a0IntegralLatex = `a_0=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\sin\\left(\\frac{\\pi t}{T_0}\\right)\\,dt`;
 			integralLatex = `a_n=\\frac{4}{T_0}\\int_0^{T_0/2}${A}\\sin\\left(\\frac{\\pi t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
+			expIntegralLatex = `F_n=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin\\left(\\frac{\\pi t}{T_0}\\right)\\cos(n\\omega_0t)\\,dt`;
 			evaluationLatex = `a_0=\\frac{4${amplitude}}{\\pi},\\qquad a_n=-\\frac{4${amplitude}}{\\pi(4n^2-1)},\\qquad b_n=0`;
 			break;
 		default: {
@@ -779,12 +839,24 @@ function buildFourierSymbolicDerivation(
 	}
 
 	const finalExpLatex = `x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n ${w0Latex} t},\\qquad F_n=${FnLatex}`;
+	const anIntegralLatex =
+		waveformType === "half_wave_sine"
+			? `a_n=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)\\cos(n\\omega_0t)\\,dt`
+			: integralLatex;
+	const bnIntegralLatex =
+		waveformType === "half_wave_sine"
+			? `b_n=\\frac{2}{T_0}\\int_0^{T_0/2}${A}\\sin(\\omega_0t)\\sin(n\\omega_0t)\\,dt`
+			: integralLatex;
 	return {
 		a0Latex,
 		anLatex,
 		bnLatex,
 		FnLatex,
+		a0IntegralLatex,
+		anIntegralLatex,
+		bnIntegralLatex,
 		integralLatex,
+		expIntegralLatex,
 		evaluationLatex,
 		finalTrigLatex,
 		finalExpLatex,
@@ -792,18 +864,21 @@ function buildFourierSymbolicDerivation(
 }
 
 /** Builds one correct integral choice and three misconception-driven distractors. */
-function buildIntegralOptions(
-	derivation: FourierSymbolicDerivation,
-): FourierItsOption[] {
-	const correct = derivation.integralLatex;
+function buildIntegralOptions(correct: string): FourierItsOption[] {
 	const scalingDistractor = correct.includes("\\frac{4}{T_0}")
 		? correct.replace("\\frac{4}{T_0}", "\\frac{2}{T_0}")
-		: correct.replace("\\frac{1}{T_0}", "\\frac{2}{T_0}");
+		: correct.includes("\\frac{2j}{T_0}")
+			? correct.replace("\\frac{2j}{T_0}", "\\frac{j}{T_0}")
+			: correct.includes("\\frac{2}{T_0}")
+				? correct.replace("\\frac{2}{T_0}", "\\frac{1}{T_0}")
+				: correct.replace("\\frac{1}{T_0}", "\\frac{2}{T_0}");
 	const kernelDistractor = correct.includes("e^{-jn\\omega_0t}")
 		? correct.replace("e^{-jn\\omega_0t}", "e^{+jn\\omega_0t}")
 		: correct.includes("\\cos(n\\omega_0t)")
 			? correct.replaceAll("\\cos(n\\omega_0t)", "\\sin(n\\omega_0t)")
-			: correct.replaceAll("\\sin(n\\omega_0t)", "\\cos(n\\omega_0t)");
+			: correct.includes("\\sin(n\\omega_0t)")
+				? correct.replaceAll("\\sin(n\\omega_0t)", "\\cos(n\\omega_0t)")
+				: correct.replace("\\,dt", "\\cos(n\\omega_0t)\\,dt");
 	const fullIntervalDistractor = correct.includes("\\int_0^{T_0/2}")
 		? correct.replace("\\int_0^{T_0/2}", "\\int_0^{T_0}")
 		: correct.replace("\\int_0^{T_0/4}", "\\int_0^{T_0/2}");
@@ -835,11 +910,144 @@ function buildIntegralOptions(
 	];
 }
 
-/** Formats all evaluated coefficient families in one answer card. */
-function buildCoefficientEvaluationLatex(
+/** Returns the coefficient families that the selected primary form must derive. */
+function getPrimaryCoefficientTargets(
+	form: FourierPrimaryForm,
+	originParity: OriginParity,
+): FourierCoefficientTarget[] {
+	if (form === "exp") return ["Fn"];
+	if (originParity === "even") return ["a0", "an"];
+	if (originParity === "odd") return ["bn"];
+	return ["a0", "an", "bn"];
+}
+
+/** Returns coefficients that symmetry has already proved to be zero. */
+function buildCarriedCoefficients(
+	form: FourierPrimaryForm,
+	originParity: OriginParity,
+): FourierCarriedCoefficient[] {
+	if (form === "exp" || originParity === "none") return [];
+	if (originParity === "odd") {
+		return [
+			{
+				id: "a0",
+				latex: "a_0=0",
+				reason: "Odd symmetry makes the signal average zero.",
+			},
+			{
+				id: "an",
+				latex: "a_n=0",
+				reason: "Odd symmetry eliminates every cosine coefficient.",
+			},
+		];
+	}
+	return [
+		{
+			id: "bn",
+			latex: "b_n=0",
+			reason: "Even symmetry eliminates every sine coefficient.",
+		},
+	];
+}
+
+/** Builds four parallel evaluation choices for exactly one coefficient family. */
+function buildEvaluationOptions(
+	target: FourierCoefficientTarget,
+	resultLatex: string,
+): FourierItsOption[] {
+	const label =
+		target === "a0" ? "a_0" : `${target === "Fn" ? "F" : target[0]}_n`;
+	return [
+		{
+			id: `${target}-correct`,
+			latex: `${label}=${resultLatex}`,
+			isCorrect: true,
+		},
+		{
+			id: `${target}-scale`,
+			latex: `${label}=\\frac{1}{2}\\left(${resultLatex}\\right)`,
+			isCorrect: false,
+			feedback:
+				"Scale Factor Error: Recheck the Fourier normalization before applying the integration bounds.",
+		},
+		{
+			id: `${target}-sign`,
+			latex: `${label}=-\\left(${resultLatex}\\right)`,
+			isCorrect: false,
+			feedback:
+				"Sign Error: Re-evaluate the antiderivative at the upper and lower bounds in order.",
+		},
+		{
+			id: `${target}-support`,
+			latex: `${label}=\\left(${resultLatex}\\right)(-1)^n`,
+			isCorrect: false,
+			feedback:
+				"Harmonic Support Error: Simplify the parity factor only after applying all piecewise bounds.",
+		},
+	];
+}
+
+/** Builds the ordered single-coefficient setup and evaluation metadata. */
+function buildCoefficientParts(
+	form: FourierPrimaryForm,
+	originParity: OriginParity,
 	derivation: FourierSymbolicDerivation,
-): string {
-	return `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\\\F_n&=${derivation.FnLatex}\\end{aligned}`;
+	random: RandomSource,
+): { setup: FourierCoefficientPart[]; evaluation: FourierCoefficientPart[] } {
+	const targets = getPrimaryCoefficientTargets(form, originParity);
+	const resultByTarget: Record<FourierCoefficientTarget, string> = {
+		a0: derivation.a0Latex,
+		an: derivation.anLatex,
+		bn: derivation.bnLatex,
+		Fn: derivation.FnLatex,
+	};
+	const integralByTarget: Record<FourierCoefficientTarget, string> = {
+		a0: derivation.a0IntegralLatex,
+		an: derivation.anIntegralLatex,
+		bn: derivation.bnIntegralLatex,
+		Fn: derivation.expIntegralLatex,
+	};
+	const titleByTarget: Record<FourierCoefficientTarget, string> = {
+		a0: "DC Coefficient",
+		an: "Cosine Coefficients",
+		bn: "Sine Coefficients",
+		Fn: "Exponential Coefficients",
+	};
+
+	return {
+		setup: targets.map((target) => ({
+			id: `setup-${target}`,
+			target,
+			title: `Set Up ${titleByTarget[target]}`,
+			prompt: `Select the integral that computes $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
+			resultLatex: integralByTarget[target],
+			options: shuffleArray(
+				buildIntegralOptions(integralByTarget[target]),
+				random,
+			),
+			hints: [
+				"Keep the selected representation's normalization and kernel unchanged.",
+				"Substitute the waveform value on every non-zero interval.",
+				`The required setup is $${integralByTarget[target]}$.`,
+			],
+		})),
+		evaluation: targets.map((target) => ({
+			id: `evaluate-${target}`,
+			target,
+			title: `Evaluate ${titleByTarget[target]}`,
+			prompt: `Apply the bounds and simplify $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
+			resultLatex: `${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}`,
+			options: shuffleArray(
+				buildEvaluationOptions(target, resultByTarget[target]),
+				random,
+			),
+			hints: [
+				"Apply the antiderivative at every piecewise boundary.",
+				"Simplify parity and harmonic-index factors after combining all terms.",
+				`The evaluated coefficient is $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
+			],
+		})),
+	};
 }
 
 /**
@@ -851,6 +1059,7 @@ function buildCoefficientEvaluationLatex(
 export function generateFourierItsData(
 	coeffs: FourierCoefficients,
 	random: RandomSource = Math.random,
+	primaryForm?: FourierPrimaryForm,
 ): FourierItsData {
 	const { A, T0, w0, symmetry } = coeffs;
 	const w0Latex = T0 === 2 ? "\\pi" : "\\frac{\\pi}{2}";
@@ -934,7 +1143,7 @@ export function generateFourierItsData(
 	};
 
 	// Step 4: Representation Form
-	const correctForm = symmetry !== "none" ? "trig" : "exp";
+	const correctForm = primaryForm ?? (symmetry !== "none" ? "trig" : "exp");
 	const step4: FourierItsStep4 = {
 		correctForm,
 		hints: [
@@ -961,12 +1170,24 @@ export function generateFourierItsData(
 	};
 
 	const derivation = buildFourierSymbolicDerivation(coeffs, w0Latex);
+	const coefficientParts = buildCoefficientParts(
+		correctForm,
+		coeffs.originParity,
+		derivation,
+		random,
+	);
+	const carriedCoefficients = buildCarriedCoefficients(
+		correctForm,
+		coeffs.originParity,
+	);
 
 	// Step 5: Piecewise Integral Setup
 	const step5: FourierItsStep5 = {
 		successMsg:
 			"Correct integral formulation. The scale, kernel, and non-zero piecewise intervals all match the waveform.",
-		options: shuffleArray(buildIntegralOptions(derivation), random),
+		options: coefficientParts.setup[0].options,
+		parts: coefficientParts.setup,
+		carriedCoefficients,
 		hints: [
 			"Use symmetry to choose the non-zero coefficient family before writing an integral.",
 			"Trigonometric coefficients use $2/T_0$; exponential coefficients use $1/T_0$ and $e^{-jn\\omega_0t}$.",
@@ -975,35 +1196,10 @@ export function generateFourierItsData(
 	};
 
 	// Step 6: Harmonic Coefficient Evaluation
-	const coefficientLatex = buildCoefficientEvaluationLatex(derivation);
 	const step6: FourierItsStep6 = {
-		options: shuffleArray(
-			[
-				{ id: "c1", latex: coefficientLatex, isCorrect: true },
-				{
-					id: "d1",
-					latex: `\\begin{aligned}a_0&=${A}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\end{aligned}`,
-					isCorrect: false,
-					feedback:
-						"DC Offset Error: $a_0$ is twice the signal average and must be evaluated from its own integral.",
-				},
-				{
-					id: "d2",
-					latex: `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.bnLatex}\\\\b_n&=${derivation.anLatex}\\end{aligned}`,
-					isCorrect: false,
-					feedback:
-						"Parity Error: The sine and cosine coefficient families have been interchanged.",
-				},
-				{
-					id: "d3",
-					latex: `\\begin{aligned}a_0&=${derivation.a0Latex}\\\\a_n&=${derivation.anLatex}\\\\b_n&=${derivation.bnLatex}\\\\F_n&=\\frac{a_n+jb_n}{2}\\end{aligned}`,
-					isCorrect: false,
-					feedback:
-						"Exponential Sign Error: $F_n=(a_n-jb_n)/2$ for positive harmonic indices.",
-				},
-			],
-			random,
-		),
+		options: coefficientParts.evaluation[0].options,
+		parts: coefficientParts.evaluation,
+		carriedCoefficients,
 		hints: [
 			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
 			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",

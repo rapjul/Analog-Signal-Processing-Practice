@@ -69,17 +69,29 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step4.correctForm).toBe("trig");
 
 		// Step 5
+		expect(itsData.step5.parts).toHaveLength(1);
+		expect(itsData.step5.parts[0].target).toBe("bn");
 		expect(itsData.step5.options.length).toBe(4);
-		const correctOpt5 = itsData.step5.options.find((o) => o.isCorrect);
+		const correctOpt5 = itsData.step5.parts[0].options.find(
+			(o) => o.isCorrect,
+		);
 		expect(correctOpt5).toBeDefined();
 		expect(correctOpt5?.latex).toContain("b_n=");
 
-		// Step 6: evaluated coefficient set
+		// Step 6: one evaluated coefficient family
+		expect(itsData.step6.parts).toHaveLength(1);
+		expect(itsData.step6.parts[0].target).toBe("bn");
 		expect(itsData.step6.options.length).toBe(4);
-		const correctOpt6 = itsData.step6.options.find((o) => o.isCorrect);
+		const correctOpt6 = itsData.step6.parts[0].options.find(
+			(o) => o.isCorrect,
+		);
 		expect(correctOpt6).toBeDefined();
-		expect(correctOpt6?.latex).toContain("a_0");
-		expect(correctOpt6?.latex).toContain("F_n");
+		expect(correctOpt6?.latex).toContain("b_n");
+		expect(correctOpt6?.latex).not.toContain("F_n");
+		expect(itsData.step6.carriedCoefficients.map(({ id }) => id)).toEqual([
+			"a0",
+			"an",
+		]);
 
 		// Step 7: final series synthesis
 		expect(itsData.step7.options.length).toBe(4);
@@ -96,16 +108,18 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 				A: 5,
 				T0: 2,
 			});
-			const options = problem.itsData.step5.options;
-
-			expect(options).toHaveLength(4);
-			expect(options.filter((option) => option.isCorrect)).toHaveLength(
-				1,
-			);
-			expect(new Set(options.map((option) => option.latex)).size).toBe(4);
-			for (const option of options) {
-				expect(option.latex).toContain("5");
-				expect(option.latex).not.toContain("x(t)");
+			for (const part of problem.itsData.step5.parts) {
+				expect(part.options).toHaveLength(4);
+				expect(
+					part.options.filter((option) => option.isCorrect),
+				).toHaveLength(1);
+				expect(
+					new Set(part.options.map((option) => option.latex)).size,
+				).toBe(4);
+				for (const option of part.options) {
+					expect(option.latex).toContain("5");
+					expect(option.latex).not.toContain("x(t)");
+				}
 			}
 		},
 	);
@@ -126,8 +140,12 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 				problem.bnLatex,
 				problem.FnLatex,
 				...problem.solutionSteps.map((step) => step.latex),
-				...problem.itsData.step5.options.map((option) => option.latex),
-				...problem.itsData.step6.options.map((option) => option.latex),
+				...problem.itsData.step5.parts.flatMap((part) =>
+					part.options.map((option) => option.latex),
+				),
+				...problem.itsData.step6.parts.flatMap((part) =>
+					part.options.map((option) => option.latex),
+				),
 				...problem.itsData.step7.options.map((option) => option.latex),
 			];
 
@@ -151,8 +169,17 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step3.correctVanishing).toBe("bn_zero");
 		expect(itsData.step4.correctForm).toBe("trig");
 
-		const correctOpt5 = itsData.step5.options.find((o) => o.isCorrect);
-		expect(correctOpt5?.latex).toContain("a_n=");
+		expect(itsData.step5.parts.map(({ target }) => target)).toEqual([
+			"a0",
+			"an",
+		]);
+		expect(itsData.step5.carriedCoefficients.map(({ id }) => id)).toEqual([
+			"bn",
+		]);
+		expect(
+			itsData.step5.parts[1].options.find((option) => option.isCorrect)
+				?.latex,
+		).toContain("a_n=");
 	});
 
 	it("generates anti-spoiler title and complete ITS problem instance", () => {
@@ -164,34 +191,56 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(problem.solutionSteps[0].title).not.toContain("Step 1:");
 	});
 
-	it.each([
-		["square", "a_n", "F_n"],
-		["square_odd", "n\\text{ odd}", "-j"],
-		["square_even", "\\sin\\left(\\frac{n\\pi}{2}", "F_n"],
-		["triangle", "n^2\\pi^2", "F_n"],
-		["triangle_odd", "-j\\dfrac{4", "F_n"],
-		["triangle_even", "n\\text{ even}", "F_n"],
-		["sawtooth", "(-1)^{n+1}", "F_n"],
-		["half_wave_sine", "n=1", "n=-1"],
-		["full_wave_sine", "4n^2-1", "n\\ne0"],
-	] as const)(
-		"evaluates exact coefficient families for %s",
-		(waveform, expectedA, expectedB) => {
-			const problem = generateFourierSeriesProblem(waveform, {
-				seed: 7,
-				A: 1,
+	it.each(supportedWaveforms)(
+		"builds deterministic, parallel coefficient branches for %s",
+		(waveform) => {
+			const coeffs = computeFourierCoefficients(waveform, {
+				A: 5,
 				T0: 2,
 			});
-			const correct = problem.itsData.step6.options.find(
-				(option) => option.isCorrect,
-			);
+			for (const form of ["trig", "exp"] as const) {
+				const first = generateFourierItsData(coeffs, () => 0.25, form);
+				const second = generateFourierItsData(coeffs, () => 0.25, form);
+				expect(first.step5.parts).toEqual(second.step5.parts);
+				expect(first.step6.parts).toEqual(second.step6.parts);
 
-			expect(correct?.latex).toContain(expectedA);
-			expect(correct?.latex).toContain(expectedB);
-			expect(problem.a0Latex).toBeTruthy();
-			expect(problem.anLatex).toBeTruthy();
-			expect(problem.bnLatex).toBeTruthy();
-			expect(problem.FnLatex).toBeTruthy();
+				const expectedTargets =
+					form === "exp"
+						? ["Fn"]
+						: coeffs.originParity === "even"
+							? ["a0", "an"]
+							: coeffs.originParity === "odd"
+								? ["bn"]
+								: ["a0", "an", "bn"];
+				expect(first.step5.parts.map(({ target }) => target)).toEqual(
+					expectedTargets,
+				);
+				expect(first.step6.parts.map(({ target }) => target)).toEqual(
+					expectedTargets,
+				);
+
+				for (const part of [
+					...first.step5.parts,
+					...first.step6.parts,
+				]) {
+					expect(part.options).toHaveLength(4);
+					expect(
+						part.options.filter(({ isCorrect }) => isCorrect),
+					).toHaveLength(1);
+					expect(
+						new Set(part.options.map(({ latex }) => latex)).size,
+					).toBe(4);
+					for (const option of part.options) {
+						const targetLatex =
+							part.target === "a0"
+								? "a_0"
+								: part.target === "Fn"
+									? "F_n"
+									: `${part.target[0]}_n`;
+						expect(option.latex).toContain(targetLatex);
+					}
+				}
+			}
 		},
 	);
 });
