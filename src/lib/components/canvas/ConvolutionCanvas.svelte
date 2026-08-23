@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Interactive convolution animator with synchronized overlap and output plots.
+	 *
 	 * Rendering math lives in convolution-plot.ts so controls and drawing evolve independently.
 	 */
 
@@ -231,38 +232,41 @@
 		>
 			<div class="legend-item">
 				<span class="dot blue"></span>
-				<span class="label"
-					><MathInline math={`${fixedLabel}(\\tau)`} /></span
-				>
+				<span class="label">
+					<MathText text={String.raw`$${fixedLabel}(\tau)$`} />
+				</span>
 			</div>
 			<div class="legend-item">
 				<span class="dot orange"></span>
-				<span class="label"
-					><MathInline math={`${movingLabel}(t-\\tau)`} /></span
-				>
+				<span class="label">
+					<MathText text={String.raw`$${movingLabel}(t-\tau)$`} />
+				</span>
 			</div>
 			<div class="legend-item">
-				<span class="dot green"></span><span class="label"
-					>Overlap product</span
-				>
+				<span class="dot green"></span><span class="label">
+					Overlap product
+				</span>
 			</div>
 			<div class="legend-item">
 				<span class="dot cyan"></span>
-				<span class="label"><MathInline math={String.raw`y(t)`} /></span
-				>
+				<span class="label">
+					<MathText text={String.raw`$y(t)$`} />
+				</span>
 			</div>
 		</div>
 	</div>
 
 	<div class="canvas-container">
 		<div class="panel-header panel-upper">
-			Signals <MathInline math={`${fixedLabel}(\\tau)`} /> and <MathInline
-				math={`${movingLabel}(t-\\tau)`}
-			/>, with shaded product
+			<MathText
+				text={String.raw`Signals $${fixedLabel}(\tau)$ and $${movingLabel}(t-\tau)$, with shaded product`}
+			/>
 		</div>
 		<div class="panel-header panel-lower">
-			Output <MathInline math={String.raw`y(t)=(x*h)(t)`} /> revealed to the
-			current shift
+			<MathText
+				text={String.raw`Output $y(t)=(x*h)(t)$ revealed to the
+			current shift`}
+			/>
 		</div>
 		<canvas
 			bind:this={canvasEl}
@@ -300,15 +304,16 @@
 				bind:value={playbackSpeed}
 			>
 				{#each CONVOLUTION_SPEED_PRESETS as preset}
-					<option value={preset.unitsPerSecond}>{preset.label}</option
-					>
+					<option value={preset.unitsPerSecond}>
+						{preset.label}
+					</option>
 				{/each}
 			</select>
 		</div>
 		<div class="slider-group">
-			<label for="shift-slider"
-				>Shift <MathInline math={String.raw`t`} /></label
-			>
+			<label for="shift-slider">
+				Shift <MathInline math={String.raw`t`} />
+			</label>
 			<input
 				id="shift-slider"
 				type="range"
@@ -525,6 +530,7 @@
 	.range-input {
 		width: 100%;
 		min-width: 0;
+		max-width: 400px;
 		accent-color: var(--accent-primary);
 		cursor: pointer;
 	}
@@ -572,6 +578,9 @@
 		}
 		.legend {
 			gap: 0.45rem 0.65rem;
+		}
+		.range-input {
+			max-width: 300px;
 		}
 	}
 </style>
