@@ -384,6 +384,7 @@ describe("Universal Solver Visual State Coverage & Future-Proofing", () => {
 			const pairTypes: ConvolutionPairType[] = [
 				"rect_rect",
 				"rect_shifted_rect",
+				"rect_both_shifted",
 				"multi_rect",
 				"rect_exp",
 				"exp_exp",

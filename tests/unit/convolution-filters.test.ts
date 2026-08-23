@@ -37,11 +37,24 @@ describe("Convolution URL filters", () => {
 	});
 
 	it("resolves every seeded selection deterministically", () => {
+		expect(CONVOLUTION_DRILL_PAIR_TYPES).toEqual([
+			"rect_rect",
+			"rect_shifted_rect",
+			"rect_both_shifted",
+			"multi_rect",
+			"rect_exp",
+			"exp_exp",
+			"tri_rect",
+			"tri_shifted_tri",
+		]);
 		for (let seed = 0; seed < 100; seed += 1) {
 			const first = resolveConvolutionPairSelection("random", seed);
 			expect(resolveConvolutionPairSelection("random", seed)).toBe(first);
 			expect(CONVOLUTION_DRILL_PAIR_TYPES).toContain(first);
 		}
 		expect(resolveConvolutionPairSelection("tri_rect", 2)).toBe("tri_rect");
+		expect(resolveConvolutionPairSelection("rect_both_shifted", 2)).toBe(
+			"rect_both_shifted",
+		);
 	});
 });

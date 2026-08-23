@@ -222,6 +222,74 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(problem.solutionSteps.length).toBeGreaterThan(0);
 		});
 
+		it("keeps unshifted, one-shifted, and two-shifted rectangle categories distinct", () => {
+			for (let seed = 0; seed < 20; seed += 1) {
+				const unshifted = generateConvolutionProblem("rect_rect", {
+					seed,
+				});
+				const oneShifted = generateConvolutionProblem(
+					"rect_shifted_rect",
+					{ seed },
+				);
+				const bothShifted = generateConvolutionProblem(
+					"rect_both_shifted",
+					{ seed },
+				);
+				const center = (edges: number[]): number =>
+					((edges[0] ?? 0) + (edges[1] ?? 0)) / 2;
+				const width = (edges: number[]): number =>
+					(edges[1] ?? 0) - (edges[0] ?? 0);
+
+				expect(center(unshifted.xSupportEdges)).toBe(0);
+				expect(center(unshifted.hSupportEdges)).toBe(0);
+				expect(unshifted.xLatex).not.toContain("t -");
+				expect(unshifted.hLatex).not.toContain("t -");
+
+				expect(center(oneShifted.xSupportEdges)).toBe(0);
+				expect(center(oneShifted.hSupportEdges)).toBeGreaterThan(0);
+				expect(oneShifted.xLatex).not.toContain("t -");
+				expect(oneShifted.hLatex).toContain("t -");
+
+				expect(center(bothShifted.xSupportEdges)).toBeGreaterThan(0);
+				expect(center(bothShifted.hSupportEdges)).toBeGreaterThan(0);
+				expect(bothShifted.xLatex).toContain("t -");
+				expect(bothShifted.hLatex).toContain("t -");
+
+				for (const problem of [unshifted, oneShifted, bothShifted]) {
+					expect(width(problem.xSupportEdges)).not.toBe(
+						width(problem.hSupportEdges),
+					);
+					expect(problem.intervals).toHaveLength(5);
+					expect(problem.intervals[0]?.max).toBe(
+						(problem.xSupportEdges[0] ?? 0) +
+							(problem.hSupportEdges[0] ?? 0),
+					);
+					expect(problem.intervals.at(-1)?.min).toBe(
+						(problem.xSupportEdges[1] ?? 0) +
+							(problem.hSupportEdges[1] ?? 0),
+					);
+					expect(
+						problem.eval(
+							center(problem.xSupportEdges) +
+								center(problem.hSupportEdges),
+						),
+					).toBeGreaterThan(0);
+				}
+			}
+		});
+
+		it("formats centered rectangular output expressions without double negatives", () => {
+			const problem = generateConvolutionProblem("rect_rect", {
+				seed: 7,
+			});
+			expect(
+				problem.intervals.map(({ exprLatex }) => exprLatex),
+			).not.toEqual(
+				expect.arrayContaining([expect.stringContaining("- -")]),
+			);
+			expect(problem.intervals[1]?.exprLatex).toContain("t +");
+		});
+
 		it("generates a valid convolution problem for multi_rect pair", () => {
 			const problem = generateConvolutionProblem("multi_rect");
 			expect(problem.pairType).toBe("multi_rect");
@@ -259,6 +327,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 		it.each([
 			"rect_rect",
 			"rect_shifted_rect",
+			"rect_both_shifted",
 			"multi_rect",
 			"rect_exp",
 			"exp_exp",

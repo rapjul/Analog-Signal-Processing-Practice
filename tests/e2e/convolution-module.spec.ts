@@ -80,6 +80,26 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator(".progress-pill.active")).toHaveText("1");
 	});
 
+	test("offers distinct rectangle placement categories", async ({ page }) => {
+		await page.locator(".drill-summary").click();
+		const pairSelect = page.locator("#pair-type-select");
+		await expect(pairSelect).toContainText(
+			"Unshifted Rectangular Pulse * Unshifted Rectangular Pulse (Piecewise Linear)",
+		);
+		await expect(pairSelect).toContainText(
+			"Unshifted Rectangular Pulse * Shifted Rectangular Pulse (Trapezoid)",
+		);
+		await expect(pairSelect).toContainText(
+			"Shifted Rectangular Pulse * Shifted Rectangular Pulse (Trapezoid)",
+		);
+
+		await pairSelect.selectOption("rect_both_shifted");
+		await expect(
+			page.getByText("Two Shifted Rectangular Pulses Convolution"),
+		).toBeVisible();
+		await expect(page).toHaveURL(/pair=rect_both_shifted&seed=\d+/);
+	});
+
 	test("reveals worked derivation and animator only after solver completion", async ({
 		page,
 	}) => {
