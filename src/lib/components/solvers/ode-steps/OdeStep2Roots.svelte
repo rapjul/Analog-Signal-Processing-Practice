@@ -361,9 +361,9 @@
 								</div>
 							</div>
 							<div class="preview-equation-box">
-								<span class="preview-label"
-									>Live Roots Preview:</span
-								>
+								<span class="preview-label">
+									Live Roots Preview:
+								</span>
 								<MathBlock
 									math={solver.previewComplexRoots}
 									compact={true}

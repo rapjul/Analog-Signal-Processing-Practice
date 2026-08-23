@@ -55,9 +55,9 @@
 		</div>
 		<div class="summary-decomposition-grid">
 			<div class="decomp-card">
-				<span class="decomp-title"
-					>Zero-Input / Zero-State Decomposition</span
-				>
+				<span class="decomp-title">
+					Zero-Input / Zero-State Decomposition
+				</span>
 				<div class="decomp-math">
 					<MathText
 						text={`$y_{ZI}(t) = ${problem.solutions.y_zi_latex}$`}
@@ -70,9 +70,9 @@
 				</div>
 			</div>
 			<div class="decomp-card">
-				<span class="decomp-title"
-					>Transient / Steady-State Decomposition</span
-				>
+				<span class="decomp-title">
+					Transient / Steady-State Decomposition
+				</span>
 				<div class="decomp-math">
 					<MathText
 						text={`$y_{tr}(t) = ${problem.solutions.y_tr_latex}$`}

@@ -262,11 +262,11 @@
 				</div>
 				<div class="decomp-grid">
 					<div class="decomp-card">
-						<span class="decomp-label"
-							>Zero-Input Response <MathInline
+						<span class="decomp-label">
+							Zero-Input Response <MathInline
 								math={"y_{ZI}(t)"}
-							/>:</span
-						>
+							/>:
+						</span>
 						<MathBlock
 							math={`y_{ZI}(t) = ${problem.solutions.y_zi_latex}`}
 							compact={true}
@@ -274,11 +274,11 @@
 						/>
 					</div>
 					<div class="decomp-card">
-						<span class="decomp-label"
-							>Zero-State Response <MathInline
+						<span class="decomp-label">
+							Zero-State Response <MathInline
 								math={"y_{ZS}(t)"}
-							/>:</span
-						>
+							/>:
+						</span>
 						<MathBlock
 							math={`y_{ZS}(t) = ${problem.solutions.y_zs_latex}`}
 							compact={true}
@@ -286,11 +286,11 @@
 						/>
 					</div>
 					<div class="decomp-card">
-						<span class="decomp-label"
-							>Transient Response <MathInline
+						<span class="decomp-label">
+							Transient Response <MathInline
 								math={"y_{tr}(t)"}
-							/>:</span
-						>
+							/>:
+						</span>
 						<MathBlock
 							math={`y_{tr}(t) = ${problem.solutions.y_tr_latex}`}
 							compact={true}
@@ -298,11 +298,11 @@
 						/>
 					</div>
 					<div class="decomp-card">
-						<span class="decomp-label"
-							>Steady-State Response <MathInline
+						<span class="decomp-label">
+							Steady-State Response <MathInline
 								math={"y_{ss}(t)"}
-							/>:</span
-						>
+							/>:
+						</span>
 						<MathBlock
 							math={`y_{ss}(t) = ${problem.solutions.y_ss_latex}`}
 							compact={true}
