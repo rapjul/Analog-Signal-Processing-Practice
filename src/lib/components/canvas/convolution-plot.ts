@@ -44,6 +44,20 @@ export interface ConvolutionPlotTheme {
 	muted: string;
 	/** Canvas annotation color. */
 	text: string;
+	/** Fixed-signal curve color. */
+	fixedSignal?: string;
+	/** Moving-signal curve color. */
+	movingSignal?: string;
+	/** Overlap-product fill color. */
+	overlapFill?: string;
+	/** Convolution-output curve color. */
+	output?: string;
+	/** Faint complete-output preview color. */
+	outputPreview?: string;
+	/** Transformed moving-edge guide color. */
+	movingEdge?: string;
+	/** Current-time guide and point color. */
+	currentTime?: string;
 }
 
 /** Rectangular geometry for one plot panel. */
@@ -80,6 +94,10 @@ export interface ConvolutionPlotDrawOptions {
 	transitionTimes: number[];
 	/** Moving support edges and interior breakpoints in plot coordinates. */
 	movingBoundaries?: number[];
+	/** Exact fixed-signal discontinuities in upper-panel coordinates. */
+	fixedDiscontinuities?: number[];
+	/** Exact transformed moving-signal discontinuities in upper-panel coordinates. */
+	movingDiscontinuities?: number[];
 	/** Sampled signal data. */
 	frame: ConvolutionPlotFrame;
 	/** Theme colors. */
@@ -315,11 +333,16 @@ function drawSampleCurve(
 	color: string,
 	lineWidth: number,
 	maximumTime = Number.POSITIVE_INFINITY,
+	discontinuities: number[] = [],
 ): void {
 	context.strokeStyle = color;
 	context.lineWidth = lineWidth;
 	context.beginPath();
 	let started = false;
+	let previous: ConvolutionPlotSample | undefined;
+	const boundaries = [...new Set(discontinuities)]
+		.filter((time) => Number.isFinite(time) && time <= maximumTime)
+		.sort((left, right) => left - right);
 	for (const sample of samples) {
 		if (sample.time > maximumTime) break;
 		const x = toX(sample.time);
@@ -328,8 +351,25 @@ function drawSampleCurve(
 			context.moveTo(x, y);
 			started = true;
 		} else {
+			for (const boundary of boundaries) {
+				if (
+					!previous ||
+					boundary <= previous.time ||
+					boundary > sample.time
+				)
+					continue;
+				context.lineTo(
+					toX(boundary),
+					zeroY - valueForSample(previous) * scaleY,
+				);
+				context.lineTo(
+					toX(boundary),
+					zeroY - valueForSample(sample) * scaleY,
+				);
+			}
 			context.lineTo(x, y);
 		}
+		previous = sample;
 	}
 	if (started) context.stroke();
 }
@@ -398,14 +438,36 @@ function drawOverlapPanel(
 	const { frame } = options;
 	const scaleY =
 		(geometry.upper.zeroY - geometry.upper.top - 8) / frame.upperAmplitude;
-	context.fillStyle = "rgba(16, 185, 129, 0.3)";
+	context.fillStyle = options.theme.overlapFill ?? "rgba(16, 185, 129, 0.3)";
 	context.beginPath();
 	context.moveTo(toX(frame.samples[0]?.time ?? 0), geometry.upper.zeroY);
+	let previous: ConvolutionPlotSample | undefined;
+	const productDiscontinuities = [
+		...(options.fixedDiscontinuities ?? []),
+		...(options.movingDiscontinuities ?? []),
+	].sort((left, right) => left - right);
 	for (const sample of frame.samples) {
+		for (const boundary of productDiscontinuities) {
+			if (
+				!previous ||
+				boundary <= previous.time ||
+				boundary > sample.time
+			)
+				continue;
+			context.lineTo(
+				toX(boundary),
+				geometry.upper.zeroY - previous.product * scaleY,
+			);
+			context.lineTo(
+				toX(boundary),
+				geometry.upper.zeroY - sample.product * scaleY,
+			);
+		}
 		context.lineTo(
 			toX(sample.time),
 			geometry.upper.zeroY - sample.product * scaleY,
 		);
+		previous = sample;
 	}
 	const finalSample = frame.samples.at(-1);
 	context.lineTo(toX(finalSample?.time ?? 0), geometry.upper.zeroY);
@@ -418,8 +480,10 @@ function drawOverlapPanel(
 		toX,
 		geometry.upper.zeroY,
 		scaleY,
-		"#3b82f6",
+		options.theme.fixedSignal ?? "#3b82f6",
 		2.2,
+		Number.POSITIVE_INFINITY,
+		options.fixedDiscontinuities,
 	);
 	drawSampleCurve(
 		context,
@@ -428,19 +492,11 @@ function drawOverlapPanel(
 		toX,
 		geometry.upper.zeroY,
 		scaleY,
-		"#f97316",
+		options.theme.movingSignal ?? "#f97316",
 		2.2,
+		Number.POSITIVE_INFINITY,
+		options.movingDiscontinuities,
 	);
-	context.strokeStyle = "rgba(249, 115, 22, 0.85)";
-	context.setLineDash([4, 4]);
-	for (const boundary of options.movingBoundaries ?? []) {
-		const x = toX(boundary);
-		context.beginPath();
-		context.moveTo(x, geometry.upper.top);
-		context.lineTo(x, geometry.upper.bottom);
-		context.stroke();
-	}
-	context.setLineDash([]);
 }
 
 /**
@@ -473,6 +529,16 @@ function drawOutputPanel(
 		context.stroke();
 	}
 	context.setLineDash([]);
+	context.strokeStyle = options.theme.movingEdge ?? "#a855f7";
+	context.setLineDash([4, 4]);
+	for (const boundary of options.movingBoundaries ?? []) {
+		const x = toX(boundary);
+		context.beginPath();
+		context.moveTo(x, geometry.lower.top);
+		context.lineTo(x, geometry.lower.bottom);
+		context.stroke();
+	}
+	context.setLineDash([]);
 	drawSampleCurve(
 		context,
 		frame.samples,
@@ -480,7 +546,7 @@ function drawOutputPanel(
 		toX,
 		geometry.lower.zeroY,
 		scaleY,
-		"rgba(6, 182, 212, 0.28)",
+		options.theme.outputPreview ?? "rgba(6, 182, 212, 0.28)",
 		1.5,
 	);
 	drawSampleCurve(
@@ -490,20 +556,20 @@ function drawOutputPanel(
 		toX,
 		geometry.lower.zeroY,
 		scaleY,
-		"#06b6d4",
+		options.theme.output ?? "#06b6d4",
 		2.8,
 		shift,
 	);
 	const currentX = toX(shift);
 	const currentY = geometry.lower.zeroY - frame.currentOutput * scaleY;
-	context.strokeStyle = "#06b6d4";
+	context.strokeStyle = options.theme.currentTime ?? "#f59e0b";
 	context.setLineDash([4, 4]);
 	context.beginPath();
 	context.moveTo(currentX, geometry.lower.top);
 	context.lineTo(currentX, geometry.lower.bottom);
 	context.stroke();
 	context.setLineDash([]);
-	context.fillStyle = "#06b6d4";
+	context.fillStyle = options.theme.currentTime ?? "#f59e0b";
 	context.beginPath();
 	context.arc(currentX, currentY, 5, 0, Math.PI * 2);
 	context.fill();

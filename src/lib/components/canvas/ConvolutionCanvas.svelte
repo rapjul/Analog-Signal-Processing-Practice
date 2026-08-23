@@ -40,6 +40,10 @@
 		flippedSignal?: "x" | "h";
 		/** Support edges and interior breakpoints of the moving signal. */
 		movingBreakpoints?: number[];
+		/** Start and end edges of every connected moving-signal section. */
+		movingSupportEdges?: number[];
+		/** Support edges and interior breakpoints of the fixed signal. */
+		fixedBreakpoints?: number[];
 	}
 
 	let {
@@ -57,6 +61,8 @@
 		sampleCount = 420,
 		flippedSignal = "h",
 		movingBreakpoints = [],
+		movingSupportEdges = [],
+		fixedBreakpoints = [],
 	}: Props = $props();
 	const fixedEvaluator = $derived(flippedSignal === "x" ? evalH : evalX);
 	const movingEvaluator = $derived(flippedSignal === "x" ? evalX : evalH);
@@ -202,6 +208,12 @@
 			shift: shiftT,
 			transitionTimes,
 			movingBoundaries: getMovingConvolutionBoundaries(
+				movingSupportEdges,
+				shiftT,
+				normalizedTimeRange,
+			),
+			fixedDiscontinuities: fixedBreakpoints,
+			movingDiscontinuities: getMovingConvolutionBoundaries(
 				movingBreakpoints,
 				shiftT,
 				normalizedTimeRange,
@@ -218,6 +230,26 @@
 					"rgba(148, 163, 184, 0.22)",
 				text:
 					style.getPropertyValue("--text-muted").trim() || "#94a3b8",
+				fixedSignal:
+					style.getPropertyValue("--plot-fixed-signal").trim() ||
+					"#3b82f6",
+				movingSignal:
+					style.getPropertyValue("--plot-moving-signal").trim() ||
+					"#f97316",
+				overlapFill:
+					style.getPropertyValue("--plot-overlap-fill").trim() ||
+					"rgba(16, 185, 129, 0.3)",
+				output:
+					style.getPropertyValue("--plot-output").trim() || "#06b6d4",
+				outputPreview:
+					style.getPropertyValue("--plot-output-preview").trim() ||
+					"rgba(6, 182, 212, 0.28)",
+				movingEdge:
+					style.getPropertyValue("--plot-moving-edge").trim() ||
+					"#a855f7",
+				currentTime:
+					style.getPropertyValue("--plot-current-time").trim() ||
+					"#f59e0b",
 			},
 		});
 	});
@@ -252,6 +284,16 @@
 				<span class="label">
 					<MathText text={String.raw`$y(t)$`} />
 				</span>
+			</div>
+			<div class="legend-item">
+				<span class="guide purple"></span><span class="label"
+					>Moving edges</span
+				>
+			</div>
+			<div class="legend-item">
+				<span class="guide amber"></span><span class="label"
+					>Current time</span
+				>
 			</div>
 		</div>
 	</div>
@@ -331,11 +373,11 @@
 		id="convolution-plot-note"
 		class="plot-note"
 	>
-		Orange dashed guides in the overlap panel mark finite moving-signal
-		edges and interior breakpoints, including the moving left edge. Dashed
-		guides in the output panel mark the transition times verified in the
-		solver. The faint curve previews the complete response; the bright curve
-		shows the portion reached by the moving overlap.
+		Purple dashed guides on the output plot mark every finite transformed
+		moving-signal edge. The amber guide and point mark the current time.
+		Fainter cyan dashed guides mark transition times verified in the solver.
+		The faint output curve previews the complete response, while the bright
+		cyan curve shows the portion reached by the moving overlap.
 	</p>
 </div>
 
@@ -404,6 +446,19 @@
 	}
 	.dot.cyan {
 		background: #06b6d4;
+	}
+
+	.guide {
+		width: 14px;
+		height: 0;
+		border-top: 2px dashed currentColor;
+		flex: 0 0 auto;
+	}
+	.guide.purple {
+		color: #a855f7;
+	}
+	.guide.amber {
+		color: #f59e0b;
 	}
 
 	/* ── Dual-plot canvas container ───────────────────────── */

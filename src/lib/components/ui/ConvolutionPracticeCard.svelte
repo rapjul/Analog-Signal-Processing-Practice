@@ -17,6 +17,7 @@
 		type ConvolutionProblem,
 		getFiniteConvolutionTransitionTimes,
 	} from "$lib/math-engine/convolution";
+	import type { SolutionStep } from "$lib/math-engine/types";
 
 	interface Props {
 		/** Active convolution problem instance. */
@@ -35,6 +36,103 @@
 	const transitionTimes = $derived(
 		getFiniteConvolutionTransitionTimes(problem.intervals),
 	);
+	/** Complete path-aware worked solution rendered inside the disclosure. */
+	const solutionBreakdown = $derived.by((): SolutionStep[] => {
+		const formula =
+			problem.itsData.step3.formulaBySignal[flippedSignal].options.find(
+				({ isCorrect }) => isCorrect,
+			)?.latex ?? "";
+		const transformedSections = problem.itsData.step3.sectionsBySignal[
+			flippedSignal
+		]
+			.map(({ leftLatex, rightLatex, includedEndpoint }) => {
+				const left =
+					includedEndpoint === "left" || includedEndpoint === "both"
+						? "["
+						: "(";
+				const right =
+					includedEndpoint === "right" || includedEndpoint === "both"
+						? "]"
+						: ")";
+				return `\\tau\\in${left}${leftLatex},${rightLatex}${right}`;
+			})
+			.join("\\\\");
+		const transitions = problem.itsData.step4.transitionGroups
+			.map(({ time }) => `t=${time}`)
+			.join(",\\;");
+		const setups = problem.itsData.step5.parts
+			.map(
+				(part) =>
+					part.setupBySignal?.[flippedSignal].integralLatex ??
+					"y(t)=0",
+			)
+			.join("\\\\[0.4em]");
+		const evaluated = problem.intervals
+			.map(
+				({ labelLatex, exprLatex }) =>
+					`${labelLatex}:&\\quad y(t)=${exprLatex}`,
+			)
+			.join("\\\\[0.4em]");
+		return [
+			{
+				title: "Record input and output timing",
+				description:
+					"The support is the time range where a signal can be nonzero. Adding the verified starts and ends gives the output span.",
+				latex: problem.itsData.step1.parts
+					.map(({ resultLatex }) => resultLatex)
+					.join("\\\\"),
+				aligned: true,
+				responsive: true,
+			},
+			{
+				title: "Define convolution",
+				description:
+					"Use one fixed signal and reflect and translate the other signal.",
+				latex: problem.itsData.step2.options.find(
+					({ isCorrect }) => isCorrect,
+				)?.latex,
+				responsive: true,
+			},
+			{
+				title: "Apply the selected flip-and-shift path",
+				description: `The learner selected $${flippedSignal}(t)$ as the moving signal; this same path controls every later bound.`,
+				latex: `${formula}\\\\${transformedSections}`,
+				aligned: true,
+				responsive: true,
+			},
+			{
+				title: "Find transitions and build intervals",
+				description:
+					"Each transition comes from a fixed breakpoint contacting a reflected moving breakpoint. Sorting them creates the time intervals.",
+				latex: `\\mathcal T=\\{${transitions}\\}\\\\\\mathcal R=\\{${problem.itsData.step4.intervalLabels.join(",\\;")}\\}`,
+				aligned: true,
+				responsive: true,
+			},
+			{
+				title: "Choose every lower and upper limit",
+				description:
+					"For each time interval, the lower limit is the larger active left edge and the upper limit is the smaller active right edge.",
+				latex: setups,
+				aligned: true,
+				responsive: true,
+			},
+			{
+				title: "Evaluate every definite integral",
+				description:
+					"Evaluate each verified setup and keep its expression attached to the interval where those bounds apply.",
+				latex: evaluated,
+				aligned: true,
+				responsive: true,
+			},
+			{
+				title: "Assemble the piecewise response",
+				description:
+					"Combine the interval expressions, including both exterior zero regions.",
+				latex: problem.itsData.step7.resultLatex,
+				responsive: true,
+			},
+		];
+	});
 
 	$effect(() => {
 		if (problem) isCompleted = false;
@@ -119,7 +217,7 @@
 				/>
 			</section>
 
-			<StepReveal steps={problem.solutionSteps} />
+			<StepReveal steps={solutionBreakdown} />
 
 			<div class="visualizer-wrapper">
 				<ConvolutionCanvas
@@ -132,6 +230,12 @@
 					movingBreakpoints={flippedSignal === "x"
 						? (problem.xBreakpoints ?? [])
 						: (problem.hBreakpoints ?? [])}
+					movingSupportEdges={flippedSignal === "x"
+						? problem.xSupportEdges
+						: problem.hSupportEdges}
+					fixedBreakpoints={flippedSignal === "x"
+						? (problem.hBreakpoints ?? [])
+						: (problem.xBreakpoints ?? [])}
 					title="Verified Flip-and-Shift Overlap Visualizer"
 				/>
 			</div>
