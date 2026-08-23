@@ -1,194 +1,135 @@
 <script lang="ts">
 	/**
-	 * ConvolutionPracticeCard Svelte 5 Component.
+	 * Convolution practice card with a guided five-step ITS solver.
 	 *
-	 * Displays Continuous-Time Convolution practice statement, embedded flip-and-shift canvas animator,
-	 * multi-step piecewise LaTeX inputs (via MathInputBar), validation feedback, and step reveal breakdown.
+	 * Keeps the problem statement spoiler-free, defers the flip-and-shift canvas
+	 * and worked solution until completion, and mirrors the ODE/Fourier flow.
 	 */
 
-	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
-	import { validateConvolutionResponse } from "$lib/math-engine/evaluator";
-	import ConvolutionCanvas from "../canvas/ConvolutionCanvas.svelte";
-	import MathBlock from "../math/MathBlock.svelte";
-	import MathInputBar from "../math/MathInputBar.svelte";
-	import MathText from "../math/MathText.svelte";
-	import ProblemHeader from "./ProblemHeader.svelte";
-	import StepReveal from "./StepReveal.svelte";
+	import ConvolutionCanvas from "$lib/components/canvas/ConvolutionCanvas.svelte";
+	import MathBlock from "$lib/components/math/MathBlock.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
+	import ConvolutionStepSolver from "$lib/components/solvers/ConvolutionStepSolver.svelte";
+	import CompletionBanner from "$lib/components/ui/CompletionBanner.svelte";
+	import ProblemHeader from "$lib/components/ui/ProblemHeader.svelte";
+	import StepReveal from "$lib/components/ui/StepReveal.svelte";
+	import {
+		type ConvolutionProblem,
+		getFiniteConvolutionTransitionTimes,
+	} from "$lib/math-engine/convolution";
 
 	interface Props {
-		/** Active convolution problem instance */
+		/** Active convolution problem instance. */
 		problem: ConvolutionProblem;
-		/** Callback triggered when user requests next randomized problem */
+		/** Callback triggered when the user requests another problem. */
 		onNextProblem: () => void;
 	}
 
 	let { problem, onNextProblem }: Props = $props();
 
-	// Student LaTeX response binding
-	let studentLatex = $state("");
-	// Diagnostic feedback state
-	let feedback = $state<{
-		isCorrect: boolean;
-		message: string;
-		details?: string;
-	} | null>(null);
-
-	// Reset response and feedback when problem instance changes
-	$effect(() => {
-		if (problem) {
-			studentLatex = "";
-			feedback = null;
-		}
-	});
-
-	/**
-	 * Submits and validates student response against computed piecewise solution.
-	 */
-	function handleSubmit() {
-		if (!studentLatex.trim()) {
-			feedback = {
-				isCorrect: false,
-				message:
-					"Please enter your solution expression before submitting.",
-			};
-			return;
-		}
-
-		const isAccurate = validateConvolutionResponse(
-			studentLatex,
-			problem.eval,
-			problem.timeRange ?? [-2, 6],
-		);
-
-		if (isAccurate) {
-			feedback = {
-				isCorrect: true,
-				message:
-					"Correct! Your convolution solution is numerically verified.",
-			};
-		} else {
-			feedback = {
-				isCorrect: false,
-				message:
-					"Not quite equivalent yet. Check your integration bounds and piecewise intervals.",
-			};
-		}
-	}
-
-	// Dynamic placeholder text
-	let placeholderText = $derived(
-		problem.pairType.includes("rect")
-			? String.raw`e.g. \begin{cases} t & 0 \le t < 1 \\ 2-t & 1 \le t \le 2 \end{cases}`
-			: String.raw`e.g. \frac{1}{2}(1 - e^{-2t}) u(t)`,
+	/** Whether the guided tutor has validated all five parent steps. */
+	let isCompleted = $state(false);
+	/** Finite overlap boundaries reused by the completed animation. */
+	const transitionTimes = $derived(
+		getFiniteConvolutionTransitionTimes(problem.intervals),
 	);
 
-	// Formula constant for statement text
-	const convExprMath =
-		"y(t) = (x * h)(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau";
+	$effect(() => {
+		if (problem) isCompleted = false;
+	});
+
+	/** Reveals the worked solution and graphical verifier after tutor completion. */
+	function handleProblemCompleted(): void {
+		isCompleted = true;
+	}
 </script>
 
 <div class="convolution-practice-card">
-	<!-- Problem Header (category + next-problem button) -->
 	<ProblemHeader
 		title={problem.title}
 		category="Continuous-Time Problem"
 		{onNextProblem}
 	/>
 
-	<!-- Problem Statement -->
+	<!-- Clean anti-spoiler problem statement -->
 	<div class="problem-statement">
 		<p class="statement-text">
 			<MathText
-				text={String.raw`Calculate the analytical continuous-time convolution integral $y(t) = (x * h)(t)$ for the given signals:`}
+				text={String.raw`Derive the analytical continuous-time convolution $y(t)=(x*h)(t)$ for the two signals:`}
 			/>
 		</p>
 		<div class="signals-grid">
 			<div class="signal-box">
 				<span class="signal-label">
-					<MathText text={String.raw`Input Signal $x(t)$:`} />
+					<MathText text={String.raw`Input signal $x(t)$`} />
 				</span>
 				<MathBlock
-					math={`x(t) = ${problem.xLatex}`}
-					compact
-					responsive
+					math={`x(t)=${problem.xLatex}`}
+					compact={true}
+					responsive={true}
 				/>
 			</div>
 			<div class="signal-box">
 				<span class="signal-label">
-					<MathText text={String.raw`Impulse Response $h(t)$:`} />
+					<MathText text={String.raw`Impulse response $h(t)$`} />
 				</span>
 				<MathBlock
-					math={`h(t) = ${problem.hLatex}`}
-					compact
-					responsive
+					math={`h(t)=${problem.hLatex}`}
+					compact={true}
+					responsive={true}
 				/>
 			</div>
 		</div>
-		<div class="conv-formula-wrapper">
-			<MathBlock
-				math={convExprMath}
-				responsive
-			/>
-		</div>
 	</div>
 
-	<!-- Embedded Graphical Convolution Canvas Animator -->
-	<ConvolutionCanvas
-		evalX={problem.evalX}
-		evalH={problem.evalH}
-		evalY={problem.eval}
-		timeRange={problem.timeRange ?? [-2, 6]}
-		title="Live Overlap Integrator Visualizer"
-	/>
-
-	<!-- Guided Input Section -->
-	<div class="input-section">
-		<h3 class="section-subtitle">
-			<MathText text={String.raw`Enter Solution Expression $y(t)$:`} />
-		</h3>
-		<MathInputBar
-			bind:value={studentLatex}
-			inputType="piecewise"
-			label="Build piecewise interval expression or type LaTeX:"
-			placeholder={placeholderText}
+	<!-- Intelligent Tutoring System stepped solver -->
+	<div class="solver-container">
+		<ConvolutionStepSolver
+			{problem}
+			onComplete={handleProblemCompleted}
 		/>
-
-		<div class="action-bar">
-			<button
-				type="button"
-				class="btn-submit"
-				onclick={handleSubmit}
-			>
-				✓ Submit & Validate Convolution
-			</button>
-		</div>
-
-		<!-- Validation Alert -->
-		{#if feedback}
-			<div
-				class="validation-alert"
-				class:correct={feedback.isCorrect}
-				class:incorrect={!feedback.isCorrect}
-			>
-				<span class="alert-icon">
-					{feedback.isCorrect ? "🎉" : "❌"}
-				</span>
-				<div class="alert-content">
-					<span class="alert-title">
-						{feedback.isCorrect
-							? "Correct Solution!"
-							: "Incorrect Solution"}
-					</span>
-					{#if feedback.message}
-						<p class="alert-message">{feedback.message}</p>
-					{/if}
-				</div>
-			</div>
-		{/if}
 	</div>
 
-	<!-- Step Reveal Solution Breakdown -->
-	<StepReveal steps={problem.solutionSteps} />
+	<!-- Post-solve verification and visualizer -->
+	{#if isCompleted}
+		<div class="completion-section">
+			<CompletionBanner
+				title="Problem Completed!"
+				description={String.raw`You have derived every overlap region and assembled the exact piecewise response $y(t)$. Use the animator to connect the verified algebra to the moving overlap geometry.`}
+				stats={[
+					{ label: "Tutor Steps", value: 5 },
+					{
+						label: "Verified Regions",
+						value: problem.intervals.length,
+					},
+				]}
+			/>
+
+			<section class="verified-response">
+				<h3 class="verified-response-title">
+					<MathText text={String.raw`Verified response $y(t)$`} />
+				</h3>
+				<MathBlock
+					math={problem.itsData.step5.resultLatex}
+					compact={true}
+					responsive={true}
+				/>
+			</section>
+
+			<StepReveal steps={problem.solutionSteps} />
+
+			<div class="visualizer-wrapper">
+				<ConvolutionCanvas
+					evalX={problem.evalX}
+					evalH={problem.evalH}
+					evalY={problem.eval}
+					timeRange={problem.timeRange ?? [-2, 6]}
+					{transitionTimes}
+					title="Verified Flip-and-Shift Overlap Visualizer"
+				/>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -225,25 +166,12 @@
 		box-sizing: border-box;
 	}
 
-	.conv-formula-wrapper {
-		display: flex;
-		justify-content: center;
-		width: 100%;
-		min-width: 0;
-	}
-
-	.conv-formula-wrapper :global(.math-block) {
-		width: fit-content;
-		max-width: 100%;
-		margin: 0.25rem auto 0 auto;
-	}
-
 	.statement-text {
 		font-size: 0.95rem;
 		color: var(--text-secondary);
 		line-height: 1.5;
-		word-break: normal;
-		overflow-wrap: break-word;
+		margin: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.signals-grid {
@@ -254,7 +182,6 @@
 		max-width: 780px;
 		margin-inline: auto;
 		min-width: 0;
-		box-sizing: border-box;
 	}
 
 	.signal-box {
@@ -273,110 +200,70 @@
 	.signal-box :global(.math-block) {
 		width: 100%;
 		min-width: 0;
-		margin: 0.25rem 0 0 0;
+		margin: 0.25rem 0 0;
+	}
+
+	.convolution-practice-card :global(.math-block),
+	.convolution-practice-card :global(.math-block-content) {
+		box-sizing: border-box;
 	}
 
 	.signal-label {
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-muted);
 	}
 
-	/* ── Guided solution input section ─────────────────────── */
+	/* ── Solver & completion sections ─────────────────────── */
 
-	.input-section {
+	.solver-container,
+	.visualizer-wrapper {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.completion-section {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		padding-top: 1rem;
+		border-top: 2px dashed var(--border-color);
+		animation: completionFadeIn 0.3s ease-out;
 		width: 100%;
 		max-width: 100%;
 		min-width: 0;
-		box-sizing: border-box;
+		overflow: hidden;
 	}
 
-	.section-subtitle {
-		font-size: 1.05rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	/* ── Action bar & submit button ────────────────────────── */
-
-	.action-bar {
-		display: flex;
-		gap: 1rem;
-		flex-wrap: wrap;
-	}
-
-	.btn-submit {
-		background: var(--accent-primary);
-		color: var(--accent-contrast);
-		font-weight: 700;
-		border: none;
-		padding: 0.6rem 1.25rem;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		font-size: var(--text-sm);
-		transition: all 0.2s ease;
-	}
-
-	.btn-submit:hover,
-	.btn-submit:focus-visible {
-		box-shadow: 0 0 14px var(--accent-glow);
-		outline: 2px solid var(--text-primary);
-		outline-offset: 2px;
-	}
-
-	/* ── Validation alert banner ───────────────────────────── */
-
-	.validation-alert {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 1rem;
-		border-radius: var(--radius-md);
-		font-size: var(--text-sm);
-		min-width: 0;
-		box-sizing: border-box;
-	}
-
-	/* Correct — green alert */
-	.validation-alert.correct {
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-success);
-		color: var(--color-success);
-	}
-
-	/* Incorrect — red alert */
-	.validation-alert.incorrect {
-		background: var(--color-error-bg);
-		border: 1px solid var(--color-error);
-		color: var(--color-error);
-	}
-
-	.alert-icon {
-		font-size: var(--text-xl);
-		flex-shrink: 0;
-	}
-
-	.alert-content {
+	.verified-response {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 0.5rem;
+		width: 100%;
 		min-width: 0;
 	}
 
-	.alert-title {
+	.verified-response-title {
+		font-size: var(--text-base);
 		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0;
 	}
 
-	.alert-message {
-		font-size: var(--text-sm);
-		opacity: 0.9;
-		word-break: break-word;
+	@keyframes completionFadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
-	/* ── Container query (≤700px) ──────────────────────────── */
+	/* ── Container query (≤700px) ─────────────────────────── */
 
 	@container (max-width: 700px) {
 		.signals-grid {
@@ -385,16 +272,7 @@
 		}
 	}
 
-	/* ── Mobile media query (≤700px) ───────────────────────── */
-
-	@media (max-width: 700px) {
-		.signals-grid {
-			grid-template-columns: 1fr;
-			max-width: 520px;
-		}
-	}
-
-	/* ── Mobile media query (≤480px) ───────────────────────── */
+	/* ── Mobile media query (≤480px) ──────────────────────── */
 
 	@media (max-width: 480px) {
 		.convolution-practice-card {
@@ -409,12 +287,6 @@
 		.signal-box {
 			padding: 0.5rem;
 		}
-
-		.btn-submit {
-			width: 100%;
-			text-align: center;
-			justify-content: center;
-		}
 	}
 
 	/* ── Narrow viewport (≤360px) container query ─────────── */
@@ -426,10 +298,6 @@
 
 		.problem-statement {
 			padding: 0.65rem 0.4rem;
-		}
-
-		.signal-box {
-			padding: 0.4rem;
 		}
 	}
 </style>

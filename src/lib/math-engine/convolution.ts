@@ -4,7 +4,19 @@
  * exponential decays, triangular functions, step functions, and problem generator.
  */
 
+import {
+	buildConvolutionItsData,
+	type ConvolutionItsData,
+} from "./convolution/its-scaffolding";
 import type { SolutionStep } from "./types";
+
+export type {
+	ConvolutionItsChoiceStep,
+	ConvolutionItsData,
+	ConvolutionItsIntervalPart,
+	ConvolutionItsOption,
+} from "./convolution/its-scaffolding";
+export { getFiniteConvolutionTransitionTimes } from "./convolution/its-scaffolding";
 
 /** Rectangular pulse signal parameters */
 export interface RectSignal {
@@ -91,6 +103,26 @@ export interface ConvolutionProblem {
 	evalH: (tau: number) => number;
 	/** Time range [min, max] for visualization */
 	timeRange?: [number, number];
+	/** Structured five-step Intelligent Tutoring System data. */
+	itsData: ConvolutionItsData;
+}
+
+/** Convolution problem before its standardized tutor scaffold is attached. */
+type ConvolutionProblemSource = Omit<ConvolutionProblem, "itsData">;
+
+/**
+ * Attaches deterministic tutoring data to an exact convolution problem.
+ *
+ * @param problem - Analytical problem and interval result.
+ * @returns Complete convolution problem with ITS scaffolding.
+ */
+function withConvolutionItsData(
+	problem: ConvolutionProblemSource,
+): ConvolutionProblem {
+	return {
+		...problem,
+		itsData: buildConvolutionItsData(problem.intervals),
+	};
 }
 
 /**
@@ -201,11 +233,11 @@ export function generateConvolutionProblem(
 			const rect2: RectSignal = { tStart: 0, width: w2, height: h2 };
 			const res = solveRectRectConvolution(rect1, rect2);
 
-			const xLatex = `rect\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
+			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
 			const hLatex =
 				h2 === 1
-					? `rect\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`
-					: `${h2} rect\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`;
+					? `\\operatorname{rect}\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`
+					: `${h2} \\operatorname{rect}\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`;
 
 			const steps: SolutionStep[] = [
 				{
@@ -237,7 +269,7 @@ export function generateConvolutionProblem(
 				},
 			];
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "rect_rect",
 				title: "Rectangular Pulse Convolution",
@@ -249,7 +281,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-2, w1 + w2 + 2],
-			};
+			});
 		}
 		case "rect_shifted_rect": {
 			const w1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
@@ -290,7 +322,7 @@ export function generateConvolutionProblem(
 				},
 			];
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "rect_shifted_rect",
 				title: "Shifted Rect Pulse Convolution",
@@ -302,7 +334,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-1, tShift + w1 + w2 + 2],
-			};
+			});
 		}
 		case "multi_rect": {
 			const res = solveMultiRectConvolution();
@@ -332,7 +364,7 @@ export function generateConvolutionProblem(
 				},
 			];
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "multi_rect",
 				title: "Multi-Rect Pulse Array Convolution",
@@ -344,7 +376,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-1, 7],
-			};
+			});
 		}
 		case "rect_exp": {
 			const w = Math.floor(Math.random() * 2) + 1; // 1 or 2
@@ -380,7 +412,7 @@ export function generateConvolutionProblem(
 				},
 			];
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "rect_exp",
 				title: "Pulse-Exponential Convolution",
@@ -392,7 +424,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-2, w + 4],
-			};
+			});
 		}
 		case "exp_exp": {
 			const a1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
@@ -423,7 +455,7 @@ export function generateConvolutionProblem(
 				},
 			];
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "exp_exp",
 				title: "Exponential-Exponential Convolution",
@@ -435,7 +467,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-1, 6],
-			};
+			});
 		}
 		case "step_exp": {
 			const a = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
@@ -443,7 +475,7 @@ export function generateConvolutionProblem(
 			const xLatex = "u(t)";
 			const hLatex = `e^{-${a}t} u(t)`;
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "step_exp",
 				title: "Unit Step Response of Exponential System",
@@ -467,7 +499,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-1, 6],
-			};
+			});
 		}
 		case "step_rect": {
 			const w = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
@@ -475,7 +507,7 @@ export function generateConvolutionProblem(
 			const xLatex = "u(t)";
 			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
 
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType: "step_rect",
 				title: "Unit Step Response of Rectangular Pulse System",
@@ -498,7 +530,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-1, w + 4],
-			};
+			});
 		}
 		case "tri_rect":
 		case "bilateral_exp_rect": {
@@ -506,7 +538,7 @@ export function generateConvolutionProblem(
 			const rect1: RectSignal = { tStart: 0, width: 2, height: 1 };
 			const rect2: RectSignal = { tStart: 0, width: 2, height: 1 };
 			const res = solveRectRectConvolution(rect1, rect2);
-			return {
+			return withConvolutionItsData({
 				id,
 				pairType,
 				title: "Triangular Pulse Convolution",
@@ -525,7 +557,7 @@ export function generateConvolutionProblem(
 				evalX: res.evalX,
 				evalH: res.evalH,
 				timeRange: [-2, 6],
-			};
+			});
 		}
 		default: {
 			const unhandledType: never = pairType;
