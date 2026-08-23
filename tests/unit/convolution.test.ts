@@ -20,6 +20,7 @@ import {
 } from "$lib/math-engine/convolution";
 import {
 	buildConvolutionItsData,
+	type ConvolutionItsBuildContext,
 	formatConvolutionPiecewiseLatex,
 	getFiniteConvolutionTransitionTimes,
 } from "$lib/math-engine/convolution/its-scaffolding";
@@ -414,6 +415,124 @@ describe("Continuous-Time Convolution Math Engine", () => {
 					expect.stringContaining("y(t)=2"),
 				]),
 			);
+		});
+
+		it("covers left-unbounded and fully unbounded representative interval times", () => {
+			const data = buildConvolutionItsData({
+				...context([
+					interval("t<0", Number.NEGATIVE_INFINITY, 0, "1"),
+					interval(
+						"t\\in\\mathbb{R}",
+						Number.NEGATIVE_INFINITY,
+						Number.POSITIVE_INFINITY,
+						"1",
+					),
+				]),
+			});
+			expect(data.step5.parts).toHaveLength(2);
+			expect(data.step5.parts.every((part) => part.setupBySignal)).toBe(
+				true,
+			);
+		});
+
+		it("covers every endpoint convention and negative-infinite translated edges", () => {
+			const fixture: ConvolutionItsBuildContext = {
+				intervals: [interval("t\\in\\mathbb{R}", -1, 1, "1")],
+				xSections: [
+					{
+						id: "x-both",
+						start: Number.NEGATIVE_INFINITY,
+						end: Number.NEGATIVE_INFINITY,
+						startIncluded: true,
+						endIncluded: true,
+					},
+					{
+						id: "x-left-after-flip",
+						start: 0,
+						end: 2,
+						startIncluded: false,
+						endIncluded: true,
+					},
+				],
+				hSections: [
+					{
+						id: "h-neither",
+						start: -1,
+						end: 1,
+						startIncluded: false,
+						endIncluded: false,
+					},
+				],
+				xBreakpoints: [Number.NEGATIVE_INFINITY, 0, 2],
+				hBreakpoints: [-1, 0, 1],
+			};
+			const data = buildConvolutionItsData(fixture);
+			const sections = data.step3.sectionsBySignal.x;
+			expect(
+				sections.map(({ includedEndpoint }) => includedEndpoint),
+			).toEqual(["both", "left"]);
+			expect(sections[0].leftLatex).toBe("\\infty");
+			expect(sections[0].originalLatex).toContain("]");
+		});
+
+		it("counts overlapping sections, removes duplicate splits, and defaults empty supports", () => {
+			const overlapping: ConvolutionItsBuildContext = {
+				intervals: [interval("1<t<2", 1, 2, "t")],
+				xSections: [
+					{
+						id: "x-1",
+						start: -1,
+						end: 2,
+						startIncluded: true,
+						endIncluded: false,
+					},
+					{
+						id: "x-2",
+						start: 0,
+						end: 3,
+						startIncluded: true,
+						endIncluded: false,
+					},
+				],
+				hSections: [
+					{
+						id: "h-1",
+						start: 0,
+						end: 1,
+						startIncluded: true,
+						endIncluded: false,
+					},
+				],
+				xBreakpoints: [-1, 1, 1, 3],
+				hBreakpoints: [0, 1],
+			};
+			const data = buildConvolutionItsData(overlapping);
+			expect(data.step4.sectionOverlapCounts.x).toBe(1);
+			const overlaps =
+				data.step5.parts[0].setupBySignal?.h.overlaps ?? [];
+			expect(overlaps).not.toHaveLength(0);
+			expect(
+				overlaps.every(
+					({ splitPointsLatex }) =>
+						splitPointsLatex.filter((point) => point === "1")
+							.length === 1,
+				),
+			).toBe(true);
+
+			const empty = buildConvolutionItsData({
+				intervals: [],
+				xSections: [],
+				hSections: [],
+				xBreakpoints: [],
+				hBreakpoints: [],
+			});
+			expect(
+				empty.step1.parts.map(({ start, end }) => [start, end]),
+			).toEqual([
+				[Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+				[Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+				[Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+			]);
 		});
 	});
 });
