@@ -45,8 +45,8 @@
 
 {#snippet summarySnippet()}
 	<span>
-		Origin parity: <strong class="capitalize"
-			>{problem.coeffs.originParity}</strong
+		Origin parity: <strong class="capitalize">
+			{problem.coeffs.originParity}</strong
 		>; half-wave symmetry:
 		<strong>
 			{problem.coeffs.hasHalfWaveSymmetry ? "yes" : "no"}
