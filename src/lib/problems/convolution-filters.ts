@@ -14,6 +14,7 @@ export type ConvolutionDrillPairType = Extract<
 	ConvolutionPairType,
 	| "rect_rect"
 	| "rect_shifted_rect"
+	| "rect_both_shifted"
 	| "multi_rect"
 	| "rect_exp"
 	| "exp_exp"
@@ -29,6 +30,7 @@ export const CONVOLUTION_DRILL_PAIR_TYPES: readonly ConvolutionDrillPairType[] =
 	[
 		"rect_rect",
 		"rect_shifted_rect",
+		"rect_both_shifted",
 		"multi_rect",
 		"rect_exp",
 		"exp_exp",

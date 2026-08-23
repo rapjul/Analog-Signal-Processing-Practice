@@ -108,10 +108,15 @@
 				>
 					<option value="random">Random (All Signal Pairs)</option>
 					<option value="rect_rect">
-						Rectangular Pulse * Rectangular Pulse (Piecewise Linear)
+						Unshifted Rectangular Pulse * Unshifted Rectangular
+						Pulse (Piecewise Linear)
 					</option>
 					<option value="rect_shifted_rect">
-						Rectangular Pulse * Shifted Rectangular Pulse
+						Unshifted Rectangular Pulse * Shifted Rectangular Pulse
+						(Trapezoid)
+					</option>
+					<option value="rect_both_shifted">
+						Shifted Rectangular Pulse * Shifted Rectangular Pulse
 						(Trapezoid)
 					</option>
 					<option value="multi_rect">

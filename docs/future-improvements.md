@@ -125,3 +125,13 @@ A running backlog of prospective UX, visual, and architectural improvements to c
     - Show reflection, translation, and overlap without revealing the final output curve, exact transition times, or interval answers.
     - Let the student replay or dismiss the preview before entering Step 1.
     - Reuse the modular convolution plot model so future visual changes remain synchronized with the completed animator.
+
+### 16. Convolution Tutor: Delta Distribution and Unit-Impulse Signal Pairs
+
+- **Context:** The current signal-pair categories do not teach the identity, shift, and scaling properties of convolution with an impulse.
+- **Improvement Idea:**
+    - Add Dirac delta (continuous-time unit impulse) convolution problems for rectangular, triangular, multiple-pulse, and exponential signals.
+    - Include unshifted, shifted $\delta(t-t_0)$, and scaled $A\delta(t-t_0)$ variants so learners see identity, translation, and amplitude scaling separately.
+    - If discrete-time convolution is added, distinguish its Kronecker unit sample from the continuous-time Dirac distribution instead of treating them as interchangeable notation.
+    - Draw impulses with labeled arrows and finite weights in the animator, since a Dirac delta cannot be plotted as an ordinary finite-height function.
+    - Test every main signal family in both operand orders and verify the resulting shift, scale, support, tutor steps, and plot labels.

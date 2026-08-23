@@ -94,8 +94,9 @@ export interface ConvolutionResult {
  * Covers combinations of rectangular pulses, exponential decays, unit steps, and triangular signals.
  */
 export type ConvolutionPairType =
-	| "rect_rect" // Rectangular pulse * Rectangular pulse
-	| "rect_shifted_rect" // Shifted rectangular pulse * Rectangular pulse
+	| "rect_rect" // Two rectangular pulses centered at zero
+	| "rect_shifted_rect" // One centered and one shifted rectangular pulse
+	| "rect_both_shifted" // Two shifted rectangular pulses
 	| "multi_rect" // Multiple piecewise rectangular pulses
 	| "rect_exp" // Rectangular pulse * Exponential decay
 	| "exp_exp" // Exponential decay * Exponential decay
@@ -221,6 +222,7 @@ function withConvolutionItsData(
 			break;
 		case "rect_rect":
 		case "rect_shifted_rect":
+		case "rect_both_shifted":
 		case "bilateral_exp_rect":
 			break;
 		default: {
@@ -345,19 +347,31 @@ export function generateConvolutionProblem(
 	switch (pairType) {
 		case "rect_rect": {
 			const w1 = randomInt(random, 1, 2);
-			const w2 = randomInt(random, 2, 3);
+			const w2 = w1 + randomInt(random, 1, 2);
 			const h1 = 1;
 			const h2 = randomInt(random, 1, 2);
 
-			const rect1: RectSignal = { tStart: 0, width: w1, height: h1 };
-			const rect2: RectSignal = { tStart: 0, width: w2, height: h2 };
+			const rect1: RectSignal = {
+				tStart: -w1 / 2,
+				width: w1,
+				height: h1,
+			};
+			const rect2: RectSignal = {
+				tStart: -w2 / 2,
+				width: w2,
+				height: h2,
+			};
 			const res = solveRectRectConvolution(rect1, rect2);
 
-			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
+			const xLatex = `\\operatorname{rect}\\left(\\frac{t}{${w1}}\\right)`;
 			const hLatex =
 				h2 === 1
-					? `\\operatorname{rect}\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`
-					: `${h2} \\operatorname{rect}\\left(\\frac{t - ${w2 / 2}}{${w2}}\\right)`;
+					? `\\operatorname{rect}\\left(\\frac{t}{${w2}}\\right)`
+					: `${h2} \\operatorname{rect}\\left(\\frac{t}{${w2}}\\right)`;
+			const firstContact = -(w1 + w2) / 2;
+			const fullOverlapStart = firstContact + w1;
+			const fullOverlapEnd = firstContact + w2;
+			const finalContact = (w1 + w2) / 2;
 
 			const steps: SolutionStep[] = [
 				{
@@ -368,24 +382,23 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Identify Region 1 (No Overlap)",
-					description:
-						"For $t < 0$, there is zero signal overlap area.",
-					latex: "y(t) = 0 \\quad (t < 0)",
+					description: `For $t < ${firstContact}$, there is zero signal overlap area.`,
+					latex: `y(t) = 0 \\quad (t < ${firstContact})`,
 				},
 				{
 					title: "Identify Region 2 (Partial Overlap)",
-					description: `For $0 \\le t < ${w1}$, overlap area increases linearly.`,
-					latex: `y(t) = \\int_0^t (${h2}) d\\tau = ${h2}t`,
+					description: `For $${firstContact} \\le t < ${fullOverlapStart}$, overlap area increases linearly.`,
+					latex: `y(t) = ${res.intervals[1]?.exprLatex ?? "0"}`,
 				},
 				{
 					title: "Identify Region 3 (Full Overlap)",
-					description: `For $${w1} \\le t < ${w2}$, overlap area plateaus at maximum value.`,
-					latex: `y(t) = \\int_{t-${w1}}^t (${h2}) d\\tau = ${h2 * w1}`,
+					description: `For $${fullOverlapStart} \\le t < ${fullOverlapEnd}$, overlap area plateaus at maximum value.`,
+					latex: `y(t) = ${res.intervals[2]?.exprLatex ?? h2 * w1}`,
 				},
 				{
 					title: "Identify Region 4 (Receding Overlap)",
-					description: `For $${w2} \\le t < ${w1 + w2}$, overlap area decreases linearly to $0$.`,
-					latex: `y(t) = \\int_{t-${w1}}^{${w2}} (${h2}) d\\tau = ${h2 * (w1 + w2)} - ${h2}t`,
+					description: `For $${fullOverlapEnd} \\le t < ${finalContact}$, overlap area decreases linearly to $0$.`,
+					latex: `y(t) = ${res.intervals.at(-2)?.exprLatex ?? "0"}`,
 				},
 			];
 
@@ -401,37 +414,47 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
-				xBreakpoints: [0, w1],
-				hBreakpoints: [0, w2],
-				timeRange: [-2, w1 + w2 + 2],
+				xBreakpoints: [-w1 / 2, w1 / 2],
+				hBreakpoints: [-w2 / 2, w2 / 2],
+				timeRange: [firstContact - 2, finalContact + 2],
 			});
 		}
 		case "rect_shifted_rect": {
 			const w1 = randomInt(random, 1, 2);
-			const w2 = randomInt(random, 2, 3);
+			const w2 = w1 + randomInt(random, 1, 2);
 			const tShift = randomInt(random, 1, 2);
-			const rect1: RectSignal = { tStart: 0, width: w1, height: 1 };
-			const rect2: RectSignal = { tStart: tShift, width: w2, height: 1 };
-			const res = solveShiftedRectConvolution(rect1, rect2);
+			const rect1: RectSignal = {
+				tStart: -w1 / 2,
+				width: w1,
+				height: 1,
+			};
+			const rect2: RectSignal = {
+				tStart: tShift - w2 / 2,
+				width: w2,
+				height: 1,
+			};
+			const res = solveRectRectConvolution(rect1, rect2);
 
-			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w1 / 2}}{${w1}}\\right)`;
-			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${tShift + w2 / 2}}{${w2}}\\right)`;
+			const xLatex = `\\operatorname{rect}\\left(\\frac{t}{${w1}}\\right)`;
+			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${tShift}}{${w2}}\\right)`;
+			const firstContact = tShift - (w1 + w2) / 2;
+			const finalContact = tShift + (w1 + w2) / 2;
 
 			const steps: SolutionStep[] = [
 				{
 					title: "Flip & Shift Transformation",
-					description: `Shifted pulse $h(\\tau)$ is active in $[${tShift}, ${tShift + w2}]$. Flip and shift yields $h(t - \\tau)$.`,
+					description: `The centered pulse $x(\\tau)$ remains fixed while the pulse $h(\\tau)$ centered at $${tShift}$ is flipped and shifted to $h(t - \\tau)$.`,
 					latex: "y(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau",
 				},
 				{
 					title: "Region 1 (No Overlap)",
-					description: `For $t < ${tShift}$, there is zero overlap.`,
-					latex: `y(t) = 0 \\quad (t < ${tShift})`,
+					description: `For $t < ${firstContact}$, there is zero overlap.`,
+					latex: `y(t) = 0 \\quad (t < ${firstContact})`,
 				},
 				{
 					title: "Region 2 (Linear Growth)",
-					description: `Overlap grows linearly from $t = ${tShift}$.`,
-					latex: `y(t) = t - ${tShift}`,
+					description: `Overlap grows linearly from $t = ${firstContact}$.`,
+					latex: `y(t) = ${res.intervals[1]?.exprLatex ?? "0"}`,
 				},
 				{
 					title: "Region 3 (Plateau / Peak)",
@@ -440,8 +463,8 @@ export function generateConvolutionProblem(
 				},
 				{
 					title: "Region 4 (Receding Edge)",
-					description: `Receding overlap returns to zero at $t = ${tShift + w1 + w2}$.`,
-					latex: `y(t) = ${tShift + w1 + w2} - t`,
+					description: `Receding overlap returns to zero at $t = ${finalContact}$.`,
+					latex: `y(t) = ${res.intervals.at(-2)?.exprLatex ?? "0"}`,
 				},
 			];
 
@@ -457,9 +480,67 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
-				xBreakpoints: [0, w1],
-				hBreakpoints: [tShift, tShift + w2],
-				timeRange: [-1, tShift + w1 + w2 + 2],
+				xBreakpoints: [-w1 / 2, w1 / 2],
+				hBreakpoints: [tShift - w2 / 2, tShift + w2 / 2],
+				timeRange: [firstContact - 2, finalContact + 2],
+			});
+		}
+		case "rect_both_shifted": {
+			const w1 = randomInt(random, 1, 2);
+			const w2 = w1 + randomInt(random, 1, 2);
+			const xShift = randomInt(random, 1, 2);
+			const hShift = xShift + randomInt(random, 1, 2);
+			const rect1: RectSignal = {
+				tStart: xShift - w1 / 2,
+				width: w1,
+				height: 1,
+			};
+			const rect2: RectSignal = {
+				tStart: hShift - w2 / 2,
+				width: w2,
+				height: 1,
+			};
+			const res = solveRectRectConvolution(rect1, rect2);
+			const firstContact = xShift + hShift - (w1 + w2) / 2;
+			const finalContact = xShift + hShift + (w1 + w2) / 2;
+
+			return withConvolutionItsData({
+				id,
+				seed,
+				pairType: "rect_both_shifted",
+				title: "Two Shifted Rectangular Pulses Convolution",
+				xLatex: `\\operatorname{rect}\\left(\\frac{t - ${xShift}}{${w1}}\\right)`,
+				hLatex: `\\operatorname{rect}\\left(\\frac{t - ${hShift}}{${w2}}\\right)`,
+				solutionSteps: [
+					{
+						title: "Flip & Shift Transformation",
+						description: `The pulse centers are $${xShift}$ and $${hShift}$. Their convolution is centered at their sum, $${xShift + hShift}$.`,
+						latex: "y(t) = \\int_{-\\infty}^{\\infty} x(\\tau) h(t - \\tau) d\\tau",
+					},
+					{
+						title: "Identify First Contact",
+						description: `The shifted pulses first overlap at $t = ${firstContact}$.`,
+						latex: `y(t)=0 \\quad (t<${firstContact})`,
+					},
+					{
+						title: "Build the Trapezoid",
+						description:
+							"The overlap grows, reaches a plateau because the widths differ, and then recedes.",
+						latex: `y(t)=${res.intervals[1]?.exprLatex ?? "0"},\\ldots,${res.intervals.at(-2)?.exprLatex ?? "0"}`,
+					},
+					{
+						title: "Identify Final Contact",
+						description: `The overlap ends at $t = ${finalContact}$.`,
+						latex: `y(t)=0 \\quad (t\\ge ${finalContact})`,
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				xBreakpoints: [xShift - w1 / 2, xShift + w1 / 2],
+				hBreakpoints: [hShift - w2 / 2, hShift + w2 / 2],
+				timeRange: [firstContact - 2, finalContact + 2],
 			});
 		}
 		case "multi_rect": {
@@ -993,6 +1074,12 @@ export function solveRectRectConvolution(
 	const t1 = t0 + T1;
 	const t2 = t0 + T2;
 	const t3 = t0 + T1 + T2;
+	const risingFactor =
+		t0 === 0 ? "t" : t0 > 0 ? `t - ${t0}` : `t + ${Math.abs(t0)}`;
+	const fallingFactor =
+		t3 === 0 ? "-t" : t3 > 0 ? `${t3} - t` : `-${Math.abs(t3)} - t`;
+	const scaleFactor = (factor: string): string =>
+		H === 1 ? factor : `${H}\\left(${factor}\\right)`;
 
 	const intervals: ConvolutionInterval[] = [
 		{
@@ -1006,7 +1093,7 @@ export function solveRectRectConvolution(
 			labelLatex: `${t0} \\le t < ${t1}`,
 			min: t0,
 			max: t1,
-			exprLatex: `${H}(t - ${t0})`,
+			exprLatex: scaleFactor(risingFactor),
 			eval: (t: number): number => H * (t - t0),
 		},
 	];
@@ -1026,7 +1113,7 @@ export function solveRectRectConvolution(
 			labelLatex: `${t2} \\le t < ${t3}`,
 			min: t2,
 			max: t3,
-			exprLatex: `${H}(${t3} - t)`,
+			exprLatex: scaleFactor(fallingFactor),
 			eval: (t: number): number => H * (t3 - t),
 		},
 		{
