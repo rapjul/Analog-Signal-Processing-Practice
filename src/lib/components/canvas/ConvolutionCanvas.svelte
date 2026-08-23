@@ -1,324 +1,323 @@
 <script lang="ts">
 	/**
-	 * ConvolutionCanvas Svelte 5 Component.
-	 *
-	 * Interactive dual-plot graphical convolution animator displaying:
-	 * 1. Upper Plot: Fixed signal x(tau) (blue) and flipped & shifted signal h(t - tau) (orange)
-	 *    with shaded green product region x(tau)*h(t - tau).
-	 * 2. Lower Plot: Synchronized output response curve y(t) = (x * h)(t) (cyan).
+	 * Interactive convolution animator with synchronized overlap and output plots.
+	 * Rendering math lives in convolution-plot.ts so controls and drawing evolve independently.
 	 */
-	import MathInline from "../math/MathInline.svelte";
 
+	import { onMount } from "svelte";
+	import {
+		advanceConvolutionShift,
+		CONVOLUTION_SPEED_PRESETS,
+		DEFAULT_CONVOLUTION_SPEED,
+		drawConvolutionPlot,
+		normalizeConvolutionTimeRange,
+		sampleConvolutionPlot,
+	} from "$lib/components/canvas/convolution-plot";
+	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
+
+	/** Public properties for the convolution animator. */
 	interface Props {
-		/** Signal x(tau) evaluator */
+		/** Signal x(tau) evaluator. */
 		evalX?: (tau: number) => number;
-		/** Signal h(tau) evaluator */
+		/** Signal h(tau) evaluator. */
 		evalH?: (tau: number) => number;
-		/** Convolution output y(t) evaluator */
-		evalY?: (t: number) => number;
-		/** Title for graph */
+		/** Exact convolution output evaluator. */
+		evalY?: (time: number) => number;
+		/** Graph heading. */
 		title?: string;
-		/** Tau / Time display bounds [min, max] */
+		/** Visible tau and output-time bounds. */
 		timeRange?: [number, number];
+		/** Finite analytical boundaries where overlap geometry changes. */
+		transitionTimes?: number[];
+		/** Initial animation rate in time-axis units per second. */
+		animationSpeed?: number;
+		/** Uniform sample count for both plot panels. */
+		sampleCount?: number;
 	}
 
 	let {
 		evalX = (tau: number) => (tau >= 0 && tau < 2 ? 1 : 0),
 		evalH = (tau: number) => (tau >= 0 && tau < 2 ? 1 : 0),
-		evalY = (t: number) => {
-			if (t < 0 || t >= 4) return 0;
-			if (t < 2) return t;
-			return 4 - t;
+		evalY = (time: number) => {
+			if (time < 0 || time >= 4) return 0;
+			if (time < 2) return time;
+			return 4 - time;
 		},
 		title = "Graphical Flip-and-Shift Convolution Animator",
 		timeRange = [-2, 6],
+		transitionTimes = [0, 2, 4],
+		animationSpeed = DEFAULT_CONVOLUTION_SPEED,
+		sampleCount = 420,
 	}: Props = $props();
 
-	// Interactive shift parameter t state
-	let shiftT = $state(1.5);
+	/** Normalized bounds used by drawing and controls. */
+	const normalizedTimeRange = $derived(
+		normalizeConvolutionTimeRange(timeRange),
+	);
+	/** Active output time and signal shift. */
+	let shiftT = $state(0);
+	/** Whether requestAnimationFrame playback is active. */
 	let isPlaying = $state(false);
-	let animId: number | null = null;
-
+	/** User-selected animation rate. */
+	let playbackSpeed = $state(DEFAULT_CONVOLUTION_SPEED);
+	/** Whether reactive props have initialized local interactive state. */
+	let hasInitializedControls = false;
+	/** Active animation-frame request identifier. */
+	let animationFrameId: number | null = null;
+	/** Timestamp of the previous animation frame. */
+	let previousTimestamp: number | null = null;
+	/** Bound canvas element. */
 	let canvasEl = $state<HTMLCanvasElement | null>(null);
-
-	/**
-	 * Animates shift parameter t smoothly across timeRange.
-	 */
-	function animate() {
-		if (!isPlaying) return;
-
-		shiftT += 0.03;
-		if (shiftT > timeRange[1]) {
-			shiftT = timeRange[0];
-		}
-
-		animId = requestAnimationFrame(animate);
-	}
-
-	/**
-	 * Toggles play/pause state for convolution animation.
-	 */
-	function togglePlay() {
-		isPlaying = !isPlaying;
-		if (isPlaying) {
-			animId = requestAnimationFrame(animate);
-		} else if (animId !== null) {
-			cancelAnimationFrame(animId);
-			animId = null;
-		}
-	}
-
-	// Re-render canvas when shiftT or props change
-	import { onMount } from "svelte";
-
+	/** Reactive invalidation counter for container resizes. */
+	let resizeVersion = $state(0);
+	/** Reactive invalidation counter for theme changes. */
 	let themeVersion = $state(0);
+	/** Exact current output displayed beside the controls. */
+	const currentOutput = $derived(evalY(shiftT));
+
+	$effect(() => {
+		if (hasInitializedControls) return;
+		shiftT = normalizedTimeRange[0];
+		playbackSpeed = animationSpeed;
+		hasInitializedControls = true;
+	});
+
+	/** Stops playback and clears its pending browser frame. */
+	function stopAnimation(): void {
+		isPlaying = false;
+		previousTimestamp = null;
+		if (animationFrameId !== null) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
+	}
+
+	/**
+	 * Advances time using real elapsed duration and queues the next frame.
+	 * @param timestamp - Browser animation timestamp in milliseconds.
+	 */
+	function animate(timestamp: number): void {
+		if (!isPlaying) return;
+		const elapsedSeconds =
+			previousTimestamp === null
+				? 0
+				: (timestamp - previousTimestamp) / 1000;
+		previousTimestamp = timestamp;
+		shiftT = advanceConvolutionShift(
+			shiftT,
+			elapsedSeconds,
+			playbackSpeed,
+			normalizedTimeRange,
+		);
+		animationFrameId = requestAnimationFrame(animate);
+	}
+
+	/** Toggles time-based convolution playback. */
+	function togglePlay(): void {
+		if (isPlaying) {
+			stopAnimation();
+			return;
+		}
+		isPlaying = true;
+		previousTimestamp = null;
+		animationFrameId = requestAnimationFrame(animate);
+	}
+
+	/** Returns the plot to the beginning of its visible time range. */
+	function restartAnimation(): void {
+		stopAnimation();
+		shiftT = normalizedTimeRange[0];
+	}
+
+	/** Pauses playback when the student manually scrubs the timeline. */
+	function handleManualScrub(): void {
+		if (isPlaying) stopAnimation();
+	}
+
+	/** Invalidates canvas drawing after the containing layout changes. */
+	function handleResize(): void {
+		resizeVersion += 1;
+	}
+
+	/** Invalidates canvas drawing after the application theme changes. */
+	function handleThemeChange(): void {
+		themeVersion += 1;
+	}
 
 	onMount(() => {
-		/**
-		 * Handles themechange custom events to update themeVersion and trigger canvas re-render.
-		 */
-		function handleThemeChange() {
-			themeVersion++;
-		}
-
+		const resizeObserver =
+			typeof ResizeObserver === "undefined"
+				? null
+				: new ResizeObserver(handleResize);
+		if (canvasEl) resizeObserver?.observe(canvasEl);
+		window.addEventListener("resize", handleResize);
 		window.addEventListener("themechange", handleThemeChange);
 		return () => {
+			stopAnimation();
+			resizeObserver?.disconnect();
+			window.removeEventListener("resize", handleResize);
 			window.removeEventListener("themechange", handleThemeChange);
 		};
 	});
 
 	$effect(() => {
 		if (!canvasEl) return;
-
-		// Track theme change dependency
+		void resizeVersion;
 		void themeVersion;
+		const context = canvasEl.getContext("2d");
+		if (!context) return;
+		const bounds = canvasEl.getBoundingClientRect();
+		if (bounds.width <= 0 || bounds.height <= 0) return;
+		const pixelRatio = window.devicePixelRatio || 1;
+		canvasEl.width = Math.round(bounds.width * pixelRatio);
+		canvasEl.height = Math.round(bounds.height * pixelRatio);
+		context.scale(pixelRatio, pixelRatio);
 
 		const style = getComputedStyle(document.documentElement);
-		const bgCard = style.getPropertyValue("--bg-card").trim() || "#121214";
-		const borderColor =
-			style.getPropertyValue("--border-color").trim() || "#2d2d35";
-
-		const ctx = canvasEl.getContext("2d");
-		if (!ctx) return;
-
-		const dpr = window.devicePixelRatio || 1;
-		const rect = canvasEl.getBoundingClientRect();
-
-		canvasEl.width = rect.width * dpr;
-		canvasEl.height = rect.height * dpr;
-		ctx.scale(dpr, dpr);
-
-		const width = rect.width;
-		const height = rect.height;
-
-		// Clear canvas background
-		ctx.fillStyle = bgCard;
-		ctx.fillRect(0, 0, width, height);
-
-		const padding = 35;
-		const panelH = (height - padding * 3) / 2;
-		const [minT, maxT] = timeRange;
-
-		const toX = (tau: number) =>
-			padding + ((tau - minT) / (maxT - minT)) * (width - padding * 2);
-
-		// Panel 1: Upper Plot (Overlap & Flip-Shift on tau axis)
-		const p1Top = padding;
-		const p1Bottom = padding + panelH;
-		const p1ZeroY = p1Bottom - 20;
-		const p1ScaleY = (panelH - 40) / 2.5;
-
-		// Panel 2: Lower Plot (Output Curve y(t))
-		const p2Top = p1Bottom + padding;
-		const p2Bottom = p2Top + panelH;
-		const p2ZeroY = p2Bottom - 20;
-		const p2ScaleY = (panelH - 40) / 2.5;
-
-		// Draw Panel Backgrounds & Dividing Axes
-		ctx.strokeStyle = borderColor;
-		ctx.lineWidth = 1;
-
-		// Upper axis
-		ctx.beginPath();
-		ctx.moveTo(padding, p1ZeroY);
-		ctx.lineTo(width - padding, p1ZeroY);
-		ctx.stroke();
-
-		// Lower axis
-		ctx.beginPath();
-		ctx.moveTo(padding, p2ZeroY);
-		ctx.lineTo(width - padding, p2ZeroY);
-		ctx.stroke();
-
-		// Vertical zero lines
-		const zeroX = toX(0);
-		ctx.setLineDash([3, 3]);
-		ctx.beginPath();
-		ctx.moveTo(zeroX, p1Top);
-		ctx.lineTo(zeroX, p1Bottom);
-		ctx.moveTo(zeroX, p2Top);
-		ctx.lineTo(zeroX, p2Bottom);
-		ctx.stroke();
-		ctx.setLineDash([]);
-
-		// Sample points for high resolution
-		const numSamples = 300;
-		const dTau = (maxT - minT) / numSamples;
-
-		// Draw Shaded Overlap Product Area in Upper Panel
-		ctx.fillStyle = "rgba(16, 185, 129, 0.35)"; // green tint
-		ctx.beginPath();
-		let inOverlap = false;
-
-		for (let i = 0; i <= numSamples; i++) {
-			const tau = minT + i * dTau;
-			const valX = evalX(tau);
-			const valHShift = evalH(shiftT - tau);
-			const product = valX * valHShift;
-			const px = toX(tau);
-			const py = p1ZeroY - product * p1ScaleY;
-
-			if (product > 1e-4) {
-				if (!inOverlap) {
-					ctx.moveTo(px, p1ZeroY);
-					inOverlap = true;
-				}
-				ctx.lineTo(px, py);
-			} else if (inOverlap) {
-				ctx.lineTo(px, p1ZeroY);
-				inOverlap = false;
-			}
-		}
-		if (inOverlap) {
-			ctx.lineTo(toX(maxT), p1ZeroY);
-		}
-		ctx.closePath();
-		ctx.fill();
-
-		// Draw x(tau) in Upper Panel (Blue)
-		ctx.strokeStyle = "#3b82f6";
-		ctx.lineWidth = 2;
-		ctx.beginPath();
-		for (let i = 0; i <= numSamples; i++) {
-			const tau = minT + i * dTau;
-			const valX = evalX(tau);
-			const px = toX(tau);
-			const py = p1ZeroY - valX * p1ScaleY;
-			if (i === 0) ctx.moveTo(px, py);
-			else ctx.lineTo(px, py);
-		}
-		ctx.stroke();
-
-		// Draw h(t - tau) in Upper Panel (Orange)
-		ctx.strokeStyle = "#f97316";
-		ctx.lineWidth = 2;
-		ctx.beginPath();
-		for (let i = 0; i <= numSamples; i++) {
-			const tau = minT + i * dTau;
-			const valHShift = evalH(shiftT - tau);
-			const px = toX(tau);
-			const py = p1ZeroY - valHShift * p1ScaleY;
-			if (i === 0) ctx.moveTo(px, py);
-			else ctx.lineTo(px, py);
-		}
-		ctx.stroke();
-
-		// Draw Output y(t) Curve in Lower Panel (Cyan) up to current shiftT
-		ctx.strokeStyle = "#06b6d4";
-		ctx.lineWidth = 2.5;
-		ctx.beginPath();
-		for (let i = 0; i <= numSamples; i++) {
-			const tVal = minT + i * dTau;
-			if (tVal > shiftT) break;
-			const valY = evalY(tVal);
-			const px = toX(tVal);
-			const py = p2ZeroY - valY * p2ScaleY;
-			if (i === 0) ctx.moveTo(px, py);
-			else ctx.lineTo(px, py);
-		}
-		ctx.stroke();
-
-		// Current shift position indicator point on y(t)
-		const curYVal = evalY(shiftT);
-		const curX = toX(shiftT);
-		const curY = p2ZeroY - curYVal * p2ScaleY;
-
-		ctx.fillStyle = "#06b6d4";
-		ctx.beginPath();
-		ctx.arc(curX, curY, 5, 0, Math.PI * 2);
-		ctx.fill();
+		const frame = sampleConvolutionPlot(
+			evalX,
+			evalH,
+			evalY,
+			shiftT,
+			normalizedTimeRange,
+			sampleCount,
+		);
+		drawConvolutionPlot(context, {
+			width: bounds.width,
+			height: bounds.height,
+			timeRange: normalizedTimeRange,
+			shift: shiftT,
+			transitionTimes,
+			frame,
+			theme: {
+				background:
+					style.getPropertyValue("--bg-card").trim() || "#121214",
+				axis:
+					style.getPropertyValue("--border-color").trim() ||
+					"#2d2d35",
+				muted:
+					style.getPropertyValue("--border-subtle").trim() ||
+					"rgba(148, 163, 184, 0.22)",
+				text:
+					style.getPropertyValue("--text-muted").trim() || "#94a3b8",
+			},
+		});
 	});
 </script>
 
 <div class="convolution-wrapper">
 	<div class="header-bar">
 		<span class="title">{title}</span>
-		<div class="legend">
+		<div
+			class="legend"
+			aria-label="Plot legend"
+		>
 			<div class="legend-item">
 				<span class="dot blue"></span>
-				<span class="label"><MathInline math={"x(\\tau)"} /></span>
+				<span class="label"
+					><MathInline math={String.raw`x(\tau)`} /></span
+				>
 			</div>
 			<div class="legend-item">
 				<span class="dot orange"></span>
-				<span class="label"><MathInline math={"h(t - \\tau)"} /></span>
+				<span class="label"
+					><MathInline math={String.raw`h(t-\tau)`} /></span
+				>
 			</div>
 			<div class="legend-item">
-				<span class="dot green"></span>
-				<span class="label">Overlap Area</span>
+				<span class="dot green"></span><span class="label"
+					>Overlap product</span
+				>
 			</div>
 			<div class="legend-item">
 				<span class="dot cyan"></span>
-				<span class="label"><MathInline math={"y(t)"} /></span>
+				<span class="label"><MathInline math={String.raw`y(t)`} /></span
+				>
 			</div>
 		</div>
 	</div>
 
 	<div class="canvas-container">
 		<div class="panel-header panel-upper">
-			Upper: Signals <MathInline math={"x(\\tau)"} /> and <MathInline
-				math={"h(t - \\tau)"}
-			/> Product
+			Signals <MathInline math={String.raw`x(\tau)`} /> and <MathInline
+				math={String.raw`h(t-\tau)`}
+			/>, with shaded product
 		</div>
 		<div class="panel-header panel-lower">
-			Lower: Convolved Output <MathInline math={"y(t) = (x * h)(t)"} />
+			Output <MathInline math={String.raw`y(t)=(x*h)(t)`} /> revealed to the
+			current shift
 		</div>
 		<canvas
 			bind:this={canvasEl}
 			class="anim-canvas"
 			aria-label={title}
+			aria-describedby="convolution-plot-note"
 		></canvas>
 	</div>
 
-	<!-- Interactive Shift Controls -->
+	<div class="plot-readout">
+		<MathText
+			text={`Current position: $t=${shiftT.toFixed(2)}$, $y(t)=${currentOutput.toFixed(3)}$.`}
+		/>
+	</div>
+
 	<div class="controls-bar">
-		<button
-			type="button"
-			class="btn-play"
-			onclick={togglePlay}
-		>
-			{isPlaying ? "⏸ Pause Shift" : "▶ Animate Shift"}
-		</button>
+		<div class="button-group">
+			<button
+				type="button"
+				class="btn-play"
+				onclick={togglePlay}
+			>
+				{isPlaying ? "Pause animation" : "Animate shift"}
+			</button>
+			<button
+				type="button"
+				class="btn-secondary"
+				onclick={restartAnimation}>Restart</button
+			>
+		</div>
+		<div class="speed-group">
+			<label for="convolution-speed">Animation speed</label>
+			<select
+				id="convolution-speed"
+				bind:value={playbackSpeed}
+			>
+				{#each CONVOLUTION_SPEED_PRESETS as preset}
+					<option value={preset.unitsPerSecond}>{preset.label}</option
+					>
+				{/each}
+			</select>
+		</div>
 		<div class="slider-group">
-			<label for="shift-slider">
-				Shift Parameter <MathInline math={"t ="} />
-				{shiftT.toFixed(2)}s:
-			</label>
+			<label for="shift-slider"
+				>Shift <MathInline math={String.raw`t`} /></label
+			>
 			<input
 				id="shift-slider"
 				type="range"
-				min={timeRange[0]}
-				max={timeRange[1]}
-				step="0.05"
+				min={normalizedTimeRange[0]}
+				max={normalizedTimeRange[1]}
+				step="0.02"
 				bind:value={shiftT}
+				oninput={handleManualScrub}
 				class="range-input"
 			/>
 		</div>
 	</div>
+
+	<p
+		id="convolution-plot-note"
+		class="plot-note"
+	>
+		Dashed guides in the output panel mark the transition times verified in
+		the solver. The faint curve previews the complete response; the bright
+		curve shows the portion reached by the moving overlap.
+	</p>
 </div>
 
 <style>
 	/* ── Convolution wrapper container ─────────────────────── */
-
 	.convolution-wrapper {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
@@ -326,26 +325,28 @@
 		padding: 1.25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.9rem;
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		container-type: inline-size;
 	}
 
-	/* ── Header bar & title ────────────────────────────────── */
-
+	/* ── Header bar, title & legend ────────────────────────── */
 	.header-bar {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.65rem;
 	}
 
 	.title {
 		font-weight: 700;
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-primary);
 	}
-
-	/* ── Legend & color dots ───────────────────────────────── */
 
 	.legend {
 		display: flex;
@@ -357,7 +358,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.35rem;
-		font-size: 0.8rem;
+		font-size: var(--text-xs);
 		color: var(--text-secondary);
 	}
 
@@ -365,9 +366,10 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
+		flex: 0 0 auto;
 	}
 
-	/* Dot color variants */
+	/* Dot color variants. */
 	.dot.blue {
 		background: #3b82f6;
 	}
@@ -381,85 +383,177 @@
 		background: #06b6d4;
 	}
 
-	/* ── Dual-plot canvas container ────────────────────────── */
-
+	/* ── Dual-plot canvas container ───────────────────────── */
 	.canvas-container {
 		position: relative;
 		width: 100%;
+		min-width: 0;
 	}
 
 	.panel-header {
 		position: absolute;
 		left: 40px;
-		font-size: 0.9rem;
-		font-weight: 500;
+		right: 24px;
+		font-size: var(--text-xs);
+		font-weight: 600;
 		color: var(--text-secondary);
 		pointer-events: none;
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
+		gap: 0.3rem;
+		flex-wrap: wrap;
 	}
 
 	.panel-upper {
-		top: 10px;
+		top: 8px;
 	}
-
 	.panel-lower {
-		top: 165px;
+		top: 181px;
 	}
 
 	.anim-canvas {
+		display: block;
 		width: 100%;
-		height: 320px;
+		height: 360px;
 		border-radius: var(--radius-sm);
 		background: var(--bg-primary);
 	}
 
-	/* ── Interactive animation controls bar ────────────────── */
+	.plot-readout {
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--text-primary);
+	}
 
+	/* ── Interactive animation controls ───────────────────── */
 	.controls-bar {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
+		display: grid;
+		grid-template-columns: auto auto minmax(180px, 1fr);
+		align-items: end;
+		gap: 1rem;
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
-		padding: 0.75rem 1rem;
+		padding: 0.8rem 1rem;
+		min-width: 0;
+	}
+
+	.button-group {
+		display: flex;
+		gap: 0.5rem;
 		flex-wrap: wrap;
+	}
+
+	.btn-play,
+	.btn-secondary {
+		font: inherit;
+		font-size: var(--text-xs);
+		font-weight: 700;
+		border-radius: var(--radius-sm);
+		padding: 0.5rem 0.85rem;
+		cursor: pointer;
+		transition:
+			box-shadow 0.15s ease,
+			border-color 0.15s ease;
 	}
 
 	.btn-play {
 		background: var(--accent-primary);
 		color: #000;
-		font-weight: 700;
-		border: none;
-		padding: 0.4rem 1rem;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-size: 0.85rem;
-		transition: all 0.2s ease;
+		border: 1px solid var(--accent-primary);
+	}
+
+	.btn-secondary {
+		background: var(--bg-card);
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
 	}
 
 	.btn-play:hover,
-	.btn-play:focus-visible {
-		box-shadow: 0 0 12px var(--accent-glow);
-		outline: 2px solid var(--text-primary);
+	.btn-secondary:hover {
+		border-color: var(--accent-primary);
+		box-shadow: 0 0 10px var(--accent-glow);
+	}
+
+	.btn-play:focus-visible,
+	.btn-secondary:focus-visible,
+	select:focus-visible,
+	.range-input:focus-visible {
+		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
 	}
 
+	.speed-group,
 	.slider-group {
 		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		flex: 1;
-		font-size: 0.85rem;
+		flex-direction: column;
+		gap: 0.35rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-secondary);
+		min-width: 0;
+	}
+
+	.speed-group select {
+		min-height: 2rem;
+		background: var(--bg-card);
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		padding-inline: 0.5rem;
+		font: inherit;
 	}
 
 	.range-input {
-		flex: 1;
+		width: 100%;
+		min-width: 0;
 		accent-color: var(--accent-primary);
 		cursor: pointer;
+	}
+
+	.plot-note {
+		margin: 0;
+		font-size: var(--text-xs);
+		line-height: 1.5;
+		color: var(--text-muted);
+	}
+
+	/* ── Compact controls container query (≤720px) ───────── */
+	@container (max-width: 720px) {
+		.controls-bar {
+			grid-template-columns: 1fr 1fr;
+		}
+		.slider-group {
+			grid-column: 1 / -1;
+		}
+	}
+
+	/* ── Narrow viewport (≤420px) container query ────────── */
+	@container (max-width: 420px) {
+		.convolution-wrapper {
+			padding: 0.75rem 0.5rem;
+		}
+		.controls-bar {
+			grid-template-columns: 1fr;
+			padding: 0.7rem 0.6rem;
+		}
+		.button-group,
+		.btn-play,
+		.btn-secondary,
+		.speed-group,
+		.slider-group {
+			width: 100%;
+		}
+		.slider-group {
+			grid-column: auto;
+		}
+		.panel-header {
+			left: 28px;
+			right: 12px;
+			font-size: 0.68rem;
+		}
+		.legend {
+			gap: 0.45rem 0.65rem;
+		}
 	}
 </style>
