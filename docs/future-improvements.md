@@ -107,3 +107,21 @@ A running backlog of prospective UX, visual, and architectural improvements to c
     - Replace the simulated control with native `<details>` and `<summary>` elements.
     - Show the complete worked solution at once when the disclosure is opened, matching the Fourier Series completed-solution experience.
     - Preserve keyboard access, focus styling, collapsed-by-default behavior, and narrow-screen reflow coverage.
+
+### 14. Convolution Animator: Transition-Aware Region Navigation
+
+- **Context:** Continuous playback helps build intuition, but it can pass important contact events before a student connects them to the verified interval bounds.
+- **Improvement Idea:**
+    - Pause automatically at each finite transition time and announce the newly active region.
+    - Add Previous Region and Next Region controls with matching keyboard behavior.
+    - Display the active support intersection, exact integration bounds, and numerical overlap area beside the plot.
+    - Preserve manual scrubbing, reduced-motion preferences, and playback-speed controls.
+
+### 15. Convolution Tutor: Optional Pre-Solve Pictographic Preview
+
+- **Context:** Some students benefit from seeing the flip-and-shift motion before beginning the symbolic support analysis.
+- **Improvement Idea:**
+    - Add a collapsed, optional pictographic animation at the beginning of each problem.
+    - Show reflection, translation, and overlap without revealing the final output curve, exact transition times, or interval answers.
+    - Let the student replay or dismiss the preview before entering Step 1.
+    - Reuse the modular convolution plot model so future visual changes remain synchronized with the completed animator.
