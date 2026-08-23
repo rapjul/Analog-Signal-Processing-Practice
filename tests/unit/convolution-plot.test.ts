@@ -5,6 +5,7 @@ import {
 	createConvolutionPlotGeometry,
 	DEFAULT_CONVOLUTION_SPEED,
 	drawConvolutionPlot,
+	getMovingConvolutionBoundaries,
 	getVisibleConvolutionTransitions,
 	normalizeConvolutionTimeRange,
 	sampleConvolutionPlot,
@@ -65,6 +66,17 @@ describe("convolution plot model", () => {
 				[4, 0],
 			),
 		).toEqual([0, 1, 3]);
+	});
+
+	it("transforms, clips, sorts, and deduplicates moving boundaries", () => {
+		expect(
+			getMovingConvolutionBoundaries(
+				[-2, 0, 2, 2, Number.NaN],
+				3,
+				[0, 6],
+			),
+		).toEqual([1, 3, 5]);
+		expect(getMovingConvolutionBoundaries([10], 0, [-1, 1])).toEqual([]);
 	});
 
 	it("advances independently of refresh rate and handles clamping and wrapping", () => {
@@ -144,6 +156,7 @@ describe("convolution plot model", () => {
 			timeRange: [-1, 3],
 			shift: 0.75,
 			transitionTimes: [0, 1, 2, 9],
+			movingBoundaries: [-0.25, 0.75, 1.75],
 			frame,
 			theme: {
 				background: "black",
@@ -160,6 +173,7 @@ describe("convolution plot model", () => {
 		expect(context.arc).toHaveBeenCalledTimes(1);
 		expect(context.stroke).toHaveBeenCalled();
 		expect(context.setLineDash).toHaveBeenCalledWith([5, 5]);
+		expect(context.setLineDash).toHaveBeenCalledWith([4, 4]);
 	});
 
 	it("renders safely when the reveal boundary precedes every output sample", () => {

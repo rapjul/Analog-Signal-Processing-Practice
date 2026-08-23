@@ -25,7 +25,7 @@ describe("ConvolutionPracticeCard", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("defers exact answers and animation until the five-step tutor completes", async () => {
+	it("defers exact answers and animation until the seven-step tutor completes", async () => {
 		const problem = generateConvolutionProblem("rect_shifted_rect");
 		const onNextProblem = vi.fn();
 		const view = render(ConvolutionPracticeCard, {

@@ -15,6 +15,8 @@ import {
 	solveRectExpConvolution,
 	solveRectRectConvolution,
 	solveShiftedRectConvolution,
+	solveShiftedTriTriConvolution,
+	solveTriRectConvolution,
 } from "$lib/math-engine/convolution";
 import {
 	buildConvolutionItsData,
@@ -48,6 +50,29 @@ describe("Continuous-Time Convolution Math Engine", () => {
 	});
 
 	describe("Analytical Piecewise Convolution Solvers", () => {
+		it("solves triangle-rectangle convolution across edges and the apex", () => {
+			const result = solveTriRectConvolution();
+			expect(result.eval(-4)).toBe(0);
+			expect(result.eval(-2)).toBeCloseTo(0.25);
+			expect(result.eval(0)).toBeCloseTo(1.5);
+			expect(result.eval(2)).toBeCloseTo(0.25);
+			expect(result.eval(3)).toBe(0);
+			expect(
+				getFiniteConvolutionTransitionTimes(result.intervals),
+			).toEqual([-3, -1, 1, 3]);
+		});
+
+		it("solves shifted triangle-triangle convolution with cubic symmetry", () => {
+			const shift = 2;
+			const result = solveShiftedTriTriConvolution(shift);
+			expect(result.eval(shift)).toBeCloseTo(4 / 3);
+			expect(result.eval(shift - 1)).toBeCloseTo(result.eval(shift + 1));
+			expect(result.eval(shift - 3)).toBeCloseTo(1 / 24);
+			expect(result.eval(shift + 4)).toBe(0);
+			expect(
+				getFiniteConvolutionTransitionTimes(result.intervals),
+			).toEqual([-2, 0, 2, 4, 6]);
+		});
 		it("solves Rect(0,2) * Rect(0,2) convolution (Identical Width Rects)", () => {
 			// x(t) = rect in [0, 2] with height 1
 			// h(t) = rect in [0, 2] with height 1
@@ -141,6 +166,32 @@ describe("Continuous-Time Convolution Math Engine", () => {
 	});
 
 	describe("Problem Generator", () => {
+		it("reproduces identifiers, parameters, and tutor choices from a seed", () => {
+			const first = generateConvolutionProblem("rect_rect", { seed: 42 });
+			const second = generateConvolutionProblem("rect_rect", {
+				seed: 42,
+			});
+			expect(second.id).toBe(first.id);
+			expect(second.seed).toBe(42);
+			expect(second.xLatex).toBe(first.xLatex);
+			expect(second.hLatex).toBe(first.hLatex);
+			expect(second.itsData).toEqual(first.itsData);
+		});
+
+		it.each(["tri_rect", "tri_shifted_tri"] as const)(
+			"generates exact %s practice problems",
+			(pairType) => {
+				const problem = generateConvolutionProblem(pairType, {
+					seed: 9,
+				});
+				expect(problem.pairType).toBe(pairType);
+				expect(problem.xBreakpoints).toHaveLength(3);
+				expect(problem.hBreakpoints?.length).toBeGreaterThanOrEqual(2);
+				expect(problem.itsData.step5.parts).toHaveLength(
+					problem.intervals.length,
+				);
+			},
+		);
 		it("generates a valid convolution problem for rect_rect pair", () => {
 			const problem = generateConvolutionProblem("rect_rect");
 			expect(problem.pairType).toBe("rect_rect");
@@ -151,17 +202,17 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(problem.eval(2)).toBeGreaterThanOrEqual(0);
 			expect(problem.evalX).toBeDefined();
 			expect(problem.evalH).toBeDefined();
-			expect(problem.itsData.step4.parts).toHaveLength(
+			expect(problem.itsData.step6.parts).toHaveLength(
 				problem.intervals.length,
 			);
 			expect(
-				problem.itsData.step4.parts.every(
+				problem.itsData.step6.parts.every(
 					(part) =>
 						part.options.filter(({ isCorrect }) => isCorrect)
 							.length === 1,
 				),
 			).toBe(true);
-			expect(problem.itsData.step5.resultLatex).toBe(
+			expect(problem.itsData.step7.resultLatex).toBe(
 				formatConvolutionPiecewiseLatex(problem.intervals),
 			);
 		});
@@ -215,21 +266,23 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			"step_exp",
 			"step_rect",
 		] as const)(
-			"builds a complete five-step tutor scaffold for %s",
+			"builds a complete seven-step tutor scaffold for %s",
 			(pairType) => {
 				const problem = generateConvolutionProblem(pairType);
 				const choiceSteps = [
 					problem.itsData.step1,
 					problem.itsData.step2,
 					problem.itsData.step3,
-					problem.itsData.step5,
+					problem.itsData.step4,
+					problem.itsData.step7,
 				];
 
 				for (const step of choiceSteps) {
 					expect(step.hints).toHaveLength(3);
 					expect(
-						step.options.filter(({ isCorrect }) => isCorrect),
-					).toHaveLength(1);
+						step.options.filter(({ isCorrect }) => isCorrect)
+							.length,
+					).toBeGreaterThanOrEqual(1);
 					const correctLatex = step.options.find(
 						({ isCorrect }) => isCorrect,
 					)?.latex;
@@ -239,10 +292,10 @@ describe("Continuous-Time Convolution Math Engine", () => {
 							.every(({ latex }) => latex !== correctLatex),
 					).toBe(true);
 				}
-				expect(problem.itsData.step4.parts).toHaveLength(
+				expect(problem.itsData.step6.parts).toHaveLength(
 					problem.intervals.length,
 				);
-				for (const part of problem.itsData.step4.parts) {
+				for (const part of problem.itsData.step6.parts) {
 					const correctLatex = part.options.find(
 						({ isCorrect }) => isCorrect,
 					)?.latex;
@@ -289,10 +342,10 @@ describe("Continuous-Time Convolution Math Engine", () => {
 
 		it("builds distinct transition distractors for an empty analytical partition", () => {
 			const data = buildConvolutionItsData([]);
-			expect(data.step4.parts).toEqual([]);
-			expect(data.step5.resultLatex).toContain("\\begin{cases}");
+			expect(data.step6.parts).toEqual([]);
+			expect(data.step7.resultLatex).toContain("\\begin{cases}");
 			expect(
-				new Set(data.step3.options.map(({ latex }) => latex)).size,
+				new Set(data.step4.options.map(({ latex }) => latex)).size,
 			).toBe(3);
 		});
 
@@ -305,7 +358,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 					"0",
 				),
 			]);
-			const choices = data.step4.parts[0].options.map(
+			const choices = data.step6.parts[0].options.map(
 				({ latex }) => latex,
 			);
 			expect(new Set(choices).size).toBe(3);
@@ -319,15 +372,15 @@ describe("Continuous-Time Convolution Math Engine", () => {
 				interval("c", 1, 2, "t"),
 				interval("d", 2, Number.POSITIVE_INFINITY, "2"),
 			]);
-			for (const part of data.step4.parts) {
+			for (const part of data.step6.parts) {
 				const choices = part.options.map(({ latex }) => latex);
 				expect(new Set(choices).size).toBe(choices.length);
 			}
-			expect(data.step4.parts[0].options[1].latex).toContain("t");
-			expect(data.step4.parts[1].options[1].latex).toContain("0");
-			expect(data.step4.parts[1].options[2].latex).toContain("1 - t");
-			expect(data.step4.parts[2].options[1].latex).toContain("2");
-			expect(data.step4.parts[3].options[1].latex).toContain("t");
+			expect(data.step6.parts[0].options[1].latex).toContain("t");
+			expect(data.step6.parts[1].options[1].latex).toContain("0");
+			expect(data.step6.parts[1].options[2].latex).toContain("1 - t");
+			expect(data.step6.parts[2].options[1].latex).toContain("2");
+			expect(data.step6.parts[3].options[1].latex).toContain("t");
 		});
 	});
 });

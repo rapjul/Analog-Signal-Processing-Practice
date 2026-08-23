@@ -8,11 +8,11 @@ import { expect, test } from "@playwright/test";
  */
 test.describe("Continuous-Time Convolution Module", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/convolution");
+		await page.goto("/convolution?pair=rect_rect&seed=42");
 		await page.waitForLoadState("networkidle");
 	});
 
-	test("renders a five-step tutor with an anti-spoiler problem statement", async ({
+	test("renders a seven-step tutor with an anti-spoiler problem statement", async ({
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
@@ -24,11 +24,20 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator(".drill-summary")).toBeVisible();
 		await expect(page.locator(".convolution-practice-card")).toBeVisible();
 		await expect(
-			page.getByText("Define the Convolution Integral"),
+			page.getByText("Analyze the Signal Supports"),
 		).toBeVisible();
-		await expect(page.locator(".progress-pill")).toHaveCount(5);
+		await expect(page.locator(".progress-pill")).toHaveCount(7);
 		await expect(page.locator("canvas")).toHaveCount(0);
 		await expect(page.getByText("Problem Completed!")).toHaveCount(0);
+	});
+
+	test("defaults a bare route to canonical seeded Random mode", async ({
+		page,
+	}) => {
+		await page.goto("/convolution");
+		await expect(page.locator("#pair-type-select")).toHaveValue("random");
+		await expect(page.locator('input[name="seed"]')).not.toHaveValue("");
+		await expect(page).toHaveURL(/pair=random&seed=\d+/);
 	});
 
 	test("shows progressive hints and targeted misconception feedback", async ({
@@ -41,7 +50,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await definitionOptions.locator("button").nth(1).click();
 		await expect(page.locator(".feedback-misconception")).toBeVisible();
 		await expect(page.locator(".feedback-misconception")).toContainText(
-			/pointwise product/i,
+			/support locations/i,
 		);
 	});
 
@@ -57,7 +66,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 
 		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
 		await expect(
-			page.getByText("Flip and Shift the Impulse Response"),
+			page.getByText("Define the Convolution Integral"),
 		).toBeVisible();
 
 		await pairSelect.selectOption("exp_exp");
@@ -65,7 +74,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 			page.getByText("Exponential-Exponential Convolution"),
 		).toBeVisible();
 		await expect(
-			page.getByText("Define the Convolution Integral"),
+			page.getByText("Analyze the Signal Supports"),
 		).toBeVisible();
 		await expect(page.locator(".progress-pill.active")).toHaveText("1");
 	});
@@ -94,7 +103,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		);
 		const intervalStates = states.filter(
 			(state) =>
-				state.step === 4 &&
+				state.step === 6 &&
 				state.kind === "interactive" &&
 				Boolean(state.subStep),
 		);
