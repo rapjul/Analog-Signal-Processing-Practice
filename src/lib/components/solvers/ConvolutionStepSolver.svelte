@@ -7,12 +7,13 @@
 	 */
 
 	import ConvolutionChoiceStep from "$lib/components/solvers/convolution-steps/ConvolutionChoiceStep.svelte";
-	import ConvolutionStep4Intervals from "$lib/components/solvers/convolution-steps/ConvolutionStep4Intervals.svelte";
+	import ConvolutionStep1Timing from "$lib/components/solvers/convolution-steps/ConvolutionStep1Timing.svelte";
+	import ConvolutionStep3Flip from "$lib/components/solvers/convolution-steps/ConvolutionStep3Flip.svelte";
+	import ConvolutionStep4Transitions from "$lib/components/solvers/convolution-steps/ConvolutionStep4Transitions.svelte";
+	import ConvolutionStep5Bounds from "$lib/components/solvers/convolution-steps/ConvolutionStep5Bounds.svelte";
+	import ConvolutionStep6Evaluation from "$lib/components/solvers/convolution-steps/ConvolutionStep6Evaluation.svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
-	import {
-		type ConvolutionProblem,
-		getFiniteConvolutionTransitionTimes,
-	} from "$lib/math-engine/convolution";
+	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
 	import { ConvolutionStepSolverState } from "./convolution-step-solver.svelte";
 
 	interface Props {
@@ -28,18 +29,6 @@
 	const solver = new ConvolutionStepSolverState(
 		() => problem,
 		() => () => onComplete?.(solver.flippedSignal),
-	);
-	const supportSummary = $derived(
-		problem.itsData.step1.options.find(({ isCorrect }) => isCorrect)
-			?.latex ?? "",
-	);
-	const transitionSummary = $derived(
-		getFiniteConvolutionTransitionTimes(problem.intervals)
-			.map((time) => `t=${time}`)
-			.join(",\\;"),
-	);
-	const intervalSummary = $derived(
-		problem.intervals.map(({ labelLatex }) => labelLatex).join(",\\;"),
 	);
 
 	/** Last problem identifier used to synchronize state resets. */
@@ -58,14 +47,9 @@
 		totalSteps={solver.totalSteps}
 	/>
 
-	<ConvolutionChoiceStep
-		stepNumber={1}
-		title="Analyze the Signal Supports"
-		data={problem.itsData.step1}
-		state={solver.step1}
+	<ConvolutionStep1Timing
+		{problem}
 		{solver}
-		onCheck={(option) => solver.checkStep1(option)}
-		summaryLatex={`Verified supports and widths: $${supportSummary}$.`}
 	/>
 
 	<ConvolutionChoiceStep
@@ -78,44 +62,24 @@
 		summaryLatex={String.raw`Verified definition: $y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau$.`}
 	/>
 
-	<ConvolutionChoiceStep
-		stepNumber={3}
-		title="Choose, Flip, and Shift a Signal"
-		data={problem.itsData.step3}
-		state={solver.step3}
-		{solver}
-		onCheck={(option) => solver.checkStep3(option)}
-		summaryLatex={solver.flippedSignal === "x"
-			? String.raw`Selected $x(t)$ as the moving signal: use $h(\tau)x(t-\tau)$.`
-			: String.raw`Selected $h(t)$ as the moving signal: use $x(\tau)h(t-\tau)$.`}
-		singleColumn={true}
-	/>
-
-	<ConvolutionChoiceStep
-		stepNumber={4}
-		title="Find Transition Points and Build Intervals"
-		data={problem.itsData.step4}
-		state={solver.step4}
-		{solver}
-		onCheck={(option) => solver.checkStep4(option)}
-		summaryLatex={`Transition points: $${transitionSummary}$. Intervals: $${intervalSummary}$.`}
-		singleColumn={true}
-	/>
-
-	<ConvolutionStep4Intervals
+	<ConvolutionStep3Flip
 		{problem}
 		{solver}
-		stepNumber={5}
-		title="Set Up Every Overlap Integral"
-		mode="setup"
 	/>
 
-	<ConvolutionStep4Intervals
+	<ConvolutionStep4Transitions
 		{problem}
 		{solver}
-		stepNumber={6}
-		title="Evaluate Every Overlap Integral"
-		mode="evaluation"
+	/>
+
+	<ConvolutionStep5Bounds
+		{problem}
+		{solver}
+	/>
+
+	<ConvolutionStep6Evaluation
+		{problem}
+		{solver}
 	/>
 
 	<ConvolutionChoiceStep

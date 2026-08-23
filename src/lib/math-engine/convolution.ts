@@ -17,10 +17,21 @@ import {
 import type { SolutionStep } from "./types";
 
 export type {
+	ConvolutionBreakpointContact,
+	ConvolutionBreakpointPart,
+	ConvolutionIntegralPathSetup,
 	ConvolutionItsChoiceStep,
 	ConvolutionItsData,
 	ConvolutionItsIntervalPart,
 	ConvolutionItsOption,
+	ConvolutionItsTimingStep,
+	ConvolutionItsTransitionStep,
+	ConvolutionMovingSignal,
+	ConvolutionOverlapBounds,
+	ConvolutionSignalSection,
+	ConvolutionTimingPart,
+	ConvolutionTransformedSection,
+	ConvolutionTransitionGroup,
 } from "./convolution/its-scaffolding";
 export { getFiniteConvolutionTransitionTimes } from "./convolution/its-scaffolding";
 
@@ -122,14 +133,21 @@ export interface ConvolutionProblem {
 	xBreakpoints?: number[];
 	/** Support edges and interior breakpoints for the impulse response. */
 	hBreakpoints?: number[];
+	/** Start and end edges for every connected input-signal section. */
+	xSupportEdges: number[];
+	/** Start and end edges for every connected impulse-response section. */
+	hSupportEdges: number[];
 	/** Time range [min, max] for visualization */
 	timeRange?: [number, number];
-	/** Structured five-step Intelligent Tutoring System data. */
+	/** Structured seven-step Intelligent Tutoring System data. */
 	itsData: ConvolutionItsData;
 }
 
 /** Convolution problem before its standardized tutor scaffold is attached. */
-type ConvolutionProblemSource = Omit<ConvolutionProblem, "itsData">;
+type ConvolutionProblemSource = Omit<
+	ConvolutionProblem,
+	"itsData" | "xSupportEdges" | "hSupportEdges"
+>;
 
 /** Optional deterministic generation controls for convolution practice. */
 export interface ConvolutionGenerationOptions {
@@ -146,64 +164,81 @@ export interface ConvolutionGenerationOptions {
 function withConvolutionItsData(
 	problem: ConvolutionProblemSource,
 ): ConvolutionProblem {
-	const outputIntervals = problem.intervals.filter(
-		({ exprLatex }) => exprLatex !== "0",
-	);
-	const outputStart = outputIntervals[0]?.min ?? Number.NEGATIVE_INFINITY;
-	const outputEnd = outputIntervals.at(-1)?.max ?? Number.POSITIVE_INFINITY;
-	const formatValue = (value: number): string =>
-		value === Number.POSITIVE_INFINITY
-			? "\\infty"
-			: value === Number.NEGATIVE_INFINITY
-				? "-\\infty"
-				: String(value);
-	const formatSupport = (
-		breakpoints: number[] | undefined,
-		semiInfinite: boolean,
-	): string => {
-		const start = breakpoints?.[0] ?? Number.NEGATIVE_INFINITY;
-		const end = semiInfinite
-			? Number.POSITIVE_INFINITY
-			: (breakpoints?.at(-1) ?? Number.POSITIVE_INFINITY);
-		return `[${formatValue(start)},${formatValue(end)}]`;
-	};
-	const xSemiInfinite = ["exp_exp", "step_exp", "step_rect"].includes(
-		problem.pairType,
-	);
-	const hSemiInfinite = ["rect_exp", "exp_exp", "step_exp"].includes(
-		problem.pairType,
-	);
-	const xSupport =
-		problem.pairType === "multi_rect"
-			? "[0,1]\\cup[3,4]"
-			: formatSupport(problem.xBreakpoints, xSemiInfinite);
-	const hSupport = formatSupport(problem.hBreakpoints, hSemiInfinite);
-	const outputSupport = `[${formatValue(outputStart)},${formatValue(outputEnd)}]`;
-	const supportWidth = (
-		breakpoints: number[] | undefined,
-		semiInfinite: boolean,
-	): string =>
-		semiInfinite || !breakpoints || breakpoints.length < 2
-			? "\\infty"
-			: String((breakpoints.at(-1) ?? 0) - breakpoints[0]);
-	const outputWidth =
-		Number.isFinite(outputStart) && Number.isFinite(outputEnd)
-			? String(outputEnd - outputStart)
-			: "\\infty";
-	const xWidth =
-		problem.pairType === "multi_rect"
-			? "2,\\;W_{x,\\mathrm{span}}=4"
-			: supportWidth(problem.xBreakpoints, xSemiInfinite);
-	const supportSummaryLatex =
-		`\\operatorname{supp}(x)=${xSupport},\\;W_x=${xWidth},\\quad ` +
-		`\\operatorname{supp}(h)=${hSupport},\\;W_h=${supportWidth(problem.hBreakpoints, hSemiInfinite)},\\quad ` +
-		`\\operatorname{supp}(y)=${outputSupport},\\;W_y=${outputWidth}`;
+	const section = (
+		id: string,
+		start: number,
+		end: number,
+		startIncluded = true,
+		endIncluded = false,
+	) => ({ id, start, end, startIncluded, endIncluded });
+	const xBreakpoints = problem.xBreakpoints ?? [0];
+	const hBreakpoints = problem.hBreakpoints ?? [0];
+	let xSections = [
+		section(
+			"x-1",
+			xBreakpoints[0] ?? 0,
+			xBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
+		),
+	];
+	let hSections = [
+		section(
+			"h-1",
+			hBreakpoints[0] ?? 0,
+			hBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
+		),
+	];
+	switch (problem.pairType) {
+		case "multi_rect":
+			xSections = [section("x-1", 0, 1), section("x-2", 3, 4)];
+			hSections = [section("h-1", 0, 2)];
+			break;
+		case "rect_exp":
+			hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
+			break;
+		case "exp_exp":
+		case "step_exp":
+			xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
+			hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
+			break;
+		case "step_rect":
+			xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
+			break;
+		case "tri_rect":
+			xSections = [section("x-1", -2, 2, false, false)];
+			hSections = [section("h-1", -1, 1)];
+			break;
+		case "tri_shifted_tri":
+			xSections = [section("x-1", -2, 2, false, false)];
+			hSections = [
+				section(
+					"h-1",
+					hBreakpoints[0] ?? -2,
+					hBreakpoints.at(-1) ?? 2,
+					false,
+					false,
+				),
+			];
+			break;
+		case "rect_rect":
+		case "rect_shifted_rect":
+		case "bilateral_exp_rect":
+			break;
+		default: {
+			const unhandledType: never = problem.pairType;
+			throw new Error(`Unknown convolution pair type: ${unhandledType}`);
+		}
+	}
 	return {
 		...problem,
-		itsData: buildConvolutionItsData(
-			problem.intervals,
-			supportSummaryLatex,
-		),
+		xSupportEdges: xSections.flatMap(({ start, end }) => [start, end]),
+		hSupportEdges: hSections.flatMap(({ start, end }) => [start, end]),
+		itsData: buildConvolutionItsData({
+			intervals: problem.intervals,
+			xSections,
+			hSections,
+			xBreakpoints,
+			hBreakpoints,
+		}),
 	};
 }
 

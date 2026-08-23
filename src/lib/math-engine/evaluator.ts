@@ -24,9 +24,12 @@ export interface ValidationResult {
  * @param {Record<string, number>} vars Dictionary of variable values (e.g. { t: 1.5, s: 1.5 })
  * @returns {number} Evaluated numerical value
  */
-function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
+function evaluateMathJsonStrict(
+	node: unknown,
+	vars: Record<string, number>,
+): number | null {
 	if (typeof node === "number") {
-		return node;
+		return Number.isFinite(node) ? node : null;
 	}
 
 	if (typeof node === "string") {
@@ -39,8 +42,8 @@ function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
 		if (node in vars) {
 			return vars[node];
 		}
-		const parsedNum = Number.parseFloat(node);
-		return Number.isNaN(parsedNum) ? 0 : parsedNum;
+		const parsedNum = Number(node);
+		return Number.isFinite(parsedNum) ? parsedNum : null;
 	}
 
 	if (node !== null && typeof node === "object") {
@@ -48,22 +51,22 @@ function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
 			"num" in node &&
 			typeof (node as { num: unknown }).num === "string"
 		) {
-			const n = Number.parseFloat((node as { num: string }).num);
-			return Number.isNaN(n) ? 0 : n;
+			const n = Number((node as { num: string }).num);
+			return Number.isFinite(n) ? n : null;
 		}
 		if (
 			"sym" in node &&
 			typeof (node as { sym: unknown }).sym === "string"
 		) {
-			return evaluateMathJson((node as { sym: string }).sym, vars);
+			return evaluateMathJsonStrict((node as { sym: string }).sym, vars);
 		}
 		if ("fn" in node && Array.isArray((node as { fn: unknown }).fn)) {
-			return evaluateMathJson((node as { fn: unknown[] }).fn, vars);
+			return evaluateMathJsonStrict((node as { fn: unknown[] }).fn, vars);
 		}
 	}
 
 	if (!Array.isArray(node) || node.length === 0) {
-		return 0;
+		return null;
 	}
 
 	const [head, ...args] = node;
@@ -71,90 +74,133 @@ function evaluateMathJson(node: unknown, vars: Record<string, number>): number {
 
 	switch (op) {
 		case "Add": {
-			return args.reduce<number>(
-				(sum, arg) => sum + evaluateMathJson(arg, vars),
-				0,
-			);
+			let result = 0;
+			for (const arg of args) {
+				const value = evaluateMathJsonStrict(arg, vars);
+				if (value === null) return null;
+				result += value;
+			}
+			return result;
 		}
 		case "Subtract": {
-			if (args.length === 0) return 0;
-			if (args.length === 1) return -evaluateMathJson(args[0], vars);
-			const first = evaluateMathJson(args[0], vars);
-			const rest = args
-				.slice(1)
-				.reduce<number>(
-					(acc, arg) => acc + evaluateMathJson(arg, vars),
-					0,
-				);
-			return first - rest;
+			if (args.length === 0) return null;
+			const first = evaluateMathJsonStrict(args[0], vars);
+			if (first === null) return null;
+			if (args.length === 1) return -first;
+			let result = first;
+			for (const arg of args.slice(1)) {
+				const value = evaluateMathJsonStrict(arg, vars);
+				if (value === null) return null;
+				result -= value;
+			}
+			return result;
 		}
 		case "InvisibleOperator":
 		case "Multiply": {
-			return args.reduce<number>(
-				(prod, arg) => prod * evaluateMathJson(arg, vars),
-				1,
-			);
+			let result = 1;
+			for (const arg of args) {
+				const value = evaluateMathJsonStrict(arg, vars);
+				if (value === null) return null;
+				result *= value;
+			}
+			return result;
 		}
 		case "Divide":
 		case "Rational": {
-			if (args.length < 2) return 0;
-			const num = evaluateMathJson(args[0], vars);
-			const den = evaluateMathJson(args[1], vars);
-			return den === 0 ? 0 : num / den;
+			if (args.length < 2) return null;
+			const num = evaluateMathJsonStrict(args[0], vars);
+			const den = evaluateMathJsonStrict(args[1], vars);
+			if (num === null || den === null || den === 0) return null;
+			return num / den;
 		}
 		case "Power": {
-			if (args.length < 2) return 0;
-			const base = evaluateMathJson(args[0], vars);
-			const exp = evaluateMathJson(args[1], vars);
-			return base ** exp;
+			if (args.length < 2) return null;
+			const base = evaluateMathJsonStrict(args[0], vars);
+			const exp = evaluateMathJsonStrict(args[1], vars);
+			if (base === null || exp === null) return null;
+			const result = base ** exp;
+			return Number.isFinite(result) ? result : null;
 		}
 		case "Sqrt": {
-			if (args.length === 0) return 0;
-			return Math.sqrt(evaluateMathJson(args[0], vars));
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			if (value === null || value < 0) return null;
+			return Math.sqrt(value);
 		}
 		case "Root": {
-			if (args.length < 2) return 0;
-			const radicand = evaluateMathJson(args[0], vars);
-			const index = evaluateMathJson(args[1], vars);
-			return index === 0 ? 0 : radicand ** (1 / index);
+			if (args.length < 2) return null;
+			const radicand = evaluateMathJsonStrict(args[0], vars);
+			const index = evaluateMathJsonStrict(args[1], vars);
+			if (radicand === null || index === null || index === 0) return null;
+			const result = radicand ** (1 / index);
+			return Number.isFinite(result) ? result : null;
 		}
 		case "Negate": {
-			if (args.length === 0) return 0;
-			return -evaluateMathJson(args[0], vars);
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			return value === null ? null : -value;
 		}
 		case "Exp": {
-			if (args.length === 0) return 0;
-			return Math.exp(evaluateMathJson(args[0], vars));
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			if (value === null) return null;
+			const result = Math.exp(value);
+			return Number.isFinite(result) ? result : null;
 		}
-		case "Cos": {
-			if (args.length === 0) return 0;
-			return Math.cos(evaluateMathJson(args[0], vars));
-		}
-		case "Sin": {
-			if (args.length === 0) return 0;
-			return Math.sin(evaluateMathJson(args[0], vars));
-		}
+		case "Cos":
+		case "Sin":
 		case "Tan": {
-			if (args.length === 0) return 0;
-			return Math.tan(evaluateMathJson(args[0], vars));
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			if (value === null) return null;
+			return op === "Cos"
+				? Math.cos(value)
+				: op === "Sin"
+					? Math.sin(value)
+					: Math.tan(value);
 		}
 		case "Ln":
 		case "Log": {
-			if (args.length === 0) return 0;
-			return Math.log(evaluateMathJson(args[0], vars));
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			if (value === null || value <= 0) return null;
+			return Math.log(value);
 		}
 		case "Abs": {
-			if (args.length === 0) return 0;
-			return Math.abs(evaluateMathJson(args[0], vars));
+			if (args.length === 0) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			return value === null ? null : Math.abs(value);
 		}
 		case "Delimiter":
 		case "Sequence": {
-			if (args.length === 0) return 0;
-			return evaluateMathJson(args[0], vars);
+			if (args.length === 0) return null;
+			return evaluateMathJsonStrict(args[0], vars);
 		}
 		default: {
-			return 0;
+			return null;
 		}
+	}
+}
+
+/**
+ * Strictly parses and evaluates a LaTeX expression at one value of `t`.
+ *
+ * Unlike `evaluateLatexAt`, this function reports malformed or unsupported
+ * expressions as `null`, so an invalid answer can never be accepted as zero.
+ *
+ * @param latex - Student LaTeX or mathematical input.
+ * @param t - Time value assigned to the expression variable.
+ * @returns Finite evaluated value, or `null` when parsing/evaluation fails.
+ */
+export function tryEvaluateLatexAt(latex: string, t: number): number | null {
+	if (!latex.trim()) return null;
+	try {
+		const expression = latex.trim().replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "");
+		const mathJson = parse(normalizeMathLatex(expression));
+		const result = evaluateMathJsonStrict(mathJson, { t, s: t });
+		return result !== null && Number.isFinite(result) ? result : null;
+	} catch {
+		return null;
 	}
 }
 
@@ -203,7 +249,7 @@ export function evaluateLatexAt(latex: string, t: number): number {
 
 		// Parse into MathJSON AST via standalone LaTeX syntax subpath
 		const mathJson = parse(cleaned);
-		const result = evaluateMathJson(mathJson, { t, s: t });
+		const result = evaluateMathJsonStrict(mathJson, { t, s: t });
 
 		if (
 			typeof result === "number" &&
