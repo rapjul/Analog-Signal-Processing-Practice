@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+	type ConvolutionInterval,
 	evalExpDecay,
 	evalRect,
 	evalTri,
@@ -15,6 +16,11 @@ import {
 	solveRectRectConvolution,
 	solveShiftedRectConvolution,
 } from "$lib/math-engine/convolution";
+import {
+	buildConvolutionItsData,
+	formatConvolutionPiecewiseLatex,
+	getFiniteConvolutionTransitionTimes,
+} from "$lib/math-engine/convolution/its-scaffolding";
 
 describe("Continuous-Time Convolution Math Engine", () => {
 	describe("Primitive Signal Evaluators", () => {
@@ -145,6 +151,19 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(problem.eval(2)).toBeGreaterThanOrEqual(0);
 			expect(problem.evalX).toBeDefined();
 			expect(problem.evalH).toBeDefined();
+			expect(problem.itsData.step4.parts).toHaveLength(
+				problem.intervals.length,
+			);
+			expect(
+				problem.itsData.step4.parts.every(
+					(part) =>
+						part.options.filter(({ isCorrect }) => isCorrect)
+							.length === 1,
+				),
+			).toBe(true);
+			expect(problem.itsData.step5.resultLatex).toBe(
+				formatConvolutionPiecewiseLatex(problem.intervals),
+			);
 		});
 
 		it("generates a valid convolution problem for rect_shifted_rect pair", () => {
@@ -185,6 +204,130 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			const problem = generateConvolutionProblem("step_rect");
 			expect(problem.pairType).toBe("step_rect");
 			expect(problem.solutionSteps.length).toBeGreaterThan(0);
+		});
+
+		it.each([
+			"rect_rect",
+			"rect_shifted_rect",
+			"multi_rect",
+			"rect_exp",
+			"exp_exp",
+			"step_exp",
+			"step_rect",
+		] as const)(
+			"builds a complete five-step tutor scaffold for %s",
+			(pairType) => {
+				const problem = generateConvolutionProblem(pairType);
+				const choiceSteps = [
+					problem.itsData.step1,
+					problem.itsData.step2,
+					problem.itsData.step3,
+					problem.itsData.step5,
+				];
+
+				for (const step of choiceSteps) {
+					expect(step.hints).toHaveLength(3);
+					expect(
+						step.options.filter(({ isCorrect }) => isCorrect),
+					).toHaveLength(1);
+					const correctLatex = step.options.find(
+						({ isCorrect }) => isCorrect,
+					)?.latex;
+					expect(
+						step.options
+							.filter(({ isCorrect }) => !isCorrect)
+							.every(({ latex }) => latex !== correctLatex),
+					).toBe(true);
+				}
+				expect(problem.itsData.step4.parts).toHaveLength(
+					problem.intervals.length,
+				);
+				for (const part of problem.itsData.step4.parts) {
+					const correctLatex = part.options.find(
+						({ isCorrect }) => isCorrect,
+					)?.latex;
+					expect(
+						part.options
+							.filter(({ isCorrect }) => !isCorrect)
+							.every(({ latex }) => latex !== correctLatex),
+					).toBe(true);
+				}
+			},
+		);
+	});
+
+	describe("Intelligent Tutoring Scaffolding", () => {
+		/** Creates one exact interval fixture for deterministic scaffold branches. */
+		function interval(
+			labelLatex: string,
+			min: number,
+			max: number,
+			exprLatex: string,
+		): ConvolutionInterval {
+			return { labelLatex, min, max, exprLatex, eval: () => 0 };
+		}
+
+		it("deduplicates and sorts only finite analytical transition times", () => {
+			expect(
+				getFiniteConvolutionTransitionTimes([
+					interval("a", Number.NEGATIVE_INFINITY, 2, "0"),
+					interval("b", 2, 5, "t"),
+					interval("c", 5, Number.POSITIVE_INFINITY, "1"),
+				]),
+			).toEqual([2, 5]);
+		});
+
+		it("formats replacement expressions and falls back when replacements are missing", () => {
+			const intervals = [
+				interval("t<0", Number.NEGATIVE_INFINITY, 0, "0"),
+				interval("t\\ge0", 0, Number.POSITIVE_INFINITY, "t"),
+			];
+			const formatted = formatConvolutionPiecewiseLatex(intervals, ["1"]);
+			expect(formatted).toContain("1 & t<0");
+			expect(formatted).toContain("t & t\\ge0");
+		});
+
+		it("builds distinct transition distractors for an empty analytical partition", () => {
+			const data = buildConvolutionItsData([]);
+			expect(data.step4.parts).toEqual([]);
+			expect(data.step5.resultLatex).toContain("\\begin{cases}");
+			expect(
+				new Set(data.step3.options.map(({ latex }) => latex)).size,
+			).toBe(3);
+		});
+
+		it("creates two distinct distractors for one isolated zero interval", () => {
+			const data = buildConvolutionItsData([
+				interval(
+					"t\\in\\mathbb{R}",
+					Number.NEGATIVE_INFINITY,
+					Number.POSITIVE_INFINITY,
+					"0",
+				),
+			]);
+			const choices = data.step4.parts[0].options.map(
+				({ latex }) => latex,
+			);
+			expect(new Set(choices).size).toBe(3);
+			expect(choices[1]).toContain("1");
+		});
+
+		it("covers zero, linear, repeated, and neighboring expression distractors", () => {
+			const data = buildConvolutionItsData([
+				interval("a", Number.NEGATIVE_INFINITY, 0, "0"),
+				interval("b", 0, 1, "t"),
+				interval("c", 1, 2, "t"),
+				interval("d", 2, Number.POSITIVE_INFINITY, "2"),
+			]);
+			for (const part of data.step4.parts) {
+				const choices = part.options.map(({ latex }) => latex);
+				expect(new Set(choices).size).toBe(choices.length);
+			}
+			expect(data.step4.parts[0].options[1].latex).toContain("t");
+			expect(data.step4.parts[1].options[1].latex).toContain("0");
+			expect(data.step4.parts[1].options[2].latex).toContain("1 - t");
+			expect(data.step4.parts[2].options[1].latex).toContain("2");
+			expect(data.step4.parts[3].options[1].latex).toContain("t");
 		});
 	});
 });

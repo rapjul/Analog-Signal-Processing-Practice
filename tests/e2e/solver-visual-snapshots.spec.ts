@@ -205,7 +205,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		title: "Continuous-Time Convolution",
 		path: "/convolution",
 		seed: 3101,
-		isItsStepper: false,
+		isItsStepper: true,
 	},
 	{
 		module: "laplace",

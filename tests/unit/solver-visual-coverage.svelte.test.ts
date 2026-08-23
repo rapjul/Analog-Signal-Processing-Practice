@@ -9,8 +9,13 @@ import {
 	type MultiPartStepState,
 	type SolverVisualStateDescriptor,
 } from "$lib/components/solvers/base-step-solver.svelte";
+import { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
 import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
+import {
+	type ConvolutionPairType,
+	generateConvolutionProblem,
+} from "$lib/math-engine/convolution";
 import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
@@ -374,6 +379,29 @@ class SyntheticMockSolver extends BaseStepSolverState {
 }
 
 describe("Universal Solver Visual State Coverage & Future-Proofing", () => {
+	describe("Convolution Solver Full Signal-Pair Matrix", () => {
+		it("ensures every parent step and dynamic interval has visual coverage", () => {
+			const pairTypes: ConvolutionPairType[] = [
+				"rect_rect",
+				"rect_shifted_rect",
+				"multi_rect",
+				"rect_exp",
+				"exp_exp",
+				"step_exp",
+				"step_rect",
+			];
+
+			for (const pairType of pairTypes) {
+				const problem = generateConvolutionProblem(pairType);
+				const solver = new ConvolutionStepSolverState(() => problem);
+				assertCompleteVisualCoverage(
+					solver,
+					`ConvolutionStepSolverState (${pairType})`,
+				);
+			}
+		});
+	});
+
 	describe("Fourier Series Solver Full Waveform Matrix", () => {
 		for (const waveform of FOURIER_SERIES_WAVEFORM_TYPES) {
 			it(`ensures 100% step and sub-step visual coverage for waveform "${waveform}"`, () => {
