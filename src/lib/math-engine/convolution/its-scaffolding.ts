@@ -42,25 +42,36 @@ export interface ConvolutionItsIntervalPart {
 	resultLatex: string;
 	/** Selectable interval expressions. */
 	options: ConvolutionItsOption[];
+	/** Correct setup summary when x is selected as the moving signal. */
+	flipXResultLatex?: string;
+	/** Setup choices when x is selected as the moving signal. */
+	flipXOptions?: ConvolutionItsOption[];
 	/** Progressive hints specific to this interval. */
 	hints: string[];
 }
 
-/** Complete five-step tutoring scaffold for a convolution problem. */
+/** Complete seven-step tutoring scaffold for a convolution problem. */
 export interface ConvolutionItsData {
-	/** Step 1: choose the defining convolution integral. */
+	/** Step 1: analyze input and output supports. */
 	step1: ConvolutionItsChoiceStep;
-	/** Step 2: apply the correct flip-and-shift transformation. */
+	/** Step 2: choose the defining convolution integral. */
 	step2: ConvolutionItsChoiceStep;
-	/** Step 3: partition time at every finite transition. */
+	/** Step 3: choose a valid signal to flip and shift. */
 	step3: ConvolutionItsChoiceStep;
-	/** Step 4: evaluate the output on every interval. */
-	step4: {
+	/** Step 4: partition time at every finite transition. */
+	step4: ConvolutionItsChoiceStep;
+	/** Step 5: set up every overlap integral. */
+	step5: {
+		/** Ordered setup challenges. */
+		parts: ConvolutionItsIntervalPart[];
+	};
+	/** Step 6: evaluate the output on every interval. */
+	step6: {
 		/** Ordered interval challenges. */
 		parts: ConvolutionItsIntervalPart[];
 	};
-	/** Step 5: assemble the verified expressions into one response. */
-	step5: ConvolutionItsChoiceStep & {
+	/** Step 7: assemble the verified expressions into one response. */
+	step7: ConvolutionItsChoiceStep & {
 		/** Exact final piecewise response. */
 		resultLatex: string;
 	};
@@ -109,7 +120,7 @@ export function getFiniteConvolutionTransitionTimes(
  * @returns LaTeX transition-time list.
  */
 function formatTransitionTimes(times: number[]): string {
-	if (times.length === 0) return "\\text{No finite transition times}";
+	if (times.length === 0) return "\\varnothing";
 	return times.map((time) => `t = ${time}`).join(", \\quad ");
 }
 
@@ -194,6 +205,88 @@ function buildIntervalPart(
 	};
 }
 
+/** Builds one support-intersection and integral-setup challenge. */
+function buildIntegralSetupPart(
+	interval: ConvolutionInterval,
+	index: number,
+): ConvolutionItsIntervalPart {
+	const isZero = interval.exprLatex === "0";
+	const support =
+		interval.supportIntersectionLatex ??
+		(isZero
+			? "\\varnothing"
+			: `\\operatorname{supp}(x)\\cap(t-\\operatorname{supp}(h)),\\quad ${interval.labelLatex}`);
+	const setup =
+		interval.integralSetupLatex ??
+		(isZero
+			? "y(t)=0"
+			: `y(t)=\\int_{\\mathcal I_${index + 1}(t)}x(\\tau)h(t-\\tau)\\,d\\tau`);
+	const flipXSupport =
+		interval.flipXSupportIntersectionLatex ??
+		(isZero
+			? "\\varnothing"
+			: `\\operatorname{supp}(h)\\cap(t-\\operatorname{supp}(x)),\\quad ${interval.labelLatex}`);
+	const flipXSetup =
+		interval.flipXIntegralSetupLatex ??
+		(isZero
+			? "y(t)=0"
+			: `y(t)=\\int_{\\mathcal J_${index + 1}(t)}h(\\tau)x(t-\\tau)\\,d\\tau`);
+	return {
+		id: `setup-${String(index + 1).padStart(2, "0")}`,
+		title: `Set Up Region ${index + 1}`,
+		intervalLatex: interval.labelLatex,
+		resultLatex: `\\mathcal I_${index + 1}(t)=${support},\\quad ${setup}`,
+		flipXResultLatex: `\\mathcal J_${index + 1}(t)=${flipXSupport},\\quad ${flipXSetup}`,
+		options: [
+			{
+				id: `setup-${index + 1}-correct`,
+				latex: `\\mathcal I_${index + 1}(t)=${support},\\quad ${setup}`,
+				isCorrect: true,
+			},
+			{
+				id: `setup-${index + 1}-empty`,
+				latex: "\\mathcal I(t)=\\varnothing,\\quad y(t)=0",
+				isCorrect: !isZero ? false : false,
+				feedback:
+					"This does not match the active overlap geometry. Intersect the fixed and moving supports on this interval.",
+			},
+			{
+				id: `setup-${index + 1}-unbounded`,
+				latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+				isCorrect: false,
+				feedback:
+					"The definition is correct globally, but this step requires the active finite or semi-infinite support intersection.",
+			},
+		],
+		flipXOptions: [
+			{
+				id: `setup-${index + 1}-flip-x-correct`,
+				latex: `\\mathcal J_${index + 1}(t)=${flipXSupport},\\quad ${flipXSetup}`,
+				isCorrect: true,
+			},
+			{
+				id: `setup-${index + 1}-flip-x-empty`,
+				latex: "\\mathcal J(t)=\\varnothing,\\quad y(t)=0",
+				isCorrect: false,
+				feedback:
+					"This does not match the active overlap geometry for the selected moving signal.",
+			},
+			{
+				id: `setup-${index + 1}-flip-x-unbounded`,
+				latex: "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(t-\\tau)\\,d\\tau",
+				isCorrect: false,
+				feedback:
+					"Use the active support intersection to replace the global limits.",
+			},
+		],
+		hints: [
+			`Work on the already verified interval $${interval.labelLatex}$.`,
+			"Intersect the support of the fixed signal with the transformed support of the moving signal.",
+			`The active intersection is $${support}$ and its setup is $${setup}$.`,
+		],
+	};
+}
+
 /**
  * Builds the complete guided convolution tutoring dataset.
  *
@@ -202,6 +295,7 @@ function buildIntervalPart(
  */
 export function buildConvolutionItsData(
 	intervals: ConvolutionInterval[],
+	supportSummaryLatex = "\\operatorname{supp}(y)=\\operatorname{supp}(x)+\\operatorname{supp}(h)",
 ): ConvolutionItsData {
 	const transitionTimes = getFiniteConvolutionTransitionTimes(intervals);
 	const transitionLatex = formatTransitionTimes(transitionTimes);
@@ -239,6 +333,35 @@ export function buildConvolutionItsData(
 
 	return {
 		step1: {
+			prompt: "Which statement correctly relates the supports and widths of the two signals to the convolution output?",
+			options: [
+				{
+					id: "support-sum",
+					latex: supportSummaryLatex,
+					isCorrect: true,
+				},
+				{
+					id: "support-intersection",
+					latex: "\\operatorname{supp}(y)=\\operatorname{supp}(x)\\cap\\operatorname{supp}(h)",
+					isCorrect: false,
+					feedback:
+						"Convolution adds support locations. Intersection is used later for the active integration bounds.",
+				},
+				{
+					id: "support-difference",
+					latex: "W_y=|W_x-W_h|",
+					isCorrect: false,
+					feedback:
+						"For finite connected supports, convolution width is the sum of the two widths.",
+				},
+			],
+			hints: [
+				"Record each signal's start, end, and width before sliding anything.",
+				"The first output contact occurs when the two starting edges add.",
+				"For finite connected supports, add the start times, end times, and widths.",
+			],
+		},
+		step2: {
 			prompt: "Which expression correctly defines the continuous-time convolution output $y(t)$?",
 			options: [
 				{
@@ -267,68 +390,69 @@ export function buildConvolutionItsData(
 				"The required kernel is $h(t-\\tau)$, integrated from $-\\infty$ to $\\infty$.",
 			],
 		},
-		step2: {
-			prompt: "After flipping $h(\\tau)$ and shifting it by $t$, which signal should overlap $x(\\tau)$?",
+		step3: {
+			prompt: "Which signal may be flipped and shifted when evaluating convolution? Choose the path you want to use.",
 			options: [
 				{
-					id: "flip-shift-correct",
-					latex: "h(t-\\tau)",
+					id: "flip-h",
+					latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+					isCorrect: true,
+				},
+				{
+					id: "flip-x",
+					latex: "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(t-\\tau)\\,d\\tau",
 					isCorrect: true,
 				},
 				{
 					id: "shift-without-flip",
-					latex: "h(\\tau-t)",
+					latex: "y(t)=\\int x(\\tau)h(\\tau-t)\\,d\\tau",
 					isCorrect: false,
 					feedback:
-						"This shifts the original orientation. Substitute $\\tau\\mapsto-\\tau$ before applying the shift.",
-				},
-				{
-					id: "addition-shift",
-					latex: "h(t+\\tau)",
-					isCorrect: false,
-					feedback:
-						"The plus sign places the flip and shift in the wrong order. Track the transformed argument algebraically.",
+						"The selected moving signal must be reflected before it is shifted.",
 				},
 			],
 			hints: [
-				"First reflect $h(\\tau)$ about the vertical axis.",
-				"Reflection gives $h(-\\tau)$; replacing $\\tau$ by $\\tau-t$ then shifts it.",
-				"Simplify $h(-(\\tau-t))$ to $h(t-\\tau)$.",
+				"Convolution is commutative, so either signal can be the moving signal.",
+				"The fixed signal keeps the argument $\\tau$.",
+				"The moving signal receives the argument $t-\\tau$.",
 			],
 		},
-		step3: {
-			prompt: "Which partition captures every time at which the overlap geometry or integration bounds change?",
+		step4: {
+			prompt: "First identify every interior slope or formula change. Then choose the complete breakpoint-contact set and resulting interval partition.",
 			options: [
 				{
 					id: "all-transition-times",
-					latex: `\\text{Transitions: } ${transitionLatex} \\\\ \\text{Regions: } ${intervalPartitionLatex}`,
+					latex: `\\mathcal T=\\{${transitionLatex}\\} \\\\ \\mathcal R=\\{${intervalPartitionLatex}\\}`,
 					isCorrect: true,
 				},
 				{
 					id: "missing-transition-time",
-					latex: `\\text{Transitions: } ${incompleteTransitionLatex}`,
+					latex: `\\mathcal T=\\{${incompleteTransitionLatex}\\}`,
 					isCorrect: false,
 					feedback:
 						"At least one edge-contact event is missing. Include the first contact, every change of active bound, and the final contact.",
 				},
 				{
 					id: "reflected-transition-times",
-					latex: `\\text{Transitions: } ${reflectedTransitionLatex}`,
+					latex: `\\mathcal T=\\{${reflectedTransitionLatex}\\}`,
 					isCorrect: false,
 					feedback:
 						"These times reflect the output support. Transition times come from adding the original signal-edge locations.",
 				},
 			],
 			hints: [
-				"A new region begins whenever an edge of $h(t-\\tau)$ meets an edge of $x(\\tau)$.",
-				"List every finite boundary appearing in the analytical interval partition.",
+				"Before using support edges, include every interior apex, slope change, or piecewise formula change.",
+				"A new region begins whenever a transformed edge or interior breakpoint meets one on the fixed signal.",
 				`The complete transition set is $${transitionLatex}$.`,
 			],
 		},
-		step4: {
+		step5: {
+			parts: intervals.map(buildIntegralSetupPart),
+		},
+		step6: {
 			parts: intervals.map(buildIntervalPart),
 		},
-		step5: {
+		step7: {
 			prompt: "Which piecewise expression assembles every verified interval into the complete output $y(t)$?",
 			resultLatex: finalLatex,
 			options: [
@@ -354,7 +478,7 @@ export function buildConvolutionItsData(
 			],
 			hints: [
 				"Keep the interval conditions in chronological order.",
-				"Copy each verified Step 4 result into the matching row of a cases expression.",
+				"Copy each verified Step 6 result into the matching row of a cases expression.",
 				`The assembled response is $${finalLatex}$.`,
 			],
 		},

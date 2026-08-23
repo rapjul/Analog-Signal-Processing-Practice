@@ -8,6 +8,12 @@ import {
 	buildConvolutionItsData,
 	type ConvolutionItsData,
 } from "./convolution/its-scaffolding";
+import {
+	createRandomSeed,
+	createSeededPrng,
+	randomChoice,
+	randomInt,
+} from "./random";
 import type { SolutionStep } from "./types";
 
 export type {
@@ -46,6 +52,14 @@ export interface ConvolutionInterval {
 	max: number;
 	/** Piecewise formula in LaTeX */
 	exprLatex: string;
+	/** Exact active support intersection for this interval. */
+	supportIntersectionLatex?: string;
+	/** Exact unevaluated convolution integral for this interval. */
+	integralSetupLatex?: string;
+	/** Exact support intersection when x is the moving signal. */
+	flipXSupportIntersectionLatex?: string;
+	/** Exact integral setup when x is the moving signal. */
+	flipXIntegralSetupLatex?: string;
 	/** Numerical evaluator function for segment */
 	eval: (t: number) => number;
 }
@@ -75,6 +89,7 @@ export type ConvolutionPairType =
 	| "rect_exp" // Rectangular pulse * Exponential decay
 	| "exp_exp" // Exponential decay * Exponential decay
 	| "tri_rect" // Triangular pulse * Rectangular pulse
+	| "tri_shifted_tri" // Triangular pulse * Shifted triangular pulse
 	| "step_exp" // Unit step * Exponential decay
 	| "step_rect" // Unit step * Rectangular pulse
 	| "bilateral_exp_rect"; // Bilateral exponential * Rectangular pulse
@@ -85,6 +100,8 @@ export interface ConvolutionProblem {
 	id: string;
 	/** Convolution pair classification category */
 	pairType: ConvolutionPairType;
+	/** Unsigned seed used to reproduce the problem. */
+	seed: number;
 	/** Title of problem */
 	title: string;
 	/** Input signal x(t) LaTeX representation */
@@ -101,6 +118,10 @@ export interface ConvolutionProblem {
 	evalX: (tau: number) => number;
 	/** Evaluator function for impulse response h(tau) */
 	evalH: (tau: number) => number;
+	/** Support edges and interior breakpoints for the input signal. */
+	xBreakpoints?: number[];
+	/** Support edges and interior breakpoints for the impulse response. */
+	hBreakpoints?: number[];
 	/** Time range [min, max] for visualization */
 	timeRange?: [number, number];
 	/** Structured five-step Intelligent Tutoring System data. */
@@ -109,6 +130,12 @@ export interface ConvolutionProblem {
 
 /** Convolution problem before its standardized tutor scaffold is attached. */
 type ConvolutionProblemSource = Omit<ConvolutionProblem, "itsData">;
+
+/** Optional deterministic generation controls for convolution practice. */
+export interface ConvolutionGenerationOptions {
+	/** Unsigned seed used for every randomized parameter. */
+	seed?: number;
+}
 
 /**
  * Attaches deterministic tutoring data to an exact convolution problem.
@@ -119,9 +146,64 @@ type ConvolutionProblemSource = Omit<ConvolutionProblem, "itsData">;
 function withConvolutionItsData(
 	problem: ConvolutionProblemSource,
 ): ConvolutionProblem {
+	const outputIntervals = problem.intervals.filter(
+		({ exprLatex }) => exprLatex !== "0",
+	);
+	const outputStart = outputIntervals[0]?.min ?? Number.NEGATIVE_INFINITY;
+	const outputEnd = outputIntervals.at(-1)?.max ?? Number.POSITIVE_INFINITY;
+	const formatValue = (value: number): string =>
+		value === Number.POSITIVE_INFINITY
+			? "\\infty"
+			: value === Number.NEGATIVE_INFINITY
+				? "-\\infty"
+				: String(value);
+	const formatSupport = (
+		breakpoints: number[] | undefined,
+		semiInfinite: boolean,
+	): string => {
+		const start = breakpoints?.[0] ?? Number.NEGATIVE_INFINITY;
+		const end = semiInfinite
+			? Number.POSITIVE_INFINITY
+			: (breakpoints?.at(-1) ?? Number.POSITIVE_INFINITY);
+		return `[${formatValue(start)},${formatValue(end)}]`;
+	};
+	const xSemiInfinite = ["exp_exp", "step_exp", "step_rect"].includes(
+		problem.pairType,
+	);
+	const hSemiInfinite = ["rect_exp", "exp_exp", "step_exp"].includes(
+		problem.pairType,
+	);
+	const xSupport =
+		problem.pairType === "multi_rect"
+			? "[0,1]\\cup[3,4]"
+			: formatSupport(problem.xBreakpoints, xSemiInfinite);
+	const hSupport = formatSupport(problem.hBreakpoints, hSemiInfinite);
+	const outputSupport = `[${formatValue(outputStart)},${formatValue(outputEnd)}]`;
+	const supportWidth = (
+		breakpoints: number[] | undefined,
+		semiInfinite: boolean,
+	): string =>
+		semiInfinite || !breakpoints || breakpoints.length < 2
+			? "\\infty"
+			: String((breakpoints.at(-1) ?? 0) - breakpoints[0]);
+	const outputWidth =
+		Number.isFinite(outputStart) && Number.isFinite(outputEnd)
+			? String(outputEnd - outputStart)
+			: "\\infty";
+	const xWidth =
+		problem.pairType === "multi_rect"
+			? "2,\\;W_{x,\\mathrm{span}}=4"
+			: supportWidth(problem.xBreakpoints, xSemiInfinite);
+	const supportSummaryLatex =
+		`\\operatorname{supp}(x)=${xSupport},\\;W_x=${xWidth},\\quad ` +
+		`\\operatorname{supp}(h)=${hSupport},\\;W_h=${supportWidth(problem.hBreakpoints, hSemiInfinite)},\\quad ` +
+		`\\operatorname{supp}(y)=${outputSupport},\\;W_y=${outputWidth}`;
 	return {
 		...problem,
-		itsData: buildConvolutionItsData(problem.intervals),
+		itsData: buildConvolutionItsData(
+			problem.intervals,
+			supportSummaryLatex,
+		),
 	};
 }
 
@@ -219,15 +301,18 @@ export function solveStepRectConvolution(width: number): ConvolutionResult {
  */
 export function generateConvolutionProblem(
 	pairType: ConvolutionPairType = "rect_rect",
+	options: ConvolutionGenerationOptions = {},
 ): ConvolutionProblem {
-	const id = `conv_${pairType}_${Date.now()}`;
+	const seed = options.seed ?? createRandomSeed();
+	const random = createSeededPrng(seed);
+	const id = `conv_${pairType}_${seed >>> 0}`;
 
 	switch (pairType) {
 		case "rect_rect": {
-			const w1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
-			const w2 = Math.floor(Math.random() * 2) + 2; // 2 or 3
+			const w1 = randomInt(random, 1, 2);
+			const w2 = randomInt(random, 2, 3);
 			const h1 = 1;
-			const h2 = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const h2 = randomInt(random, 1, 2);
 
 			const rect1: RectSignal = { tStart: 0, width: w1, height: h1 };
 			const rect2: RectSignal = { tStart: 0, width: w2, height: h2 };
@@ -271,6 +356,7 @@ export function generateConvolutionProblem(
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "rect_rect",
 				title: "Rectangular Pulse Convolution",
 				xLatex,
@@ -280,13 +366,15 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0, w1],
+				hBreakpoints: [0, w2],
 				timeRange: [-2, w1 + w2 + 2],
 			});
 		}
 		case "rect_shifted_rect": {
-			const w1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
-			const w2 = Math.floor(Math.random() * 2) + 2; // 2 or 3
-			const tShift = Math.floor(Math.random() * 2) + 1; // 1 or 2
+			const w1 = randomInt(random, 1, 2);
+			const w2 = randomInt(random, 2, 3);
+			const tShift = randomInt(random, 1, 2);
 			const rect1: RectSignal = { tStart: 0, width: w1, height: 1 };
 			const rect2: RectSignal = { tStart: tShift, width: w2, height: 1 };
 			const res = solveShiftedRectConvolution(rect1, rect2);
@@ -324,6 +412,7 @@ export function generateConvolutionProblem(
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "rect_shifted_rect",
 				title: "Shifted Rect Pulse Convolution",
 				xLatex,
@@ -333,6 +422,8 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0, w1],
+				hBreakpoints: [tShift, tShift + w2],
 				timeRange: [-1, tShift + w1 + w2 + 2],
 			});
 		}
@@ -366,6 +457,7 @@ export function generateConvolutionProblem(
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "multi_rect",
 				title: "Multi-Rect Pulse Array Convolution",
 				xLatex,
@@ -375,12 +467,14 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0, 1, 3, 4],
+				hBreakpoints: [0, 2],
 				timeRange: [-1, 7],
 			});
 		}
 		case "rect_exp": {
-			const w = Math.floor(Math.random() * 2) + 1; // 1 or 2
-			const a = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+			const w = randomInt(random, 1, 2);
+			const a = randomInt(random, 1, 3);
 			const rect: RectSignal = { tStart: 0, width: w, height: 1 };
 			const expSignal: ExpSignal = { a, K: 1 };
 
@@ -414,6 +508,7 @@ export function generateConvolutionProblem(
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "rect_exp",
 				title: "Pulse-Exponential Convolution",
 				xLatex,
@@ -423,12 +518,14 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0, w],
+				hBreakpoints: [0],
 				timeRange: [-2, w + 4],
 			});
 		}
 		case "exp_exp": {
-			const a1 = Math.floor(Math.random() * 2) + 1; // 1 or 2
-			const a2 = a1 + Math.floor(Math.random() * 2) + 1; // a1 + 1 or a1 + 2
+			const a1 = randomInt(random, 1, 2);
+			const a2 = a1 + randomInt(random, 1, 2);
 			const exp1: ExpSignal = { a: a1, K: 1 };
 			const exp2: ExpSignal = { a: a2, K: 1 };
 
@@ -457,6 +554,7 @@ export function generateConvolutionProblem(
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "exp_exp",
 				title: "Exponential-Exponential Convolution",
 				xLatex,
@@ -466,17 +564,20 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0],
+				hBreakpoints: [0],
 				timeRange: [-1, 6],
 			});
 		}
 		case "step_exp": {
-			const a = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+			const a = randomInt(random, 1, 3);
 			const res = solveStepExpConvolution({ a, K: 1 });
 			const xLatex = "u(t)";
 			const hLatex = `e^{-${a}t} u(t)`;
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "step_exp",
 				title: "Unit Step Response of Exponential System",
 				xLatex,
@@ -498,17 +599,20 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0],
+				hBreakpoints: [0],
 				timeRange: [-1, 6],
 			});
 		}
 		case "step_rect": {
-			const w = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+			const w = randomInt(random, 1, 3);
 			const res = solveStepRectConvolution(w);
 			const xLatex = "u(t)";
 			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
 
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType: "step_rect",
 				title: "Unit Step Response of Rectangular Pulse System",
 				xLatex,
@@ -529,17 +633,84 @@ export function generateConvolutionProblem(
 				eval: res.eval,
 				evalX: res.evalX,
 				evalH: res.evalH,
+				xBreakpoints: [0],
+				hBreakpoints: [0, w],
 				timeRange: [-1, w + 4],
 			});
 		}
-		case "tri_rect":
+		case "tri_rect": {
+			const res = solveTriRectConvolution();
+			return withConvolutionItsData({
+				id,
+				seed,
+				pairType,
+				title: "Triangular and Rectangular Pulse Convolution",
+				xLatex: "\\operatorname{tri}(t/2)",
+				hLatex: "\\operatorname{rect}(t/2)",
+				solutionSteps: [
+					{
+						title: "Include the Triangle Apex",
+						description:
+							"Treat the apex at $t=0$ as an interior breakpoint when forming transition times.",
+						latex: "t\\in\\{-3,-1,1,3\\}",
+					},
+					{
+						title: "Split the Central Integral",
+						description:
+							"Split at the triangle apex whenever the rectangular window crosses both slopes.",
+						latex: "y(t)=\\int_{t-1}^{0}\\left(1+\\frac{\\tau}{2}\\right)d\\tau+\\int_0^{t+1}\\left(1-\\frac{\\tau}{2}\\right)d\\tau",
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				xBreakpoints: [-2, 0, 2],
+				hBreakpoints: [-1, 1],
+				timeRange: [-4, 4],
+			});
+		}
+		case "tri_shifted_tri": {
+			const shift = randomChoice(random, [-2, -1, 1, 2] as const);
+			const res = solveShiftedTriTriConvolution(shift);
+			return withConvolutionItsData({
+				id,
+				seed,
+				pairType,
+				title: "Triangle and Shifted Triangle Convolution",
+				xLatex: "\\operatorname{tri}(t/2)",
+				hLatex: `\\operatorname{tri}\\left(\\frac{t-${shift}}{2}\\right)`,
+				solutionSteps: [
+					{
+						title: "Find Edge and Apex Contacts",
+						description:
+							"Combine both support edges and both triangle apexes before forming the intervals.",
+						latex: `t\\in\\{${shift - 4},${shift - 2},${shift},${shift + 2},${shift + 4}\\}`,
+					},
+					{
+						title: "Evaluate the Piecewise Cubics",
+						description:
+							"Split each overlap whenever the moving apex crosses an edge or the fixed apex.",
+						latex: "z=t-s,\\quad y(t)=(\\operatorname{tri}*\\operatorname{tri})(z)",
+					},
+				],
+				intervals: res.intervals,
+				eval: res.eval,
+				evalX: res.evalX,
+				evalH: res.evalH,
+				xBreakpoints: [-2, 0, 2],
+				hBreakpoints: [shift - 2, shift, shift + 2],
+				timeRange: [shift - 5, shift + 5],
+			});
+		}
 		case "bilateral_exp_rect": {
-			// Fallback to Rect-Rect solver for complex piecewise shapes
+			// Retain the legacy hidden fallback until an exact mode is specified.
 			const rect1: RectSignal = { tStart: 0, width: 2, height: 1 };
 			const rect2: RectSignal = { tStart: 0, width: 2, height: 1 };
 			const res = solveRectRectConvolution(rect1, rect2);
 			return withConvolutionItsData({
 				id,
+				seed,
 				pairType,
 				title: "Triangular Pulse Convolution",
 				xLatex: "\\operatorname{tri}(t/2)",
@@ -621,6 +792,152 @@ export function evalTri(
 		return 0;
 	}
 	return height * (1 - dist / halfWidth);
+}
+
+/** Solves the exact convolution of `tri(t/2)` and `rect(t/2)`. */
+export function solveTriRectConvolution(): ConvolutionResult {
+	const evalFn = (t: number): number => {
+		if (t < -3 || t >= 3) return 0;
+		if (t < -1) return ((t + 3) * (t + 3)) / 4;
+		if (t < 1) return (3 - t * t) / 2;
+		return ((t - 3) * (t - 3)) / 4;
+	};
+	const intervals: ConvolutionInterval[] = [
+		{
+			labelLatex: "t < -3",
+			min: Number.NEGATIVE_INFINITY,
+			max: -3,
+			exprLatex: "0",
+			supportIntersectionLatex: "\\varnothing",
+			integralSetupLatex: "y(t)=0",
+			flipXSupportIntersectionLatex: "\\varnothing",
+			flipXIntegralSetupLatex: "y(t)=0",
+			eval: () => 0,
+		},
+		{
+			labelLatex: "-3 \\le t < -1",
+			min: -3,
+			max: -1,
+			exprLatex: "\\frac{(t+3)^2}{4}",
+			supportIntersectionLatex: "[-2,t+1]",
+			integralSetupLatex:
+				"y(t)=\\int_{-2}^{t+1}\\left(1+\\frac{\\tau}{2}\\right)d\\tau",
+			flipXSupportIntersectionLatex: "[-1,t+2]",
+			flipXIntegralSetupLatex:
+				"y(t)=\\int_{-1}^{t+2}\\left(1+\\frac{t-\\tau}{2}\\right)d\\tau",
+			eval: evalFn,
+		},
+		{
+			labelLatex: "-1 \\le t < 1",
+			min: -1,
+			max: 1,
+			exprLatex: "\\frac{3-t^2}{2}",
+			supportIntersectionLatex: "[t-1,t+1]",
+			integralSetupLatex:
+				"y(t)=\\int_{t-1}^{0}\\left(1+\\frac{\\tau}{2}\\right)d\\tau+\\int_0^{t+1}\\left(1-\\frac{\\tau}{2}\\right)d\\tau",
+			flipXSupportIntersectionLatex: "[-1,1]",
+			flipXIntegralSetupLatex:
+				"y(t)=\\int_{-1}^{t}\\left(1-\\frac{t-\\tau}{2}\\right)d\\tau+\\int_t^1\\left(1+\\frac{t-\\tau}{2}\\right)d\\tau",
+			eval: evalFn,
+		},
+		{
+			labelLatex: "1 \\le t < 3",
+			min: 1,
+			max: 3,
+			exprLatex: "\\frac{(t-3)^2}{4}",
+			supportIntersectionLatex: "[t-1,2]",
+			integralSetupLatex:
+				"y(t)=\\int_{t-1}^{2}\\left(1-\\frac{\\tau}{2}\\right)d\\tau",
+			flipXSupportIntersectionLatex: "[t-2,1]",
+			flipXIntegralSetupLatex:
+				"y(t)=\\int_{t-2}^{1}\\left(1-\\frac{t-\\tau}{2}\\right)d\\tau",
+			eval: evalFn,
+		},
+		{
+			labelLatex: "t \\ge 3",
+			min: 3,
+			max: Number.POSITIVE_INFINITY,
+			exprLatex: "0",
+			supportIntersectionLatex: "\\varnothing",
+			integralSetupLatex: "y(t)=0",
+			flipXSupportIntersectionLatex: "\\varnothing",
+			flipXIntegralSetupLatex: "y(t)=0",
+			eval: () => 0,
+		},
+	];
+	return {
+		pairType: "tri_rect",
+		intervals,
+		eval: evalFn,
+		evalX: (tau) => evalTri(tau, 0, 4, 1),
+		evalH: (tau) => evalRect(tau, -1, 2, 1),
+	};
+}
+
+/** Solves two identical triangular pulses when the second is shifted by `shift`. */
+export function solveShiftedTriTriConvolution(
+	shift: number,
+): ConvolutionResult {
+	const evalFn = (t: number): number => {
+		const z = t - shift;
+		if (z < -4 || z >= 4) return 0;
+		if (z < -2) return ((z + 4) * (z + 4) * (z + 4)) / 24;
+		if (z < 0) return 4 / 3 - (z * z) / 2 - (z * z * z) / 8;
+		if (z < 2) return 4 / 3 - (z * z) / 2 + (z * z * z) / 8;
+		return ((4 - z) * (4 - z) * (4 - z)) / 24;
+	};
+	const boundaries = [shift - 4, shift - 2, shift, shift + 2, shift + 4];
+	const expressions = [
+		"0",
+		`\\frac{(t-${shift}+4)^3}{24}`,
+		`\\frac{4}{3}-\\frac{(t-${shift})^2}{2}-\\frac{(t-${shift})^3}{8}`,
+		`\\frac{4}{3}-\\frac{(t-${shift})^2}{2}+\\frac{(t-${shift})^3}{8}`,
+		`\\frac{(${shift}+4-t)^3}{24}`,
+		"0",
+	];
+	const intervals: ConvolutionInterval[] = expressions.map(
+		(exprLatex, index) => ({
+			labelLatex:
+				index === 0
+					? `t < ${boundaries[0]}`
+					: index === expressions.length - 1
+						? `t \\ge ${boundaries.at(-1)}`
+						: `${boundaries[index - 1]} \\le t < ${boundaries[index]}`,
+			min:
+				index === 0
+					? Number.NEGATIVE_INFINITY
+					: (boundaries[index - 1] ?? Number.NEGATIVE_INFINITY),
+			max:
+				index === expressions.length - 1
+					? Number.POSITIVE_INFINITY
+					: (boundaries[index] ?? Number.POSITIVE_INFINITY),
+			exprLatex,
+			supportIntersectionLatex:
+				exprLatex === "0"
+					? "\\varnothing"
+					: `[-2,2]\\cap[t-${shift}-2,t-${shift}+2]`,
+			integralSetupLatex:
+				exprLatex === "0"
+					? "y(t)=0"
+					: `y(t)=\\int_{\\max(-2,t-${shift}-2)}^{\\min(2,t-${shift}+2)}\\operatorname{tri}(\\tau/2)\\operatorname{tri}((t-\\tau-${shift})/2)\\,d\\tau`,
+			flipXSupportIntersectionLatex:
+				exprLatex === "0"
+					? "\\varnothing"
+					: `[${shift - 2},${shift + 2}]\\cap[t-2,t+2]`,
+			flipXIntegralSetupLatex:
+				exprLatex === "0"
+					? "y(t)=0"
+					: `y(t)=\\int_{\\max(${shift - 2},t-2)}^{\\min(${shift + 2},t+2)}\\operatorname{tri}((\\tau-${shift})/2)\\operatorname{tri}((t-\\tau)/2)\\,d\\tau`,
+			eval: exprLatex === "0" ? () => 0 : evalFn,
+		}),
+	);
+	return {
+		pairType: "tri_shifted_tri",
+		intervals,
+		eval: evalFn,
+		evalX: (tau) => evalTri(tau, 0, 4, 1),
+		evalH: (tau) => evalTri(tau, shift, 4, 1),
+	};
 }
 
 /**

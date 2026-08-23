@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Step 4 multi-part interval evaluator for the convolution ITS solver.
+	 * Reusable multi-part setup/evaluation step for the convolution tutor.
 	 *
 	 * Carries verified regions forward while focusing the student on one exact
 	 * overlap interval at a time, matching the Fourier Series coefficient flow.
@@ -24,29 +24,52 @@
 		problem: ConvolutionProblem;
 		/** Active reactive convolution solver controller. */
 		solver: ConvolutionStepSolverState;
+		/** Parent step number. */
+		stepNumber: 5 | 6;
+		/** Student-facing step title. */
+		title: string;
+		/** Whether this step validates setup or evaluation choices. */
+		mode: "setup" | "evaluation";
 	}
 
-	let { problem, solver }: Props = $props();
+	let { problem, solver, stepNumber, title, mode }: Props = $props();
+	const data = $derived(
+		stepNumber === 5 ? problem.itsData.step5 : problem.itsData.step6,
+	);
+	const state = $derived(stepNumber === 5 ? solver.step5 : solver.step6);
+	const completedSummary = $derived(
+		data.parts
+			.map(
+				(part) =>
+					`$$${
+						mode === "setup" && solver.flippedSignal === "x"
+							? (part.flipXResultLatex ?? part.resultLatex)
+							: part.resultLatex
+					}$$`,
+			)
+			.join("; "),
+	);
 
 	/** Visual status for Step 4. */
 	const status = $derived(
-		solver.currentStep === 4
+		solver.currentStep === stepNumber
 			? "active"
-			: solver.currentStep > 4
+			: solver.currentStep > stepNumber
 				? "completed"
 				: "locked",
 	);
 	/** Zero-based index of the active interval part. */
 	const activeIndex = $derived(
-		problem.itsData.step4.parts.findIndex(
-			({ id }) => id === solver.step4.activeSubStepId,
-		),
+		data.parts.findIndex(({ id }) => id === state.activeSubStepId),
 	);
 	/** Exact data for the active interval part. */
 	const activePart = $derived(
-		problem.itsData.step4.parts.find(
-			({ id }) => id === solver.step4.activeSubStepId,
-		),
+		data.parts.find(({ id }) => id === state.activeSubStepId),
+	);
+	const activeOptions = $derived(
+		mode === "setup" && solver.flippedSignal === "x"
+			? (activePart?.flipXOptions ?? activePart?.options ?? [])
+			: (activePart?.options ?? []),
 	);
 
 	/**
@@ -55,33 +78,43 @@
 	 * @param option - Selected interval response.
 	 */
 	function handleSelection(option: ConvolutionItsOption): void {
-		solver.checkStep4(option);
+		if (mode === "setup") solver.checkStep5(option);
+		else solver.checkStep6(option);
 	}
 </script>
 
 {#snippet headerExtra()}
 	{#if status === "active"}
-		<PartProgressPill progress={solver.step4Progress} />
+		<PartProgressPill
+			progress={stepNumber === 5
+				? solver.step5Progress
+				: solver.step6Progress}
+		/>
 	{/if}
 {/snippet}
 
 <StepCard
-	stepNumber={4}
-	title="Evaluate Each Overlap Region"
+	{stepNumber}
+	{title}
 	{status}
 	{headerExtra}
-	summaryLatex={String.raw`\text{All interval integrals evaluated}`}
+	summaryLatex={mode === "setup"
+		? `Verified support intersections and integral setups: ${completedSummary}`
+		: `Evaluated interval results: ${completedSummary}`}
 >
 	<div class="step-body">
-		{#each problem.itsData.step4.parts.slice(0, activeIndex) as previousPart, index}
+		{#each data.parts.slice(0, activeIndex) as previousPart, index}
 			<SubStepBlock
-				badge={`Part 4${String.fromCharCode(65 + index)}`}
+				badge={`Part ${stepNumber}${String.fromCharCode(65 + index)}`}
 				title={previousPart.title}
 				isCompleted={true}
 			>
 				{#snippet summarySnippet()}
 					<MathBlock
-						math={previousPart.resultLatex}
+						math={mode === "setup" && solver.flippedSignal === "x"
+							? (previousPart.flipXResultLatex ??
+								previousPart.resultLatex)
+							: previousPart.resultLatex}
 						compact={true}
 						hideHeader={true}
 						responsive={true}
@@ -91,13 +124,16 @@
 		{/each}
 
 		<SubStepBlock
-			badge={`Part 4${String.fromCharCode(65 + Math.max(0, activeIndex))}`}
-			title={activePart?.title ?? "Evaluate Region"}
+			badge={`Part ${stepNumber}${String.fromCharCode(65 + Math.max(0, activeIndex))}`}
+			title={activePart?.title ??
+				(mode === "setup" ? "Set Up Region" : "Evaluate Region")}
 			isCompleted={false}
 		>
 			<p class="step-prompt">
 				<MathText
-					text={String.raw`For $${activePart?.intervalLatex ?? ""}$, evaluate the overlap integral using the active support intersection:`}
+					text={mode === "setup"
+						? String.raw`For $${activePart?.intervalLatex ?? ""}$, identify the support intersection and set the exact integration bounds:`
+						: String.raw`For $${activePart?.intervalLatex ?? ""}$, evaluate the verified definite integral:`}
 				/>
 			</p>
 			<MathBlock
@@ -107,15 +143,14 @@
 			/>
 			<div
 				class="option-grid"
-				data-testid="convolution-step4-options"
+				data-testid={`convolution-step${stepNumber}-options`}
 			>
-				{#each activePart?.options ?? [] as option}
+				{#each activeOptions as option}
 					<button
 						type="button"
 						class="option-card"
-						class:selected={solver.step4.subSteps[
-							solver.step4.activeSubStepId
-						]?.selected === option.id}
+						class:selected={state.subSteps[state.activeSubStepId]
+							?.selected === option.id}
 						onclick={() => handleSelection(option)}
 					>
 						<MathBlock

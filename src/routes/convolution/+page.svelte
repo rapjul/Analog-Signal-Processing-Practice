@@ -6,33 +6,71 @@
 	 * interactive interval input, and formula reference.
 	 */
 
+	import { onMount } from "svelte";
+	import { replaceState } from "$app/navigation";
+	import { page } from "$app/state";
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
-		type ConvolutionPairType,
 		type ConvolutionProblem,
 		generateConvolutionProblem,
 	} from "$lib/math-engine/convolution";
+	import { createRandomSeed } from "$lib/math-engine/random";
+	import {
+		type ConvolutionPairSelection,
+		parseConvolutionFilters,
+		resolveConvolutionPairSelection,
+		serializeConvolutionFilters,
+	} from "$lib/problems/convolution-filters";
 
-	let selectedPair = $state<ConvolutionPairType>("rect_rect");
+	const initialFilters = parseConvolutionFilters(page.url.searchParams);
+	let selectedPair = $state<ConvolutionPairSelection>(initialFilters.pair);
+	let seed = $state(initialFilters.seed);
 
-	// Active problem state
+	/** Generates the concrete seeded problem represented by route state. */
+	function generateSelectedProblem(
+		selection: ConvolutionPairSelection,
+		problemSeed: number,
+	): ConvolutionProblem {
+		return generateConvolutionProblem(
+			resolveConvolutionPairSelection(selection, problemSeed),
+			{ seed: problemSeed },
+		);
+	}
+
 	let currentProblem = $state<ConvolutionProblem>(
-		generateConvolutionProblem("rect_rect"),
+		generateSelectedProblem(initialFilters.pair, initialFilters.seed),
 	);
+
+	/** Synchronizes selector state with a canonical shareable URL. */
+	function syncShareableUrl(): void {
+		if (typeof window === "undefined") return;
+		const params = serializeConvolutionFilters({
+			pair: selectedPair,
+			seed,
+		});
+		replaceState(
+			`${window.location.pathname}?${params.toString()}${window.location.hash}`,
+			page.state,
+		);
+	}
+
+	onMount(() => window.setTimeout(syncShareableUrl, 0));
 
 	/**
 	 * Regenerates a new convolution problem using current selected signal pair option.
 	 */
-	function handleGenerateNext() {
-		currentProblem = generateConvolutionProblem(selectedPair);
+	function handleGenerateNext(): void {
+		seed = createRandomSeed();
+		currentProblem = generateSelectedProblem(selectedPair, seed);
+		syncShareableUrl();
 	}
 
 	/**
 	 * Handles change to signal pair selector.
 	 */
-	function handleOptionChange() {
+	function handleOptionChange(): void {
 		handleGenerateNext();
 	}
 </script>
@@ -46,10 +84,15 @@
 	{#snippet controls()}
 		<DrillPanel
 			title="Targeted Drill & Signal Pair Filters"
-			badge={selectedPair === "rect_rect"
-				? "Default (Rect * Rect)"
+			badge={selectedPair === "random"
+				? "Randomized Across All Signal Pairs"
 				: "Custom Signal Pair"}
 		>
+			<input
+				type="hidden"
+				name="seed"
+				value={seed}
+			/>
 			<div class="control-group">
 				<label
 					for="pair-type-select"
@@ -63,6 +106,7 @@
 					bind:value={selectedPair}
 					onchange={handleOptionChange}
 				>
+					<option value="random">Random (All Signal Pairs)</option>
 					<option value="rect_rect">
 						Rectangular Pulse * Rectangular Pulse (Piecewise Linear)
 					</option>
@@ -79,6 +123,12 @@
 					</option>
 					<option value="exp_exp">
 						Exponential Decay * Exponential Decay
+					</option>
+					<option value="tri_rect">
+						Triangular Pulse * Rectangular Pulse
+					</option>
+					<option value="tri_shifted_tri">
+						Triangular Pulse * Shifted Triangular Pulse
 					</option>
 				</select>
 			</div>

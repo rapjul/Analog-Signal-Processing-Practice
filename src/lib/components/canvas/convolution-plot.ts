@@ -78,6 +78,8 @@ export interface ConvolutionPlotDrawOptions {
 	shift: number;
 	/** Finite times at which overlap geometry changes. */
 	transitionTimes: number[];
+	/** Moving support edges and interior breakpoints in plot coordinates. */
+	movingBoundaries?: number[];
 	/** Sampled signal data. */
 	frame: ConvolutionPlotFrame;
 	/** Theme colors. */
@@ -143,6 +145,18 @@ export function getVisibleConvolutionTransitions(
 				Number.isFinite(time) && time >= minimum && time <= maximum,
 		)
 		.sort((left, right) => left - right);
+}
+
+/** Transforms original moving-signal breakpoints under the argument `t-tau`. */
+export function getMovingConvolutionBoundaries(
+	breakpoints: number[],
+	shift: number,
+	timeRange: [number, number],
+): number[] {
+	return getVisibleConvolutionTransitions(
+		breakpoints.map((breakpoint) => shift - breakpoint),
+		timeRange,
+	);
 }
 
 /**
@@ -417,6 +431,16 @@ function drawOverlapPanel(
 		"#f97316",
 		2.2,
 	);
+	context.strokeStyle = "rgba(249, 115, 22, 0.85)";
+	context.setLineDash([4, 4]);
+	for (const boundary of options.movingBoundaries ?? []) {
+		const x = toX(boundary);
+		context.beginPath();
+		context.moveTo(x, geometry.upper.top);
+		context.lineTo(x, geometry.upper.bottom);
+		context.stroke();
+	}
+	context.setLineDash([]);
 }
 
 /**

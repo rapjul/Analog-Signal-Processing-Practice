@@ -27,8 +27,10 @@
 
 	let { problem, onNextProblem }: Props = $props();
 
-	/** Whether the guided tutor has validated all five parent steps. */
+	/** Whether the guided tutor has validated all seven parent steps. */
 	let isCompleted = $state(false);
+	/** Signal selected by the student for the completed animation. */
+	let flippedSignal = $state<"x" | "h">("h");
 	/** Finite overlap boundaries reused by the completed animation. */
 	const transitionTimes = $derived(
 		getFiniteConvolutionTransitionTimes(problem.intervals),
@@ -39,7 +41,8 @@
 	});
 
 	/** Reveals the worked solution and graphical verifier after tutor completion. */
-	function handleProblemCompleted(): void {
+	function handleProblemCompleted(selectedSignal: "x" | "h"): void {
+		flippedSignal = selectedSignal;
 		isCompleted = true;
 	}
 </script>
@@ -97,7 +100,7 @@
 				title="Problem Completed!"
 				description={String.raw`You have derived every overlap region and assembled the exact piecewise response $y(t)$. Use the animator to connect the verified algebra to the moving overlap geometry.`}
 				stats={[
-					{ label: "Tutor Steps", value: 5 },
+					{ label: "Tutor Steps", value: 7 },
 					{
 						label: "Verified Regions",
 						value: problem.intervals.length,
@@ -110,7 +113,7 @@
 					<MathText text={String.raw`Verified response $y(t)$`} />
 				</h3>
 				<MathBlock
-					math={problem.itsData.step5.resultLatex}
+					math={problem.itsData.step7.resultLatex}
 					compact={true}
 					responsive={true}
 				/>
@@ -125,6 +128,10 @@
 					evalY={problem.eval}
 					timeRange={problem.timeRange ?? [-2, 6]}
 					{transitionTimes}
+					{flippedSignal}
+					movingBreakpoints={flippedSignal === "x"
+						? (problem.xBreakpoints ?? [])
+						: (problem.hBreakpoints ?? [])}
 					title="Verified Flip-and-Shift Overlap Visualizer"
 				/>
 			</div>

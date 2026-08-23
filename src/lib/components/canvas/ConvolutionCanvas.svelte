@@ -10,6 +10,7 @@
 		CONVOLUTION_SPEED_PRESETS,
 		DEFAULT_CONVOLUTION_SPEED,
 		drawConvolutionPlot,
+		getMovingConvolutionBoundaries,
 		normalizeConvolutionTimeRange,
 		sampleConvolutionPlot,
 	} from "$lib/components/canvas/convolution-plot";
@@ -34,6 +35,10 @@
 		animationSpeed?: number;
 		/** Uniform sample count for both plot panels. */
 		sampleCount?: number;
+		/** Signal selected as the moving flip-and-shift signal. */
+		flippedSignal?: "x" | "h";
+		/** Support edges and interior breakpoints of the moving signal. */
+		movingBreakpoints?: number[];
 	}
 
 	let {
@@ -49,7 +54,13 @@
 		transitionTimes = [0, 2, 4],
 		animationSpeed = DEFAULT_CONVOLUTION_SPEED,
 		sampleCount = 420,
+		flippedSignal = "h",
+		movingBreakpoints = [],
 	}: Props = $props();
+	const fixedEvaluator = $derived(flippedSignal === "x" ? evalH : evalX);
+	const movingEvaluator = $derived(flippedSignal === "x" ? evalX : evalH);
+	const fixedLabel = $derived(flippedSignal === "x" ? "h" : "x");
+	const movingLabel = $derived(flippedSignal);
 
 	/** Normalized bounds used by drawing and controls. */
 	const normalizedTimeRange = $derived(
@@ -176,8 +187,8 @@
 
 		const style = getComputedStyle(document.documentElement);
 		const frame = sampleConvolutionPlot(
-			evalX,
-			evalH,
+			fixedEvaluator,
+			movingEvaluator,
 			evalY,
 			shiftT,
 			normalizedTimeRange,
@@ -189,6 +200,11 @@
 			timeRange: normalizedTimeRange,
 			shift: shiftT,
 			transitionTimes,
+			movingBoundaries: getMovingConvolutionBoundaries(
+				movingBreakpoints,
+				shiftT,
+				normalizedTimeRange,
+			),
 			frame,
 			theme: {
 				background:
@@ -216,13 +232,13 @@
 			<div class="legend-item">
 				<span class="dot blue"></span>
 				<span class="label"
-					><MathInline math={String.raw`x(\tau)`} /></span
+					><MathInline math={`${fixedLabel}(\\tau)`} /></span
 				>
 			</div>
 			<div class="legend-item">
 				<span class="dot orange"></span>
 				<span class="label"
-					><MathInline math={String.raw`h(t-\tau)`} /></span
+					><MathInline math={`${movingLabel}(t-\\tau)`} /></span
 				>
 			</div>
 			<div class="legend-item">
@@ -240,8 +256,8 @@
 
 	<div class="canvas-container">
 		<div class="panel-header panel-upper">
-			Signals <MathInline math={String.raw`x(\tau)`} /> and <MathInline
-				math={String.raw`h(t-\tau)`}
+			Signals <MathInline math={`${fixedLabel}(\\tau)`} /> and <MathInline
+				math={`${movingLabel}(t-\\tau)`}
 			/>, with shaded product
 		</div>
 		<div class="panel-header panel-lower">
@@ -310,9 +326,11 @@
 		id="convolution-plot-note"
 		class="plot-note"
 	>
-		Dashed guides in the output panel mark the transition times verified in
-		the solver. The faint curve previews the complete response; the bright
-		curve shows the portion reached by the moving overlap.
+		Orange dashed guides in the overlap panel mark finite moving-signal
+		edges and interior breakpoints, including the moving left edge. Dashed
+		guides in the output panel mark the transition times verified in the
+		solver. The faint curve previews the complete response; the bright curve
+		shows the portion reached by the moving overlap.
 	</p>
 </div>
 

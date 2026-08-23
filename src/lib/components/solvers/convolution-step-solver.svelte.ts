@@ -31,8 +31,9 @@ export type {
  */
 function createIntervalMultiPartState(
 	problem: ConvolutionProblem,
+	step: "step5" | "step6",
 ): ConvolutionIntervalMultiPartState {
-	const parts = problem.itsData.step4.parts;
+	const parts = problem.itsData[step].parts;
 	const normalizedParts =
 		parts.length > 0
 			? parts
@@ -77,23 +78,28 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		return this.getProblem();
 	}
 
-	/** Step 1 state: convolution integral definition. */
+	/** Step 1 state: signal support analysis. */
 	step1: ConvolutionChoiceStepState = $state(
 		createStepState({ selected: null as string | null }),
 	);
 
-	/** Step 2 state: flip-and-shift transformation. */
+	/** Step 2 state: convolution integral definition. */
 	step2: ConvolutionChoiceStepState = $state(
 		createStepState({ selected: null as string | null }),
 	);
 
-	/** Step 3 state: transition-time partition. */
+	/** Step 3 state: selected flip-and-shift path. */
 	step3: ConvolutionChoiceStepState = $state(
 		createStepState({ selected: null as string | null }),
 	);
 
-	/** Step 4 state: interval-by-interval overlap evaluation. */
-	step4: ConvolutionIntervalMultiPartState = $state(
+	/** Step 4 state: transition-time partition. */
+	step4: ConvolutionChoiceStepState = $state(
+		createStepState({ selected: null as string | null }),
+	);
+
+	/** Step 5 state: interval-by-interval integral setup. */
+	step5: ConvolutionIntervalMultiPartState = $state(
 		createMultiPartStepState(
 			{},
 			["interval-placeholder"],
@@ -109,14 +115,41 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		) as ConvolutionIntervalMultiPartState,
 	);
 
-	/** Step 5 state: final piecewise response assembly. */
-	step5: ConvolutionChoiceStepState = $state(
+	/** Step 6 state: interval-by-interval evaluation. */
+	step6: ConvolutionIntervalMultiPartState = $state(
+		createMultiPartStepState(
+			{},
+			["interval-placeholder"],
+			{
+				"interval-placeholder": createSubStepState(
+					"interval-placeholder",
+					"Evaluate Region",
+					{ selected: null as string | null },
+					[],
+				),
+			},
+			"interval-placeholder",
+		) as ConvolutionIntervalMultiPartState,
+	);
+
+	/** Step 7 state: final piecewise response assembly. */
+	step7: ConvolutionChoiceStepState = $state(
 		createStepState({ selected: null as string | null }),
 	);
 
-	/** Progress through the Step 4 interval challenges. */
-	get step4Progress(): SubStepProgress {
-		return this.getSubStepProgress(this.step4);
+	/** Progress through the Step 5 setup challenges. */
+	get step5Progress(): SubStepProgress {
+		return this.getSubStepProgress(this.step5);
+	}
+
+	/** Progress through the Step 6 evaluation challenges. */
+	get step6Progress(): SubStepProgress {
+		return this.getSubStepProgress(this.step6);
+	}
+
+	/** Signal selected by the student for the moving flip-and-shift path. */
+	get flippedSignal(): "x" | "h" {
+		return this.step3.selected === "flip-x" ? "x" : "h";
 	}
 
 	/** Returns the active state object for the current parent step. */
@@ -132,6 +165,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				return this.step4;
 			case 5:
 				return this.step5;
+			case 6:
+				return this.step6;
+			case 7:
+				return this.step7;
 			default:
 				return undefined;
 		}
@@ -147,11 +184,17 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			case 3:
 				return this.problem.itsData.step3.hints;
 			case 4:
-				return (
-					this.step4.subSteps[this.step4.activeSubStepId]?.hints ?? []
-				);
+				return this.problem.itsData.step4.hints;
 			case 5:
-				return this.problem.itsData.step5.hints;
+				return (
+					this.step5.subSteps[this.step5.activeSubStepId]?.hints ?? []
+				);
+			case 6:
+				return (
+					this.step6.subSteps[this.step6.activeSubStepId]?.hints ?? []
+				);
+			case 7:
+				return this.problem.itsData.step7.hints;
 			default:
 				return [];
 		}
@@ -167,53 +210,84 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		getProblem: () => ConvolutionProblem,
 		getOnComplete?: () => (() => void) | undefined,
 	) {
-		super(5, getOnComplete);
+		super(7, getOnComplete);
 		this.getProblem = getProblem;
 		this.reset();
 	}
 
-	/** Validates Step 1: defining convolution integral. */
+	/** Validates Step 1: support analysis. */
 	checkStep1(option: ConvolutionItsOption | null): void {
 		this.checkOptionCardStep(
 			this.step1,
 			option,
-			"Use the defining convolution integral with a flipped and shifted second signal.",
-			"Select the expression that defines continuous-time convolution.",
+			"Convolution adds support locations; intersection is reserved for active integration bounds.",
+			"Select the support relationship before continuing.",
 			2,
 		);
 	}
 
-	/** Validates Step 2: flip-and-shift transformation. */
+	/** Validates Step 2: defining convolution integral. */
 	checkStep2(option: ConvolutionItsOption | null): void {
 		this.checkOptionCardStep(
 			this.step2,
 			option,
-			"Track the argument of the reflected and shifted impulse response carefully.",
-			"Select the correctly flipped and shifted signal.",
+			"Use an integral over a dummy variable and reflect one signal.",
+			"Select the expression that defines continuous-time convolution.",
 			3,
 		);
 	}
 
-	/** Validates Step 3: complete transition-time partition. */
+	/** Validates Step 3: selecting either valid flip path. */
 	checkStep3(option: ConvolutionItsOption | null): void {
 		this.checkOptionCardStep(
 			this.step3,
 			option,
-			"Include every edge-contact event that changes the overlap or an integration bound.",
-			"Select the complete transition-time partition.",
+			"Either signal may move, but it must use the argument $t-\\tau$.",
+			"Choose the signal you want to flip and shift.",
 			4,
 		);
 	}
 
-	/** Validates the active Step 4 interval expression. */
+	/** Validates Step 4: complete transition-time partition. */
 	checkStep4(option: ConvolutionItsOption | null): void {
-		const activeId = this.step4.activeSubStepId;
-		const activeState = this.step4.subSteps[activeId];
+		this.checkOptionCardStep(
+			this.step4,
+			option,
+			"Include every edge and interior-breakpoint contact that changes the active formula or bound.",
+			"Select the complete transition-time partition.",
+			5,
+		);
+	}
+
+	/** Validates the active Step 5 integral setup. */
+	checkStep5(option: ConvolutionItsOption | null): void {
+		this.checkIntervalPart(this.step5, option, 6, "integral setup");
+	}
+
+	/** Validates the active Step 6 evaluated expression. */
+	checkStep6(option: ConvolutionItsOption | null): void {
+		this.checkIntervalPart(
+			this.step6,
+			option,
+			7,
+			"evaluated output expression",
+		);
+	}
+
+	/** Validates one active multipart interval response. */
+	private checkIntervalPart(
+		state: ConvolutionIntervalMultiPartState,
+		option: ConvolutionItsOption | null,
+		nextParentStep: number,
+		answerName: string,
+	): void {
+		const activeId = state.activeSubStepId;
+		const activeState = state.subSteps[activeId];
 		if (!option) {
 			this.setSubStepValidation(
-				this.step4,
+				state,
 				activeId,
-				"Select the evaluated output expression for this interval.",
+				`Select the ${answerName} for this interval.`,
 			);
 			return;
 		}
@@ -221,32 +295,32 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		activeState.selected = option.id;
 		if (!option.isCorrect) {
 			this.setSubStepMisconception(
-				this.step4,
+				state,
 				activeId,
 				option.feedback ??
-					"Re-evaluate the overlap integral using the active bounds for this region.",
+					"Recheck the active support intersection and bounds for this region.",
 			);
 			return;
 		}
 
-		const currentIndex = this.step4.subStepOrder.indexOf(activeId);
-		const nextSubStepId = this.step4.subStepOrder[currentIndex + 1];
+		const currentIndex = state.subStepOrder.indexOf(activeId);
+		const nextSubStepId = state.subStepOrder[currentIndex + 1];
 		this.setSubStepPassed(
-			this.step4,
+			state,
 			activeId,
 			nextSubStepId,
-			nextSubStepId ? undefined : 5,
+			nextSubStepId ? undefined : nextParentStep,
 		);
 	}
 
-	/** Validates Step 5: complete piecewise response assembly. */
-	checkStep5(option: ConvolutionItsOption | null): void {
+	/** Validates Step 7: complete piecewise response assembly. */
+	checkStep7(option: ConvolutionItsOption | null): void {
 		this.checkOptionCardStep(
-			this.step5,
+			this.step7,
 			option,
 			"Assemble every verified interval expression under its matching condition.",
 			"Select the complete piecewise convolution response.",
-			6,
+			8,
 		);
 	}
 
@@ -258,69 +332,56 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.step1 = createStepState({ selected: null as string | null });
 		this.step2 = createStepState({ selected: null as string | null });
 		this.step3 = createStepState({ selected: null as string | null });
-		this.step4 = createIntervalMultiPartState(this.problem);
-		this.step5 = createStepState({ selected: null as string | null });
+		this.step4 = createStepState({ selected: null as string | null });
+		this.step5 = createIntervalMultiPartState(this.problem, "step5");
+		this.step6 = createIntervalMultiPartState(this.problem, "step6");
+		this.step7 = createStepState({ selected: null as string | null });
 	}
 
-	/** Named visual states for the five-step convolution tutor. */
+	/** Named visual states for the seven-step convolution tutor. */
 	override devGetVisualStates(): SolverVisualStateDescriptor[] {
-		const states: SolverVisualStateDescriptor[] = [
-			{
-				id: "convolution.step-01.definition",
-				label: "Step 1 · Convolution Definition",
-				step: 1,
-				kind: "interactive",
-			},
-			{
-				id: "convolution.step-01.definition.hints",
-				label: "Step 1 · Convolution Definition · All Hints",
-				step: 1,
-				kind: "hint",
-			},
-			{
-				id: "convolution.step-02.flip-shift",
-				label: "Step 2 · Flip and Shift",
-				step: 2,
-				kind: "interactive",
-			},
-			{
-				id: "convolution.step-02.flip-shift.misconception",
-				label: "Step 2 · Flip and Shift Misconception",
-				step: 2,
-				kind: "diagnostic",
-			},
-			{
-				id: "convolution.step-03.transition-regions",
-				label: "Step 3 · Transition Regions",
-				step: 3,
-				kind: "interactive",
-			},
+		const labels = [
+			"Signal Supports",
+			"Convolution Definition",
+			"Choose Flip Path",
+			"Transition Points",
 		];
-
-		this.problem.itsData.step4.parts.forEach((part, index) => {
-			const id = `convolution.step-04.${part.id}`;
-			states.push(
-				{
-					id,
-					label: `Step 4${String.fromCharCode(65 + index)} · ${part.title}`,
-					step: 4,
-					subStep: part.id,
-					kind: "interactive",
-				},
-				{
-					id: `${id}.hints`,
-					label: `Step 4${String.fromCharCode(65 + index)} · ${part.title} · All Hints`,
-					step: 4,
-					subStep: part.id,
-					kind: "hint",
-				},
-			);
-		});
-
+		const states: SolverVisualStateDescriptor[] = labels.map(
+			(label, index) => ({
+				id: `convolution.step-${String(index + 1).padStart(2, "0")}`,
+				label: `Step ${index + 1} · ${label}`,
+				step: index + 1,
+				kind: "interactive",
+			}),
+		);
+		for (const [step, data] of [
+			[5, this.problem.itsData.step5],
+			[6, this.problem.itsData.step6],
+		] as const) {
+			data.parts.forEach((part, index) => {
+				const id = `convolution.step-${String(step).padStart(2, "0")}.${part.id}`;
+				states.push(
+					{
+						id,
+						label: `Step ${step}${String.fromCharCode(65 + index)} · ${part.title}`,
+						step,
+						subStep: part.id,
+						kind: "interactive",
+					},
+					{
+						id: `${id}.hints`,
+						label: `Step ${step}${String.fromCharCode(65 + index)} · ${part.title} · All Hints`,
+						step,
+						subStep: part.id,
+						kind: "hint",
+					},
+				);
+			});
+		}
 		states.push({
-			id: "convolution.step-05.final-response",
-			label: "Step 5 · Final Piecewise Response",
-			step: 5,
+			id: "convolution.step-07.final-response",
+			label: "Step 7 · Final Piecewise Response",
+			step: 7,
 			kind: "interactive",
 		});
 		return states;
@@ -350,20 +411,26 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 	 * @param targetSubStepId - Interval part identifier to activate.
 	 * @returns Whether the requested interval became active.
 	 */
-	private devPrepareStep4SubStep(targetSubStepId: string): boolean {
-		if (!this.devPrepareParentStep(4)) return false;
-		const targetIndex = this.problem.itsData.step4.parts.findIndex(
+	private devPrepareIntervalSubStep(
+		step: 5 | 6,
+		targetSubStepId: string,
+	): boolean {
+		if (!this.devPrepareParentStep(step)) return false;
+		const data = this.problem.itsData[step === 5 ? "step5" : "step6"];
+		const state = step === 5 ? this.step5 : this.step6;
+		const targetIndex = data.parts.findIndex(
 			({ id }) => id === targetSubStepId,
 		);
 		if (targetIndex === -1) return false;
 		for (let index = 0; index < targetIndex; index += 1) {
-			const correct = this.problem.itsData.step4.parts[
-				index
-			]?.options.find(({ isCorrect }) => isCorrect);
+			const correct = data.parts[index]?.options.find(
+				({ isCorrect }) => isCorrect,
+			);
 			if (!correct) return false;
-			this.checkStep4(correct);
+			if (step === 5) this.checkStep5(correct);
+			else this.checkStep6(correct);
 		}
-		return this.step4.activeSubStepId === targetSubStepId;
+		return state.activeSubStepId === targetSubStepId;
 	}
 
 	/** Resets and prepares one named convolution visual state deterministically. */
@@ -373,37 +440,20 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			return false;
 		}
 
-		switch (stateId) {
-			case "convolution.step-01.definition":
-				return this.devPrepareParentStep(1);
-			case "convolution.step-01.definition.hints":
-				if (!this.devPrepareParentStep(1)) return false;
-				this.devRevealAllHints();
-				return true;
-			case "convolution.step-02.flip-shift":
-				return this.devPrepareParentStep(2);
-			case "convolution.step-02.flip-shift.misconception": {
-				if (!this.devPrepareParentStep(2)) return false;
-				const wrong = this.problem.itsData.step2.options.find(
-					({ isCorrect }) => !isCorrect,
-				);
-				if (!wrong) return false;
-				this.checkStep2(wrong);
-				return this.currentFeedbackType === "misconception";
-			}
-			case "convolution.step-03.transition-regions":
-				return this.devPrepareParentStep(3);
-			case "convolution.step-05.final-response":
-				return this.devPrepareParentStep(5);
-			default:
-				break;
+		if (/^convolution\.step-0[1-4]$/.test(stateId)) {
+			return this.devPrepareParentStep(Number(stateId.slice(18)));
 		}
-
-		if (stateId.startsWith("convolution.step-04.")) {
+		if (stateId === "convolution.step-07.final-response") {
+			return this.devPrepareParentStep(7);
+		}
+		for (const step of [5, 6] as const) {
+			const prefix = `convolution.step-${String(step).padStart(2, "0")}.`;
+			if (!stateId.startsWith(prefix)) continue;
 			const isHints = stateId.endsWith(".hints");
 			const baseId = isHints ? stateId.slice(0, -6) : stateId;
-			const targetSubStepId = baseId.replace("convolution.step-04.", "");
-			if (!this.devPrepareStep4SubStep(targetSubStepId)) return false;
+			const targetSubStepId = baseId.replace(prefix, "");
+			if (!this.devPrepareIntervalSubStep(step, targetSubStepId))
+				return false;
 			if (isHints) this.devRevealAllHints();
 			return true;
 		}
@@ -442,20 +492,39 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				);
 				break;
 			case 4:
-				while (this.currentStep === 4) {
-					const part = this.problem.itsData.step4.parts.find(
-						({ id }) => id === this.step4.activeSubStepId,
+				this.checkStep4(
+					this.problem.itsData.step4.options.find(
+						({ isCorrect }) => isCorrect,
+					) ?? null,
+				);
+				break;
+			case 5:
+				while (this.currentStep === 5) {
+					const part = this.problem.itsData.step5.parts.find(
+						({ id }) => id === this.step5.activeSubStepId,
 					);
 					const correct = part?.options.find(
 						({ isCorrect }) => isCorrect,
 					);
 					if (!correct) break;
-					this.checkStep4(correct);
+					this.checkStep5(correct);
 				}
 				break;
-			case 5:
-				this.checkStep5(
-					this.problem.itsData.step5.options.find(
+			case 6:
+				while (this.currentStep === 6) {
+					const part = this.problem.itsData.step6.parts.find(
+						({ id }) => id === this.step6.activeSubStepId,
+					);
+					const correct = part?.options.find(
+						({ isCorrect }) => isCorrect,
+					);
+					if (!correct) break;
+					this.checkStep6(correct);
+				}
+				break;
+			case 7:
+				this.checkStep7(
+					this.problem.itsData.step7.options.find(
 						({ isCorrect }) => isCorrect,
 					) ?? null,
 				);
