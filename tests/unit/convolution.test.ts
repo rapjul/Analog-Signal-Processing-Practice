@@ -207,9 +207,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			);
 			expect(
 				problem.itsData.step6.parts.every(
-					(part) =>
-						part.options.filter(({ isCorrect }) => isCorrect)
-							.length === 1,
+					(part) => part.options.length === 0,
 				),
 			).toBe(true);
 			expect(problem.itsData.step7.resultLatex).toBe(
@@ -263,48 +261,57 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			"multi_rect",
 			"rect_exp",
 			"exp_exp",
+			"tri_rect",
+			"tri_shifted_tri",
 			"step_exp",
 			"step_rect",
 		] as const)(
 			"builds a complete seven-step tutor scaffold for %s",
 			(pairType) => {
 				const problem = generateConvolutionProblem(pairType);
-				const choiceSteps = [
-					problem.itsData.step1,
+				expect(problem.itsData.step1.parts).toHaveLength(3);
+				expect(problem.itsData.step1.intro).toMatch(
+					/time range where it is nonzero/i,
+				);
+				for (const step of [
 					problem.itsData.step2,
-					problem.itsData.step3,
-					problem.itsData.step4,
 					problem.itsData.step7,
-				];
-
-				for (const step of choiceSteps) {
+				]) {
 					expect(step.hints).toHaveLength(3);
+					expect(step.options).toHaveLength(4);
 					expect(
-						step.options.filter(({ isCorrect }) => isCorrect)
-							.length,
-					).toBeGreaterThanOrEqual(1);
-					const correctLatex = step.options.find(
-						({ isCorrect }) => isCorrect,
-					)?.latex;
-					expect(
-						step.options
-							.filter(({ isCorrect }) => !isCorrect)
-							.every(({ latex }) => latex !== correctLatex),
-					).toBe(true);
+						step.options.filter(({ isCorrect }) => isCorrect),
+					).toHaveLength(1);
 				}
+				for (const signal of ["x", "h"] as const) {
+					const formula =
+						problem.itsData.step3.formulaBySignal[signal];
+					expect(formula.options).toHaveLength(4);
+					expect(
+						formula.options.filter(({ isCorrect }) => isCorrect),
+					).toHaveLength(1);
+					expect(
+						problem.itsData.step3.sectionsBySignal[signal].length,
+					).toBeGreaterThan(0);
+				}
+				expect(problem.itsData.step4.intervalLabels).toHaveLength(
+					problem.intervals.length,
+				);
+				expect(
+					problem.itsData.step4.transitionGroups.map(
+						({ time }) => time,
+					),
+				).toEqual(
+					getFiniteConvolutionTransitionTimes(problem.intervals),
+				);
+				expect(problem.itsData.step5.parts).toHaveLength(
+					problem.intervals.length,
+				);
 				expect(problem.itsData.step6.parts).toHaveLength(
 					problem.intervals.length,
 				);
-				for (const part of problem.itsData.step6.parts) {
-					const correctLatex = part.options.find(
-						({ isCorrect }) => isCorrect,
-					)?.latex;
-					expect(
-						part.options
-							.filter(({ isCorrect }) => !isCorrect)
-							.every(({ latex }) => latex !== correctLatex),
-					).toBe(true);
-				}
+				expect(problem.xSupportEdges.length).toBeGreaterThanOrEqual(2);
+				expect(problem.hSupportEdges.length).toBeGreaterThanOrEqual(2);
 			},
 		);
 	});
@@ -340,47 +347,73 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(formatted).toContain("t & t\\ge0");
 		});
 
-		it("builds distinct transition distractors for an empty analytical partition", () => {
-			const data = buildConvolutionItsData([]);
+		/** Creates a minimal structured scaffold context. */
+		function context(intervals: ConvolutionInterval[]) {
+			return {
+				intervals,
+				xSections: [
+					{
+						id: "x-1",
+						start: 0,
+						end: 1,
+						startIncluded: true,
+						endIncluded: false,
+					},
+				],
+				hSections: [
+					{
+						id: "h-1",
+						start: 0,
+						end: 1,
+						startIncluded: true,
+						endIncluded: false,
+					},
+				],
+				xBreakpoints: [0, 1],
+				hBreakpoints: [0, 1],
+			};
+		}
+
+		it("builds an empty multipart scaffold for an empty analytical partition", () => {
+			const data = buildConvolutionItsData(context([]));
 			expect(data.step6.parts).toEqual([]);
 			expect(data.step7.resultLatex).toContain("\\begin{cases}");
-			expect(
-				new Set(data.step4.options.map(({ latex }) => latex)).size,
-			).toBe(3);
+			expect(data.step4.transitionGroups).toEqual([]);
 		});
 
-		it("creates two distinct distractors for one isolated zero interval", () => {
-			const data = buildConvolutionItsData([
-				interval(
-					"t\\in\\mathbb{R}",
-					Number.NEGATIVE_INFINITY,
-					Number.POSITIVE_INFINITY,
-					"0",
-				),
-			]);
-			const choices = data.step6.parts[0].options.map(
-				({ latex }) => latex,
+		it("creates typed setup and evaluation parts for one isolated zero interval", () => {
+			const data = buildConvolutionItsData(
+				context([
+					interval(
+						"t\\in\\mathbb{R}",
+						Number.NEGATIVE_INFINITY,
+						Number.POSITIVE_INFINITY,
+						"0",
+					),
+				]),
 			);
-			expect(new Set(choices).size).toBe(3);
-			expect(choices[1]).toContain("1");
+			expect(data.step6.parts[0].resultLatex).toContain("y(t)=0");
+			expect(data.step5.parts[0].setupBySignal?.x.hasOverlap).toBe(false);
 		});
 
-		it("covers zero, linear, repeated, and neighboring expression distractors", () => {
-			const data = buildConvolutionItsData([
-				interval("a", Number.NEGATIVE_INFINITY, 0, "0"),
-				interval("b", 0, 1, "t"),
-				interval("c", 1, 2, "t"),
-				interval("d", 2, Number.POSITIVE_INFINITY, "2"),
-			]);
-			for (const part of data.step6.parts) {
-				const choices = part.options.map(({ latex }) => latex);
-				expect(new Set(choices).size).toBe(choices.length);
-			}
-			expect(data.step6.parts[0].options[1].latex).toContain("t");
-			expect(data.step6.parts[1].options[1].latex).toContain("0");
-			expect(data.step6.parts[1].options[2].latex).toContain("1 - t");
-			expect(data.step6.parts[2].options[1].latex).toContain("2");
-			expect(data.step6.parts[3].options[1].latex).toContain("t");
+		it("retains zero, linear, repeated, and constant typed expressions", () => {
+			const data = buildConvolutionItsData(
+				context([
+					interval("a", Number.NEGATIVE_INFINITY, 0, "0"),
+					interval("b", 0, 1, "t"),
+					interval("c", 1, 2, "t"),
+					interval("d", 2, Number.POSITIVE_INFINITY, "2"),
+				]),
+			);
+			expect(
+				data.step6.parts.map(({ resultLatex }) => resultLatex),
+			).toEqual(
+				expect.arrayContaining([
+					expect.stringContaining("y(t)=0"),
+					expect.stringContaining("y(t)=t"),
+					expect.stringContaining("y(t)=2"),
+				]),
+			);
 		});
 	});
 });

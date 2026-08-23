@@ -45,6 +45,15 @@ describe("ConvolutionPracticeCard", () => {
 		).toBeTruthy();
 		expect(view.getByText("Tutor Steps")).toBeTruthy();
 		expect(view.getByText("Verified Regions")).toBeTruthy();
+		const disclosure = view.container.querySelector("details");
+		expect(disclosure?.open).toBe(false);
+		expect(disclosure?.querySelectorAll(".step-card")).toHaveLength(7);
+		expect(disclosure?.textContent).toContain(
+			"Choose every lower and upper limit",
+		);
+		expect(disclosure?.textContent).toContain(
+			"Assemble the piecewise response",
+		);
 
 		await fireEvent.click(view.getByText(/Generate Next Problem/));
 		expect(onNextProblem).toHaveBeenCalledOnce();

@@ -142,6 +142,16 @@ describe("convolution plot model", () => {
 
 	it("draws axes, overlap, full response, reveal, markers, and current point", () => {
 		const context = createMockContext();
+		const strokeStyles: string[] = [];
+		const fillStyles: string[] = [];
+		Object.defineProperty(context, "strokeStyle", {
+			get: () => strokeStyles.at(-1) ?? "",
+			set: (value: string) => strokeStyles.push(value),
+		});
+		Object.defineProperty(context, "fillStyle", {
+			get: () => fillStyles.at(-1) ?? "",
+			set: (value: string) => fillStyles.push(value),
+		});
 		const frame = sampleConvolutionPlot(
 			(time) => (time >= 0 && time <= 1 ? 1 : 0),
 			(time) => (time >= 0 && time <= 1 ? 1 : 0),
@@ -157,12 +167,21 @@ describe("convolution plot model", () => {
 			shift: 0.75,
 			transitionTimes: [0, 1, 2, 9],
 			movingBoundaries: [-0.25, 0.75, 1.75],
+			fixedDiscontinuities: [0, 1],
+			movingDiscontinuities: [-0.25, 0.75],
 			frame,
 			theme: {
 				background: "black",
 				axis: "gray",
 				muted: "darkgray",
 				text: "white",
+				fixedSignal: "fixed-blue",
+				movingSignal: "moving-orange",
+				overlapFill: "overlap-green",
+				output: "output-cyan",
+				outputPreview: "output-preview-cyan",
+				movingEdge: "edge-purple",
+				currentTime: "time-amber",
 			},
 		});
 
@@ -174,6 +193,33 @@ describe("convolution plot model", () => {
 		expect(context.stroke).toHaveBeenCalled();
 		expect(context.setLineDash).toHaveBeenCalledWith([5, 5]);
 		expect(context.setLineDash).toHaveBeenCalledWith([4, 4]);
+		expect(strokeStyles).toEqual(
+			expect.arrayContaining([
+				"fixed-blue",
+				"moving-orange",
+				"output-cyan",
+				"output-preview-cyan",
+				"edge-purple",
+				"time-amber",
+			]),
+		);
+		expect(fillStyles).toContain("overlap-green");
+		const geometry = createConvolutionPlotGeometry(640, 360);
+		const movingEdgeX = 40 + ((1.75 - -1) / 4) * 560;
+		expect(context.moveTo).toHaveBeenCalledWith(
+			movingEdgeX,
+			geometry.lower.top,
+		);
+		expect(context.moveTo).not.toHaveBeenCalledWith(
+			movingEdgeX,
+			geometry.upper.top,
+		);
+		const fixedEdgeX = 40 + ((0 - -1) / 4) * 560;
+		expect(
+			vi
+				.mocked(context.lineTo)
+				.mock.calls.filter(([x]) => x === fixedEdgeX).length,
+		).toBeGreaterThanOrEqual(2);
 	});
 
 	it("renders safely when the reveal boundary precedes every output sample", () => {

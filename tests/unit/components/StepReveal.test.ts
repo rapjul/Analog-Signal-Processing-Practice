@@ -1,115 +1,74 @@
-/**
- * @file Unit DOM tests for StepReveal.svelte component mounting and interaction.
- */
-
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import StepReveal from "$lib/components/ui/StepReveal.svelte";
 
-describe("StepReveal.svelte Component", () => {
-	afterEach(() => {
-		cleanup();
+const sampleSteps = [
+	{
+		title: "Characteristic Equation",
+		latex: "s^2+5s+6=0",
+		description: "Set $Q(s)=0$.",
+	},
+	{
+		title: "Factored Roots",
+		latex: "(s+2)(s+3)=0",
+		description: "Find both roots.",
+	},
+	{
+		title: "Natural Form",
+		latex: "y_n(t)=c_1e^{-2t}+c_2e^{-3t}",
+		description: "Combine the modes.",
+	},
+];
+
+describe("StepReveal", () => {
+	afterEach(() => cleanup());
+
+	it("uses a native details element that is closed by default", () => {
+		const view = render(StepReveal, { steps: sampleSteps });
+		const details = view.container.querySelector("details");
+		expect(details).toBeTruthy();
+		expect(details?.open).toBe(false);
+		expect(view.getByText("Solution Breakdown (3 steps)")).toBeTruthy();
 	});
 
-	const sampleSteps = [
-		{
-			title: "Characteristic Equation",
-			latex: "s^2 + 5s + 6 = 0",
-			description: "Set the differential operator $Q(s) = 0$.",
-		},
-		{
-			title: "Factored Roots",
-			latex: "(s + 2)(s + 3) = 0 \\implies s_1 = -2, s_2 = -3",
-			description: "Roots are real and distinct.",
-		},
-		{
-			title: "Natural Form",
-			latex: "y_n(t) = c_1 e^{-2t} + c_2 e^{-3t}",
-			description: "Linear combination of natural modes.",
-		},
-	];
-
-	it("initially reveals the first step and shows count", () => {
-		const { getByText, container } = render(StepReveal, {
-			props: {
-				steps: sampleSteps,
-			},
-		});
-
+	it("places the complete solution in the disclosure immediately", () => {
+		const view = render(StepReveal, { steps: sampleSteps });
 		expect(
-			getByText("Solution Breakdown (1/3 Steps Revealed)"),
-		).toBeTruthy();
-		const renderedSteps = container.querySelectorAll(
-			".steps-list .step-card",
-		);
-		expect(renderedSteps.length).toBe(1);
-	});
-
-	it("reveals next step on 'Reveal Step 2' click", async () => {
-		const { getByText, container } = render(StepReveal, {
-			props: {
-				steps: sampleSteps,
-			},
-		});
-
-		const nextBtn = getByText("Reveal Step 2");
-		await fireEvent.click(nextBtn);
-
+			view.container.querySelectorAll(".steps-list .step-card"),
+		).toHaveLength(3);
+		expect(view.getByText("Step 1: Characteristic Equation")).toBeTruthy();
+		expect(view.getByText("Step 3: Natural Form")).toBeTruthy();
 		expect(
-			getByText("Solution Breakdown (2/3 Steps Revealed)"),
-		).toBeTruthy();
-		const renderedSteps = container.querySelectorAll(
-			".steps-list .step-card",
-		);
-		expect(renderedSteps.length).toBe(2);
+			view.container.querySelectorAll(".btn-step, .btn-step-secondary"),
+		).toHaveLength(0);
 	});
 
-	it("reveals all steps on 'Reveal All' click and hides control buttons", async () => {
-		const { getByText, container } = render(StepReveal, {
-			props: {
-				steps: sampleSteps,
-			},
-		});
-
-		const revealAllBtn = getByText("Reveal All");
-		await fireEvent.click(revealAllBtn);
-
-		expect(
-			getByText("Solution Breakdown (3/3 Steps Revealed)"),
-		).toBeTruthy();
-		const renderedSteps = container.querySelectorAll(
-			".steps-list .step-card",
-		);
-		expect(renderedSteps.length).toBe(3);
-
-		// Buttons should no longer be rendered when all steps are revealed
-		expect(container.querySelector("button.btn-step")).toBeNull();
+	it("can be opened and closed freely with the native summary", async () => {
+		const view = render(StepReveal, { steps: sampleSteps });
+		const details = view.container.querySelector("details");
+		const summary = view.container.querySelector("summary");
+		if (!details || !summary)
+			throw new Error("Expected disclosure controls.");
+		await fireEvent.click(summary);
+		expect(details.open).toBe(true);
+		await fireEvent.click(summary);
+		expect(details.open).toBe(false);
 	});
 
-	it("renders steps with empty latex or description without crashing", () => {
-		const sparseSteps = [
-			{
-				title: "Pure Text Step",
-				latex: "",
-				description: "Only a description here.",
-			},
-			{
-				title: "Pure Math Step",
-				latex: "x(t) = e^{-t} u(t)",
-				description: "",
-				aligned: true,
-				cases: true,
-			},
-		];
-
-		const { getByText, container } = render(StepReveal, {
-			props: {
-				steps: sparseSteps,
-			},
+	it("renders sparse prose-only and math-only steps without mixed raw LaTeX", () => {
+		const view = render(StepReveal, {
+			steps: [
+				{ title: "Pure Text", description: "Only prose.", latex: "" },
+				{
+					title: "Pure Math",
+					description: "",
+					latex: "x(t)=e^{-t}u(t)",
+					responsive: true,
+				},
+			],
 		});
-
-		expect(getByText("Step 1: Pure Text Step")).toBeTruthy();
-		expect(getByText("Only a description here.")).toBeTruthy();
-		expect(container.querySelector(".math-block")).toBeNull();
+		expect(view.getByText("Only prose.")).toBeTruthy();
+		expect(view.container.querySelectorAll(".math-block")).toHaveLength(1);
+		expect(view.container.querySelector(".katex")).toBeTruthy();
 	});
 });

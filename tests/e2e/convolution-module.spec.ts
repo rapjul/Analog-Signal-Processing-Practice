@@ -24,7 +24,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator(".drill-summary")).toBeVisible();
 		await expect(page.locator(".convolution-practice-card")).toBeVisible();
 		await expect(
-			page.getByText("Analyze the Signal Supports"),
+			page.getByText("Find Signal Start Times, End Times, and Widths"),
 		).toBeVisible();
 		await expect(page.locator(".progress-pill")).toHaveCount(7);
 		await expect(page.locator("canvas")).toHaveCount(0);
@@ -46,11 +46,12 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await page.locator("#hint-toggle-btn").click();
 		await expect(page.locator(".hint-line")).toHaveCount(1);
 
-		const definitionOptions = page.getByTestId("convolution-step1-options");
+		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
+		const definitionOptions = page.getByTestId("convolution-step2-options");
 		await definitionOptions.locator("button").nth(1).click();
 		await expect(page.locator(".feedback-misconception")).toBeVisible();
 		await expect(page.locator(".feedback-misconception")).toContainText(
-			/support locations/i,
+			/pointwise product/i,
 		);
 	});
 
@@ -74,7 +75,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 			page.getByText("Exponential-Exponential Convolution"),
 		).toBeVisible();
 		await expect(
-			page.getByText("Analyze the Signal Supports"),
+			page.getByText("Find Signal Start Times, End Times, and Widths"),
 		).toBeVisible();
 		await expect(page.locator(".progress-pill.active")).toHaveText("1");
 	});

@@ -99,6 +99,9 @@ describe("ConvolutionCanvas", () => {
 			title: "Verified overlap",
 			timeRange: [-2, 6],
 			transitionTimes: [0, 2, 4],
+			movingBreakpoints: [0, 1, 2],
+			movingSupportEdges: [0, 2, Number.POSITIVE_INFINITY],
+			fixedBreakpoints: [0, 2],
 			sampleCount: 12,
 		});
 		const slider = view.container.querySelector(
@@ -113,6 +116,11 @@ describe("ConvolutionCanvas", () => {
 		expect(view.getByText("Slow")).toBeTruthy();
 		expect(view.getByText("Standard")).toBeTruthy();
 		expect(view.getByText("Fast")).toBeTruthy();
+		expect(view.getByText("Moving edges")).toBeTruthy();
+		expect(view.getByText("Current time")).toBeTruthy();
+		expect(
+			view.getByText(/Purple dashed guides on the output plot/),
+		).toBeTruthy();
 		expect(mockContext.fillRect).toHaveBeenCalled();
 		expect(mockContext.scale).toHaveBeenCalled();
 

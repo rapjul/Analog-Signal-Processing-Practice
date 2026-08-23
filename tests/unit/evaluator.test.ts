@@ -3,11 +3,26 @@ import {
 	evaluateLatexAt,
 	evaluatePiecewiseLatexAt,
 	normalizeMathLatex,
+	tryEvaluateLatexAt,
 	validateConvolutionResponse,
 	validateLatexAnswer,
 } from "$lib/math-engine/evaluator";
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
+	describe("tryEvaluateLatexAt", () => {
+		it("evaluates exact polynomial, exponential, and equation-form answers", () => {
+			expect(tryEvaluateLatexAt("(t+1)^2", 2)).toBe(9);
+			expect(tryEvaluateLatexAt("e^{-t}", 0)).toBe(1);
+			expect(tryEvaluateLatexAt("y(t)=2t+1", 3)).toBe(7);
+		});
+
+		it("returns null for blank, malformed, unsupported, and non-finite results", () => {
+			expect(tryEvaluateLatexAt("", 0)).toBeNull();
+			expect(tryEvaluateLatexAt("not valid math", 0)).toBeNull();
+			expect(tryEvaluateLatexAt("z+1", 0)).toBeNull();
+			expect(tryEvaluateLatexAt("1/0", 0)).toBeNull();
+		});
+	});
 	describe("normalizeMathLatex", () => {
 		it("normalizes bare math function names to LaTeX syntax", () => {
 			expect(normalizeMathLatex("cos(2t) + sin(3t)")).toBe(
