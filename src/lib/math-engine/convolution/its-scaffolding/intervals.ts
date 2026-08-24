@@ -45,22 +45,38 @@ function buildPathSetup(
 	fixedBreakpoints: number[],
 	movingBreakpoints: number[],
 ): ConvolutionIntegralPathSetup {
-	if (
+	const forceNoOverlap =
 		interval.hasGeometricOverlap === false ||
 		(interval.hasGeometricOverlap === undefined &&
-			interval.exprLatex === "0")
-	)
-		return { hasOverlap: false, overlaps: [], integralLatex: "y(t)=0" };
+			interval.exprLatex === "0");
 	const time = representativeTime(interval);
 	const fixedInterior = fixedBreakpoints.slice(1, -1);
 	const movingInterior = movingBreakpoints.slice(1, -1);
 	const overlaps: ConvolutionOverlapBounds[] = [];
-	for (const fixed of fixedSections) {
-		for (const moving of movingSections) {
+	const intervalComparisons = [];
+	const fixedName = movingSignal === "h" ? "x" : "h";
+	for (const [fixedIndex, fixed] of fixedSections.entries()) {
+		for (const [movingIndex, moving] of movingSections.entries()) {
 			const movingLeftValue = time - moving.end;
 			const movingRightValue = time - moving.start;
 			const lowerValue = Math.max(fixed.start, movingLeftValue);
 			const upperValue = Math.min(fixed.end, movingRightValue);
+			const fixedSuffix =
+				fixedSections.length > 1 ? `,${fixedIndex + 1}` : "";
+			const movingSuffix =
+				movingSections.length > 1 ? `,${movingIndex + 1}` : "";
+			intervalComparisons.push({
+				id: `comparison-${fixedIndex + 1}-${movingIndex + 1}`,
+				fixedIntervalLatex: String.raw`[t_{${fixedName}${fixedSuffix},\mathrm{start}},t_{${fixedName}${fixedSuffix},\mathrm{end}}]`,
+				transformedIntervalLatex: String.raw`[t-t_{${movingSignal}${movingSuffix},\mathrm{end}},t-t_{${movingSignal}${movingSuffix},\mathrm{start}}]`,
+				fixedValues: [fixed.start, fixed.end] as [number, number],
+				transformedValues: [movingLeftValue, movingRightValue] as [
+					number,
+					number,
+				],
+				hasOverlap: !forceNoOverlap && lowerValue < upperValue,
+			});
+			if (forceNoOverlap) continue;
 			if (!(lowerValue < upperValue)) continue;
 			const fixedStart = formatConvolutionScalar(fixed.start);
 			const fixedEnd = formatConvolutionScalar(fixed.end);
@@ -97,7 +113,6 @@ function buildPathSetup(
 			});
 		}
 	}
-	const fixedName = movingSignal === "h" ? "x" : "h";
 	const terms = overlaps.flatMap((overlap) => {
 		const boundaries = [
 			overlap.lowerLatex,
@@ -113,6 +128,8 @@ function buildPathSetup(
 	});
 	return {
 		hasOverlap: overlaps.length > 0,
+		representativeTime: time,
+		intervalComparisons,
 		overlaps,
 		integralLatex:
 			overlaps.length > 0 ? `y(t)=${terms.join("+")}` : "y(t)=0",

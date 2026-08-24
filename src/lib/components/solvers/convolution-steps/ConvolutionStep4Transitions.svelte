@@ -52,6 +52,19 @@
 	const completedIntervals = $derived(
 		problem.itsData.step4.intervalLabels.join(",\\;"),
 	);
+
+	/** Names one verified ledger entry by its role in the convolution workflow. */
+	function ledgerLabel(id: string): string {
+		const contactIndex = contacts.findIndex(({ id: contactId }) =>
+			id.startsWith(contactId),
+		);
+		if (contactIndex >= 0)
+			return `Contact ${contactIndex + 1} of ${contacts.length} — ${id.endsWith("-form") ? "Formulate" : "Solve"}`;
+		if (id === "transition-count") return "Group Transition Times";
+		if (id === "interval-count" || id === "interval-builder")
+			return "Build Intervals";
+		return "Signal Analysis";
+	}
 </script>
 
 {#snippet headerExtra()}
@@ -95,62 +108,70 @@
 			transformed moving breakpoint.
 		</p>
 
-		{#each solver.step4.subStepOrder.slice(0, activeIndex) as completedId, index}
-			{@const completedState = solver.step4.subSteps[completedId]}
-			{@const completedBreakpoint =
-				problem.itsData.step4.breakpointParts.find(
-					({ id }) => id === completedId,
+		<div
+			class="work-ledger"
+			aria-label="Verified convolution work"
+		>
+			{#each solver.step4.subStepOrder.slice(0, activeIndex) as completedId}
+				{@const completedState = solver.step4.subSteps[completedId]}
+				{@const completedBreakpoint =
+					problem.itsData.step4.breakpointParts.find(
+						({ id }) => id === completedId,
+					)}
+				{@const completedContact = contacts.find(({ id }) =>
+					completedId.startsWith(id),
 				)}
-			{@const completedContact = contacts.find(({ id }) =>
-				completedId.startsWith(id),
-			)}
-			<SubStepBlock
-				badge={`Part ${index + 1}`}
-				title={completedState.title}
-				isCompleted={true}
-			>
-				{#snippet summarySnippet()}
-					<div class="verified-summary">
-						{#if completedId === "section-count-x" || completedId === "section-count-h"}
-							{@const signal =
-								completedId === "section-count-x" ? "x" : "h"}
-							<MathText
-								text={`$${signal}(t)$ contains ${completedState.input} connected non-zero section${completedState.input === "1" ? "" : "s"}.`}
-							/>
-						{:else if completedBreakpoint}
-							<MathText
-								text={`Verified interior breakpoint: $t=${completedState.input}$.`}
-							/>
-						{:else if completedContact && completedId.endsWith("-form")}
-							<MathText
-								text={`Verified contact equation: $${completedContact.equationLatex}$.`}
-							/>
-						{:else if completedContact}
-							<MathText
-								text={`Verified contact time: $t=${completedContact.transitionTime}$.`}
-							/>
-							{#if completedContact.duplicateOf}
-								<p class="group-note">
-									This matches an earlier contact, so both
-									contacts form one transition time.
+				<SubStepBlock
+					badge={ledgerLabel(completedId)}
+					title={completedState.title}
+					isCompleted={true}
+				>
+					{#snippet summarySnippet()}
+						<div class="verified-summary">
+							{#if completedId === "section-count-x" || completedId === "section-count-h"}
+								{@const signal =
+									completedId === "section-count-x"
+										? "x"
+										: "h"}
+								<MathText
+									text={`$${signal}(t)$ contains ${completedState.input} connected non-zero section${completedState.input === "1" ? "" : "s"}.`}
+								/>
+							{:else if completedBreakpoint}
+								<MathText
+									text={`Verified interior breakpoint: $t=${completedState.input}$.`}
+								/>
+							{:else if completedContact && completedId.endsWith("-form")}
+								<MathText
+									text={`Verified contact equation: $${completedContact.equationLatex}$.`}
+								/>
+							{:else if completedContact}
+								<MathText
+									text={`Verified contact time: $t=${completedContact.transitionTime}$.`}
+								/>
+								{#if completedContact.duplicateOf}
+									<p class="group-note">
+										This matches an earlier contact, so both
+										contacts form one transition time.
+									</p>
+								{/if}
+							{:else if completedId === "transition-count"}
+								<p>
+									{completedState.input} distinct transition times
+									verified.
+								</p>
+							{:else if completedId === "interval-count"}
+								<p>
+									{completedState.input} output intervals verified.
 								</p>
 							{/if}
-						{:else if completedId === "transition-count"}
-							<p>
-								{completedState.input} distinct transition times verified.
-							</p>
-						{:else if completedId === "interval-count"}
-							<p>
-								{completedState.input} output intervals verified.
-							</p>
-						{/if}
-					</div>
-				{/snippet}
-			</SubStepBlock>
-		{/each}
+						</div>
+					{/snippet}
+				</SubStepBlock>
+			{/each}
+		</div>
 
 		<SubStepBlock
-			badge={`Part ${activeIndex + 1}`}
+			badge={ledgerLabel(activeId)}
 			title={activeState.title}
 		>
 			{#if activeId === "section-count-x" || activeId === "section-count-h"}
@@ -326,7 +347,8 @@
 		min-width: 0;
 	}
 	.summary-grid,
-	.contact-context {
+	.contact-context,
+	.work-ledger {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.75rem;
@@ -419,7 +441,8 @@
 	/* ── Mobile media query (≤720px) ──────────────────────── */
 	@media (max-width: 720px) {
 		.summary-grid,
-		.contact-context {
+		.contact-context,
+		.work-ledger {
 			grid-template-columns: 1fr;
 		}
 	}

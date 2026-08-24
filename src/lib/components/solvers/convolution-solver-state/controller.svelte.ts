@@ -16,6 +16,15 @@ import type {
 	ConvolutionTimingStepState,
 	ConvolutionTransitionStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
+import {
+	convolutionExpressionsMatch,
+	convolutionScalarMatches,
+	parseConvolutionScalarInput,
+} from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import {
+	createBoundsState,
+	validateBoundsStage,
+} from "$lib/components/solvers/convolution-solver-state/step5-bounds";
 import type {
 	ConvolutionBreakpointContact,
 	ConvolutionItsOption,
@@ -23,7 +32,11 @@ import type {
 	ConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
 import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
-import { parseNumericInput } from "$lib/math-engine/fraction";
+
+export {
+	convolutionExpressionsMatch,
+	parseConvolutionScalarInput,
+} from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 export type {
 	ConvolutionBoundsStepState,
@@ -34,52 +47,6 @@ export type {
 	ConvolutionTimingStepState,
 	ConvolutionTransitionStepState,
 };
-
-/** Parses a typed finite value or a common positive/negative infinity spelling. */
-export function parseConvolutionScalarInput(input: string): number {
-	const normalized = input
-		.trim()
-		.toLowerCase()
-		.replace(/\s+/g, "")
-		.replace(/\\infty|∞/g, "infinity");
-	if (["infinity", "+infinity", "inf", "+inf"].includes(normalized)) {
-		return Number.POSITIVE_INFINITY;
-	}
-	if (["-infinity", "-inf"].includes(normalized)) {
-		return Number.NEGATIVE_INFINITY;
-	}
-	return parseNumericInput(input);
-}
-
-/** Compares finite or infinite scalar input against an exact expected value. */
-function scalarMatches(input: string, expected: number): boolean {
-	const value = parseConvolutionScalarInput(input);
-	return Object.is(value, expected) || Math.abs(value - expected) < 1e-9;
-}
-
-/** Compares two one-variable bound expressions at deterministic time values. */
-export function convolutionExpressionsMatch(
-	student: string,
-	expected: string,
-): boolean {
-	const studentInfinity = parseConvolutionScalarInput(student);
-	const expectedInfinity = parseConvolutionScalarInput(expected);
-	if (!Number.isNaN(studentInfinity) || !Number.isNaN(expectedInfinity)) {
-		return Object.is(studentInfinity, expectedInfinity);
-	}
-	for (const time of [-3, -1, 0, 2, 5]) {
-		const actual = tryEvaluateLatexAt(student, time);
-		const target = tryEvaluateLatexAt(expected, time);
-		if (
-			actual === null ||
-			target === null ||
-			Math.abs(actual - target) > 1e-7
-		) {
-			return false;
-		}
-	}
-	return true;
-}
 
 /** Creates multipart state for Step 1 timing entries. */
 function createTimingState(
@@ -238,45 +205,6 @@ function step4Contacts(
 	return problem.itsData.step4.transitionGroups.flatMap(
 		(group) => group.contactsBySignal[movingSignal],
 	);
-}
-
-/** Creates ordered bound state for every Step 5 interval. */
-function createBoundsState(
-	problem: ConvolutionProblem,
-): ConvolutionBoundsStepState {
-	const order = problem.itsData.step5.parts.map(({ id }) => id);
-	const subSteps = Object.fromEntries(
-		problem.itsData.step5.parts.map((part) => {
-			const xOverlaps = part.setupBySignal?.x.overlaps ?? [];
-			const hOverlaps = part.setupBySignal?.h.overlaps ?? [];
-			const template =
-				xOverlaps.length >= hOverlaps.length ? xOverlaps : hOverlaps;
-			return [
-				part.id,
-				createSubStepState(
-					part.id,
-					part.title,
-					{
-						hasOverlap: null as boolean | null,
-						boundInputs: template.map((overlap) => ({
-							lowerValues: ["", ""] as [string, string],
-							upperValues: ["", ""] as [string, string],
-							lower: "",
-							upper: "",
-							splits: overlap.splitPointsLatex.map(() => ""),
-						})),
-					},
-					part.hints,
-				),
-			];
-		}),
-	);
-	return createMultiPartStepState(
-		{},
-		order,
-		subSteps,
-		order[0] ?? "setup-placeholder",
-	) as ConvolutionBoundsStepState;
 }
 
 /** Creates ordered expression state for every Step 6 interval. */
@@ -495,7 +423,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
-		if (!scalarMatches(state.start, expected.start)) {
+		if (!convolutionScalarMatches(state.start, expected.start)) {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
@@ -503,7 +431,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
-		if (!scalarMatches(state.end, expected.end)) {
+		if (!convolutionScalarMatches(state.end, expected.end)) {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
@@ -511,7 +439,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
-		if (!scalarMatches(state.width, expected.width)) {
+		if (!convolutionScalarMatches(state.width, expected.width)) {
 			this.setSubStepMisconception(
 				this.step1,
 				id,
@@ -646,7 +574,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			}
 			if (
 				!actual.every((value, index) =>
-					scalarMatches(String(value), expected[index]),
+					convolutionScalarMatches(String(value), expected[index]),
 				)
 			) {
 				this.setSubStepIncorrect(
@@ -706,7 +634,9 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				);
 				return;
 			}
-			if (!scalarMatches(state.input, contact.transitionTime)) {
+			if (
+				!convolutionScalarMatches(state.input, contact.transitionTime)
+			) {
 				this.setSubStepIncorrect(
 					this.step4,
 					id,
@@ -730,7 +660,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			expected = this.problem.itsData.step4.breakpointParts.find(
 				(part) => part.id === id,
 			)?.value;
-		if (expected === undefined || !scalarMatches(state.input, expected)) {
+		if (
+			expected === undefined ||
+			!convolutionScalarMatches(state.input, expected)
+		) {
 			this.setSubStepIncorrect(
 				this.step4,
 				id,
@@ -764,6 +697,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		}
 		this.clearSubStepFeedback(this.step5, id);
 		if (!hasOverlap) this.passActiveSubStep(this.step5, 6);
+		else state.stage = "lower";
 	}
 
 	/** Validates overlap existence, every bound, and every split point for Step 5. */
@@ -775,105 +709,24 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		);
 		const setup = part?.setupBySignal?.[this.flippedSignal];
 		if (!state || !setup) return;
-		if (state.hasOverlap === null) {
-			this.setSubStepValidation(
-				this.step5,
-				id,
-				"First decide whether the signals overlap in this interval.",
-			);
+		const result = validateBoundsStage(state, setup);
+		if (result.kind === "blank") {
+			this.setSubStepValidation(this.step5, id, result.message);
 			return;
 		}
-		if (state.hasOverlap !== setup.hasOverlap) {
-			this.setSubStepMisconception(
-				this.step5,
-				id,
-				"Compare the fixed and transformed left and right edges before deciding whether overlap exists.",
-			);
+		if (result.kind === "incorrect") {
+			this.setSubStepIncorrect(this.step5, id, result.message);
 			return;
 		}
-		if (setup.hasOverlap) {
-			for (const [index, expected] of setup.overlaps.entries()) {
-				const input = state.boundInputs[index];
-				if (
-					!input ||
-					input.lowerValues.some((value) => !value.trim()) ||
-					input.upperValues.some((value) => !value.trim()) ||
-					!input.lower.trim() ||
-					!input.upper.trim() ||
-					input.splits.some((split) => !split.trim())
-				) {
-					this.setSubStepValidation(
-						this.step5,
-						id,
-						"Enter the lower limit, upper limit, and every requested interior split point.",
-					);
-					return;
-				}
-				if (
-					!input.lowerValues.every((value, candidateIndex) =>
-						scalarMatches(
-							value,
-							expected.lowerCandidateValues[candidateIndex] ??
-								Number.NaN,
-						),
-					) ||
-					!input.upperValues.every((value, candidateIndex) =>
-						scalarMatches(
-							value,
-							expected.upperCandidateValues[candidateIndex] ??
-								Number.NaN,
-						),
-					)
-				) {
-					this.setSubStepIncorrect(
-						this.step5,
-						id,
-						"Substitute the displayed representative time into each candidate before choosing max or min.",
-					);
-					return;
-				}
-				if (
-					!convolutionExpressionsMatch(
-						input.lower,
-						expected.lowerLatex,
-					)
-				) {
-					this.setSubStepMisconception(
-						this.step5,
-						id,
-						"The lower limit is the larger of the two active left edges.",
-					);
-					return;
-				}
-				if (
-					!convolutionExpressionsMatch(
-						input.upper,
-						expected.upperLatex,
-					)
-				) {
-					this.setSubStepMisconception(
-						this.step5,
-						id,
-						"The upper limit is the smaller of the two active right edges.",
-					);
-					return;
-				}
-				if (
-					!input.splits.every((split, splitIndex) =>
-						convolutionExpressionsMatch(
-							split,
-							expected.splitPointsLatex[splitIndex] ?? "",
-						),
-					)
-				) {
-					this.setSubStepIncorrect(
-						this.step5,
-						id,
-						"Split wherever an active triangle apex, slope change, or piecewise formula change lies inside the bounds.",
-					);
-					return;
-				}
-			}
+		if (result.kind === "misconception") {
+			this.setSubStepMisconception(this.step5, id, result.message);
+			return;
+		}
+		if (result.kind !== "valid") return;
+		this.clearSubStepFeedback(this.step5, id);
+		if (result.nextStage) {
+			state.stage = result.nextStage;
+			return;
 		}
 		this.passActiveSubStep(this.step5, 6);
 	}

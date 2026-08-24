@@ -189,10 +189,30 @@ export interface ConvolutionOverlapBounds {
 	splitPointsLatex: string[];
 }
 
+/** One fixed/transformed interval pair shown before an overlap decision. */
+export interface ConvolutionIntervalComparison {
+	/** Stable comparison identifier. */
+	id: string;
+	/** Fixed interval written with semantic signal-boundary names. */
+	fixedIntervalLatex: string;
+	/** Transformed moving interval written with semantic boundary names. */
+	transformedIntervalLatex: string;
+	/** Fixed interval values at the representative output time. */
+	fixedValues: [number, number];
+	/** Transformed interval values at the representative output time. */
+	transformedValues: [number, number];
+	/** Whether this pair overlaps at the representative output time. */
+	hasOverlap: boolean;
+}
+
 /** Path-specific integration setup. */
 export interface ConvolutionIntegralPathSetup {
 	/** Whether an overlap exists. */
 	hasOverlap: boolean;
+	/** Safe output time used to compare all section pairs in this region. */
+	representativeTime: number;
+	/** Every fixed/transformed section pair, including non-overlapping pairs. */
+	intervalComparisons: ConvolutionIntervalComparison[];
 	/** Connected overlap components. */
 	overlaps: ConvolutionOverlapBounds[];
 	/** Complete verified integral. */

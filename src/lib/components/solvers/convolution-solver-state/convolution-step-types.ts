@@ -77,6 +77,8 @@ export interface ConvolutionBoundInput {
 
 /** State for one Step 5 interval setup. */
 export interface ConvolutionBoundsSubStepState extends BaseSubStepState {
+	/** Active guided task within the current interval. */
+	stage: "overlap" | "lower" | "upper" | "bounds" | "splits";
 	/** Whether the learner believes overlap exists. */
 	hasOverlap: boolean | null;
 	/** One typed bound group per connected overlap. */

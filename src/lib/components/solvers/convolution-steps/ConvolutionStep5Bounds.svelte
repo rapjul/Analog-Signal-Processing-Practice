@@ -4,6 +4,7 @@
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
+	import ConvolutionIntervalDiagram from "$lib/components/solvers/convolution-steps/ConvolutionIntervalDiagram.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
@@ -122,6 +123,12 @@
 						text={`For $${activePart.intervalLatex}$, do the fixed and transformed signals overlap?`}
 					/>
 				</p>
+				<ConvolutionIntervalDiagram
+					comparisons={activeSetup.intervalComparisons}
+					time={activeSetup.representativeTime}
+					revealOverlap={activeState.hasOverlap ===
+						activeSetup.hasOverlap}
+				/>
 				<div class="binary-grid">
 					<button
 						type="button"
@@ -155,94 +162,104 @@
 									<h5>
 										Connected overlap {overlapIndex + 1}
 									</h5>
-									<div class="candidate-grid">
-										<div>
-											<span>Lower candidates</span
-											><MathBlock
-												math={String.raw`\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)`}
-												compact={true}
-												hideHeader={true}
-												responsive={true}
-											/>
-										</div>
-										<div>
-											<span>Upper candidates</span
-											><MathBlock
-												math={String.raw`\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
-												compact={true}
-												hideHeader={true}
-												responsive={true}
-											/>
-										</div>
-									</div>
 									<p class="comparison-prompt">
 										<MathText
-											text={`First substitute the safe interior value $t=${activeSetup.overlaps[overlapIndex]?.representativeTime}$. Choose the larger lower value and the smaller upper value.`}
+											text={activeState.stage === "lower"
+												? `At $t=${overlap.representativeTime}$, evaluate both left edges. The larger value becomes the lower integration limit.`
+												: activeState.stage === "upper"
+													? `At $t=${overlap.representativeTime}$, evaluate both right edges. The smaller value becomes the upper integration limit.`
+													: activeState.stage ===
+														  "bounds"
+														? "Use the verified comparisons to enter the two symbolic integration limits."
+														: "Enter each interior point where an active signal formula changes."}
 										/>
 									</p>
-									<div class="candidate-value-grid">
-										{#each overlap.lowerCandidatesLatex as candidate, candidateIndex}
+									{#if activeState.stage === "lower"}
+										<MathBlock
+											math={String.raw`L(t)=\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)`}
+											compact={true}
+											hideHeader={true}
+											responsive={true}
+										/>
+										<div class="candidate-value-grid">
+											{#each overlap.lowerCandidatesLatex as candidate, candidateIndex}
+												<label>
+													<MathText
+														text={`$${candidate}$ at the test time`}
+													/>
+													<input
+														type="text"
+														bind:value={
+															activeState
+																.boundInputs[
+																overlapIndex
+															].lowerValues[
+																candidateIndex
+															]
+														}
+													/>
+												</label>
+											{/each}
+										</div>
+									{:else if activeState.stage === "upper"}
+										<MathBlock
+											math={String.raw`U(t)=\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
+											compact={true}
+											hideHeader={true}
+											responsive={true}
+										/>
+										<div class="candidate-value-grid">
+											{#each overlap.upperCandidatesLatex as candidate, candidateIndex}
+												<label>
+													<MathText
+														text={`$${candidate}$ at the test time`}
+													/>
+													<input
+														type="text"
+														bind:value={
+															activeState
+																.boundInputs[
+																overlapIndex
+															].upperValues[
+																candidateIndex
+															]
+														}
+													/>
+												</label>
+											{/each}
+										</div>
+									{:else if activeState.stage === "bounds"}
+										<div class="bound-input-grid">
 											<label>
-												<MathText
-													text={`$${candidate}$ at the test time`}
-												/>
+												<span
+													>Simplified lower limit</span
+												>
 												<input
 													type="text"
 													bind:value={
 														activeState.boundInputs[
 															overlapIndex
-														].lowerValues[
-															candidateIndex
-														]
+														].lower
 													}
+													placeholder="larger left edge"
 												/>
 											</label>
-										{/each}
-										{#each overlap.upperCandidatesLatex as candidate, candidateIndex}
 											<label>
-												<MathText
-													text={`$${candidate}$ at the test time`}
-												/>
+												<span
+													>Simplified upper limit</span
+												>
 												<input
 													type="text"
 													bind:value={
 														activeState.boundInputs[
 															overlapIndex
-														].upperValues[
-															candidateIndex
-														]
+														].upper
 													}
+													placeholder="smaller right edge"
 												/>
 											</label>
-										{/each}
-									</div>
-									<div class="bound-input-grid">
-										<label>
-											<span>Simplified lower limit</span>
-											<input
-												type="text"
-												bind:value={
-													activeState.boundInputs[
-														overlapIndex
-													].lower
-												}
-												placeholder="larger left edge"
-											/>
-										</label>
-										<label>
-											<span>Simplified upper limit</span>
-											<input
-												type="text"
-												bind:value={
-													activeState.boundInputs[
-														overlapIndex
-													].upper
-												}
-												placeholder="smaller right edge"
-											/>
-										</label>
-									</div>
-									{#if overlap.splitPointsLatex.length > 0}
+										</div>
+									{:else if activeState.stage === "splits"}
 										<div class="split-grid">
 											{#each overlap.splitPointsLatex as _, splitIndex}
 												<label>
@@ -271,7 +288,13 @@
 							type="submit"
 							class="check-button"
 						>
-							Check bounds
+							{activeState.stage === "lower"
+								? "Check lower candidates"
+								: activeState.stage === "upper"
+									? "Check upper candidates"
+									: activeState.stage === "bounds"
+										? "Check symbolic bounds"
+										: "Check split points"}
 						</button>
 					</form>
 				{/if}
@@ -388,7 +411,6 @@
 		margin: 0;
 		color: var(--accent-primary);
 	}
-	.candidate-grid,
 	.candidate-value-grid,
 	.bound-input-grid,
 	.split-grid {
@@ -396,7 +418,6 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.65rem;
 	}
-	.candidate-grid > div,
 	.candidate-value-grid label,
 	.bound-input-grid label,
 	.split-grid label {
@@ -449,7 +470,6 @@
 
 	/* ── Mobile media query (≤640px) ──────────────────────── */
 	@media (max-width: 640px) {
-		.candidate-grid,
 		.candidate-value-grid,
 		.bound-input-grid,
 		.split-grid,
