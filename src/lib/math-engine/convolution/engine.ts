@@ -4,6 +4,7 @@
  * exponential decays, triangular functions, step functions, and problem generator.
  */
 
+import { sanitizeLatexMath } from "$lib/math-engine/formatting";
 import {
 	createRandomSeed,
 	createSeededPrng,
@@ -194,6 +195,23 @@ export type ConvolutionProblemSource = Omit<
 export function withConvolutionItsData(
 	problem: ConvolutionProblemSource,
 ): ConvolutionProblem {
+	const intervals = problem.intervals.map((interval) => ({
+		...interval,
+		labelLatex: sanitizeLatexMath(interval.labelLatex),
+		exprLatex: sanitizeLatexMath(interval.exprLatex),
+		supportIntersectionLatex: interval.supportIntersectionLatex
+			? sanitizeLatexMath(interval.supportIntersectionLatex)
+			: undefined,
+		integralSetupLatex: interval.integralSetupLatex
+			? sanitizeLatexMath(interval.integralSetupLatex)
+			: undefined,
+		flipXSupportIntersectionLatex: interval.flipXSupportIntersectionLatex
+			? sanitizeLatexMath(interval.flipXSupportIntersectionLatex)
+			: undefined,
+		flipXIntegralSetupLatex: interval.flipXIntegralSetupLatex
+			? sanitizeLatexMath(interval.flipXIntegralSetupLatex)
+			: undefined,
+	}));
 	const section = (
 		id: string,
 		start: number,
@@ -260,11 +278,14 @@ export function withConvolutionItsData(
 		}
 	return {
 		...problem,
+		xLatex: sanitizeLatexMath(problem.xLatex),
+		hLatex: sanitizeLatexMath(problem.hLatex),
+		intervals,
 		xSupportEdges: xSections.flatMap(({ start, end }) => [start, end]),
 		hSupportEdges: hSections.flatMap(({ start, end }) => [start, end]),
 		itsData: buildConvolutionItsData({
 			seed: problem.seed,
-			intervals: problem.intervals,
+			intervals,
 			xSections,
 			hSections,
 			xBreakpoints,
