@@ -1,5 +1,10 @@
 import { createSeededPrng, randomChoice, randomInt } from "../random";
 import type { ConvolutionSignalSection } from "./its-scaffolding";
+import {
+	formatPulseScale,
+	formatRectPulseLatex,
+	formatTranslatedArgument,
+} from "./pulse-formatting";
 
 export const CONVOLUTION_SIGNAL_TYPES = [
 	"rect",
@@ -137,14 +142,11 @@ function resolveShift(
 }
 
 function formatShiftedArgument(shift: number): string {
-	if (shift === 0) return "t";
-	return shift > 0 ? `t-${shift}` : `t+${Math.abs(shift)}`;
+	return formatTranslatedArgument("t", shift);
 }
 
 function scaleLatex(amplitude: number, body: string): string {
-	if (amplitude === 1) return body;
-	if (amplitude === -1) return `-${body}`;
-	return `${amplitude}${body}`;
+	return formatPulseScale(amplitude, body);
 }
 
 function section(
@@ -208,10 +210,7 @@ export function resolveConvolutionSignal(
 			parameter,
 			shift,
 			amplitude,
-			latex: scaleLatex(
-				amplitude,
-				`\\operatorname{rect}\\left(\\frac{${argument}}{${parameter}}\\right)`,
-			),
+			latex: formatRectPulseLatex(parameter, shift, amplitude),
 			sections: [section(`${key}-1`, start, end)],
 			breakpoints: [start, end],
 			pieces: [
@@ -295,10 +294,10 @@ export function resolveConvolutionSignal(
 		centers[1] + parameter / 2,
 	];
 	const componentLatex = centers.map((center, index) => {
-		const termArgument = formatShiftedArgument(center);
-		return scaleLatex(
+		return formatRectPulseLatex(
+			parameter,
+			center,
 			componentAmplitudes[index],
-			`\\operatorname{rect}\\left(\\frac{${termArgument}}{${parameter}}\\right)`,
 		);
 	});
 	return {

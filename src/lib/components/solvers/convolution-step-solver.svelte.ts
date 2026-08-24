@@ -410,7 +410,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
-				"The start time is not the first point where this signal can be nonzero.",
+				"The left boundary is not the first point where this signal can be non-zero.",
 			);
 			return;
 		}
@@ -418,7 +418,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
-				"The end time is not the last point where this signal can be nonzero.",
+				"The right boundary is not the last point where this signal can be non-zero.",
 			);
 			return;
 		}

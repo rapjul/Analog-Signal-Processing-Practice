@@ -44,23 +44,29 @@
 {/snippet}
 
 {#snippet completedSummary()}
-	<div class="summary-list">
-		<MathText
-			text={`Moved $${solver.flippedSignal}(t)$ and kept $${solver.flippedSignal === "x" ? "h" : "x"}(\\tau)$ fixed.`}
-		/>
-		<MathBlock
-			math={selectedFormula}
-			compact={true}
-			hideHeader={true}
-			responsive={true}
-		/>
-		{#each transformedSections as section}
+	<div class="summary-grid">
+		<div class="summary-note">
+			<MathText
+				text={`Moved $${solver.flippedSignal}(t)$ and kept $${solver.flippedSignal === "x" ? "h" : "x"}(\\tau)$ fixed.`}
+			/>
+		</div>
+		<div class="summary-item">
 			<MathBlock
-				math={`\tau\in ${section.includedEndpoint === "left" || section.includedEndpoint === "both" ? "[" : "("}${section.leftLatex},${section.rightLatex}${section.includedEndpoint === "right" || section.includedEndpoint === "both" ? "]" : ")"}`}
+				math={selectedFormula}
 				compact={true}
 				hideHeader={true}
 				responsive={true}
 			/>
+		</div>
+		{#each transformedSections as section}
+			<div class="summary-item">
+				<MathBlock
+					math={String.raw`\tau\in ${section.includedEndpoint === "left" || section.includedEndpoint === "both" ? "[" : "("}${section.leftLatex},${section.rightLatex}${section.includedEndpoint === "right" || section.includedEndpoint === "both" ? "]" : ")"}`}
+					compact={true}
+					hideHeader={true}
+					responsive={true}
+				/>
+			</div>
 		{/each}
 	</div>
 {/snippet}
@@ -117,6 +123,11 @@
 			>
 				<p class="step-prompt">
 					<MathText text={formulaData.prompt} />
+				</p>
+				<p class="endpoint-explanation">
+					<MathText
+						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. This preserves the exact pointwise signal and graph, although changing one isolated endpoint does not change an ordinary convolution integral.`}
+					/>
 				</p>
 				<div class="option-grid">
 					{#each formulaData.options as option}
@@ -233,16 +244,34 @@
 <style>
 	/* ── Step and summary layout ───────────────────────────── */
 	.step-body,
-	.summary-list,
 	.edge-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
 		min-width: 0;
 	}
+	.summary-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+		width: 100%;
+		min-width: 0;
+	}
+	.summary-note {
+		grid-column: 1 / -1;
+	}
+	.summary-item {
+		min-width: 0;
+	}
 	.step-prompt {
 		margin: 0;
 		color: var(--text-primary);
+		line-height: var(--leading-relaxed);
+	}
+	.endpoint-explanation {
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
 		line-height: var(--leading-relaxed);
 	}
 	.binary-grid,
@@ -317,6 +346,7 @@
 
 	/* ── Mobile media query (≤720px) ──────────────────────── */
 	@media (max-width: 720px) {
+		.summary-grid,
 		.edge-grid {
 			grid-template-columns: 1fr;
 		}

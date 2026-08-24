@@ -16,6 +16,7 @@ import {
 	type ConvolutionItsData,
 	type ConvolutionSignalSection,
 } from "./convolution/its-scaffolding";
+import { formatRectPulseLatex } from "./convolution/pulse-formatting";
 import {
 	createRandomSeed,
 	createSeededPrng,
@@ -273,6 +274,7 @@ function withConvolutionItsData(
 		xSupportEdges: xSections.flatMap(({ start, end }) => [start, end]),
 		hSupportEdges: hSections.flatMap(({ start, end }) => [start, end]),
 		itsData: buildConvolutionItsData({
+			seed: problem.seed,
 			intervals: problem.intervals,
 			xSections,
 			hSections,
@@ -489,11 +491,8 @@ export function generateConvolutionProblem(
 			};
 			const res = solveRectRectConvolution(rect1, rect2);
 
-			const xLatex = `\\operatorname{rect}\\left(\\frac{t}{${w1}}\\right)`;
-			const hLatex =
-				h2 === 1
-					? `\\operatorname{rect}\\left(\\frac{t}{${w2}}\\right)`
-					: `${h2} \\operatorname{rect}\\left(\\frac{t}{${w2}}\\right)`;
+			const xLatex = formatRectPulseLatex(w1);
+			const hLatex = formatRectPulseLatex(w2, 0, h2);
 			const firstContact = -(w1 + w2) / 2;
 			const fullOverlapStart = firstContact + w1;
 			const fullOverlapEnd = firstContact + w2;
@@ -561,8 +560,8 @@ export function generateConvolutionProblem(
 			};
 			const res = solveRectRectConvolution(rect1, rect2);
 
-			const xLatex = `\\operatorname{rect}\\left(\\frac{t}{${w1}}\\right)`;
-			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${tShift}}{${w2}}\\right)`;
+			const xLatex = formatRectPulseLatex(w1);
+			const hLatex = formatRectPulseLatex(w2, tShift);
 			const firstContact = tShift - (w1 + w2) / 2;
 			const finalContact = tShift + (w1 + w2) / 2;
 
@@ -635,8 +634,8 @@ export function generateConvolutionProblem(
 				seed,
 				pairType: "rect_both_shifted",
 				title: "Two Shifted Rectangular Pulses Convolution",
-				xLatex: `\\operatorname{rect}\\left(\\frac{t - ${xShift}}{${w1}}\\right)`,
-				hLatex: `\\operatorname{rect}\\left(\\frac{t - ${hShift}}{${w2}}\\right)`,
+				xLatex: formatRectPulseLatex(w1, xShift),
+				hLatex: formatRectPulseLatex(w2, hShift),
 				solutionSteps: [
 					{
 						title: "Flip & Shift Transformation",
@@ -671,10 +670,8 @@ export function generateConvolutionProblem(
 		}
 		case "multi_rect": {
 			const res = solveMultiRectConvolution();
-			const xLatex =
-				"\\operatorname{rect}\\left(t - 0.5\\right) + \\operatorname{rect}\\left(t - 3.5\\right)";
-			const hLatex =
-				"\\operatorname{rect}\\left(\\frac{t - 1}{2}\\right)";
+			const xLatex = `${formatRectPulseLatex(1, 0.5)}+${formatRectPulseLatex(1, 3.5)}`;
+			const hLatex = formatRectPulseLatex(2, 1);
 
 			const steps: SolutionStep[] = [
 				{
@@ -721,7 +718,7 @@ export function generateConvolutionProblem(
 			const expSignal: ExpSignal = { a, K: 1 };
 
 			const res = solveRectExpConvolution(rect, expSignal);
-			const xLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+			const xLatex = formatRectPulseLatex(w, w / 2);
 			const hLatex = `e^{-${a}t} u(t)`;
 
 			const steps: SolutionStep[] = [
@@ -850,7 +847,7 @@ export function generateConvolutionProblem(
 			const w = randomInt(random, 1, 3);
 			const res = solveStepRectConvolution(w);
 			const xLatex = "u(t)";
-			const hLatex = `\\operatorname{rect}\\left(\\frac{t - ${w / 2}}{${w}}\\right)`;
+			const hLatex = formatRectPulseLatex(w, w / 2);
 
 			return withConvolutionItsData({
 				id,

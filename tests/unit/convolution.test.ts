@@ -341,7 +341,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 				const problem = generateConvolutionProblem(pairType);
 				expect(problem.itsData.step1.parts).toHaveLength(3);
 				expect(problem.itsData.step1.intro).toMatch(
-					/time range where it is nonzero/i,
+					/interval where it can be non-zero/i,
 				);
 				for (const step of [
 					problem.itsData.step2,

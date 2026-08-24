@@ -19,7 +19,7 @@ describe("ConvolutionStepSolver", () => {
 		expect(
 			view.container.querySelectorAll(".step-card.locked"),
 		).toHaveLength(6);
-		expect(view.getByText(/support is the time range/i)).toBeTruthy();
+		expect(view.getByText(/support is the interval/i)).toBeTruthy();
 
 		for (const part of problem.itsData.step1.parts) {
 			const inputs =

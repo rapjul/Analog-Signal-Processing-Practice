@@ -89,12 +89,12 @@
 			>
 				<p class="part-prompt">
 					<MathText
-						text={`Enter the first nonzero time, last nonzero time, and overall width for $${activePart.signalLatex}$.`}
+						text={`Enter the left boundary, right boundary, and overall width of the interval where $${activePart.signalLatex}$ can be non-zero.`}
 					/>
 				</p>
 				<div class="timing-grid">
 					<label>
-						<span>Start time</span>
+						<span>Left boundary</span>
 						<input
 							type="text"
 							bind:value={activeState.start}
@@ -104,7 +104,7 @@
 						/>
 					</label>
 					<label>
-						<span>End time</span>
+						<span>Right boundary</span>
 						<input
 							type="text"
 							bind:value={activeState.end}

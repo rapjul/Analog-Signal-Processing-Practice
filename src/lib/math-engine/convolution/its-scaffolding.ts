@@ -1,6 +1,7 @@
 /** Structured tutoring scaffolding for continuous-time convolution. */
 
 import type { ConvolutionInterval } from "$lib/math-engine/convolution";
+import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
 
 /** Signal selected as the reflected and translated convolution operand. */
 export type ConvolutionMovingSignal = "x" | "h";
@@ -224,6 +225,8 @@ export interface ConvolutionItsData {
 
 /** Exact problem metadata needed to build the tutoring scaffold. */
 export interface ConvolutionItsBuildContext {
+	/** Reproducible seed used for tutoring-option ordering. */
+	seed?: number;
 	/** Ordered analytical output intervals. */
 	intervals: ConvolutionInterval[];
 	/** Connected nonzero sections of x. */
@@ -309,6 +312,7 @@ function buildTransformedSections(
 /** Builds four path-sensitive integral choices. */
 function buildFormulaStep(
 	moving: ConvolutionMovingSignal,
+	seed: number,
 ): ConvolutionItsChoiceStep {
 	const matching =
 		moving === "h"
@@ -326,36 +330,39 @@ function buildFormulaStep(
 		moving === "h"
 			? "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(\\tau-t)\\,d\\tau"
 			: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau";
+	const options: ConvolutionItsOption[] = [
+		{
+			id: `formula-${moving}-correct`,
+			latex: matching,
+			isCorrect: true,
+		},
+		{
+			id: `formula-${moving}-no-flip`,
+			latex: selectedWithoutFlip,
+			isCorrect: false,
+			feedback:
+				"This shifts the selected signal without reflecting it. The moving argument must be $t-\\tau$.",
+		},
+		{
+			id: `formula-${moving}-other-path`,
+			latex: otherCorrect,
+			isCorrect: false,
+			feedback:
+				"That is a valid convolution identity, but it moves the other signal instead of the path you selected.",
+		},
+		{
+			id: `formula-${moving}-other-no-flip`,
+			latex: otherWithoutFlip,
+			isCorrect: false,
+			feedback:
+				"This uses the unselected signal and shifts it without the required reflection.",
+		},
+	];
+	const optionSeed =
+		(seed ^ (moving === "x" ? 0x58_33_ba_11 : 0x48_33_ba_11)) >>> 0;
 	return {
 		prompt: `Which integral keeps $${moving === "h" ? "x" : "h"}(\\tau)$ fixed and moves $${moving}(t)$?`,
-		options: [
-			{
-				id: `formula-${moving}-correct`,
-				latex: matching,
-				isCorrect: true,
-			},
-			{
-				id: `formula-${moving}-no-flip`,
-				latex: selectedWithoutFlip,
-				isCorrect: false,
-				feedback:
-					"This shifts the selected signal without reflecting it. The moving argument must be $t-\\tau$.",
-			},
-			{
-				id: `formula-${moving}-other-path`,
-				latex: otherCorrect,
-				isCorrect: false,
-				feedback:
-					"That is a valid convolution identity, but it moves the other signal instead of the path you selected.",
-			},
-			{
-				id: `formula-${moving}-other-no-flip`,
-				latex: otherWithoutFlip,
-				isCorrect: false,
-				feedback:
-					"This uses the unselected signal and shifts it without the required reflection.",
-			},
-		],
+		options: shuffleWithRandom(options, createSeededPrng(optionSeed)),
 		hints: [
 			"The fixed signal keeps the argument $\\tau$.",
 			"The selected moving signal receives the argument $t-\\tau$.",
@@ -642,7 +649,7 @@ export function buildConvolutionItsData(
 	);
 	return {
 		step1: {
-			intro: "A signal's support is the time range where it is nonzero. Its start, end, and width tell us when overlap can begin, when it must end, and how wide the convolution can be.",
+			intro: "A signal's support is the interval where it can be non-zero. Its left boundary, right boundary, and width tell us when overlap can begin, when it must end, and how wide the convolution can be.",
 			parts: [
 				timingPart("x", xStart, xEnd),
 				timingPart("h", hStart, hEnd),
@@ -688,8 +695,8 @@ export function buildConvolutionItsData(
 		step3: {
 			prompt: "Choose one signal to reflect and slide now. Either path is valid; this choice controls the notation, bounds, and animator in the remaining work.",
 			formulaBySignal: {
-				x: buildFormulaStep("x"),
-				h: buildFormulaStep("h"),
+				x: buildFormulaStep("x", context.seed ?? 0),
+				h: buildFormulaStep("h", context.seed ?? 0),
 			},
 			sectionsBySignal: {
 				x: buildTransformedSections(context.xSections),
