@@ -5,11 +5,23 @@ import {
 	parseConvolutionScalarInput,
 } from "$lib/components/solvers/convolution-step-solver.svelte";
 import {
+	type ConvolutionBreakpointContact,
 	type ConvolutionItsOption,
 	type ConvolutionMovingSignal,
 	type ConvolutionProblem,
 	generateConvolutionProblem,
 } from "$lib/math-engine/convolution";
+
+/** Finds the guided contact represented by one Step 4 substep identifier. */
+function contactFor(
+	problem: ConvolutionProblem,
+	signal: ConvolutionMovingSignal,
+	id: string,
+): ConvolutionBreakpointContact | undefined {
+	return problem.itsData.step4.transitionGroups
+		.flatMap((group) => group.contactsBySignal[signal])
+		.find(({ id: contactId }) => id.startsWith(contactId));
+}
 
 /** Returns the first option with the requested correctness. */
 function option(
@@ -69,6 +81,7 @@ function completeTypedRemainder(
 	while (solver.currentStep === 4) {
 		const id = solver.step4.activeSubStepId;
 		const state = solver.step4.subSteps[id];
+		const contact = contactFor(problem, solver.flippedSignal, id);
 		if (id === "interval-builder")
 			state.intervalInputs =
 				problem.itsData.step4.intervalBoundaries.map(String);
@@ -76,14 +89,19 @@ function completeTypedRemainder(
 			state.input = String(problem.itsData.step4.sectionCounts.x);
 		else if (id === "section-count-h")
 			state.input = String(problem.itsData.step4.sectionCounts.h);
+		else if (contact)
+			state.input = id.endsWith("-form")
+				? contact.transformedLatex
+				: String(contact.transitionTime);
+		else if (id === "transition-count")
+			state.input = String(problem.itsData.step4.transitionGroups.length);
+		else if (id === "interval-count")
+			state.input = String(problem.itsData.step4.intervalLabels.length);
 		else
 			state.input = String(
 				problem.itsData.step4.breakpointParts.find(
 					(part) => part.id === id,
-				)?.value ??
-					problem.itsData.step4.transitionGroups.find(
-						(part) => part.id === id,
-					)?.time,
+				)?.value,
 			);
 		solver.checkStep4();
 	}
@@ -211,18 +229,28 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		) {
 			const id = solver.step4.activeSubStepId;
 			const state = solver.step4.subSteps[id];
+			const contact = contactFor(problem, solver.flippedSignal, id);
 			if (id === "section-count-x")
 				state.input = String(problem.itsData.step4.sectionCounts.x);
 			else if (id === "section-count-h")
 				state.input = String(problem.itsData.step4.sectionCounts.h);
+			else if (contact)
+				state.input = id.endsWith("-form")
+					? contact.transformedLatex
+					: String(contact.transitionTime);
+			else if (id === "transition-count")
+				state.input = String(
+					problem.itsData.step4.transitionGroups.length,
+				);
+			else if (id === "interval-count")
+				state.input = String(
+					problem.itsData.step4.intervalLabels.length,
+				);
 			else
 				state.input = String(
 					problem.itsData.step4.breakpointParts.find(
 						(part) => part.id === id,
-					)?.value ??
-						problem.itsData.step4.transitionGroups.find(
-							(part) => part.id === id,
-						)?.time,
+					)?.value,
 				);
 			solver.checkStep4();
 		}

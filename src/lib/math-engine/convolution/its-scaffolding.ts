@@ -1,6 +1,7 @@
 /** Structured tutoring scaffolding for continuous-time convolution. */
 
 import type { ConvolutionInterval } from "$lib/math-engine/convolution";
+import { formatSubstitutedDifference } from "$lib/math-engine/convolution/pulse-formatting";
 import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
 
 /** Signal selected as the reflected and translated convolution operand. */
@@ -115,16 +116,32 @@ export interface ConvolutionBreakpointPart {
 	value: number;
 	/** Student-facing title. */
 	title: string;
+	/** Progressive hints tailored to this exact breakpoint. */
+	hints: string[];
 }
 
 /** One edge or formula-change contact that creates a transition. */
 export interface ConvolutionBreakpointContact {
+	/** Stable path-specific contact identifier. */
+	id: string;
 	/** Fixed original breakpoint. */
 	fixed: number;
 	/** Original breakpoint of the moving signal. */
 	moving: number;
+	/** Expected transformed moving-breakpoint expression. */
+	transformedLatex: string;
 	/** Contact equation rendered without separately revealing its solved time. */
 	equationLatex: string;
+	/** Exact transition time produced by this contact. */
+	transitionTime: number;
+	/** Stable identifier shared by contacts with the same transition time. */
+	transitionGroupId: string;
+	/** Earlier contact identifier when this time has already been found. */
+	duplicateOf?: string;
+	/** Progressive hints for forming this contact equation. */
+	formulationHints: string[];
+	/** Progressive hints for solving this contact equation. */
+	solutionHints: string[];
 }
 
 /** Contacts grouped by their common output transition time. */
@@ -146,6 +163,8 @@ export interface ConvolutionItsTransitionStep {
 	sectionCounts: Record<"x" | "h", number>;
 	/** Number of overlapping connected sections within each original signal. */
 	sectionOverlapCounts: Record<"x" | "h", number>;
+	/** Signal-specific hints for connected-section counting. */
+	sectionHints: Record<"x" | "h", string[]>;
 	/** Interior edges, slope changes, and formula changes. */
 	breakpointParts: ConvolutionBreakpointPart[];
 	/** Ordered transition groups, one challenge per distinct time. */
@@ -154,8 +173,12 @@ export interface ConvolutionItsTransitionStep {
 	intervalBoundaries: number[];
 	/** Exact completed interval labels. */
 	intervalLabels: string[];
-	/** Progressive guidance shared by Step 4 parts. */
-	hints: string[];
+	/** Hints for counting distinct transition times. */
+	transitionCountHints: string[];
+	/** Hints for deriving the number of output intervals. */
+	intervalCountHints: string[];
+	/** Hints for entering chronological interval boundaries. */
+	intervalBuilderHints: string[];
 }
 
 /** One connected overlap bound pair within a Step 5 region. */
@@ -556,6 +579,7 @@ function buildTransitionGroups(
 ): ConvolutionTransitionGroup[] {
 	return getFiniteConvolutionTransitionTimes(context.intervals).map(
 		(time, index) => {
+			const groupId = `transition-${String(index + 1).padStart(2, "0")}`;
 			const contactsFor = (
 				moving: ConvolutionMovingSignal,
 			): ConvolutionBreakpointContact[] => {
@@ -567,18 +591,45 @@ function buildTransitionGroups(
 					moving === "h"
 						? context.hBreakpoints
 						: context.xBreakpoints;
-				return fixedBreakpoints.flatMap((fixed) =>
+				const matches = fixedBreakpoints.flatMap((fixed) =>
 					movingBreakpoints
 						.filter((point) => fixed + point === time)
-						.map((point) => ({
+						.map((point) => ({ fixed, moving: point })),
+				);
+				return matches.map(
+					({ fixed, moving: movingPoint }, contactIndex) => {
+						const id = `${moving}-${groupId}-contact-${contactIndex + 1}`;
+						const transformedLatex =
+							formatTranslatedEdge(movingPoint);
+						const equationLatex = `${formatConvolutionScalar(fixed)}=${formatSubstitutedDifference("t", movingPoint)}`;
+						return {
+							id,
 							fixed,
-							moving: point,
-							equationLatex: `${formatConvolutionScalar(fixed)}=t-${formatConvolutionScalar(point)}`,
-						})),
+							moving: movingPoint,
+							transformedLatex,
+							equationLatex,
+							transitionTime: time,
+							transitionGroupId: groupId,
+							duplicateOf:
+								contactIndex > 0
+									? `${moving}-${groupId}-contact-1`
+									: undefined,
+							formulationHints: [
+								`The fixed breakpoint is $\\tau=${formatConvolutionScalar(fixed)}$.`,
+								`After reflection and translation, moving breakpoint $${formatConvolutionScalar(movingPoint)}$ appears at $\\tau=${transformedLatex}$.`,
+								`Set the breakpoint positions equal: $${equationLatex}$.`,
+							],
+							solutionHints: [
+								"Isolate $t$ in the verified contact equation.",
+								`Add the original moving breakpoint $${formatConvolutionScalar(movingPoint)}$ to the fixed breakpoint $${formatConvolutionScalar(fixed)}$.`,
+								`This contact occurs at $t=${formatConvolutionScalar(time)}$.`,
+							],
+						};
+					},
 				);
 			};
 			return {
-				id: `transition-${String(index + 1).padStart(2, "0")}`,
+				id: groupId,
 				time,
 				contactsBySignal: { x: contactsFor("x"), h: contactsFor("h") },
 			};
@@ -722,6 +773,18 @@ export function buildConvolutionItsData(
 				x: countSectionOverlaps(context.xSections),
 				h: countSectionOverlaps(context.hSections),
 			},
+			sectionHints: {
+				x: [
+					"Trace each connected non-zero section of $x(t)$ from its left boundary to its right boundary.",
+					"A gap where the signal is zero separates two connected sections.",
+					`The verified count for $x(t)$ is ${context.xSections.length}.`,
+				],
+				h: [
+					"Trace each connected non-zero section of $h(t)$ from its left boundary to its right boundary.",
+					"A gap where the signal is zero separates two connected sections.",
+					`The verified count for $h(t)$ is ${context.hSections.length}.`,
+				],
+			},
 			breakpointParts: [
 				...context.xBreakpoints.slice(1, -1).map((value, index) => ({
 					id: `x-breakpoint-${index + 1}`,
@@ -729,6 +792,11 @@ export function buildConvolutionItsData(
 					index: index + 1,
 					value,
 					title: `Find Interior Change ${index + 1} of x(t)`,
+					hints: [
+						"Look inside the support, excluding its outer left and right boundaries.",
+						"Find where the slope or piecewise formula of $x(t)$ changes.",
+						`This interior breakpoint is at $t=${formatConvolutionScalar(value)}$.`,
+					],
 				})),
 				...context.hBreakpoints.slice(1, -1).map((value, index) => ({
 					id: `h-breakpoint-${index + 1}`,
@@ -736,6 +804,11 @@ export function buildConvolutionItsData(
 					index: index + 1,
 					value,
 					title: `Find Interior Change ${index + 1} of h(t)`,
+					hints: [
+						"Look inside the support, excluding its outer left and right boundaries.",
+						"Find where the slope or piecewise formula of $h(t)$ changes.",
+						`This interior breakpoint is at $t=${formatConvolutionScalar(value)}$.`,
+					],
 				})),
 			],
 			transitionGroups,
@@ -743,10 +816,20 @@ export function buildConvolutionItsData(
 			intervalLabels: context.intervals.map(
 				({ labelLatex }) => labelLatex,
 			),
-			hints: [
-				"A breakpoint is a start edge, end edge, interior slope change, or formula change.",
-				"For fixed breakpoint $a$ and moving breakpoint $b$, contact satisfies $a=t-b$.",
-				"Solve each contact as $t=a+b$, group equal answers, and sort the results.",
+			transitionCountHints: [
+				"Count each distinct verified contact time once.",
+				"Contacts grouped under the same time contribute one transition, not several.",
+				`There are ${transitionGroups.length} distinct transition times.`,
+			],
+			intervalCountHints: [
+				"Every transition divides the time axis into one additional region.",
+				"Include the region before the first transition and the region after the last transition.",
+				`The ${transitionGroups.length} transitions create ${context.intervals.length} output intervals.`,
+			],
+			intervalBuilderHints: [
+				"Use the verified transition times from smallest to largest.",
+				"The first interval is left-unbounded and the final interval is right-unbounded.",
+				`The ordered boundaries are $${intervalBoundaries.map(formatConvolutionScalar).join(",\\;")}$.`,
 			],
 		},
 		step5: {

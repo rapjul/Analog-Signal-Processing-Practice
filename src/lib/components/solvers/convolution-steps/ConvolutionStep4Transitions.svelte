@@ -2,14 +2,17 @@
 	/** Sequential breakpoint-contact and interval-construction step. */
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
-	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
+	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
+	import {
+		type ConvolutionProblem,
+		formatConvolutionScalar,
+	} from "$lib/math-engine/convolution";
 
 	interface Props {
 		/** Active exact convolution problem. */
@@ -27,18 +30,20 @@
 				: "locked",
 	);
 	const activeId = $derived(solver.step4.activeSubStepId);
+	const activeIndex = $derived(solver.step4.subStepOrder.indexOf(activeId));
 	const activeState = $derived(solver.step4.subSteps[activeId]);
 	const breakpoint = $derived(
 		problem.itsData.step4.breakpointParts.find(({ id }) => id === activeId),
 	);
-	const transition = $derived(
-		problem.itsData.step4.transitionGroups.find(
-			({ id }) => id === activeId,
+	const contacts = $derived(
+		problem.itsData.step4.transitionGroups.flatMap(
+			(group) => group.contactsBySignal[solver.flippedSignal],
 		),
 	);
-	const contacts = $derived(
-		transition?.contactsBySignal[solver.flippedSignal] ?? [],
+	const activeContact = $derived(
+		contacts.find(({ id }) => activeId.startsWith(id)),
 	);
+	const fixedSignal = $derived(solver.flippedSignal === "h" ? "x" : "h");
 	const completedTransitions = $derived(
 		problem.itsData.step4.transitionGroups
 			.map(({ time }) => `t=${time}`)
@@ -56,15 +61,15 @@
 {/snippet}
 
 {#snippet completedSummary()}
-	<div class="summary-list">
+	<div class="summary-grid">
 		<MathBlock
-			math={`\mathcal T=\{${completedTransitions}\}`}
+			math={String.raw`\mathcal{T}=\{${completedTransitions}\}`}
 			compact={true}
 			hideHeader={true}
 			responsive={true}
 		/>
 		<MathBlock
-			math={`\mathcal R=\{${completedIntervals}\}`}
+			math={String.raw`\mathcal{R}=\{${completedIntervals}\}`}
 			compact={true}
 			hideHeader={true}
 			responsive={true}
@@ -84,103 +89,225 @@
 			<strong>Breakpoint:</strong> a start edge, end edge, interior slope change,
 			or piecewise formula change.
 		</p>
+		<p class="purpose">
+			Contact times matter because the overlap formula or active
+			integration bounds can change whenever a fixed breakpoint meets a
+			transformed moving breakpoint.
+		</p>
 
-		{#if activeId === "section-count-x" || activeId === "section-count-h"}
-			{@const signal = activeId === "section-count-x" ? "x" : "h"}
-			<p class="step-prompt">
-				<MathText
-					text={`How many distinct nonzero pulses or connected sections does $${signal}(t)$ contain? Count overlapping sections separately.`}
-				/>
-			</p>
-			<p class="context-note">
-				Known overlaps between these sections: {problem.itsData.step4
-					.sectionOverlapCounts[signal]}.
-			</p>
-		{:else if breakpoint}
-			<p class="step-prompt">
-				<MathText
-					text={`Find interior edge, slope, or formula change ${breakpoint.index} of $${breakpoint.signal}(t)$. Enter its time value.`}
-				/>
-			</p>
-		{:else if transition}
-			<p class="step-prompt">
-				Solve the following contact equation{contacts.length === 1
-					? ""
-					: "s"}. Contacts with the same answer form one transition
-				time.
-			</p>
-			<div class="contact-list">
-				{#each contacts as contact}
-					<MathBlock
-						math={contact.equationLatex}
-						compact={true}
-						hideHeader={true}
-						responsive={true}
+		{#each solver.step4.subStepOrder.slice(0, activeIndex) as completedId, index}
+			{@const completedState = solver.step4.subSteps[completedId]}
+			{@const completedBreakpoint =
+				problem.itsData.step4.breakpointParts.find(
+					({ id }) => id === completedId,
+				)}
+			{@const completedContact = contacts.find(({ id }) =>
+				completedId.startsWith(id),
+			)}
+			<SubStepBlock
+				badge={`Part ${index + 1}`}
+				title={completedState.title}
+				isCompleted={true}
+			>
+				{#snippet summarySnippet()}
+					<div class="verified-summary">
+						{#if completedId === "section-count-x" || completedId === "section-count-h"}
+							{@const signal =
+								completedId === "section-count-x" ? "x" : "h"}
+							<MathText
+								text={`$${signal}(t)$ contains ${completedState.input} connected non-zero section${completedState.input === "1" ? "" : "s"}.`}
+							/>
+						{:else if completedBreakpoint}
+							<MathText
+								text={`Verified interior breakpoint: $t=${completedState.input}$.`}
+							/>
+						{:else if completedContact && completedId.endsWith("-form")}
+							<MathText
+								text={`Verified contact equation: $${completedContact.equationLatex}$.`}
+							/>
+						{:else if completedContact}
+							<MathText
+								text={`Verified contact time: $t=${completedContact.transitionTime}$.`}
+							/>
+							{#if completedContact.duplicateOf}
+								<p class="group-note">
+									This matches an earlier contact, so both
+									contacts form one transition time.
+								</p>
+							{/if}
+						{:else if completedId === "transition-count"}
+							<p>
+								{completedState.input} distinct transition times verified.
+							</p>
+						{:else if completedId === "interval-count"}
+							<p>
+								{completedState.input} output intervals verified.
+							</p>
+						{/if}
+					</div>
+				{/snippet}
+			</SubStepBlock>
+		{/each}
+
+		<SubStepBlock
+			badge={`Part ${activeIndex + 1}`}
+			title={activeState.title}
+		>
+			{#if activeId === "section-count-x" || activeId === "section-count-h"}
+				{@const signal = activeId === "section-count-x" ? "x" : "h"}
+				<p class="step-prompt">
+					<MathText
+						text={`How many distinct non-zero pulses or connected sections does $${signal}(t)$ contain? Count overlapping sections separately.`}
 					/>
-				{/each}
-			</div>
-		{:else if activeId === "interval-builder"}
-			<p class="step-prompt">
-				Use the verified sorted transition times to fill every interval
-				boundary.
-			</p>
-			<div class="interval-list">
-				<label>
-					<MathInline math="t<" />
-					<input
-						type="text"
-						bind:value={activeState.intervalInputs[0]}
-						aria-label="First interval upper boundary"
+				</p>
+				<p class="context-note">
+					Known overlaps between these sections: {problem.itsData
+						.step4.sectionOverlapCounts[signal]}.
+				</p>
+			{:else if breakpoint}
+				<p class="step-prompt">
+					<MathText
+						text={`Find interior edge, slope, or formula change ${breakpoint.index} of $${breakpoint.signal}(t)$. Enter its time value.`}
 					/>
-				</label>
-				{#each activeState.intervalInputs.slice(0, -1) as _, index}
-					<label>
+				</p>
+			{:else if activeContact && activeId.endsWith("-form")}
+				<p class="step-prompt">
+					Use this breakpoint pair to formulate one contact equation.
+					The fixed and transformed positions are equal when they
+					touch.
+				</p>
+				<div class="contact-context">
+					<MathText
+						text={`Fixed $${fixedSignal}(\\tau)$ breakpoint: $\\tau=${formatConvolutionScalar(activeContact.fixed)}$.`}
+					/>
+					<MathText
+						text={`Original moving $${solver.flippedSignal}(t)$ breakpoint: $${formatConvolutionScalar(activeContact.moving)}$.`}
+					/>
+				</div>
+				<p class="context-note">
+					<MathText
+						text={String.raw`Reflect and translate the moving breakpoint to obtain its position in $\tau$.`}
+					/>
+				</p>
+			{:else if activeContact}
+				<p class="step-prompt">
+					<MathText
+						text={String.raw`Solve the verified contact equation. This value of $t$ is a possible boundary between two overlap formulas.`}
+					/>
+				</p>
+				<MathBlock
+					math={activeContact.equationLatex}
+					compact={true}
+					hideHeader={true}
+					responsive={true}
+				/>
+			{:else if activeId === "transition-count"}
+				<p class="step-prompt">
+					How many distinct transition times remain after equal
+					contact answers are grouped together?
+				</p>
+			{:else if activeId === "interval-count"}
+				<p class="step-prompt">
+					How many output intervals are created by the verified
+					transition times? Include both exterior intervals.
+				</p>
+			{:else if activeId === "interval-builder"}
+				<p class="step-prompt">
+					Use the verified sorted transition times to fill every
+					interval boundary.
+				</p>
+				<form
+					class="interval-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						solver.checkStep4();
+					}}
+				>
+					<div class="interval-list">
+						<label>
+							<MathText text={String.raw`$t<$`} />
+							<input
+								type="text"
+								bind:value={activeState.intervalInputs[0]}
+								aria-label="First interval upper boundary"
+							/>
+						</label>
+						{#each activeState.intervalInputs.slice(0, -1) as _, index}
+							<label>
+								<input
+									type="text"
+									bind:value={
+										activeState.intervalInputs[index]
+									}
+									aria-label={`Interval ${index + 2} lower boundary`}
+								/><MathText text={String.raw`$\le t<$`} /><input
+									type="text"
+									bind:value={
+										activeState.intervalInputs[index + 1]
+									}
+									aria-label={`Interval ${index + 2} upper boundary`}
+								/>
+							</label>
+						{/each}
+						<label>
+							<MathText text={String.raw`$t\ge$`} />
+							<input
+								type="text"
+								bind:value={
+									activeState.intervalInputs[
+										activeState.intervalInputs.length - 1
+									]
+								}
+								aria-label="Final interval lower boundary"
+							/>
+						</label>
+					</div>
+					<button
+						type="submit"
+						class="check-button"
+					>
+						Check interval partition
+					</button>
+				</form>
+			{/if}
+
+			{#if activeId !== "interval-builder"}
+				<form
+					class="scalar-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						solver.checkStep4();
+					}}
+				>
+					<label class:equation-entry={Boolean(activeContact)}>
+						{#if activeContact && activeId.endsWith("-form")}
+							<MathText
+								text={`$${formatConvolutionScalar(activeContact.fixed)}=$`}
+							/>
+						{:else if activeContact}
+							<MathText text={String.raw`$t=$`} />
+						{:else}
+							<span>Your answer</span>
+						{/if}
 						<input
 							type="text"
-							bind:value={activeState.intervalInputs[index]}
-							aria-label={`Interval ${index + 2} lower boundary`}
-						/><MathInline math="\le t<" /><input
-							type="text"
-							bind:value={activeState.intervalInputs[index + 1]}
-							aria-label={`Interval ${index + 2} upper boundary`}
+							bind:value={activeState.input}
+							aria-label={activeContact &&
+							activeId.endsWith("-form")
+								? "Transformed moving breakpoint"
+								: activeContact
+									? "Contact time after t equals"
+									: "Step answer"}
 						/>
 					</label>
-				{/each}
-				<label>
-					<MathInline math="t\ge" />
-					<input
-						type="text"
-						bind:value={
-							activeState.intervalInputs[
-								activeState.intervalInputs.length - 1
-							]
-						}
-						aria-label="Final interval lower boundary"
-					/>
-				</label>
-			</div>
-		{/if}
+					<button
+						type="submit"
+						class="check-button">Check this part</button
+					>
+				</form>
+			{/if}
+		</SubStepBlock>
 
-		{#if activeId !== "interval-builder"}
-			<label class="scalar-entry">
-				<span>Your answer</span>
-				<input
-					type="text"
-					bind:value={activeState.input}
-					onkeydown={(event) =>
-						event.key === "Enter" && solver.checkStep4()}
-				/>
-			</label>
-		{/if}
-		<button
-			type="button"
-			class="check-button"
-			onclick={() => solver.checkStep4()}
-		>
-			{activeId === "interval-builder"
-				? "Check interval partition"
-				: "Check this part"}
-		</button>
 		<StepFeedback {solver} />
 		<HintDisclosure
 			hints={solver.activeHints}
@@ -191,33 +318,48 @@
 </StepCard>
 
 <style>
-	/* ── Step layout ───────────────────────────────────────── */
+	/* ── Step and summary layout ───────────────────────────── */
 	.step-body,
-	.summary-list,
-	.contact-list,
-	.interval-list {
+	.scalar-form,
+	.interval-form,
+	.interval-list,
+	.verified-summary {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		min-width: 0;
 	}
+	.summary-grid,
+	.contact-context {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+		width: 100%;
+		min-width: 0;
+	}
 	.definition,
+	.purpose,
 	.step-prompt,
-	.context-note {
+	.context-note,
+	.group-note,
+	.verified-summary p {
 		margin: 0;
 		line-height: var(--leading-relaxed);
 	}
-	.definition {
+	.definition,
+	.purpose,
+	.context-note,
+	.group-note {
 		color: var(--text-secondary);
 	}
 	.step-prompt {
 		color: var(--text-primary);
 	}
-	.context-note {
-		color: var(--text-muted);
+	.context-note,
+	.group-note {
 		font-size: var(--text-sm);
 	}
-	.scalar-entry {
+	.scalar-form label {
 		display: flex;
 		flex-direction: column;
 		gap: 0.3rem;
@@ -226,7 +368,13 @@
 		font-size: var(--text-xs);
 		font-weight: 600;
 	}
-	.scalar-entry input,
+	.scalar-form label.equation-entry {
+		flex-direction: row;
+		align-items: center;
+		max-width: 430px;
+		font-size: var(--text-base);
+	}
+	.scalar-form input,
 	.interval-list input {
 		min-width: 0;
 		padding: 0.5rem 0.6rem;
@@ -235,6 +383,9 @@
 		background: var(--bg-input);
 		color: var(--text-primary);
 		font: inherit;
+	}
+	.scalar-form .equation-entry input {
+		flex: 1;
 	}
 	.interval-list label {
 		display: grid;
@@ -260,11 +411,21 @@
 		font-weight: 700;
 		cursor: pointer;
 	}
-	.scalar-entry input:focus-visible,
+	.scalar-form input:focus-visible,
 	.interval-list input:focus-visible,
 	.check-button:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
+	}
+
+	/* ── Mobile media query (≤720px) ──────────────────────── */
+	@media (max-width: 720px) {
+		.summary-grid,
+		.contact-context {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	/* ── Mobile media query (≤520px) ──────────────────────── */

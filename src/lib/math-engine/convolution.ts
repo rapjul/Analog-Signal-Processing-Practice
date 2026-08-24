@@ -62,7 +62,10 @@ export type {
 	ConvolutionTransformedSection,
 	ConvolutionTransitionGroup,
 } from "./convolution/its-scaffolding";
-export { getFiniteConvolutionTransitionTimes } from "./convolution/its-scaffolding";
+export {
+	formatConvolutionScalar,
+	getFiniteConvolutionTransitionTimes,
+} from "./convolution/its-scaffolding";
 
 /** Rectangular pulse signal parameters */
 export interface RectSignal {

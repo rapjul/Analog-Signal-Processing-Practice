@@ -18,6 +18,21 @@ export function formatTranslatedArgument(
 }
 
 /**
+ * Formats direct substitution into a subtraction without doubled signs.
+ *
+ * @param variable - Mathematical variable preceding the subtraction.
+ * @param value - Numeric value substituted for the subtracted quantity.
+ * @returns Substitution form with parentheses around negative values.
+ */
+export function formatSubstitutedDifference(
+	variable: string,
+	value: number,
+): string {
+	if (value < 0) return `${variable}-(${value})`;
+	return `${variable}-${value}`;
+}
+
+/**
  * Formats an amplitude multiplier without writing a redundant coefficient.
  *
  * @param amplitude - Exact real pulse amplitude.

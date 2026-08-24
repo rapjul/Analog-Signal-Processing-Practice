@@ -16,6 +16,7 @@ import type {
 	ConvolutionTransitionStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
 import type {
+	ConvolutionBreakpointContact,
 	ConvolutionItsOption,
 	ConvolutionMovingSignal,
 	ConvolutionProblem,
@@ -151,34 +152,73 @@ function createFlipState(
 /** Creates ordered typed state for Step 4 discovery. */
 function createTransitionState(
 	problem: ConvolutionProblem,
+	movingSignal: ConvolutionMovingSignal,
 ): ConvolutionTransitionStepState {
+	const contacts = problem.itsData.step4.transitionGroups.flatMap(
+		(group) => group.contactsBySignal[movingSignal],
+	);
 	const partIds = [
 		"section-count-x",
 		"section-count-h",
 		...problem.itsData.step4.breakpointParts.map(({ id }) => id),
-		...problem.itsData.step4.transitionGroups.map(({ id }) => id),
+		...contacts.flatMap(({ id }) => [`${id}-form`, `${id}-solve`]),
+		"transition-count",
+		"interval-count",
 		"interval-builder",
 	];
 	const subSteps = Object.fromEntries(
-		partIds.map((id) => [
-			id,
-			createSubStepState(
+		partIds.map((id) => {
+			const signal = id === "section-count-x" ? "x" : "h";
+			const breakpoint = problem.itsData.step4.breakpointParts.find(
+				(part) => part.id === id,
+			);
+			const contact = contacts.find(({ id: contactId }) =>
+				id.startsWith(contactId),
+			);
+			const isForm = id.endsWith("-form");
+			let title = "Find One Signal Change";
+			let hints: string[] = [];
+			if (id.startsWith("section-count-")) {
+				title = `Count the Sections of ${signal}(t)`;
+				hints = problem.itsData.step4.sectionHints[signal];
+			} else if (breakpoint) {
+				title = breakpoint.title;
+				hints = breakpoint.hints;
+			} else if (contact) {
+				title = isForm
+					? "Form One Breakpoint Contact"
+					: "Solve One Contact Time";
+				hints = isForm
+					? contact.formulationHints
+					: contact.solutionHints;
+			} else if (id === "transition-count") {
+				title = "Count the Distinct Transition Times";
+				hints = problem.itsData.step4.transitionCountHints;
+			} else if (id === "interval-count") {
+				title = "Count the Output Intervals";
+				hints = problem.itsData.step4.intervalCountHints;
+			} else if (id === "interval-builder") {
+				title = "Build the Time Intervals";
+				hints = problem.itsData.step4.intervalBuilderHints;
+			}
+			return [
 				id,
-				id === "interval-builder"
-					? "Build the Time Intervals"
-					: "Find One Signal Change",
-				{
-					input: "",
-					intervalInputs:
-						id === "interval-builder"
-							? problem.itsData.step4.intervalBoundaries.map(
-									() => "",
-								)
-							: [],
-				},
-				problem.itsData.step4.hints,
-			),
-		]),
+				createSubStepState(
+					id,
+					title,
+					{
+						input: "",
+						intervalInputs:
+							id === "interval-builder"
+								? problem.itsData.step4.intervalBoundaries.map(
+										() => "",
+									)
+								: [],
+					},
+					hints,
+				),
+			];
+		}),
 	);
 	return createMultiPartStepState(
 		{},
@@ -186,6 +226,16 @@ function createTransitionState(
 		subSteps,
 		partIds[0] ?? "interval-builder",
 	) as ConvolutionTransitionStepState;
+}
+
+/** Returns the active path's ordered guided contacts. */
+function step4Contacts(
+	problem: ConvolutionProblem,
+	movingSignal: ConvolutionMovingSignal,
+): ConvolutionBreakpointContact[] {
+	return problem.itsData.step4.transitionGroups.flatMap(
+		(group) => group.contactsBySignal[movingSignal],
+	);
 }
 
 /** Creates ordered bound state for every Step 5 interval. */
@@ -447,6 +497,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 	/** Stores either valid moving-signal preference and opens Step 3B. */
 	chooseMovingSignal(signal: ConvolutionMovingSignal): void {
 		this.step3.selectedSignal = signal;
+		this.step4 = createTransitionState(this.problem, signal);
 		this.setSubStepPassed(this.step3, "choose-signal", "choose-formula");
 	}
 
@@ -573,8 +624,58 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepValidation(
 				this.step4,
 				id,
-				"Enter the requested count or transition value.",
+				id.endsWith("-form")
+					? "Enter the transformed moving-breakpoint expression after the equals sign."
+					: "Enter the requested count or value.",
 			);
+			return;
+		}
+		const contact = step4Contacts(this.problem, this.flippedSignal).find(
+			({ id: contactId }) => id.startsWith(contactId),
+		);
+		if (contact && id.endsWith("-form")) {
+			if (state.input.includes("=")) {
+				this.setSubStepValidation(
+					this.step4,
+					id,
+					"Enter only the transformed expression on the right side; the fixed breakpoint and equals sign are already shown.",
+				);
+				return;
+			}
+			if (
+				!convolutionExpressionsMatch(
+					state.input,
+					contact.transformedLatex,
+				)
+			) {
+				this.setSubStepIncorrect(
+					this.step4,
+					id,
+					"Reflect and translate the original moving breakpoint $b$ to $t-b$. Put parentheses around $b$ when it is negative.",
+				);
+				return;
+			}
+			this.passActiveSubStep(this.step4, 5);
+			return;
+		}
+		if (contact && id.endsWith("-solve")) {
+			if (state.input.includes("=")) {
+				this.setSubStepValidation(
+					this.step4,
+					id,
+					"Enter only the value after $t=$; the variable and equals sign are already shown.",
+				);
+				return;
+			}
+			if (!scalarMatches(state.input, contact.transitionTime)) {
+				this.setSubStepIncorrect(
+					this.step4,
+					id,
+					"Solve the verified contact equation for $t$ by adding the original moving breakpoint to the fixed breakpoint.",
+				);
+				return;
+			}
+			this.passActiveSubStep(this.step4, 5);
 			return;
 		}
 		let expected: number | undefined;
@@ -582,21 +683,23 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			expected = this.problem.itsData.step4.sectionCounts.x;
 		else if (id === "section-count-h")
 			expected = this.problem.itsData.step4.sectionCounts.h;
+		else if (id === "transition-count")
+			expected = this.problem.itsData.step4.transitionGroups.length;
+		else if (id === "interval-count")
+			expected = this.problem.itsData.step4.intervalLabels.length;
 		else
-			expected =
-				this.problem.itsData.step4.breakpointParts.find(
-					(part) => part.id === id,
-				)?.value ??
-				this.problem.itsData.step4.transitionGroups.find(
-					(group) => group.id === id,
-				)?.time;
+			expected = this.problem.itsData.step4.breakpointParts.find(
+				(part) => part.id === id,
+			)?.value;
 		if (expected === undefined || !scalarMatches(state.input, expected)) {
 			this.setSubStepIncorrect(
 				this.step4,
 				id,
-				id.startsWith("transition-")
-					? "Solve the displayed contact equation as $t=a+b$ and group contacts with the same answer."
-					: "Count each disconnected pulse separately and include each interior edge, slope change, or formula change.",
+				id === "transition-count"
+					? "Count each distinct grouped transition time once."
+					: id === "interval-count"
+						? "The transition times divide the time axis into one more interval than the number of transitions."
+						: "Count each disconnected pulse separately and include each interior edge, slope change, or formula change.",
 			);
 			return;
 		}
@@ -768,7 +871,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.step1 = createTimingState(this.problem);
 		this.step2 = createStepState({ selected: null as string | null });
 		this.step3 = createFlipState(this.problem);
-		this.step4 = createTransitionState(this.problem);
+		this.step4 = createTransitionState(this.problem, "h");
 		this.step5 = createBoundsState(this.problem);
 		this.step6 = createEvaluationState(this.problem);
 		this.step7 = createStepState({ selected: null as string | null });
@@ -915,6 +1018,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				while (this.currentStep === 4) {
 					const id = this.step4.activeSubStepId;
 					const state = this.step4.subSteps[id];
+					const contact = step4Contacts(
+						this.problem,
+						this.flippedSignal,
+					).find(({ id: contactId }) => id.startsWith(contactId));
 					if (id === "interval-builder")
 						state.intervalInputs =
 							this.problem.itsData.step4.intervalBoundaries.map(
@@ -928,15 +1035,23 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						state.input = String(
 							this.problem.itsData.step4.sectionCounts.h,
 						);
+					else if (contact)
+						state.input = id.endsWith("-form")
+							? contact.transformedLatex
+							: String(contact.transitionTime);
+					else if (id === "transition-count")
+						state.input = String(
+							this.problem.itsData.step4.transitionGroups.length,
+						);
+					else if (id === "interval-count")
+						state.input = String(
+							this.problem.itsData.step4.intervalLabels.length,
+						);
 					else
 						state.input = String(
 							this.problem.itsData.step4.breakpointParts.find(
 								(part) => part.id === id,
-							)?.value ??
-								this.problem.itsData.step4.transitionGroups.find(
-									(group) => group.id === id,
-								)?.time ??
-								"",
+							)?.value ?? "",
 						);
 					this.checkStep4();
 				}
