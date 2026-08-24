@@ -396,7 +396,11 @@ function buildPathSetup(
 	fixedBreakpoints: number[],
 	movingBreakpoints: number[],
 ): ConvolutionIntegralPathSetup {
-	if (interval.exprLatex === "0")
+	if (
+		interval.hasGeometricOverlap === false ||
+		(interval.hasGeometricOverlap === undefined &&
+			interval.exprLatex === "0")
+	)
 		return { hasOverlap: false, overlaps: [], integralLatex: "y(t)=0" };
 	const time = representativeTime(interval);
 	const fixedInterior = fixedBreakpoints.slice(1, -1);
@@ -469,30 +473,32 @@ function buildSetupPart(
 	index: number,
 	context: ConvolutionItsBuildContext,
 ): ConvolutionItsIntervalPart {
+	const setupBySignal = {
+		h: buildPathSetup(
+			interval,
+			"h" as const,
+			context.xSections,
+			context.hSections,
+			context.xBreakpoints,
+			context.hBreakpoints,
+		),
+		x: buildPathSetup(
+			interval,
+			"x" as const,
+			context.hSections,
+			context.xSections,
+			context.hBreakpoints,
+			context.xBreakpoints,
+		),
+	};
 	return {
 		id: `setup-${String(index + 1).padStart(2, "0")}`,
 		title: `Determine Bounds for Region ${index + 1}`,
 		intervalLatex: interval.labelLatex,
-		resultLatex: interval.integralSetupLatex ?? "y(t)=0",
+		resultLatex:
+			interval.integralSetupLatex ?? setupBySignal.h.integralLatex,
 		options: [],
-		setupBySignal: {
-			h: buildPathSetup(
-				interval,
-				"h",
-				context.xSections,
-				context.hSections,
-				context.xBreakpoints,
-				context.hBreakpoints,
-			),
-			x: buildPathSetup(
-				interval,
-				"x",
-				context.hSections,
-				context.xSections,
-				context.hBreakpoints,
-				context.xBreakpoints,
-			),
-		},
+		setupBySignal,
 		hints: [
 			`Work only in the verified interval $${interval.labelLatex}$.`,
 			"Choose the larger left edge for the lower limit and the smaller right edge for the upper limit.",
@@ -515,7 +521,9 @@ function buildEvaluationPart(
 		hints: [
 			`Evaluate only for $${interval.labelLatex}$.`,
 			"Substitute every verified bound before simplifying.",
-			`An equivalent simplified result is $y(t)=${interval.exprLatex}$.`,
+			interval.hasGeometricOverlap && interval.exprLatex === "0"
+				? "The overlap is nonempty, but its signed component integrals cancel to zero."
+				: `An equivalent simplified result is $y(t)=${interval.exprLatex}$.`,
 		],
 	};
 }
@@ -613,7 +621,8 @@ export function buildConvolutionItsData(
 	context: ConvolutionItsBuildContext,
 ): ConvolutionItsData {
 	const outputIntervals = context.intervals.filter(
-		({ exprLatex }) => exprLatex !== "0",
+		({ exprLatex, hasGeometricOverlap }) =>
+			hasGeometricOverlap ?? exprLatex !== "0",
 	);
 	const xStart = context.xSections[0]?.start ?? Number.NEGATIVE_INFINITY;
 	const xEnd = context.xSections.at(-1)?.end ?? Number.POSITIVE_INFINITY;

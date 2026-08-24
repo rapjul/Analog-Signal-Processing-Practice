@@ -5,8 +5,16 @@
  */
 
 import {
+	type ConvolutionProblemSelection,
+	DEFAULT_CONVOLUTION_SELECTION,
+	type ResolvedConvolutionSelection,
+	resolveConvolutionSelection,
+} from "./convolution/configuration";
+import { solveConfiguredConvolution } from "./convolution/configured-solver";
+import {
 	buildConvolutionItsData,
 	type ConvolutionItsData,
+	type ConvolutionSignalSection,
 } from "./convolution/its-scaffolding";
 import {
 	createRandomSeed,
@@ -16,6 +24,26 @@ import {
 } from "./random";
 import type { SolutionStep } from "./types";
 
+export type {
+	ConvolutionAmplitudeSelection,
+	ConvolutionParameterMode,
+	ConvolutionProblemSelection,
+	ConvolutionShiftState,
+	ConvolutionShiftValueSelection,
+	ConvolutionSignalSelection,
+	ConvolutionSignalType,
+	ConvolutionSignalTypeSelection,
+	ResolvedConvolutionSelection,
+	ResolvedConvolutionSignal,
+} from "./convolution/configuration";
+export {
+	CONVOLUTION_SIGNAL_TYPES,
+	DEFAULT_CONVOLUTION_SELECTION,
+	DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
+	resolveConvolutionSelection,
+	resolveConvolutionSignal,
+} from "./convolution/configuration";
+export { solveConfiguredConvolution } from "./convolution/configured-solver";
 export type {
 	ConvolutionBreakpointContact,
 	ConvolutionBreakpointPart,
@@ -71,6 +99,8 @@ export interface ConvolutionInterval {
 	flipXSupportIntersectionLatex?: string;
 	/** Exact integral setup when x is the moving signal. */
 	flipXIntegralSetupLatex?: string;
+	/** Whether the original signals geometrically overlap in this region. */
+	hasGeometricOverlap?: boolean;
 	/** Numerical evaluator function for segment */
 	eval: (t: number) => number;
 }
@@ -111,7 +141,7 @@ export interface ConvolutionProblem {
 	/** Unique identifier */
 	id: string;
 	/** Convolution pair classification category */
-	pairType: ConvolutionPairType;
+	pairType: string;
 	/** Unsigned seed used to reproduce the problem. */
 	seed: number;
 	/** Title of problem */
@@ -142,13 +172,22 @@ export interface ConvolutionProblem {
 	timeRange?: [number, number];
 	/** Structured seven-step Intelligent Tutoring System data. */
 	itsData: ConvolutionItsData;
+	/** Independent selections used by the configured generator. */
+	selection?: ConvolutionProblemSelection;
+	/** Concrete resolved signals used by the configured generator. */
+	resolvedSignals?: ResolvedConvolutionSelection;
+	/** Number of finite transition regions shown before tutoring begins. */
+	regionCount?: number;
 }
 
 /** Convolution problem before its standardized tutor scaffold is attached. */
 type ConvolutionProblemSource = Omit<
 	ConvolutionProblem,
 	"itsData" | "xSupportEdges" | "hSupportEdges"
->;
+> & {
+	xSections?: ConvolutionSignalSection[];
+	hSections?: ConvolutionSignalSection[];
+};
 
 /** Optional deterministic generation controls for convolution practice. */
 export interface ConvolutionGenerationOptions {
@@ -174,62 +213,61 @@ function withConvolutionItsData(
 	) => ({ id, start, end, startIncluded, endIncluded });
 	const xBreakpoints = problem.xBreakpoints ?? [0];
 	const hBreakpoints = problem.hBreakpoints ?? [0];
-	let xSections = [
+	let xSections = problem.xSections ?? [
 		section(
 			"x-1",
 			xBreakpoints[0] ?? 0,
 			xBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
 		),
 	];
-	let hSections = [
+	let hSections = problem.hSections ?? [
 		section(
 			"h-1",
 			hBreakpoints[0] ?? 0,
 			hBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
 		),
 	];
-	switch (problem.pairType) {
-		case "multi_rect":
-			xSections = [section("x-1", 0, 1), section("x-2", 3, 4)];
-			hSections = [section("h-1", 0, 2)];
-			break;
-		case "rect_exp":
-			hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
-			break;
-		case "exp_exp":
-		case "step_exp":
-			xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
-			hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
-			break;
-		case "step_rect":
-			xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
-			break;
-		case "tri_rect":
-			xSections = [section("x-1", -2, 2, false, false)];
-			hSections = [section("h-1", -1, 1)];
-			break;
-		case "tri_shifted_tri":
-			xSections = [section("x-1", -2, 2, false, false)];
-			hSections = [
-				section(
-					"h-1",
-					hBreakpoints[0] ?? -2,
-					hBreakpoints.at(-1) ?? 2,
-					false,
-					false,
-				),
-			];
-			break;
-		case "rect_rect":
-		case "rect_shifted_rect":
-		case "rect_both_shifted":
-		case "bilateral_exp_rect":
-			break;
-		default: {
-			const unhandledType: never = problem.pairType;
-			throw new Error(`Unknown convolution pair type: ${unhandledType}`);
+	if (!problem.xSections || !problem.hSections)
+		switch (problem.pairType) {
+			case "multi_rect":
+				xSections = [section("x-1", 0, 1), section("x-2", 3, 4)];
+				hSections = [section("h-1", 0, 2)];
+				break;
+			case "rect_exp":
+				hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
+				break;
+			case "exp_exp":
+			case "step_exp":
+				xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
+				hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
+				break;
+			case "step_rect":
+				xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
+				break;
+			case "tri_rect":
+				xSections = [section("x-1", -2, 2, false, false)];
+				hSections = [section("h-1", -1, 1)];
+				break;
+			case "tri_shifted_tri":
+				xSections = [section("x-1", -2, 2, false, false)];
+				hSections = [
+					section(
+						"h-1",
+						hBreakpoints[0] ?? -2,
+						hBreakpoints.at(-1) ?? 2,
+						false,
+						false,
+					),
+				];
+				break;
+			case "rect_rect":
+			case "rect_shifted_rect":
+			case "rect_both_shifted":
+			case "bilateral_exp_rect":
+				break;
+			default:
+				break;
 		}
-	}
 	return {
 		...problem,
 		xSupportEdges: xSections.flatMap(({ start, end }) => [start, end]),
@@ -242,6 +280,94 @@ function withConvolutionItsData(
 			hBreakpoints,
 		}),
 	};
+}
+
+function configuredSignalName(
+	kind: ResolvedConvolutionSelection["x"]["kind"],
+): string {
+	switch (kind) {
+		case "rect":
+			return "Rectangular Pulse";
+		case "triangle":
+			return "Triangular Pulse";
+		case "multi_rect":
+			return "Multiple Rectangular Pulses";
+		case "exponential":
+			return "Causal Exponential";
+	}
+}
+
+/** Generates one exact problem from independent x(t) and h(t) selections. */
+export function generateConfiguredConvolutionProblem(
+	selection: ConvolutionProblemSelection = DEFAULT_CONVOLUTION_SELECTION,
+	options: ConvolutionGenerationOptions = {},
+): ConvolutionProblem {
+	const seed = options.seed ?? createRandomSeed();
+	const resolvedSignals = resolveConvolutionSelection(selection, seed);
+	const result = solveConfiguredConvolution(resolvedSignals);
+	const finiteEdges = [
+		...resolvedSignals.x.sections.flatMap(({ start, end }) => [start, end]),
+		...resolvedSignals.h.sections.flatMap(({ start, end }) => [start, end]),
+	].filter(Number.isFinite);
+	const minimum = Math.min(...finiteEdges, -1);
+	const maximum = Math.max(...finiteEdges, 1);
+	const pairType = `${resolvedSignals.x.kind}_${resolvedSignals.h.kind}`;
+	const configurationKey = [resolvedSignals.x, resolvedSignals.h]
+		.map((signal) =>
+			[
+				signal.kind,
+				signal.parameter,
+				signal.shift,
+				signal.amplitude,
+				...(signal.componentAmplitudes ?? []),
+			].join("_"),
+		)
+		.join("__");
+	return withConvolutionItsData({
+		id: `conv_configured_${seed >>> 0}_${configurationKey}`,
+		seed,
+		pairType,
+		title: `${configuredSignalName(resolvedSignals.x.kind)} and ${configuredSignalName(resolvedSignals.h.kind)} Convolution`,
+		xLatex: resolvedSignals.x.latex,
+		hLatex: resolvedSignals.h.latex,
+		solutionSteps: [
+			{
+				title: "Identify the Two Configured Signals",
+				description:
+					"Record each signal's exact support, breakpoints, amplitude, and translation.",
+				latex: `x(t)=${resolvedSignals.x.latex},\\quad h(t)=${resolvedSignals.h.latex}`,
+			},
+			{
+				title: "Build Every Geometric Overlap Region",
+				description:
+					"Add fixed and moving breakpoints, then integrate every connected overlap component.",
+				latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+			},
+			{
+				title: "Combine Signed Contributions",
+				description:
+					"Add positive and negative component integrals before simplifying each region.",
+				latex: result.intervals
+					.map(
+						(interval) =>
+							`y(t)=${interval.exprLatex}\\quad(${interval.labelLatex})`,
+					)
+					.join(",\\quad "),
+			},
+		],
+		intervals: result.intervals,
+		eval: result.eval,
+		evalX: result.evalX,
+		evalH: result.evalH,
+		xBreakpoints: resolvedSignals.x.breakpoints,
+		hBreakpoints: resolvedSignals.h.breakpoints,
+		xSections: resolvedSignals.x.sections,
+		hSections: resolvedSignals.h.sections,
+		timeRange: [minimum - 2, maximum + 4],
+		selection,
+		resolvedSignals,
+		regionCount: result.intervals.length,
+	});
 }
 
 /**
