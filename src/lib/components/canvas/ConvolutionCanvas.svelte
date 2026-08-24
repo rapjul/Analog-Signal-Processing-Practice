@@ -92,6 +92,31 @@
 	let themeVersion = $state(0);
 	/** Exact current output displayed beside the controls. */
 	const currentOutput = $derived(evalY(shiftT));
+	/** Whether the convolution overlap produces positive and/or negative product regions. */
+	const productPolarity = $derived.by(() => {
+		const [minT, maxT] = normalizedTimeRange;
+		let hasPos = false;
+		let hasNeg = false;
+		const nT = 40;
+		const nTau = 40;
+		const dt = (maxT - minT) / nT;
+		const dtau = (maxT - minT) / nTau;
+		for (let i = 0; i <= nT; i++) {
+			const t = minT + i * dt;
+			for (let j = 0; j <= nTau; j++) {
+				const tau = minT + j * dtau;
+				const prod = fixedEvaluator(tau) * movingEvaluator(t - tau);
+				if (prod > 1e-4) hasPos = true;
+				else if (prod < -1e-4) hasNeg = true;
+				if (hasPos && hasNeg) break;
+			}
+			if (hasPos && hasNeg) break;
+		}
+		if (!hasPos && !hasNeg) {
+			hasPos = true;
+		}
+		return { hasPos, hasNeg };
+	});
 
 	$effect(() => {
 		if (hasInitializedControls) return;
@@ -278,16 +303,30 @@
 					<MathText text={String.raw`$${movingLabel}(t-\tau)$`} />
 				</span>
 			</div>
-			<div class="legend-item">
-				<span class="dot green"></span><span class="label">
-					Positive product
-				</span>
-			</div>
-			<div class="legend-item">
-				<span class="dot rose"></span><span class="label">
-					Negative product
-				</span>
-			</div>
+			{#if productPolarity.hasPos && productPolarity.hasNeg}
+				<div class="legend-item">
+					<span class="dot green"></span><span class="label">
+						Positive product
+					</span>
+				</div>
+				<div class="legend-item">
+					<span class="dot rose"></span><span class="label">
+						Negative product
+					</span>
+				</div>
+			{:else if productPolarity.hasPos}
+				<div class="legend-item">
+					<span class="dot green"></span><span class="label">
+						Product
+					</span>
+				</div>
+			{:else if productPolarity.hasNeg}
+				<div class="legend-item">
+					<span class="dot rose"></span><span class="label">
+						Product
+					</span>
+				</div>
+			{/if}
 			<div class="legend-item">
 				<span class="dot cyan"></span>
 				<span class="label">
