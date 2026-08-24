@@ -35,16 +35,34 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.getByText("Problem Completed!")).toHaveCount(0);
 	});
 
-	test("defaults a bare route to the ECE 210 textbook rectangle problem", async ({
+	test("defaults a bare route to beginner-safe random signals", async ({
 		page,
 	}) => {
 		await page.goto("/convolution");
+		await page.locator(".drill-summary").click();
+		await expect(page.locator("#x-type")).toHaveValue("random");
+		await expect(page.locator("#h-type")).toHaveValue("random");
+		await expect(page.locator("#x-shift-state")).toHaveValue("random");
+		await expect(page.locator("#h-shift-state")).toHaveValue("random");
+		await expect(
+			page.getByRole("button", { name: "Random Problem" }),
+		).toHaveAttribute("aria-pressed", "true");
+		await expect(
+			page.locator("details.customize-disclosure"),
+		).not.toHaveAttribute("open");
+		await expect(page.locator('input[name="seed"]')).not.toHaveValue("");
+		await expect(page).toHaveURL(/\/convolution$/);
+	});
+
+	test("restores the fixed introductory pair with the textbook preset", async ({
+		page,
+	}) => {
+		await page.locator(".drill-summary").click();
+		await page.getByRole("button", { name: "Textbook Example" }).click();
 		await expect(page.locator("#x-type")).toHaveValue("rect");
 		await expect(page.locator("#h-type")).toHaveValue("rect");
 		await expect(page.locator("#x-shift-state")).toHaveValue("unshifted");
 		await expect(page.locator("#h-shift-state")).toHaveValue("unshifted");
-		await expect(page.locator('input[name="seed"]')).not.toHaveValue("");
-		await expect(page).toHaveURL(/\/convolution$/);
 	});
 
 	test("shows progressive hints and targeted misconception feedback", async ({
@@ -67,6 +85,8 @@ test.describe("Continuous-Time Convolution Module", () => {
 	test("submits typed timing with Enter and checks choices immediately", async ({
 		page,
 	}) => {
+		await page.locator(".drill-summary").click();
+		await page.getByRole("button", { name: "Textbook Example" }).click();
 		const timingInputs = page.locator(".timing-grid input");
 		await timingInputs.nth(0).fill("-0.5");
 		await timingInputs.nth(1).fill("0.5");
@@ -109,6 +129,8 @@ test.describe("Continuous-Time Convolution Module", () => {
 		page,
 	}) => {
 		await page.locator(".drill-summary").click();
+		await page.locator("details.customize-disclosure summary").click();
+		await page.locator("#x-type").selectOption("rect");
 		await page.locator("#h-type").selectOption("exponential");
 		await expect(
 			page.getByText(
@@ -137,6 +159,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		page,
 	}) => {
 		await page.locator(".drill-summary").click();
+		await page.locator("details.customize-disclosure summary").click();
 		await page.locator("#x-type").selectOption("triangle");
 		await page.locator("#x-amplitude").selectOption("-2");
 		await page.locator("#h-shift-state").selectOption("shifted");

@@ -112,7 +112,10 @@ function completeTypedRemainder(
 		const setup = problem.itsData.step5.parts.find((part) => part.id === id)
 			?.setupBySignal?.[solver.flippedSignal];
 		if (!setup) throw new Error("Expected bounds setup.");
-		state.hasOverlap = setup.hasOverlap;
+		if (state.stage === "overlap") {
+			solver.chooseStep5Overlap(setup.hasOverlap);
+			continue;
+		}
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: overlap.lowerCandidateValues.map(String) as [
 				string,
@@ -129,15 +132,7 @@ function completeTypedRemainder(
 		solver.checkStep5();
 	}
 	while (solver.currentStep === 6) {
-		const id = solver.step6.activeSubStepId;
-		const index = problem.itsData.step6.parts.findIndex(
-			(part) => part.id === id,
-		);
-		solver.step6.subSteps[id].input =
-			problem.intervals[index]?.exprLatex ?? "0";
-		solver.step6.subSteps[id].upperSubstitution = "F(U)";
-		solver.step6.subSteps[id].lowerSubstitution = "F(L)";
-		solver.checkStep6();
+		answerActiveEvaluationPart(solver, problem);
 	}
 	while (solver.currentStep === 7) {
 		const index = solver.step7.rows.findIndex(({ isValid }) => !isValid);
@@ -145,6 +140,37 @@ function completeTypedRemainder(
 		solver.step7.rows[index].input = problem.intervals[index].exprLatex;
 		solver.checkStep7Row(index);
 	}
+}
+
+/** Enters the exact answer for the currently visible Step 6 field. */
+function answerActiveEvaluationPart(
+	solver: ConvolutionStepSolverState,
+	problem: ConvolutionProblem,
+): void {
+	const id = solver.step6.activeSubStepId;
+	const state = solver.step6.subSteps[id];
+	const index = problem.itsData.step6.parts.findIndex(
+		(part) => part.id === id,
+	);
+	const part = problem.itsData.step6.parts[index];
+	const term =
+		part?.evaluationBySignal?.[solver.flippedSignal][state.activeTermIndex];
+	const input = state.termInputs[state.activeTermIndex];
+	if (state.stage === "combined")
+		state.input = problem.intervals[index]?.exprLatex ?? "0";
+	else if (term && input) {
+		if (state.stage === "geometry-amplitude")
+			input.amplitudeProduct =
+				term.geometry?.amplitudeProductLatex ?? "0";
+		else if (state.stage === "geometry-width")
+			input.overlapWidth = term.geometry?.overlapWidthLatex ?? "0";
+		else if (state.stage === "upper")
+			input.upper = term.upperSubstitutionLatex;
+		else if (state.stage === "lower")
+			input.lower = term.lowerSubstitutionLatex;
+		else input.difference = term.differenceLatex;
+	}
+	solver.checkStep6();
 }
 
 /** Enters the verified answer for the active Step 4 part. */
@@ -534,10 +560,6 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			solver.step6.subSteps[solver.step6.activeSubStepId];
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
-		expressionState.upperSubstitution = "F(U)";
-		expressionState.lowerSubstitution = "F(L)";
-		solver.checkStep6();
-		expect(solver.currentFeedback).toMatch(/evaluated expression/i);
 		expressionState.input = "not valid math";
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
@@ -595,6 +617,16 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			setup.overlaps[0].lowerCandidateValues[0],
 		);
 		solver.checkStep5();
+		expect(state.stage).toBe("upper");
+		state.boundInputs[0].upperValues[0] = "99";
+		solver.checkStep5();
+		expect(solver.currentFeedback).toMatch(/representative time/i);
+		state.boundInputs[0].upperValues[0] = String(
+			setup.overlaps[0].upperCandidateValues[0],
+		);
+		solver.checkStep5();
+		expect(state.stage).toBe("bounds");
+		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/larger.*left/i);
 		state.boundInputs[0].lower = setup.overlaps[0].lowerLatex;
 		state.boundInputs[0].upper = "99";
@@ -617,7 +649,7 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		if (!part || !setup) throw new Error("Expected an apex-split setup.");
 		solver.step5.activeSubStepId = part.id;
 		const state = solver.step5.subSteps[part.id];
-		state.hasOverlap = true;
+		solver.chooseStep5Overlap(true);
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: overlap.lowerCandidateValues.map(String) as [
 				string,
@@ -631,6 +663,10 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			upper: overlap.upperLatex,
 			splits: overlap.splitPointsLatex.map(() => "99"),
 		}));
+		solver.checkStep5();
+		solver.checkStep5();
+		solver.checkStep5();
+		expect(state.stage).toBe("splits");
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		expect(solver.currentFeedback).toMatch(/triangle apex/i);
@@ -751,9 +787,8 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		interval.min = Number.NEGATIVE_INFINITY;
 		interval.max = Number.POSITIVE_INFINITY;
 		interval.eval = () => 0;
-		solver.step6.subSteps[evaluationId].input = "0";
-		solver.step6.subSteps[evaluationId].upperSubstitution = "F(U)";
-		solver.step6.subSteps[evaluationId].lowerSubstitution = "F(L)";
+		solver.step6.subSteps[evaluationId].stage = "combined";
+		solver.step6.subSteps[evaluationId].input = interval.exprLatex;
 		solver.checkStep6();
 		expect(solver.step6.subSteps[evaluationId].isValid).toBe(true);
 	});

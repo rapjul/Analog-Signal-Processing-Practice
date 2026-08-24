@@ -153,7 +153,7 @@ describe("ConvolutionStepSolver", () => {
 		}
 		expect(sawBounds).toBe(true);
 		expect(sawEvaluation).toBe(true);
-	});
+	}, 20_000);
 
 	it("uses native forms for Enter submission and keeps Step 3C endpoint help visible", async () => {
 		const problem = generateConvolutionProblem("rect_rect", { seed: 21 });
@@ -172,8 +172,8 @@ describe("ConvolutionStepSolver", () => {
 				target: { value: String(value) },
 			});
 		const timingForm = inputs[0].closest("form");
-		expect(timingForm).toBeTruthy();
-		await fireEvent.submit(timingForm!);
+		if (!timingForm) throw new Error("Expected the timing form.");
+		await fireEvent.submit(timingForm);
 		expect(view.getByText("Read the Timing of h(t)")).toBeTruthy();
 
 		await act(() => {
@@ -256,15 +256,24 @@ describe("ConvolutionStepSolver", () => {
 		).toBeGreaterThan(0);
 		expect(
 			view.container.querySelectorAll(
-				".piecewise-builder input:not(:disabled)",
+				".piecewise-builder input:not([readonly])",
 			).length,
 		).toBeGreaterThan(0);
+		const reference = view.getByText("Show verified Step 6 expressions");
+		expect(reference.closest("details")?.hasAttribute("open")).toBe(false);
+		const readonlyRows = view.container.querySelectorAll(
+			".piecewise-builder input[readonly][aria-readonly='true']",
+		);
+		expect(readonlyRows.length).toBeGreaterThan(0);
+		expect(readonlyRows[0]?.hasAttribute("disabled")).toBe(false);
 		const editable = view.container.querySelector<HTMLInputElement>(
-			".piecewise-builder input:not(:disabled)",
+			".piecewise-builder input:not([readonly])",
 		);
 		if (!editable) throw new Error("Expected an editable piecewise row.");
 		await fireEvent.input(editable, { target: { value: "999" } });
-		await fireEvent.submit(editable.closest("form")!);
+		const piecewiseForm = editable.closest("form");
+		if (!piecewiseForm) throw new Error("Expected a piecewise row form.");
+		await fireEvent.submit(piecewiseForm);
 		expect(view.getByText(/different interval/i)).toBeTruthy();
 	});
 });

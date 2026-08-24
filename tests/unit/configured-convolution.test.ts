@@ -4,12 +4,13 @@ import {
 	type ConvolutionProblemSelection,
 	type ConvolutionSignalSelection,
 	type ConvolutionSignalType,
-	DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
 	generateConfiguredConvolutionProblem,
 	type ResolvedConvolutionSignal,
 	resolveConvolutionSelection,
 	resolveConvolutionSignal,
 	solveConfiguredConvolution,
+	TEXTBOOK_CONVOLUTION_SELECTION,
+	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 } from "$lib/math-engine/convolution/index";
 
 function selection(
@@ -17,7 +18,7 @@ function selection(
 	overrides: Partial<ConvolutionSignalSelection> = {},
 ): ConvolutionSignalSelection {
 	return {
-		...DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
+		...TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 		componentAmplitudes: ["default", "default"],
 		type,
 		...overrides,
@@ -42,10 +43,30 @@ function numericalConvolution(
 }
 
 describe("independently configured convolution signals", () => {
-	it("keeps the textbook default as two unshifted unit rectangles", () => {
+	it("defaults to beginner-safe random signal types with textbook scales", () => {
 		const problem = generateConfiguredConvolutionProblem(undefined, {
 			seed: 9,
 		});
+		expect(problem.selection?.x).toMatchObject({
+			type: "random",
+			parameterMode: "default",
+			amplitude: "default",
+			shiftState: "random",
+		});
+		expect(problem.resolvedSignals?.x).toMatchObject({
+			parameter: 1,
+			amplitude: 1,
+		});
+		expect(CONVOLUTION_SIGNAL_TYPES).toContain(
+			problem.resolvedSignals?.x.kind,
+		);
+	});
+
+	it("restores two unshifted unit rectangles for the textbook preset", () => {
+		const problem = generateConfiguredConvolutionProblem(
+			TEXTBOOK_CONVOLUTION_SELECTION,
+			{ seed: 9 },
+		);
 		expect(problem.resolvedSignals?.x).toMatchObject({
 			kind: "rect",
 			parameter: 1,

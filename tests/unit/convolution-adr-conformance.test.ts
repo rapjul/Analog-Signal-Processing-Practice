@@ -38,6 +38,7 @@ describe("Convolution ADR conformance", () => {
 				projectRoot,
 				"src/lib/components/canvas/ConvolutionCanvas.svelte",
 			),
+			join(projectRoot, "src/lib/components/ui/StepReveal.svelte"),
 			join(projectRoot, "src/routes/convolution/+page.svelte"),
 		];
 		const source = files
@@ -45,7 +46,9 @@ describe("Convolution ADR conformance", () => {
 			.join("\n");
 		expect(source).not.toMatch(/from\s+["']\.\.\//);
 		expect(source).not.toMatch(/\btyped phases?\b/i);
-		expect(source).not.toMatch(/0\.95rem|0\.68rem/);
+		expect(source).not.toMatch(
+			/font-size:\s*(?:0\.68rem|0\.85rem|0\.88rem|0\.95rem|1rem)/,
+		);
 		expect(source).not.toMatch(/import\s+MathInline/);
 	});
 

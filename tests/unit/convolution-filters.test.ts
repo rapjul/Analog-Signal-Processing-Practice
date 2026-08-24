@@ -31,7 +31,7 @@ function customSelection(): ConvolutionProblemSelection {
 }
 
 describe("convolution frozen share filters", () => {
-	it("uses textbook defaults for bare, legacy, and unversioned URLs", () => {
+	it("uses beginner-safe random defaults for bare and stale URLs", () => {
 		for (const query of ["", "pair=tri_rect&seed=12", "share=1&seed=12"]) {
 			expect(
 				parseConvolutionFilters(new URLSearchParams(query), 123),
@@ -41,6 +41,12 @@ describe("convolution frozen share filters", () => {
 				isShared: false,
 			});
 		}
+		expect(DEFAULT_CONVOLUTION_SELECTION.x).toMatchObject({
+			type: "random",
+			parameterMode: "default",
+			amplitude: "default",
+			shiftState: "random",
+		});
 	});
 
 	it("round-trips every independent signal choice in a frozen URL", () => {
