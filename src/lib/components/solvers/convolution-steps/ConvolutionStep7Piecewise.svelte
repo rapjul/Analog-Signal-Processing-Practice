@@ -70,15 +70,21 @@
 						solver.checkStep7Row(index);
 					}}
 				>
-					<MathText
-						text={String.raw`$${interval.labelLatex}:\quad y(t)=$`}
-					/>
-					<input
-						type="text"
-						bind:value={row.input}
-						disabled={row.isLocked || row.isValid}
-						aria-label={`Expression for ${interval.labelLatex}`}
-					/>
+					<h4
+						tabindex="-1"
+						data-progress-heading
+					>
+						<MathText text={`$${interval.labelLatex}$`} />
+					</h4>
+					<label>
+						<MathText text={String.raw`$y(t)=$`} />
+						<input
+							type="text"
+							bind:value={row.input}
+							disabled={row.isLocked || row.isValid}
+							aria-label={`Expression for ${interval.labelLatex}`}
+						/>
+					</label>
 					<button
 						type="submit"
 						disabled={row.isLocked || row.isValid}
@@ -127,6 +133,17 @@
 	.piecewise-builder form.verified {
 		border-color: var(--color-success);
 		background: var(--color-success-bg);
+	}
+	.piecewise-builder h4 {
+		margin: 0;
+		font-size: var(--text-base);
+	}
+	.piecewise-builder label {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
 	}
 	.piecewise-builder input {
 		min-width: 0;

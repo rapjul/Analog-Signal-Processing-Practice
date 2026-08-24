@@ -65,6 +65,9 @@
 			solver.currentStep === 4 ? solver.step4.activeSubStepId : "",
 			solver.currentStep === 5 ? solver.step5.activeSubStepId : "",
 			solver.currentStep === 6 ? solver.step6.activeSubStepId : "",
+			solver.currentStep === 7
+				? solver.step7.rows.findIndex(({ isValid }) => !isValid)
+				: "",
 		].join(":");
 		if (!lastProgressKey) {
 			lastProgressKey = progressKey;
@@ -75,6 +78,9 @@
 		const timeout = window.setTimeout(async () => {
 			await tick();
 			const heading =
+				solverElement?.querySelector<HTMLElement>(
+					".step-card.active .piecewise-builder form:not(.verified) [data-progress-heading]",
+				) ??
 				solverElement?.querySelector<HTMLElement>(
 					".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading]",
 				) ??

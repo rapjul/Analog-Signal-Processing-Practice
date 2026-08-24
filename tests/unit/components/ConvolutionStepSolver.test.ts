@@ -19,7 +19,7 @@ describe("ConvolutionStepSolver", () => {
 		expect(
 			view.container.querySelectorAll(".step-card.locked"),
 		).toHaveLength(6);
-		expect(view.getByText(/support is the interval/i)).toBeTruthy();
+		expect(view.getByText(/support is all times/i)).toBeTruthy();
 
 		for (const part of problem.itsData.step1.parts) {
 			const inputs =
@@ -57,7 +57,7 @@ describe("ConvolutionStepSolver", () => {
 			view.getByRole("button", { name: "Check timing and width" }),
 		);
 		expect(view.getByRole("alert").textContent).toMatch(
-			/enter the left boundary/i,
+			/enter the start time/i,
 		);
 		const input =
 			view.container.querySelector<HTMLInputElement>(
@@ -233,5 +233,31 @@ describe("ConvolutionStepSolver", () => {
 		expect(
 			activeCard?.querySelector(".evaluation-form button[type='submit']"),
 		).toBeTruthy();
+	});
+
+	it("builds Step 7 from interval-aligned typed rows with announced headings", async () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const view = render(ConvolutionStepSolver, { problem });
+		await act(() => {
+			expect(
+				window.__signalLabDev?.goToVisualState("convolution.step-07"),
+			).toBe(true);
+		});
+		const rows = view.container.querySelectorAll(".piecewise-builder form");
+		expect(rows).toHaveLength(problem.intervals.length);
+		expect(
+			view.container.querySelectorAll(
+				".piecewise-builder [data-progress-heading][tabindex='-1']",
+			),
+		).toHaveLength(problem.intervals.length);
+		expect(
+			view.container.querySelectorAll(".piecewise-builder form.verified")
+				.length,
+		).toBeGreaterThan(0);
+		expect(
+			view.container.querySelectorAll(
+				".piecewise-builder input:not(:disabled)",
+			).length,
+		).toBeGreaterThan(0);
 	});
 });
