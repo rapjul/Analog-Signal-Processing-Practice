@@ -48,3 +48,69 @@ export function convolutionExpressionsMatch(
 	}
 	return true;
 }
+
+/**
+ * Compares a contact formulation input against expected transformed expression and fixed value.
+ *
+ * Accepts:
+ * - Bare transformed expression: `t - 1`
+ * - Full equation: `2 = t - 1`
+ * - Reversed equation: `t - 1 = 2`
+ *
+ * @param input - Student-entered string.
+ * @param expectedFixed - Fixed signal breakpoint coordinate.
+ * @param expectedTransformedLatex - Expected transformed moving breakpoint expression.
+ */
+export function convolutionContactEquationMatches(
+	input: string,
+	expectedFixed: number,
+	expectedTransformedLatex: string,
+): boolean {
+	const trimmed = input.trim();
+	if (!trimmed) return false;
+	if (trimmed.includes("=")) {
+		const parts = trimmed.split("=").map((p) => p.trim());
+		if (parts.length !== 2) return false;
+		const [left, right] = parts;
+		if (
+			convolutionScalarMatches(left, expectedFixed) &&
+			convolutionExpressionsMatch(right, expectedTransformedLatex)
+		) {
+			return true;
+		}
+		if (
+			convolutionExpressionsMatch(left, expectedTransformedLatex) &&
+			convolutionScalarMatches(right, expectedFixed)
+		) {
+			return true;
+		}
+		return false;
+	}
+	return convolutionExpressionsMatch(trimmed, expectedTransformedLatex);
+}
+
+/**
+ * Compares a contact solve input against expected transition time.
+ *
+ * Accepts:
+ * - Bare number: `3`
+ * - Equation: `t = 3`, `3 = t`
+ *
+ * @param input - Student-entered string.
+ * @param expectedTime - Target transition time scalar.
+ */
+export function convolutionContactSolveMatches(
+	input: string,
+	expectedTime: number,
+): boolean {
+	let normalized = input.trim();
+	if (normalized.includes("=")) {
+		const parts = normalized.split("=").map((p) => p.trim());
+		if (parts.length !== 2) return false;
+		const [left, right] = parts;
+		if (left.toLowerCase() === "t") normalized = right;
+		else if (right.toLowerCase() === "t") normalized = left;
+		else return false;
+	}
+	return convolutionScalarMatches(normalized, expectedTime);
+}

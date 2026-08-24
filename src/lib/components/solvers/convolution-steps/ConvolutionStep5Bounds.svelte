@@ -164,75 +164,22 @@
 									</h5>
 									<p class="comparison-prompt">
 										<MathText
-											text={activeState.stage === "lower"
-												? `At $t=${overlap.representativeTime}$, evaluate both left edges. The larger value becomes the lower integration limit.`
-												: activeState.stage === "upper"
-													? `At $t=${overlap.representativeTime}$, evaluate both right edges. The smaller value becomes the upper integration limit.`
-													: activeState.stage ===
-														  "bounds"
-														? "Use the verified comparisons to enter the two symbolic integration limits."
-														: "Enter each interior point where an active signal formula changes."}
+											text={activeState.stage === "bounds"
+												? "Use the interval comparisons to enter the symbolic lower limit L(t) and upper limit U(t)."
+												: "Enter each interior point where an active signal formula changes."}
 										/>
 									</p>
-									{#if activeState.stage === "lower"}
+									{#if activeState.stage === "bounds"}
 										<MathBlock
-											math={String.raw`L(t)=\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)`}
+											math={String.raw`L(t)=\max\left(${overlap.lowerCandidatesLatex.join(",")}\right),\qquad U(t)=\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
 											compact={true}
 											hideHeader={true}
 											responsive={true}
 										/>
-										<div class="candidate-value-grid">
-											{#each overlap.lowerCandidatesLatex as candidate, candidateIndex}
-												<label>
-													<MathText
-														text={`$${candidate}$ at the test time`}
-													/>
-													<input
-														type="text"
-														bind:value={
-															activeState
-																.boundInputs[
-																overlapIndex
-															].lowerValues[
-																candidateIndex
-															]
-														}
-													/>
-												</label>
-											{/each}
-										</div>
-									{:else if activeState.stage === "upper"}
-										<MathBlock
-											math={String.raw`U(t)=\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
-											compact={true}
-											hideHeader={true}
-											responsive={true}
-										/>
-										<div class="candidate-value-grid">
-											{#each overlap.upperCandidatesLatex as candidate, candidateIndex}
-												<label>
-													<MathText
-														text={`$${candidate}$ at the test time`}
-													/>
-													<input
-														type="text"
-														bind:value={
-															activeState
-																.boundInputs[
-																overlapIndex
-															].upperValues[
-																candidateIndex
-															]
-														}
-													/>
-												</label>
-											{/each}
-										</div>
-									{:else if activeState.stage === "bounds"}
 										<div class="bound-input-grid">
 											<label>
 												<span
-													>Simplified lower limit</span
+													>Simplified lower limit L(t)</span
 												>
 												<input
 													type="text"
@@ -241,12 +188,12 @@
 															overlapIndex
 														].lower
 													}
-													placeholder="larger left edge"
+													placeholder="e.g. 0 or t-2"
 												/>
 											</label>
 											<label>
 												<span
-													>Simplified upper limit</span
+													>Simplified upper limit U(t)</span
 												>
 												<input
 													type="text"
@@ -255,10 +202,33 @@
 															overlapIndex
 														].upper
 													}
-													placeholder="smaller right edge"
+													placeholder="e.g. t or 1"
 												/>
 											</label>
 										</div>
+										<details class="candidate-assist">
+											<summary>
+												Need help comparing candidates?
+												Check at test time
+												<MathText
+													text={`$t=${overlap.representativeTime}$`}
+												/>
+											</summary>
+											<div
+												class="candidate-assist-content"
+											>
+												<p>
+													<MathText
+														text={String.raw`At $t=${overlap.representativeTime}$, the left candidates evaluate to $${overlap.lowerCandidatesLatex[0]}=${overlap.lowerCandidateValues[0]}$ and $${overlap.lowerCandidatesLatex[1] ?? ""}=${overlap.lowerCandidateValues[1] ?? ""}$. The larger value gives $L(t)$.`}
+													/>
+												</p>
+												<p>
+													<MathText
+														text={String.raw`At $t=${overlap.representativeTime}$, the right candidates evaluate to $${overlap.upperCandidatesLatex[0]}=${overlap.upperCandidateValues[0]}$ and $${overlap.upperCandidatesLatex[1] ?? ""}=${overlap.upperCandidateValues[1] ?? ""}$. The smaller value gives $U(t)$.`}
+													/>
+												</p>
+											</div>
+										</details>
 									{:else if activeState.stage === "splits"}
 										<div class="split-grid">
 											{#each overlap.splitPointsLatex as _, splitIndex}
@@ -288,13 +258,9 @@
 							type="submit"
 							class="check-button"
 						>
-							{activeState.stage === "lower"
-								? "Check lower candidates"
-								: activeState.stage === "upper"
-									? "Check upper candidates"
-									: activeState.stage === "bounds"
-										? "Check symbolic bounds"
-										: "Check split points"}
+							{activeState.stage === "bounds"
+								? "Check symbolic bounds"
+								: "Check split points"}
 						</button>
 					</form>
 				{/if}
@@ -411,14 +377,39 @@
 		margin: 0;
 		color: var(--accent-primary);
 	}
-	.candidate-value-grid,
+	.candidate-assist {
+		padding: 0.5rem 0.65rem;
+		border: 1px dashed var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-card);
+		font-size: var(--text-xs);
+	}
+	.candidate-assist summary {
+		cursor: pointer;
+		color: var(--accent-primary);
+		font-weight: 600;
+	}
+	.candidate-assist summary:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+	.candidate-assist-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		margin-top: 0.45rem;
+		color: var(--text-secondary);
+	}
+	.candidate-assist-content p {
+		margin: 0;
+		line-height: var(--leading-relaxed);
+	}
 	.bound-input-grid,
 	.split-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.65rem;
 	}
-	.candidate-value-grid label,
 	.bound-input-grid label,
 	.split-grid label {
 		display: flex;
@@ -430,7 +421,6 @@
 		font-weight: 600;
 	}
 	.bound-input-grid input,
-	.candidate-value-grid input,
 	.split-grid input {
 		min-width: 0;
 		padding: 0.5rem;
@@ -458,7 +448,6 @@
 		cursor: pointer;
 	}
 	.binary-grid button:focus-visible,
-	.candidate-value-grid input:focus-visible,
 	.bound-input-grid input:focus-visible,
 	.split-grid input:focus-visible,
 	.check-button:focus-visible {
@@ -470,7 +459,6 @@
 
 	/* ── Mobile media query (≤640px) ──────────────────────── */
 	@media (max-width: 640px) {
-		.candidate-value-grid,
 		.bound-input-grid,
 		.split-grid,
 		.summary-row {

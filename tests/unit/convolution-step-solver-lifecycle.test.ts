@@ -68,7 +68,6 @@ function completeFlip(
 		solver.step3.edgeInputs[expected.id] = {
 			left: expected.leftLatex,
 			right: expected.rightLatex,
-			includedEndpoint: expected.includedEndpoint,
 		};
 	}
 	solver.checkStep3Edges();
@@ -117,14 +116,6 @@ function completeTypedRemainder(
 			continue;
 		}
 		state.boundInputs = setup.overlaps.map((overlap) => ({
-			lowerValues: overlap.lowerCandidateValues.map(String) as [
-				string,
-				string,
-			],
-			upperValues: overlap.upperCandidateValues.map(String) as [
-				string,
-				string,
-			],
 			lower: overlap.lowerLatex,
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],
@@ -293,17 +284,12 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const input = solver.step3.edgeInputs[expected.id];
 		input.left = expected.rightLatex;
 		input.right = expected.leftLatex;
-		input.includedEndpoint = expected.includedEndpoint;
 		solver.checkStep3Edges();
 		expect(solver.currentFeedbackType).toBe("misconception");
 		input.left = "t+99";
 		input.right = expected.rightLatex;
 		solver.checkStep3Edges();
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		input.left = expected.leftLatex;
-		input.includedEndpoint = "neither";
-		solver.checkStep3Edges();
-		expect(solver.currentFeedbackType).toBe("misconception");
 	});
 
 	it("places the seeded Step 3B answer in every option position deterministically", () => {
@@ -358,25 +344,21 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("validation");
-		formState.input = `${contact.fixed}=${contact.transformedLatex}`;
-		solver.checkStep4();
-		expect(solver.currentFeedbackType).toBe("validation");
 		formState.input = "t+99";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		formState.input = contact.transformedLatex;
+		formState.input = `${contact.fixed}=${contact.transformedLatex}`;
 		solver.checkStep4();
+		expect(solver.step4.activeSubStepId).not.toBe(formId);
 
 		const solveId = solver.step4.activeSubStepId;
 		const solveState = solver.step4.subSteps[solveId];
-		solveState.input = `t=${contact.transitionTime}`;
-		solver.checkStep4();
-		expect(solver.currentFeedbackType).toBe("validation");
 		solveState.input = "99";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		solveState.input = String(contact.transitionTime);
+		solveState.input = `t=${contact.transitionTime}`;
 		solver.checkStep4();
+		expect(solver.step4.activeSubStepId).not.toBe(solveId);
 		expect(solver.step4.subSteps[formId].isValid).toBe(true);
 		expect(solver.step4.subSteps[solveId].isValid).toBe(true);
 	});
@@ -494,6 +476,31 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		expect(solver.currentFeedback).toMatch(/one more interval/i);
 	});
 
+	it("accepts full equations as well as bare expressions for contact parts", () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 1 });
+		const solver = new ConvolutionStepSolverState(() => problem);
+		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
+		// Advance through section counts
+		solver.step4.subSteps["section-count-x"].input = "1";
+		solver.checkStep4();
+		solver.step4.subSteps["section-count-h"].input = "1";
+		solver.checkStep4();
+		const formId = solver.step4.activeSubStepId;
+		const contact = contactFor(problem, solver.flippedSignal, formId);
+		if (!contact) throw new Error("Expected contact part.");
+		// Test full equation with 'fixed = transformed'
+		solver.step4.subSteps[formId].input =
+			`${contact.fixed} = ${contact.transformedLatex}`;
+		solver.checkStep4();
+		expect(solver.step4.activeSubStepId).not.toBe(formId);
+
+		const solveId = solver.step4.activeSubStepId;
+		// Test solve with 't = time'
+		solver.step4.subSteps[solveId].input = `t = ${contact.transitionTime}`;
+		solver.checkStep4();
+		expect(solver.step4.activeSubStepId).not.toBe(solveId);
+	});
+
 	it("rejects missing, duplicate, and unsorted transition boundaries", () => {
 		const problem = generateConvolutionProblem("multi_rect", { seed: 4 });
 		const solver = new ConvolutionStepSolverState(() => problem);
@@ -598,40 +605,19 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("validation");
 		state.boundInputs = setup.overlaps.map((overlap) => ({
-			lowerValues: overlap.lowerCandidateValues.map(String) as [
-				string,
-				string,
-			],
-			upperValues: overlap.upperCandidateValues.map(String) as [
-				string,
-				string,
-			],
 			lower: "99",
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],
 		}));
-		state.boundInputs[0].lowerValues[0] = "99";
-		solver.checkStep5();
-		expect(solver.currentFeedback).toMatch(/representative time/i);
-		state.boundInputs[0].lowerValues[0] = String(
-			setup.overlaps[0].lowerCandidateValues[0],
-		);
-		solver.checkStep5();
-		expect(state.stage).toBe("upper");
-		state.boundInputs[0].upperValues[0] = "99";
-		solver.checkStep5();
-		expect(solver.currentFeedback).toMatch(/representative time/i);
-		state.boundInputs[0].upperValues[0] = String(
-			setup.overlaps[0].upperCandidateValues[0],
-		);
-		solver.checkStep5();
-		expect(state.stage).toBe("bounds");
 		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/larger.*left/i);
 		state.boundInputs[0].lower = setup.overlaps[0].lowerLatex;
 		state.boundInputs[0].upper = "99";
 		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/smaller.*right/i);
+		state.boundInputs[0].upper = setup.overlaps[0].upperLatex;
+		solver.checkStep5();
+		expect(solver.currentFeedbackType).toBeNull();
 	});
 
 	it("rejects an incorrect interior split point", () => {

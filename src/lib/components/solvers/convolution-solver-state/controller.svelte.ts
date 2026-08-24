@@ -17,6 +17,8 @@ import type {
 	ConvolutionTransitionStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
 import {
+	convolutionContactEquationMatches,
+	convolutionContactSolveMatches,
 	convolutionExpressionsMatch,
 	convolutionScalarMatches,
 	parseConvolutionScalarInput,
@@ -92,10 +94,7 @@ function createFlipState(
 				[
 					...problem.itsData.step3.sectionsBySignal.x,
 					...problem.itsData.step3.sectionsBySignal.h,
-				].map(({ id }) => [
-					id,
-					{ left: "", right: "", includedEndpoint: "" },
-				]),
+				].map(({ id }) => [id, { left: "", right: "" }]),
 			),
 		},
 		order,
@@ -453,23 +452,18 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.setSubStepPassed(this.step3, id, "transform-edges");
 	}
 
-	/** Validates all transformed moving sections and endpoint conventions. */
+	/** Validates all transformed moving sections. */
 	checkStep3Edges(): void {
 		const id = "transform-edges";
 		const expectedSections =
 			this.problem.itsData.step3.sectionsBySignal[this.flippedSignal];
 		for (const expected of expectedSections) {
 			const input = this.step3.edgeInputs[expected.id];
-			if (
-				!input ||
-				!input.left.trim() ||
-				!input.right.trim() ||
-				!input.includedEndpoint
-			) {
+			if (!input || !input.left.trim() || !input.right.trim()) {
 				this.setSubStepValidation(
 					this.step3,
 					id,
-					"Enter both transformed edges and choose the endpoint convention for every connected section.",
+					"Enter both transformed edges for every connected section.",
 				);
 				return;
 			}
@@ -492,14 +486,6 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 					this.step3,
 					id,
 					"Recheck the shift direction: an original section $[c,d]$ becomes $[t-d,t-c]$ after reflection and translation.",
-				);
-				return;
-			}
-			if (input.includedEndpoint !== expected.includedEndpoint) {
-				this.setSubStepMisconception(
-					this.step3,
-					id,
-					"Reflection swaps the original left and right endpoint conventions.",
 				);
 				return;
 			}
@@ -553,7 +539,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				this.step4,
 				id,
 				id.endsWith("-form")
-					? "Enter the transformed moving-breakpoint expression after the equals sign."
+					? "Enter the contact equation or transformed moving breakpoint expression."
 					: "Enter the requested count or value.",
 			);
 			return;
@@ -562,17 +548,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			({ id: contactId }) => id.startsWith(contactId),
 		);
 		if (contact && id.endsWith("-form")) {
-			if (state.input.includes("=")) {
-				this.setSubStepValidation(
-					this.step4,
-					id,
-					"Enter only the transformed expression on the right side; the fixed breakpoint and equals sign are already shown.",
-				);
-				return;
-			}
 			if (
-				!convolutionExpressionsMatch(
+				!convolutionContactEquationMatches(
 					state.input,
+					contact.fixed,
 					contact.transformedLatex,
 				)
 			) {
@@ -587,16 +566,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			return;
 		}
 		if (contact && id.endsWith("-solve")) {
-			if (state.input.includes("=")) {
-				this.setSubStepValidation(
-					this.step4,
-					id,
-					"Enter only the value after $t=$; the variable and equals sign are already shown.",
-				);
-				return;
-			}
 			if (
-				!convolutionScalarMatches(state.input, contact.transitionTime)
+				!convolutionContactSolveMatches(
+					state.input,
+					contact.transitionTime,
+				)
 			) {
 				this.setSubStepIncorrect(
 					this.step4,
@@ -658,7 +632,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		}
 		this.clearSubStepFeedback(this.step5, id);
 		if (!hasOverlap) this.passActiveSubStep(this.step5, 6);
-		else state.stage = "lower";
+		else state.stage = "bounds";
 	}
 
 	/** Validates overlap existence, every bound, and every split point for Step 5. */
@@ -931,7 +905,6 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 					this.step3.edgeInputs[expected.id] = {
 						left: expected.leftLatex,
 						right: expected.rightLatex,
-						includedEndpoint: expected.includedEndpoint,
 					};
 				this.checkStep3Edges();
 				break;
@@ -990,12 +963,6 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						continue;
 					}
 					state.boundInputs = setup.overlaps.map((overlap) => ({
-						lowerValues: overlap.lowerCandidateValues.map(
-							String,
-						) as [string, string],
-						upperValues: overlap.upperCandidateValues.map(
-							String,
-						) as [string, string],
 						lower: overlap.lowerLatex,
 						upper: overlap.upperLatex,
 						splits: [...overlap.splitPointsLatex],

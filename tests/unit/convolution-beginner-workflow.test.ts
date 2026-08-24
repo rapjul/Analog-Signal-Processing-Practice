@@ -54,7 +54,7 @@ describe("convolution beginner workflow metadata", () => {
 		expect(interior?.intervalComparisons[0]?.hasOverlap).toBe(true);
 	});
 
-	it("validates lower, upper, symbolic, and split work one task at a time", () => {
+	it("validates symbolic bounds and split work", () => {
 		const problem = generateConfiguredConvolutionProblem(
 			configured("triangle", "triangle"),
 			{ seed: 7 },
@@ -69,33 +69,13 @@ describe("convolution beginner workflow metadata", () => {
 		state.hasOverlap = false;
 		expect(validateBoundsStage(state, setup).kind).toBe("misconception");
 		state.hasOverlap = true;
-		state.stage = "lower";
+		state.stage = "bounds";
 		state.boundInputs = setup.overlaps.map((overlap) => ({
-			lowerValues: ["999", "999"],
-			upperValues: ["", ""],
 			lower: "",
 			upper: "",
 			splits: overlap.splitPointsLatex.map(() => ""),
 		}));
-		expect(validateBoundsStage(state, setup).kind).toBe("incorrect");
-		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].lowerValues =
-				overlap.lowerCandidateValues.map(String) as [string, string];
-		});
-		expect(validateBoundsStage(state, setup)).toMatchObject({
-			kind: "valid",
-			nextStage: "upper",
-		});
-		state.stage = "upper";
-		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].upperValues =
-				overlap.upperCandidateValues.map(String) as [string, string];
-		});
-		expect(validateBoundsStage(state, setup)).toMatchObject({
-			kind: "valid",
-			nextStage: "bounds",
-		});
-		state.stage = "bounds";
+		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		setup.overlaps.forEach((overlap, index) => {
 			state.boundInputs[index].lower = overlap.lowerLatex;
 			state.boundInputs[index].upper = overlap.upperLatex;
@@ -117,33 +97,12 @@ describe("convolution beginner workflow metadata", () => {
 		if (!part || !setup) throw new Error("Expected split overlap setup.");
 		const state = createBoundsState(problem).subSteps[part.id];
 		state.hasOverlap = true;
-		expect(validateBoundsStage(state, setup).kind).toBe("blank");
-		state.stage = "lower";
-		state.boundInputs = [];
-		expect(validateBoundsStage(state, setup).kind).toBe("blank");
+		state.stage = "bounds";
 		state.boundInputs = setup.overlaps.map((overlap) => ({
-			lowerValues: ["", ""] as [string, string],
-			upperValues: ["", ""] as [string, string],
 			lower: "",
 			upper: "",
 			splits: overlap.splitPointsLatex.map(() => ""),
 		}));
-		expect(validateBoundsStage(state, setup).kind).toBe("blank");
-		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].lowerValues =
-				overlap.lowerCandidateValues.map(String) as [string, string];
-		});
-		state.stage = "upper";
-		expect(validateBoundsStage(state, setup).kind).toBe("blank");
-		setup.overlaps.forEach((_overlap, index) => {
-			state.boundInputs[index].upperValues = ["999", "999"];
-		});
-		expect(validateBoundsStage(state, setup).kind).toBe("incorrect");
-		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].upperValues =
-				overlap.upperCandidateValues.map(String) as [string, string];
-		});
-		state.stage = "bounds";
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		setup.overlaps.forEach((overlap, index) => {
 			state.boundInputs[index].lower = "999";
@@ -182,26 +141,6 @@ describe("convolution beginner workflow metadata", () => {
 			];
 		exteriorState.hasOverlap = false;
 		expect(validateBoundsStage(exteriorState, exterior).kind).toBe("valid");
-
-		const missingExpectations = structuredClone(setup);
-		missingExpectations.overlaps[0].lowerCandidateValues = [] as never;
-		missingExpectations.overlaps[0].upperCandidateValues = [] as never;
-		missingExpectations.overlaps[0].splitPointsLatex = [];
-		state.stage = "lower";
-		state.boundInputs[0].lowerValues = ["0", "0"];
-		expect(validateBoundsStage(state, missingExpectations).kind).toBe(
-			"incorrect",
-		);
-		state.stage = "upper";
-		state.boundInputs[0].upperValues = ["0", "0"];
-		expect(validateBoundsStage(state, missingExpectations).kind).toBe(
-			"incorrect",
-		);
-		state.stage = "splits";
-		state.boundInputs[0].splits = ["0"];
-		expect(validateBoundsStage(state, missingExpectations).kind).toBe(
-			"incorrect",
-		);
 	});
 
 	it("derives concrete polynomial and exponential evaluation terms", () => {

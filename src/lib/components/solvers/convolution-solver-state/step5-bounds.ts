@@ -8,10 +8,7 @@ import type {
 	ConvolutionBoundsStepState,
 	ConvolutionBoundsSubStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
-import {
-	convolutionExpressionsMatch,
-	convolutionScalarMatches,
-} from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 import type {
 	ConvolutionIntegralPathSetup,
 	ConvolutionProblem,
@@ -42,8 +39,6 @@ export function createBoundsState(
 						stage: "overlap" as const,
 						hasOverlap: null as boolean | null,
 						boundInputs: template.map((overlap) => ({
-							lowerValues: ["", ""] as [string, string],
-							upperValues: ["", ""] as [string, string],
 							lower: "",
 							upper: "",
 							splits: overlap.splitPointsLatex.map(() => ""),
@@ -62,7 +57,7 @@ export function createBoundsState(
 	) as ConvolutionBoundsStepState;
 }
 
-/** Validates only the currently visible candidate, bound, or split task. */
+/** Validates the active bounds or split points for an overlap interval. */
 export function validateBoundsStage(
 	state: ConvolutionBoundsSubStepState,
 	setup: ConvolutionIntegralPathSetup,
@@ -84,63 +79,20 @@ export function validateBoundsStage(
 		return {
 			kind: "blank",
 			message:
-				"Confirm the overlap choice before comparing its active bounds.",
+				"Confirm the overlap choice before entering its integration bounds.",
 		};
 
 	for (const [index, expected] of setup.overlaps.entries()) {
 		const input = state.boundInputs[index];
 		if (!input)
 			return { kind: "blank", message: "Complete this overlap first." };
-		if (state.stage === "lower") {
-			if (input.lowerValues.some((value) => !value.trim()))
-				return {
-					kind: "blank",
-					message:
-						"Evaluate both lower candidates at the displayed representative time.",
-				};
-			if (
-				!input.lowerValues.every((value, candidateIndex) =>
-					convolutionScalarMatches(
-						value,
-						expected.lowerCandidateValues[candidateIndex] ??
-							Number.NaN,
-					),
-				)
-			)
-				return {
-					kind: "incorrect",
-					message:
-						"Substitute the displayed representative time into each lower candidate, then compare the two values.",
-				};
-		}
-		if (state.stage === "upper") {
-			if (input.upperValues.some((value) => !value.trim()))
-				return {
-					kind: "blank",
-					message:
-						"Evaluate both upper candidates at the displayed representative time.",
-				};
-			if (
-				!input.upperValues.every((value, candidateIndex) =>
-					convolutionScalarMatches(
-						value,
-						expected.upperCandidateValues[candidateIndex] ??
-							Number.NaN,
-					),
-				)
-			)
-				return {
-					kind: "incorrect",
-					message:
-						"Substitute the displayed representative time into each upper candidate, then compare the two values.",
-				};
-		}
+
 		if (state.stage === "bounds") {
 			if (!input.lower.trim() || !input.upper.trim())
 				return {
 					kind: "blank",
 					message:
-						"Enter the symbolic lower and upper limits selected by those comparisons.",
+						"Enter the symbolic lower and upper limits for this overlap.",
 				};
 			if (!convolutionExpressionsMatch(input.lower, expected.lowerLatex))
 				return {
@@ -178,8 +130,6 @@ export function validateBoundsStage(
 		}
 	}
 
-	if (state.stage === "lower") return { kind: "valid", nextStage: "upper" };
-	if (state.stage === "upper") return { kind: "valid", nextStage: "bounds" };
 	if (
 		state.stage === "bounds" &&
 		setup.overlaps.some((overlap) => overlap.splitPointsLatex.length > 0)

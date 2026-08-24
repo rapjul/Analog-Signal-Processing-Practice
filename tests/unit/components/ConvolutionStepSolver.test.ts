@@ -155,7 +155,7 @@ describe("ConvolutionStepSolver", () => {
 		expect(sawEvaluation).toBe(true);
 	}, 20_000);
 
-	it("uses native forms for Enter submission and keeps Step 3C endpoint help visible", async () => {
+	it("uses native forms for Enter submission and renders Step 3C transformed edge inputs", async () => {
 		const problem = generateConvolutionProblem("rect_rect", { seed: 21 });
 		const view = render(ConvolutionStepSolver, { problem });
 		const firstPart = problem.itsData.step1.parts[0];
@@ -185,11 +185,8 @@ describe("ConvolutionStepSolver", () => {
 		});
 		await waitFor(() =>
 			expect(
-				view.getByText(/included endpoint is a boundary/i),
+				view.getByText(/type the transformed left edge/i),
 			).toBeTruthy(),
-		);
-		expect(view.getByText(/square brackets/i).textContent).toMatch(
-			/parentheses/i,
 		);
 		expect(
 			view

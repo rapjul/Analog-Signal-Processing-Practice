@@ -309,6 +309,12 @@
 						<input
 							type="text"
 							bind:value={activeState.input}
+							placeholder={activeContact &&
+							activeId.endsWith("-form")
+								? "e.g. t-1 or 2 = t-1"
+								: activeContact
+									? "e.g. 3 or t = 3"
+									: "e.g. 0 or 2"}
 							aria-label={activeContact &&
 							activeId.endsWith("-form")
 								? "Transformed moving breakpoint"

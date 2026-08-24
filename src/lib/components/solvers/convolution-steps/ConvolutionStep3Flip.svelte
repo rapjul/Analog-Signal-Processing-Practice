@@ -180,15 +180,9 @@
 				badge="Part 3C"
 				title="Transform Every Moving Section"
 			>
-				<p class="endpoint-label">Exact Endpoint Convention</p>
 				<p class="step-prompt">
 					<MathText
-						text={String.raw`For each original section $[c,d]$, type the transformed left edge $t-d$, right edge $t-c$, and reflected endpoint convention.`}
-					/>
-				</p>
-				<p class="endpoint-explanation">
-					<MathText
-						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. Record this convention because exact graphs, piecewise inequalities, and exam notation may require it. Changing one isolated endpoint does not change an ordinary continuous-time convolution integral.`}
+						text={String.raw`For each original section $[c,d]$, type the transformed left edge $t-d$ and right edge $t-c$.`}
 					/>
 				</p>
 				<form
@@ -228,28 +222,6 @@
 											}
 											placeholder="e.g. t"
 										/>
-									</label>
-									<label>
-										<span>Included endpoint</span>
-										<select
-											bind:value={
-												solver.step3.edgeInputs[
-													section.id
-												].includedEndpoint
-											}
-										>
-											<option value="">Choose one</option>
-											<option value="left"
-												>Left only</option
-											>
-											<option value="right">
-												Right only
-											</option>
-											<option value="both">Both</option>
-											<option value="neither"
-												>Neither</option
-											>
-										</select>
 									</label>
 								</div>
 							</div>
@@ -302,22 +274,6 @@
 		color: var(--text-primary);
 		line-height: var(--leading-relaxed);
 	}
-	.endpoint-explanation {
-		margin: 0;
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-		line-height: var(--leading-relaxed);
-	}
-	.endpoint-label {
-		align-self: flex-start;
-		margin: 0;
-		padding: 0.25rem 0.55rem;
-		font-size: var(--text-xs);
-		font-weight: 700;
-		color: var(--accent-primary);
-		border: 1px solid var(--accent-primary);
-		border-radius: var(--radius-pill);
-	}
 	.concept-key {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -366,7 +322,7 @@
 	}
 	.edge-grid {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.65rem;
 	}
 	.edge-grid label {
@@ -377,8 +333,7 @@
 		font-size: var(--text-xs);
 		font-weight: 600;
 	}
-	.edge-grid input,
-	.edge-grid select {
+	.edge-grid input {
 		min-width: 0;
 		padding: 0.5rem;
 		border: 1px solid var(--border-color);
@@ -399,7 +354,6 @@
 	.binary-grid button:focus-visible,
 	.option-grid button:focus-visible,
 	.edge-grid input:focus-visible,
-	.edge-grid select:focus-visible,
 	.check-button:focus-visible {
 		position: relative;
 		z-index: 1;
