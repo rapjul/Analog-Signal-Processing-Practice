@@ -2,7 +2,6 @@
 	/** Typed interval-expression evaluation step with live LaTeX preview. */
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
@@ -53,7 +52,7 @@
 	<div class="summary-table">
 		{#each problem.itsData.step6.parts as part, index}
 			<div class="summary-row">
-				<MathInline math={part.intervalLatex} /><MathBlock
+				<MathText text={`$${part.intervalLatex}$`} /><MathBlock
 					math={`y(t)=${problem.intervals[index]?.exprLatex ?? "0"}`}
 					compact={true}
 					hideHeader={true}
@@ -79,7 +78,7 @@
 				isCompleted={true}
 			>
 				{#snippet summarySnippet()}<div class="compact-result">
-						<MathInline math={part.intervalLatex} /><MathBlock
+						<MathText text={`$${part.intervalLatex}$`} /><MathBlock
 							math={`y(t)=${problem.intervals[index]?.exprLatex ?? "0"}`}
 							compact={true}
 							hideHeader={true}
@@ -103,41 +102,46 @@
 					compact={true}
 					responsive={true}
 				/>
-				<label class="expression-entry">
-					<span>
-						<MathText
-							text={String.raw`Enter the simplified expression for $y(t)$:`}
+				<form
+					class="evaluation-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						solver.checkStep6();
+					}}
+				>
+					<label class="expression-entry">
+						<span>
+							<MathText
+								text={String.raw`Enter the simplified expression for $y(t)$:`}
+							/>
+						</span>
+						<input
+							type="text"
+							bind:value={activeState.input}
+							placeholder="e.g. t-1 or (t+3)^2/4"
 						/>
-					</span>
-					<input
-						type="text"
-						bind:value={activeState.input}
-						placeholder="e.g. t-1 or (t+3)^2/4"
-						onkeydown={(event) =>
-							event.key === "Enter" && solver.checkStep6()}
-					/>
-				</label>
-				<div
-					class="preview"
-					aria-live="polite"
-				>
-					<span>Live preview</span>
-					<MathBlock
-						math={activeState.input.trim()
-							? `y(t)=${activeState.input}`
-							: "y(t)=?"}
-						compact={true}
-						hideHeader={true}
-						responsive={true}
-					/>
-				</div>
-				<button
-					type="button"
-					class="check-button"
-					onclick={() => solver.checkStep6()}
-				>
-					Check evaluated expression
-				</button>
+					</label>
+					<div
+						class="preview"
+						aria-live="polite"
+					>
+						<span>Live preview</span>
+						<MathBlock
+							math={activeState.input.trim()
+								? `y(t)=${activeState.input}`
+								: String.raw`y(t)\;=\;?`}
+							compact={true}
+							hideHeader={true}
+							responsive={true}
+						/>
+					</div>
+					<button
+						type="submit"
+						class="check-button"
+					>
+						Check evaluated expression
+					</button>
+				</form>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />
@@ -152,7 +156,8 @@
 <style>
 	/* ── Step and completed summary layout ─────────────────── */
 	.step-body,
-	.summary-table {
+	.summary-table,
+	.evaluation-form {
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
@@ -213,7 +218,9 @@
 	}
 	.expression-entry input:focus-visible,
 	.check-button:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

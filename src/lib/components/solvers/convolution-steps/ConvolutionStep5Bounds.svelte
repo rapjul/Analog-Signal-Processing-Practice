@@ -2,7 +2,6 @@
 	/** Typed max/min integration-bound step for every verified interval. */
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
@@ -51,7 +50,7 @@
 	<div class="summary-table">
 		{#each problem.itsData.step5.parts as part}
 			<div class="summary-row">
-				<MathInline math={part.intervalLatex} />
+				<MathText text={`$${part.intervalLatex}$`} />
 				<MathBlock
 					math={part.setupBySignal?.[solver.flippedSignal]
 						.integralLatex ?? "y(t)=0"}
@@ -107,100 +106,114 @@
 					<button
 						type="button"
 						class:selected={activeState.hasOverlap === true}
-						onclick={() => (activeState.hasOverlap = true)}
+						aria-pressed={activeState.hasOverlap === true}
+						onclick={() => solver.chooseStep5Overlap(true)}
 					>
 						Yes, there is overlap
 					</button>
 					<button
 						type="button"
 						class:selected={activeState.hasOverlap === false}
-						onclick={() => (activeState.hasOverlap = false)}
+						aria-pressed={activeState.hasOverlap === false}
+						onclick={() => solver.chooseStep5Overlap(false)}
 					>
 						No overlap
 					</button>
 				</div>
 
-				{#if activeState.hasOverlap === true}
-					<div class="bounds-list">
-						{#each activeSetup.overlaps as overlap, overlapIndex}
-							<div class="bounds-card">
-								<h5>Connected overlap {overlapIndex + 1}</h5>
-								<div class="candidate-grid">
-									<div>
-										<span>Lower candidates</span><MathBlock
-											math={`\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)`}
-											compact={true}
-											hideHeader={true}
-											responsive={true}
-										/>
+				{#if activeState.hasOverlap === true && activeSetup.hasOverlap}
+					<form
+						class="bounds-form"
+						onsubmit={(event) => {
+							event.preventDefault();
+							solver.checkStep5();
+						}}
+					>
+						<div class="bounds-list">
+							{#each activeSetup.overlaps as overlap, overlapIndex}
+								<div class="bounds-card">
+									<h5>
+										Connected overlap {overlapIndex + 1}
+									</h5>
+									<div class="candidate-grid">
+										<div>
+											<span>Lower candidates</span
+											><MathBlock
+												math={String.raw`\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)`}
+												compact={true}
+												hideHeader={true}
+												responsive={true}
+											/>
+										</div>
+										<div>
+											<span>Upper candidates</span
+											><MathBlock
+												math={String.raw`\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
+												compact={true}
+												hideHeader={true}
+												responsive={true}
+											/>
+										</div>
 									</div>
-									<div>
-										<span>Upper candidates</span><MathBlock
-											math={`\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
-											compact={true}
-											hideHeader={true}
-											responsive={true}
-										/>
+									<div class="bound-input-grid">
+										<label>
+											<span>Simplified lower limit</span>
+											<input
+												type="text"
+												bind:value={
+													activeState.boundInputs[
+														overlapIndex
+													].lower
+												}
+												placeholder="larger left edge"
+											/>
+										</label>
+										<label>
+											<span>Simplified upper limit</span>
+											<input
+												type="text"
+												bind:value={
+													activeState.boundInputs[
+														overlapIndex
+													].upper
+												}
+												placeholder="smaller right edge"
+											/>
+										</label>
 									</div>
+									{#if overlap.splitPointsLatex.length > 0}
+										<div class="split-grid">
+											{#each overlap.splitPointsLatex as _, splitIndex}
+												<label>
+													<span>
+														Interior split point {splitIndex +
+															1}
+													</span>
+													<input
+														type="text"
+														bind:value={
+															activeState
+																.boundInputs[
+																overlapIndex
+															].splits[splitIndex]
+														}
+														placeholder="slope or formula change"
+													/>
+												</label>
+											{/each}
+										</div>
+									{/if}
 								</div>
-								<div class="bound-input-grid">
-									<label>
-										<span>Simplified lower limit</span>
-										<input
-											type="text"
-											bind:value={
-												activeState.boundInputs[
-													overlapIndex
-												].lower
-											}
-											placeholder="larger left edge"
-										/>
-									</label>
-									<label>
-										<span>Simplified upper limit</span>
-										<input
-											type="text"
-											bind:value={
-												activeState.boundInputs[
-													overlapIndex
-												].upper
-											}
-											placeholder="smaller right edge"
-										/>
-									</label>
-								</div>
-								{#if overlap.splitPointsLatex.length > 0}
-									<div class="split-grid">
-										{#each overlap.splitPointsLatex as _, splitIndex}
-											<label>
-												<span>
-													Interior split point {splitIndex +
-														1}
-												</span>
-												<input
-													type="text"
-													bind:value={
-														activeState.boundInputs[
-															overlapIndex
-														].splits[splitIndex]
-													}
-													placeholder="slope or formula change"
-												/>
-											</label>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
+							{/each}
+						</div>
+						<button
+							type="submit"
+							class="check-button"
+						>
+							Check bounds
+						</button>
+					</form>
 				{/if}
-				<button
-					type="button"
-					class="check-button"
-					onclick={() => solver.checkStep5()}
-				>
-					Check overlap and bounds
-				</button>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />
@@ -216,7 +229,8 @@
 	/* ── Step and summary layout ───────────────────────────── */
 	.step-body,
 	.bounds-list,
-	.summary-table {
+	.summary-table,
+	.bounds-form {
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
@@ -307,7 +321,9 @@
 	.bound-input-grid input:focus-visible,
 	.split-grid input:focus-visible,
 	.check-button:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

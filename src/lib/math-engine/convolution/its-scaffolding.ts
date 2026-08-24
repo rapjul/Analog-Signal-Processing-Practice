@@ -226,6 +226,8 @@ export interface ConvolutionItsIntervalPart {
 	>;
 	/** Progressive hints specific to this interval. */
 	hints: string[];
+	/** Moving-path-specific hints for exact overlap setup. */
+	hintsBySignal?: Record<ConvolutionMovingSignal, string[]>;
 }
 
 /** Complete seven-step tutoring scaffold for a convolution problem. */
@@ -521,6 +523,35 @@ function buildSetupPart(
 			context.xBreakpoints,
 		),
 	};
+	/** Builds progressive hints for one chosen moving-signal path. */
+	const hintsFor = (setup: ConvolutionIntegralPathSetup): string[] => {
+		if (!setup.hasOverlap)
+			return [
+				`Work only in the verified interval $${interval.labelLatex}$.`,
+				"Compare the fixed right edge with the transformed left edge, then compare the transformed right edge with the fixed left edge.",
+				"The sections do not overlap in this interval, so the convolution contribution is $y(t)=0$.",
+			];
+		const lowerCandidates = setup.overlaps
+			.map(({ lowerCandidatesLatex }) => lowerCandidatesLatex.join(","))
+			.join(";\\;");
+		const upperCandidates = setup.overlaps
+			.map(({ upperCandidatesLatex }) => upperCandidatesLatex.join(","))
+			.join(";\\;");
+		const splitPoints = setup.overlaps.flatMap(
+			({ splitPointsLatex }) => splitPointsLatex,
+		);
+		return [
+			`Work only in the verified interval $${interval.labelLatex}$.`,
+			`For the lower limit compare $${lowerCandidates}$; for the upper limit compare $${upperCandidates}$.`,
+			splitPoints.length > 0
+				? `After choosing the bounds, split at $${splitPoints.join(",\\;")}$.`
+				: `The verified setup is $${setup.integralLatex}$.`,
+		];
+	};
+	const hintsBySignal = {
+		h: hintsFor(setupBySignal.h),
+		x: hintsFor(setupBySignal.x),
+	};
 	return {
 		id: `setup-${String(index + 1).padStart(2, "0")}`,
 		title: `Determine Bounds for Region ${index + 1}`,
@@ -529,11 +560,8 @@ function buildSetupPart(
 			interval.integralSetupLatex ?? setupBySignal.h.integralLatex,
 		options: [],
 		setupBySignal,
-		hints: [
-			`Work only in the verified interval $${interval.labelLatex}$.`,
-			"Choose the larger left edge for the lower limit and the smaller right edge for the upper limit.",
-			"Split the integral anywhere an active signal changes slope or formula inside the overlap.",
-		],
+		hints: hintsBySignal.h,
+		hintsBySignal,
 	};
 }
 

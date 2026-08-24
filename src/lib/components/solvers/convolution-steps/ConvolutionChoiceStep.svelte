@@ -176,7 +176,9 @@
 	}
 
 	.option-card:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

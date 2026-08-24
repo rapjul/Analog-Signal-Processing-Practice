@@ -124,11 +124,6 @@
 				<p class="step-prompt">
 					<MathText text={formulaData.prompt} />
 				</p>
-				<p class="endpoint-explanation">
-					<MathText
-						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. This preserves the exact pointwise signal and graph, although changing one isolated endpoint does not change an ordinary convolution integral.`}
-					/>
-				</p>
 				<div class="option-grid">
 					{#each formulaData.options as option}
 						<button
@@ -172,63 +167,82 @@
 						text={String.raw`For each original section $[c,d]$, type the transformed left edge $t-d$, right edge $t-c$, and reflected endpoint convention.`}
 					/>
 				</p>
-				<div class="edge-list">
-					{#each transformedSections as section}
-						<div class="edge-card">
-							<MathText
-								text={`Original section ${section.index}: $${section.originalLatex}$.`}
-							/>
-							<div class="edge-grid">
-								<label>
-									<span>Transformed left edge</span>
-									<input
-										type="text"
-										bind:value={
-											solver.step3.edgeInputs[section.id]
-												.left
-										}
-										placeholder="e.g. t-2"
-									/>
-								</label>
-								<label>
-									<span>Transformed right edge</span>
-									<input
-										type="text"
-										bind:value={
-											solver.step3.edgeInputs[section.id]
-												.right
-										}
-										placeholder="e.g. t"
-									/>
-								</label>
-								<label>
-									<span>Included endpoint</span>
-									<select
-										bind:value={
-											solver.step3.edgeInputs[section.id]
-												.includedEndpoint
-										}
-									>
-										<option value="">Choose one</option>
-										<option value="left">Left only</option>
-										<option value="right">
-											Right only
-										</option>
-										<option value="both">Both</option>
-										<option value="neither">Neither</option>
-									</select>
-								</label>
-							</div>
-						</div>
-					{/each}
-				</div>
-				<button
-					type="button"
-					class="check-button"
-					onclick={() => solver.checkStep3Edges()}
+				<p class="endpoint-explanation">
+					<MathText
+						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. This preserves the exact pointwise signal and graph, although changing one isolated endpoint does not change an ordinary convolution integral.`}
+					/>
+				</p>
+				<form
+					class="edge-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						solver.checkStep3Edges();
+					}}
 				>
-					Check transformed edges
-				</button>
+					<div class="edge-list">
+						{#each transformedSections as section}
+							<div class="edge-card">
+								<MathText
+									text={`Original section ${section.index}: $${section.originalLatex}$.`}
+								/>
+								<div class="edge-grid">
+									<label>
+										<span>Transformed left edge</span>
+										<input
+											type="text"
+											bind:value={
+												solver.step3.edgeInputs[
+													section.id
+												].left
+											}
+											placeholder="e.g. t-2"
+										/>
+									</label>
+									<label>
+										<span>Transformed right edge</span>
+										<input
+											type="text"
+											bind:value={
+												solver.step3.edgeInputs[
+													section.id
+												].right
+											}
+											placeholder="e.g. t"
+										/>
+									</label>
+									<label>
+										<span>Included endpoint</span>
+										<select
+											bind:value={
+												solver.step3.edgeInputs[
+													section.id
+												].includedEndpoint
+											}
+										>
+											<option value="">Choose one</option>
+											<option value="left"
+												>Left only</option
+											>
+											<option value="right">
+												Right only
+											</option>
+											<option value="both">Both</option>
+											<option value="neither"
+												>Neither</option
+											>
+										</select>
+									</label>
+								</div>
+							</div>
+						{/each}
+					</div>
+					<button
+						type="submit"
+						class="check-button"
+					>
+						Check transformed edges
+					</button>
+				</form>
 			</SubStepBlock>
 		{/if}
 
@@ -244,7 +258,8 @@
 <style>
 	/* ── Step and summary layout ───────────────────────────── */
 	.step-body,
-	.edge-list {
+	.edge-list,
+	.edge-form {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
@@ -340,7 +355,9 @@
 	.edge-grid input:focus-visible,
 	.edge-grid select:focus-visible,
 	.check-button:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

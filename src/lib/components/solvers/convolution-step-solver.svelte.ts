@@ -413,7 +413,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				);
 			case 5:
 				return (
-					this.step5.subSteps[this.step5.activeSubStepId]?.hints ?? []
+					this.problem.itsData.step5.parts.find(
+						({ id }) => id === this.step5.activeSubStepId,
+					)?.hintsBySignal?.[this.flippedSignal] ??
+					this.step5.subSteps[this.step5.activeSubStepId]?.hints ??
+					[]
 				);
 			case 6:
 				return (
@@ -452,7 +456,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepValidation(
 				this.step1,
 				id,
-				"Enter the start time, end time, and width before checking this part.",
+				"Enter the left boundary, right boundary, and width before checking this part.",
 			);
 			return;
 		}
@@ -706,6 +710,27 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.passActiveSubStep(this.step4, 5);
 	}
 
+	/** Applies immediate feedback to the active Step 5 overlap choice. */
+	chooseStep5Overlap(hasOverlap: boolean): void {
+		const id = this.step5.activeSubStepId;
+		const state = this.step5.subSteps[id];
+		const setup = this.problem.itsData.step5.parts.find(
+			(candidate) => candidate.id === id,
+		)?.setupBySignal?.[this.flippedSignal];
+		if (!state || !setup) return;
+		state.hasOverlap = hasOverlap;
+		if (hasOverlap !== setup.hasOverlap) {
+			this.setSubStepMisconception(
+				this.step5,
+				id,
+				"Compare the fixed and transformed left and right edges before deciding whether overlap exists.",
+			);
+			return;
+		}
+		this.clearSubStepFeedback(this.step5, id);
+		if (!hasOverlap) this.passActiveSubStep(this.step5, 6);
+	}
+
 	/** Validates overlap existence, every bound, and every split point for Step 5. */
 	checkStep5(): void {
 		const id = this.step5.activeSubStepId;
@@ -939,6 +964,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 
 	/** Navigates deterministically to every registered parent or multipart visual state. */
 	override devGoToVisualState(stateId: string): boolean {
+		/* v8 ignore next -- exercised by production builds where the harness is disabled. */
 		if (!import.meta.env.DEV) return false;
 		const descriptor = this.devGetVisualStates().find(
 			({ id }) => id === stateId,
@@ -974,6 +1000,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 
 	/** Developer auto-fill using the same real validation methods. */
 	override devAutoFillStep(stepIndex?: number): void {
+		/* v8 ignore next -- exercised by production builds where the harness is disabled. */
 		if (!import.meta.env.DEV) return;
 		const target = stepIndex ?? this.currentStep;
 		switch (target) {

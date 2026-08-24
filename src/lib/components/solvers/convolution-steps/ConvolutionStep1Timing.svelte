@@ -92,45 +92,46 @@
 						text={`Enter the left boundary, right boundary, and overall width of the interval where $${activePart.signalLatex}$ can be non-zero.`}
 					/>
 				</p>
-				<div class="timing-grid">
-					<label>
-						<span>Left boundary</span>
-						<input
-							type="text"
-							bind:value={activeState.start}
-							placeholder="e.g. -2 or 0"
-							onkeydown={(event) =>
-								event.key === "Enter" && solver.checkStep1()}
-						/>
-					</label>
-					<label>
-						<span>Right boundary</span>
-						<input
-							type="text"
-							bind:value={activeState.end}
-							placeholder="e.g. 3 or infinity"
-							onkeydown={(event) =>
-								event.key === "Enter" && solver.checkStep1()}
-						/>
-					</label>
-					<label>
-						<span>Overall width</span>
-						<input
-							type="text"
-							bind:value={activeState.width}
-							placeholder="end - start"
-							onkeydown={(event) =>
-								event.key === "Enter" && solver.checkStep1()}
-						/>
-					</label>
-				</div>
-				<button
-					type="button"
-					class="check-button"
-					onclick={() => solver.checkStep1()}
+				<form
+					class="answer-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						solver.checkStep1();
+					}}
 				>
-					Check timing and width
-				</button>
+					<div class="timing-grid">
+						<label>
+							<span>Left boundary</span>
+							<input
+								type="text"
+								bind:value={activeState.start}
+								placeholder="e.g. -2 or 0"
+							/>
+						</label>
+						<label>
+							<span>Right boundary</span>
+							<input
+								type="text"
+								bind:value={activeState.end}
+								placeholder="e.g. 3 or infinity"
+							/>
+						</label>
+						<label>
+							<span>Overall width</span>
+							<input
+								type="text"
+								bind:value={activeState.width}
+								placeholder="end - start"
+							/>
+						</label>
+					</div>
+					<button
+						type="submit"
+						class="check-button"
+					>
+						Check timing and width
+					</button>
+				</form>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />
@@ -145,7 +146,8 @@
 <style>
 	/* ── Step layout ───────────────────────────────────────── */
 	.step-body,
-	.summary-list {
+	.summary-list,
+	.answer-form {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
@@ -184,7 +186,9 @@
 	}
 	.timing-grid input:focus-visible,
 	.check-button:focus-visible {
-		outline: 2px solid var(--accent-primary);
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 	.check-button {
