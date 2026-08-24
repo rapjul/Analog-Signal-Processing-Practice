@@ -139,6 +139,11 @@
 					{#if activePart.geometryShortcut}<p>
 							{activePart.geometryShortcut}
 						</p>{/if}
+					<p>
+						Your remaining job is substitution and simplification:
+						evaluate the supplied primitive at the verified upper
+						and lower limits, then subtract.
+					</p>
 				</div>
 				<form
 					class="evaluation-form"

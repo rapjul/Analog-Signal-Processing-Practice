@@ -85,6 +85,16 @@
 				endpoint tie. Step 4 guarantees the ordering cannot change
 				inside the verified interval.
 			</p>
+			<div
+				class="number-line-example"
+				role="img"
+				aria-label="Number-line example: the overlap starts at the farther-right left edge and ends at the farther-left right edge."
+			>
+				<span class="axis"></span>
+				<span class="fixed-range">fixed section</span>
+				<span class="moving-range">transformed section</span>
+				<span class="overlap-range">active overlap</span>
+			</div>
 		</details>
 		{#each problem.itsData.step5.parts.slice(0, activeIndex) as part, index}
 			<SubStepBlock
@@ -294,6 +304,45 @@
 		margin: 0;
 		line-height: var(--leading-relaxed);
 		color: var(--text-primary);
+	}
+	.number-line-example {
+		position: relative;
+		min-height: 6.5rem;
+		margin-top: 0.75rem;
+		color: var(--text-secondary);
+		font-size: var(--text-xs);
+	}
+	.number-line-example .axis,
+	.number-line-example span:not(.axis) {
+		position: absolute;
+		left: 5%;
+		right: 5%;
+	}
+	.number-line-example .axis {
+		top: 3.1rem;
+		border-top: 1px solid var(--border-color);
+	}
+	.number-line-example span:not(.axis) {
+		height: 1.15rem;
+		border-top: 0.25rem solid;
+		text-align: center;
+	}
+	.number-line-example .fixed-range {
+		top: 0.4rem;
+		right: 26%;
+		border-color: var(--color-warning);
+	}
+	.number-line-example .moving-range {
+		top: 2.25rem;
+		left: 28%;
+		border-color: var(--color-info);
+	}
+	.number-line-example .overlap-range {
+		top: 4.1rem;
+		left: 28%;
+		right: 26%;
+		border-color: var(--color-success);
+		font-weight: 700;
 	}
 	.other-methods {
 		padding: 0.65rem;
