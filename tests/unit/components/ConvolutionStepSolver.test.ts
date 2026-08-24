@@ -57,7 +57,7 @@ describe("ConvolutionStepSolver", () => {
 			view.getByRole("button", { name: "Check timing and width" }),
 		);
 		expect(view.getByRole("alert").textContent).toMatch(
-			/enter the start time/i,
+			/enter the left boundary/i,
 		);
 		const input =
 			view.container.querySelector<HTMLInputElement>(
@@ -153,5 +153,85 @@ describe("ConvolutionStepSolver", () => {
 		}
 		expect(sawBounds).toBe(true);
 		expect(sawEvaluation).toBe(true);
+	});
+
+	it("uses native forms for Enter submission and keeps Step 3C endpoint help visible", async () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 21 });
+		const view = render(ConvolutionStepSolver, { problem });
+		const firstPart = problem.itsData.step1.parts[0];
+		const inputs =
+			view.container.querySelectorAll<HTMLInputElement>(
+				".timing-grid input",
+			);
+		for (const [index, value] of [
+			firstPart.start,
+			firstPart.end,
+			firstPart.width,
+		].entries())
+			await fireEvent.input(inputs[index], {
+				target: { value: String(value) },
+			});
+		const timingForm = inputs[0].closest("form");
+		expect(timingForm).toBeTruthy();
+		await fireEvent.submit(timingForm!);
+		expect(view.getByText("Read the Timing of h(t)")).toBeTruthy();
+
+		await act(() => {
+			expect(
+				window.__signalLabDev?.goToVisualState(
+					"convolution.step-03.transform-edges",
+				),
+			).toBe(true);
+		});
+		await waitFor(() =>
+			expect(
+				view.getByText(/included endpoint is a boundary/i),
+			).toBeTruthy(),
+		);
+		expect(view.getByText(/square brackets/i).textContent).toMatch(
+			/parentheses/i,
+		);
+		expect(
+			view
+				.getByRole("button", { name: "Check transformed edges" })
+				.closest("form"),
+		).toBeTruthy();
+	});
+
+	it("renders one inline t-equals answer and noninteractive static interval math", async () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const view = render(ConvolutionStepSolver, { problem });
+		const solveState = (
+			window.__signalLabDev?.getVisualStates() ?? []
+		).find(({ id }) => id.endsWith("-solve"));
+		if (!solveState) throw new Error("Expected a contact solve state.");
+		await act(() => {
+			expect(window.__signalLabDev?.goToVisualState(solveState.id)).toBe(
+				true,
+			);
+		});
+		const contactInput = view.getByLabelText("Contact time after t equals");
+		const contactLabel = contactInput.closest("label");
+		expect(contactLabel?.textContent?.replace(/\s/g, "")).toContain("t=");
+		expect(contactLabel?.classList.contains("equation-entry")).toBe(true);
+
+		await act(() => {
+			expect(
+				window.__signalLabDev?.goToVisualState("convolution.step-06"),
+			).toBe(true);
+		});
+		await waitFor(() =>
+			expect(view.container.querySelector(".preview")).toBeTruthy(),
+		);
+		const activeCard = view.container.querySelector(".step-card.active");
+		expect(activeCard?.querySelectorAll("button.math-inline")).toHaveLength(
+			0,
+		);
+		expect(
+			activeCard?.querySelectorAll(".preview .mspace").length,
+		).toBeGreaterThanOrEqual(2);
+		expect(
+			activeCard?.querySelector(".evaluation-form button[type='submit']"),
+		).toBeTruthy();
 	});
 });

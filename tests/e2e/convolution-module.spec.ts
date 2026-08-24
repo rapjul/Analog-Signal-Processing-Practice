@@ -58,6 +58,45 @@ test.describe("Continuous-Time Convolution Module", () => {
 		);
 	});
 
+	test("submits typed timing with Enter and checks choices immediately", async ({
+		page,
+	}) => {
+		const timingInputs = page.locator(".timing-grid input");
+		await timingInputs.nth(0).fill("-0.5");
+		await timingInputs.nth(1).fill("0.5");
+		await timingInputs.nth(2).fill("1");
+		await timingInputs.nth(2).press("Enter");
+		await expect(page.getByText("Read the Timing of h(t)")).toBeVisible();
+
+		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
+		const definitionOptions = page.getByTestId("convolution-step2-options");
+		await definitionOptions.locator("button").nth(1).click();
+		await expect(page.locator(".feedback-misconception")).toBeVisible();
+	});
+
+	test("shows unclipped keyboard focus on changed controls", async ({
+		page,
+	}) => {
+		const input = page.locator(".timing-grid input").first();
+		const button = page.getByRole("button", {
+			name: "Check timing and width",
+		});
+		for (const control of [input, button]) {
+			await control.focus();
+			const outline = await control.evaluate((element) => {
+				const style = getComputedStyle(element);
+				return {
+					style: style.outlineStyle,
+					width: Number.parseFloat(style.outlineWidth),
+					offset: Number.parseFloat(style.outlineOffset),
+				};
+			});
+			expect(outline.style).toBe("solid");
+			expect(outline.width).toBeGreaterThanOrEqual(2);
+			expect(outline.offset).toBeGreaterThanOrEqual(2);
+		}
+	});
+
 	test("configures each signal independently and resets tutor progression", async ({
 		page,
 	}) => {
@@ -155,6 +194,51 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator(".part-progress-pill")).toContainText(
 			`Part ${intervalStates.length} of ${intervalStates.length}`,
 		);
+	});
+
+	test("uses responsive summary grids and one interval per Step 5 row", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 1280, height: 900 });
+		for (const step of [1, 2, 3, 4, 5])
+			await page.evaluate(
+				(activeStep) => window.__signalLabDev?.autoFillStep(activeStep),
+				step,
+			);
+		const completedCards = page.locator(".step-card.completed");
+		const step3Grid = completedCards.nth(2).locator(".summary-grid");
+		const step4Grid = completedCards.nth(3).locator(".summary-grid");
+		for (const grid of [step3Grid, step4Grid]) {
+			const columns = await grid.evaluate(
+				(element) => getComputedStyle(element).gridTemplateColumns,
+			);
+			expect(columns.trim().split(/\s+/)).toHaveLength(2);
+		}
+		const step5Rows = completedCards.nth(4).locator(".summary-row");
+		expect(await step5Rows.count()).toBeGreaterThanOrEqual(3);
+		for (const row of await step5Rows.all())
+			expect(
+				await row.evaluate(
+					(element) => getComputedStyle(element).display,
+				),
+			).toBe("grid");
+
+		await page.setViewportSize({ width: 320, height: 900 });
+		for (const grid of [step3Grid, step4Grid]) {
+			const columns = await grid.evaluate(
+				(element) => getComputedStyle(element).gridTemplateColumns,
+			);
+			expect(columns.trim().split(/\s+/)).toHaveLength(1);
+		}
+	});
+
+	test("renders normalized convolution math without leaked macro text", async ({
+		page,
+	}) => {
+		await page.evaluate(() => window.__signalLabDev?.solveAll());
+		const text = await page.locator("body").innerText();
+		expect(text).not.toMatch(/auin|mathcal|maxleft|minleft/);
+		expect(text).not.toMatch(/--|\+-/);
 	});
 
 	test("remains horizontally fluid through completion at 320 pixels", async ({
