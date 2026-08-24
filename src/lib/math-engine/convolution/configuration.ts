@@ -79,7 +79,8 @@ export interface ResolvedConvolutionSelection {
 	h: ResolvedConvolutionSignal;
 }
 
-export const DEFAULT_CONVOLUTION_SIGNAL_SELECTION: ConvolutionSignalSelection =
+/** Canonical unshifted unit rectangular signal used by the textbook preset. */
+export const TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION: ConvolutionSignalSelection =
 	{
 		type: "rect",
 		parameterMode: "default",
@@ -89,16 +90,44 @@ export const DEFAULT_CONVOLUTION_SIGNAL_SELECTION: ConvolutionSignalSelection =
 		shiftValue: "random_signed",
 	};
 
-export const DEFAULT_CONVOLUTION_SELECTION: ConvolutionProblemSelection = {
+/** Fixed ECE 210 introductory example with two unit rectangular pulses. */
+export const TEXTBOOK_CONVOLUTION_SELECTION: ConvolutionProblemSelection = {
 	x: {
-		...DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
+		...TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 		componentAmplitudes: ["default", "default"],
 	},
 	h: {
-		...DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
+		...TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 		componentAmplitudes: ["default", "default"],
 	},
 };
+
+/** Beginner-safe random signal with textbook scale and unit amplitude. */
+export const BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION: ConvolutionSignalSelection =
+	{
+		type: "random",
+		parameterMode: "default",
+		amplitude: "default",
+		componentAmplitudes: ["default", "default"],
+		shiftState: "random",
+		shiftValue: "random_signed",
+	};
+
+/** Default random problem preset used for bare convolution routes. */
+export const DEFAULT_CONVOLUTION_SELECTION: ConvolutionProblemSelection = {
+	x: {
+		...BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION,
+		componentAmplitudes: ["default", "default"],
+	},
+	h: {
+		...BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION,
+		componentAmplitudes: ["default", "default"],
+	},
+};
+
+/** Backward-compatible alias for callers expecting the default signal constant. */
+export const DEFAULT_CONVOLUTION_SIGNAL_SELECTION =
+	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION;
 
 function derivedSeed(seed: number, key: string): number {
 	let hash = seed >>> 0;

@@ -35,6 +35,14 @@
 	const activeState = $derived(
 		solver.step1.subSteps[solver.step1.activeSubStepId],
 	);
+	const timingParts = $derived(problem.itsData.step1.parts);
+
+	/** Formats finite and infinite timing values for generated LaTeX. */
+	function timingValueLatex(value: number): string {
+		if (value === Number.POSITIVE_INFINITY) return String.raw`\infty`;
+		if (value === Number.NEGATIVE_INFINITY) return String.raw`-\infty`;
+		return String(value);
+	}
 </script>
 
 {#snippet headerExtra()}
@@ -100,13 +108,40 @@
 							hideHeader={true}
 							responsive={true}
 						/>
-						<div
-							class="number-line"
-							aria-label="Input spans add to form the convolution output span"
-						>
-							<span>input starts</span><span>+</span><span
-								>input ends</span
-							><span>→</span><span>output span</span>
+						<div class="timing-lines">
+							<p class="diagram-intro">
+								Each line shows one complete time span. Compare
+								start with start and end with end.
+							</p>
+							<div
+								class="span-diagram"
+								role="img"
+								aria-label="Three aligned number lines for the x signal, h signal, and convolution output. The output start is the two input starts added, and the output end is the two input ends added."
+							>
+								{#each timingParts as part}
+									<div class="span-row">
+										<MathText
+											text={`$${part.signalLatex}$`}
+										/>
+										<div
+											class="span-line"
+											aria-hidden="true"
+										>
+											<span class="endpoint start"></span>
+											<span class="endpoint end"></span>
+										</div>
+										<MathText
+											text={`$${timingValueLatex(part.start)}$ to $${timingValueLatex(part.end)}$`}
+										/>
+									</div>
+								{/each}
+							</div>
+							<MathBlock
+								math={String.raw`W_y=W_x+W_h`}
+								compact={true}
+								hideHeader={true}
+								responsive={true}
+							/>
 						</div>
 					</div>
 				{/if}
@@ -205,14 +240,53 @@
 		margin: 0;
 		color: var(--text-secondary);
 	}
-	.number-line {
+	.timing-lines {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+	}
+	.diagram-intro {
+		margin: 0;
+		font-size: var(--text-sm);
+	}
+	.span-diagram {
 		display: grid;
-		grid-template-columns: 1fr auto 1fr auto 1fr;
-		gap: 0.4rem;
+		gap: 0.55rem;
+		padding: 0.65rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-card);
+	}
+	.span-row {
+		display: grid;
+		grid-template-columns: minmax(2.5rem, auto) minmax(5rem, 1fr) minmax(
+				8rem,
+				auto
+			);
+		gap: 0.65rem;
 		align-items: center;
-		text-align: center;
 		font-size: var(--text-xs);
-		color: var(--accent-primary);
+		color: var(--text-secondary);
+	}
+	.span-line {
+		position: relative;
+		height: 2px;
+		background: var(--accent-primary);
+	}
+	.endpoint {
+		position: absolute;
+		top: 50%;
+		width: 0.6rem;
+		height: 0.6rem;
+		border: 2px solid var(--accent-primary);
+		border-radius: 50%;
+		background: var(--bg-card);
+		transform: translateY(-50%);
+	}
+	.endpoint.start {
+		left: 0;
+	}
+	.endpoint.end {
+		right: 0;
 	}
 	.timing-grid {
 		display: grid;
@@ -256,6 +330,12 @@
 
 	/* ── Mobile media query (≤640px) ──────────────────────── */
 	@media (max-width: 640px) {
+		.span-row {
+			grid-template-columns: minmax(2.5rem, auto) minmax(4rem, 1fr);
+		}
+		.span-row > :last-child {
+			grid-column: 1 / -1;
+		}
 		.timing-grid {
 			grid-template-columns: 1fr;
 		}

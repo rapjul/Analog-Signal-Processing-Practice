@@ -180,6 +180,7 @@
 				badge="Part 3C"
 				title="Transform Every Moving Section"
 			>
+				<p class="endpoint-label">Exact Endpoint Convention</p>
 				<p class="step-prompt">
 					<MathText
 						text={String.raw`For each original section $[c,d]$, type the transformed left edge $t-d$, right edge $t-c$, and reflected endpoint convention.`}
@@ -187,7 +188,7 @@
 				</p>
 				<p class="endpoint-explanation">
 					<MathText
-						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. This preserves the exact pointwise signal and graph, although changing one isolated endpoint does not change an ordinary convolution integral.`}
+						text={String.raw`An included endpoint is a boundary where the signal keeps the section's stated value. Square brackets, as in $[a,b]$, include a boundary; parentheses, as in $(a,b)$, exclude it. Record this convention because exact graphs, piecewise inequalities, and exam notation may require it. Changing one isolated endpoint does not change an ordinary continuous-time convolution integral.`}
 					/>
 				</p>
 				<form
@@ -306,6 +307,16 @@
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 		line-height: var(--leading-relaxed);
+	}
+	.endpoint-label {
+		align-self: flex-start;
+		margin: 0;
+		padding: 0.25rem 0.55rem;
+		font-size: var(--text-xs);
+		font-weight: 700;
+		color: var(--accent-primary);
+		border: 1px solid var(--accent-primary);
+		border-radius: var(--radius-pill);
 	}
 	.concept-key {
 		display: grid;

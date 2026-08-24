@@ -66,11 +66,14 @@ export type {
 	ResolvedConvolutionSignal,
 } from "./configuration";
 export {
+	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION,
 	CONVOLUTION_SIGNAL_TYPES,
 	DEFAULT_CONVOLUTION_SELECTION,
 	DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
 	resolveConvolutionSelection,
 	resolveConvolutionSignal,
+	TEXTBOOK_CONVOLUTION_SELECTION,
+	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 } from "./configuration";
 export { solveConfiguredConvolution } from "./configured-solver";
 export { evalExpDecay, evalRect, evalTri } from "./evaluators";
