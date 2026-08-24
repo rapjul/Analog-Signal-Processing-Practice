@@ -174,7 +174,7 @@ describe("ConvolutionStepSolver", () => {
 		const timingForm = inputs[0].closest("form");
 		if (!timingForm) throw new Error("Expected the timing form.");
 		await fireEvent.submit(timingForm);
-		expect(view.getByText("Read the Timing of h(t)")).toBeTruthy();
+		expect(view.getByText("Part 1B")).toBeTruthy();
 
 		await act(() => {
 			expect(

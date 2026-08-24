@@ -125,7 +125,7 @@ function timingPart(
 		title:
 			id === "y"
 				? "Calculate the Convolution Timing"
-				: `Read the Timing of ${id}(t)`,
+				: `Read the Timing of $${id}(t)$`,
 		signalLatex,
 		start,
 		end,

@@ -92,7 +92,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await timingInputs.nth(1).fill("0.5");
 		await timingInputs.nth(2).fill("1");
 		await timingInputs.nth(2).press("Enter");
-		await expect(page.getByText("Read the Timing of h(t)")).toBeVisible();
+		await expect(page.getByText("Part 1B")).toBeVisible();
 
 		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
 		const definitionOptions = page.getByTestId("convolution-step2-options");
