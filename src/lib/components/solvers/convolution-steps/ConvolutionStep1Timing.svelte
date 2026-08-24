@@ -128,8 +128,9 @@
 					type="button"
 					class="check-button"
 					onclick={() => solver.checkStep1()}
-					>Check timing and width</button
 				>
+					Check timing and width
+				</button>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />

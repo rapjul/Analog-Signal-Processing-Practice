@@ -225,9 +225,9 @@
 							placeholder="0"
 							aria-label="Lower boundary A"
 						/>
-						<span class="sep"
-							><MathInline math={"\\le t \\le"} /></span
-						>
+						<span class="sep">
+							<MathInline math={"\\le t \\le"} />
+						</span>
 						<input
 							id="upper-between-{row.id}"
 							type="text"

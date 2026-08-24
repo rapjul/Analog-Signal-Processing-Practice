@@ -175,11 +175,11 @@
 										text={String.raw`Exponential $K e^{p t}$`}
 									/>
 								</td>
-								<td
-									><MathText
+								<td>
+									<MathText
 										text={String.raw`$K_p e^{p t}$`}
-									/></td
-								>
+									/>
+								</td>
 							</tr>
 							<tr>
 								<td>
@@ -367,32 +367,30 @@
 						</thead>
 						<tbody>
 							<tr>
-								<td
-									><MathText
-										text={String.raw`$\delta(t)$`}
-									/></td
-								>
+								<td>
+									<MathText text={String.raw`$\delta(t)$`} />
+								</td>
 								<td><MathText text={"$1$"} /></td>
 							</tr>
 							<tr>
 								<td><MathText text={"$u(t)$"} /></td>
-								<td
-									><MathText
+								<td>
+									<MathText
 										text={String.raw`$\frac{1}{s}$`}
-									/></td
-								>
+									/>
+								</td>
 							</tr>
 							<tr>
-								<td
-									><MathText
+								<td>
+									<MathText
 										text={String.raw`$e^{-a t} u(t)$`}
-									/></td
-								>
-								<td
-									><MathText
+									/>
+								</td>
+								<td>
+									<MathText
 										text={String.raw`$\frac{1}{s + a}$`}
-									/></td
-								>
+									/>
+								</td>
 							</tr>
 							<tr>
 								<td>

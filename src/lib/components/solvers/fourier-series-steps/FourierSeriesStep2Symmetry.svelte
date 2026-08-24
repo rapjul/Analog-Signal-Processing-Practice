@@ -95,9 +95,9 @@
 							"even")}
 				>
 					<strong>Even Symmetry</strong>
-					<span class="choice-sub"
-						><MathText text={"$x(-t) = x(t)$"} /></span
-					>
+					<span class="choice-sub">
+						<MathText text={"$x(-t) = x(t)$"} />
+					</span>
 				</button>
 				<button
 					type="button"
@@ -109,9 +109,9 @@
 							"odd")}
 				>
 					<strong>Odd Symmetry</strong>
-					<span class="choice-sub"
-						><MathText text={"$x(-t) = -x(t)$"} /></span
-					>
+					<span class="choice-sub">
+						<MathText text={"$x(-t) = -x(t)$"} />
+					</span>
 				</button>
 				<button
 					type="button"

@@ -108,14 +108,16 @@
 						type="button"
 						class:selected={activeState.hasOverlap === true}
 						onclick={() => (activeState.hasOverlap = true)}
-						>Yes, there is overlap</button
 					>
+						Yes, there is overlap
+					</button>
 					<button
 						type="button"
 						class:selected={activeState.hasOverlap === false}
 						onclick={() => (activeState.hasOverlap = false)}
-						>No overlap</button
 					>
+						No overlap
+					</button>
 				</div>
 
 				{#if activeState.hasOverlap === true}
@@ -142,9 +144,9 @@
 									</div>
 								</div>
 								<div class="bound-input-grid">
-									<label
-										><span>Simplified lower limit</span
-										><input
+									<label>
+										<span>Simplified lower limit</span>
+										<input
 											type="text"
 											bind:value={
 												activeState.boundInputs[
@@ -152,11 +154,11 @@
 												].lower
 											}
 											placeholder="larger left edge"
-										/></label
-									>
-									<label
-										><span>Simplified upper limit</span
-										><input
+										/>
+									</label>
+									<label>
+										<span>Simplified upper limit</span>
+										<input
 											type="text"
 											bind:value={
 												activeState.boundInputs[
@@ -164,17 +166,18 @@
 												].upper
 											}
 											placeholder="smaller right edge"
-										/></label
-									>
+										/>
+									</label>
 								</div>
 								{#if overlap.splitPointsLatex.length > 0}
 									<div class="split-grid">
 										{#each overlap.splitPointsLatex as _, splitIndex}
-											<label
-												><span
-													>Interior split point {splitIndex +
-														1}</span
-												><input
+											<label>
+												<span>
+													Interior split point {splitIndex +
+														1}
+												</span>
+												<input
 													type="text"
 													bind:value={
 														activeState.boundInputs[
@@ -182,8 +185,8 @@
 														].splits[splitIndex]
 													}
 													placeholder="slope or formula change"
-												/></label
-											>
+												/>
+											</label>
 										{/each}
 									</div>
 								{/if}
@@ -195,8 +198,9 @@
 					type="button"
 					class="check-button"
 					onclick={() => solver.checkStep5()}
-					>Check overlap and bounds</button
 				>
+					Check overlap and bounds
+				</button>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />

@@ -83,17 +83,19 @@
 					<button
 						type="button"
 						onclick={() => solver.chooseMovingSignal("x")}
-						><MathText
-							text={String.raw`Move $x(t)$; keep $h(\tau)$ fixed.`}
-						/></button
 					>
+						<MathText
+							text={String.raw`Move $x(t)$; keep $h(\tau)$ fixed.`}
+						/>
+					</button>
 					<button
 						type="button"
 						onclick={() => solver.chooseMovingSignal("h")}
-						><MathText
-							text={String.raw`Move $h(t)$; keep $x(\tau)$ fixed.`}
-						/></button
 					>
+						<MathText
+							text={String.raw`Move $h(t)$; keep $x(\tau)$ fixed.`}
+						/>
+					</button>
 				</div>
 			</SubStepBlock>
 		{:else}
@@ -166,41 +168,45 @@
 								text={`Original section ${section.index}: $${section.originalLatex}$.`}
 							/>
 							<div class="edge-grid">
-								<label
-									><span>Transformed left edge</span><input
+								<label>
+									<span>Transformed left edge</span>
+									<input
 										type="text"
 										bind:value={
 											solver.step3.edgeInputs[section.id]
 												.left
 										}
 										placeholder="e.g. t-2"
-									/></label
-								>
-								<label
-									><span>Transformed right edge</span><input
+									/>
+								</label>
+								<label>
+									<span>Transformed right edge</span>
+									<input
 										type="text"
 										bind:value={
 											solver.step3.edgeInputs[section.id]
 												.right
 										}
 										placeholder="e.g. t"
-									/></label
-								>
-								<label
-									><span>Included endpoint</span><select
+									/>
+								</label>
+								<label>
+									<span>Included endpoint</span>
+									<select
 										bind:value={
 											solver.step3.edgeInputs[section.id]
 												.includedEndpoint
 										}
-										><option value="">Choose one</option
-										><option value="left">Left only</option
-										><option value="right"
-											>Right only</option
-										><option value="both">Both</option
-										><option value="neither">Neither</option
-										></select
-									></label
-								>
+									>
+										<option value="">Choose one</option>
+										<option value="left">Left only</option>
+										<option value="right">
+											Right only
+										</option>
+										<option value="both">Both</option>
+										<option value="neither">Neither</option>
+									</select>
+								</label>
 							</div>
 						</div>
 					{/each}
@@ -209,8 +215,9 @@
 					type="button"
 					class="check-button"
 					onclick={() => solver.checkStep3Edges()}
-					>Check transformed edges</button
 				>
+					Check transformed edges
+				</button>
 			</SubStepBlock>
 		{/if}
 

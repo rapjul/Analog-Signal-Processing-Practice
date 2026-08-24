@@ -296,14 +296,14 @@
 				</span>
 			</div>
 			<div class="legend-item">
-				<span class="guide purple"></span><span class="label"
-					>Moving edges</span
-				>
+				<span class="guide purple"></span><span class="label">
+					Moving edges
+				</span>
 			</div>
 			<div class="legend-item">
-				<span class="guide amber"></span><span class="label"
-					>Current time</span
-				>
+				<span class="guide amber"></span><span class="label">
+					Current time
+				</span>
 			</div>
 		</div>
 	</div>

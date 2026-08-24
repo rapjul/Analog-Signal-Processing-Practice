@@ -23,9 +23,9 @@
 </script>
 
 <details class="step-reveal-container">
-	<summary class="step-main-title"
-		>Solution Breakdown ({steps.length} steps)</summary
-	>
+	<summary class="step-main-title">
+		Solution Breakdown ({steps.length} steps)
+	</summary>
 	<div class="steps-list">
 		{#each steps as step, idx}
 			<div class="step-card">

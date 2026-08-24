@@ -125,16 +125,17 @@
 				boundary.
 			</p>
 			<div class="interval-list">
-				<label
-					><MathInline math="t<" /><input
+				<label>
+					<MathInline math="t<" />
+					<input
 						type="text"
 						bind:value={activeState.intervalInputs[0]}
 						aria-label="First interval upper boundary"
-					/></label
-				>
+					/>
+				</label>
 				{#each activeState.intervalInputs.slice(0, -1) as _, index}
-					<label
-						><input
+					<label>
+						<input
 							type="text"
 							bind:value={activeState.intervalInputs[index]}
 							aria-label={`Interval ${index + 2} lower boundary`}
@@ -142,11 +143,12 @@
 							type="text"
 							bind:value={activeState.intervalInputs[index + 1]}
 							aria-label={`Interval ${index + 2} upper boundary`}
-						/></label
-					>
+						/>
+					</label>
 				{/each}
-				<label
-					><MathInline math="t\ge" /><input
+				<label>
+					<MathInline math="t\ge" />
+					<input
 						type="text"
 						bind:value={
 							activeState.intervalInputs[
@@ -154,29 +156,31 @@
 							]
 						}
 						aria-label="Final interval lower boundary"
-					/></label
-				>
+					/>
+				</label>
 			</div>
 		{/if}
 
 		{#if activeId !== "interval-builder"}
-			<label class="scalar-entry"
-				><span>Your answer</span><input
+			<label class="scalar-entry">
+				<span>Your answer</span>
+				<input
 					type="text"
 					bind:value={activeState.input}
 					onkeydown={(event) =>
 						event.key === "Enter" && solver.checkStep4()}
-				/></label
-			>
+				/>
+			</label>
 		{/if}
 		<button
 			type="button"
 			class="check-button"
 			onclick={() => solver.checkStep4()}
-			>{activeId === "interval-builder"
-				? "Check interval partition"
-				: "Check this part"}</button
 		>
+			{activeId === "interval-builder"
+				? "Check interval partition"
+				: "Check this part"}
+		</button>
 		<StepFeedback {solver} />
 		<HintDisclosure
 			hints={solver.activeHints}

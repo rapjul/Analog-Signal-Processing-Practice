@@ -103,19 +103,20 @@
 					compact={true}
 					responsive={true}
 				/>
-				<label class="expression-entry"
-					><span
-						><MathText
+				<label class="expression-entry">
+					<span>
+						<MathText
 							text={String.raw`Enter the simplified expression for $y(t)$:`}
-						/></span
-					><input
+						/>
+					</span>
+					<input
 						type="text"
 						bind:value={activeState.input}
 						placeholder="e.g. t-1 or (t+3)^2/4"
 						onkeydown={(event) =>
 							event.key === "Enter" && solver.checkStep6()}
-					/></label
-				>
+					/>
+				</label>
 				<div
 					class="preview"
 					aria-live="polite"
@@ -134,8 +135,9 @@
 					type="button"
 					class="check-button"
 					onclick={() => solver.checkStep6()}
-					>Check evaluated expression</button
 				>
+					Check evaluated expression
+				</button>
 			</SubStepBlock>
 		{/if}
 		<StepFeedback {solver} />

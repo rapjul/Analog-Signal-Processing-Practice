@@ -202,7 +202,8 @@
 				<span
 					class="legend-dot"
 					style="background-color: {c.color}"
-				></span>
+				>
+				</span>
 				<span class="legend-label">
 					{#if c.math}
 						{c.label}: <MathInline math={c.math} />
