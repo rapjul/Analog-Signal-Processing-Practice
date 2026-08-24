@@ -1,9 +1,9 @@
-import type { ConvolutionInterval, ConvolutionResult } from "../convolution";
 import type {
 	ConvolutionPolynomialPiece,
 	ResolvedConvolutionSelection,
 	ResolvedConvolutionSignal,
 } from "./configuration";
+import type { ConvolutionInterval, ConvolutionResult } from "./types";
 
 type Polynomial = number[];
 type AffineBound = [number, number];

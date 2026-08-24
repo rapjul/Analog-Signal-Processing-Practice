@@ -16,7 +16,7 @@
 	import type {
 		ConvolutionItsChoiceStep,
 		ConvolutionItsOption,
-	} from "$lib/math-engine/convolution";
+	} from "$lib/math-engine/convolution/index";
 
 	interface Props {
 		/** Parent step number. */

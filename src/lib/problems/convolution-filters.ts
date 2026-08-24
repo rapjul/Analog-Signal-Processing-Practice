@@ -10,7 +10,7 @@ import {
 	type ConvolutionSignalSelection,
 	type ConvolutionSignalTypeSelection,
 	DEFAULT_CONVOLUTION_SELECTION,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 import { createRandomSeed } from "$lib/math-engine/random";
 import { parseSafeSeedParam } from "$lib/problems/url-params";
 

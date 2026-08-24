@@ -11,7 +11,7 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
-import { generateConvolutionProblem } from "$lib/math-engine/convolution";
+import { generateConvolutionProblem } from "$lib/math-engine/convolution/index";
 
 describe("ConvolutionPracticeCard", () => {
 	beforeEach(() => {

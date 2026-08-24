@@ -20,7 +20,7 @@ import type {
 	ConvolutionItsOption,
 	ConvolutionMovingSignal,
 	ConvolutionProblem,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
 import { parseNumericInput } from "$lib/math-engine/fraction";
 

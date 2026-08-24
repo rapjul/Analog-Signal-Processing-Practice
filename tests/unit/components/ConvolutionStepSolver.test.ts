@@ -7,7 +7,7 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import ConvolutionStepSolver from "$lib/components/solvers/ConvolutionStepSolver.svelte";
-import { generateConvolutionProblem } from "$lib/math-engine/convolution";
+import { generateConvolutionProblem } from "$lib/math-engine/convolution/index";
 
 describe("ConvolutionStepSolver", () => {
 	afterEach(() => cleanup());

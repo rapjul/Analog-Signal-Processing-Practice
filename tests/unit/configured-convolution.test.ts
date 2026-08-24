@@ -10,7 +10,7 @@ import {
 	resolveConvolutionSelection,
 	resolveConvolutionSignal,
 	solveConfiguredConvolution,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 
 function selection(
 	type: ConvolutionSignalType,

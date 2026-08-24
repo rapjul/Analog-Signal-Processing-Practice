@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	type ConvolutionProblemSelection,
 	DEFAULT_CONVOLUTION_SELECTION,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 import {
 	CONVOLUTION_SHARE_VERSION,
 	parseConvolutionFilters,

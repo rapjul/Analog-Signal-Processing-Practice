@@ -416,3 +416,50 @@ export function formatSignedLinearTerm(
 
 	return isNegative ? `- ${body}` : `+ ${body}`;
 }
+
+/**
+ * Formats a translated mathematical variable without redundant signs.
+ *
+ * @param {string} variable - Mathematical variable to translate.
+ * @param {number} shift - Translation applied as variable minus shift.
+ * @returns {string} Sign-normalized translated argument.
+ */
+export function formatTranslatedArgument(
+	variable: string,
+	shift: number,
+): string {
+	if (shift === 0) return variable;
+	return shift > 0
+		? `${variable} - ${shift}`
+		: `${variable} + ${Math.abs(shift)}`;
+}
+
+/**
+ * Formats direct substitution into a subtraction with negative values parenthesized.
+ *
+ * @param {string} variable - Expression preceding the subtraction.
+ * @param {number} value - Substituted scalar value.
+ * @returns {string} Exact subtraction expression.
+ */
+export function formatSubstitutedDifference(
+	variable: string,
+	value: number,
+): string {
+	return value < 0 ? `${variable}-(${value})` : `${variable}-${value}`;
+}
+
+/**
+ * Applies a scalar coefficient without redundant positive or negative unit factors.
+ *
+ * @param {number} coefficient - Exact scalar multiplier.
+ * @param {string} body - Mathematical expression being scaled.
+ * @returns {string} Sign-normalized scaled expression.
+ */
+export function formatScaledMathBody(
+	coefficient: number,
+	body: string,
+): string {
+	if (coefficient === 1) return body;
+	if (coefficient === -1) return `-${body}`;
+	return `${coefficient}${body}`;
+}

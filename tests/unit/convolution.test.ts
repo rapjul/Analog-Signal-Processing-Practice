@@ -17,13 +17,13 @@ import {
 	solveShiftedRectConvolution,
 	solveShiftedTriTriConvolution,
 	solveTriRectConvolution,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 import {
 	buildConvolutionItsData,
 	type ConvolutionItsBuildContext,
 	formatConvolutionPiecewiseLatex,
 	getFiniteConvolutionTransitionTimes,
-} from "$lib/math-engine/convolution/its-scaffolding";
+} from "$lib/math-engine/convolution/its-scaffolding/index";
 
 describe("Continuous-Time Convolution Math Engine", () => {
 	describe("Primitive Signal Evaluators", () => {
@@ -576,7 +576,6 @@ describe("Continuous-Time Convolution Math Engine", () => {
 				hBreakpoints: [0, 1],
 			};
 			const data = buildConvolutionItsData(overlapping);
-			expect(data.step4.sectionOverlapCounts.x).toBe(1);
 			const overlaps =
 				data.step5.parts[0].setupBySignal?.h.overlaps ?? [];
 			expect(overlaps).not.toHaveLength(0);

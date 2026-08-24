@@ -3,7 +3,7 @@ import type {
 	BaseSubStepState,
 	MultiPartStepState,
 } from "$lib/components/solvers/base-step-solver.svelte";
-import type { ConvolutionMovingSignal } from "$lib/math-engine/convolution";
+import type { ConvolutionMovingSignal } from "$lib/math-engine/convolution/index";
 
 /** State for one single-choice convolution solver step. */
 export interface ConvolutionChoiceStepState extends BaseStepState {

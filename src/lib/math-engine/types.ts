@@ -49,6 +49,9 @@ export interface BaseItsStep {
 }
 
 /**
- * Generic type for domain filter options with an additional random choice.
+ * Generic type for domain filter options with one or more explicit random tokens.
+ *
+ * @template T - Fixed selections.
+ * @template Token - Random selection token or tokens.
  */
-export type WithRandom<T> = T | "random";
+export type WithRandom<T, Token extends string = "random"> = T | Token;

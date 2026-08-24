@@ -1,10 +1,16 @@
-import { createSeededPrng, randomChoice, randomInt } from "../random";
-import type { ConvolutionSignalSection } from "./its-scaffolding";
 import {
-	formatPulseScale,
-	formatRectPulseLatex,
+	formatScaledMathBody,
 	formatTranslatedArgument,
-} from "./pulse-formatting";
+	sanitizeLatexMath,
+} from "$lib/math-engine/formatting";
+import {
+	createSeededPrng,
+	randomChoice,
+	randomInt,
+} from "$lib/math-engine/random";
+import type { WithRandom } from "$lib/math-engine/types";
+import { formatRectPulseLatex } from "./pulse-formatting";
+import type { ConvolutionSignalSection } from "./types";
 
 export const CONVOLUTION_SIGNAL_TYPES = [
 	"rect",
@@ -14,25 +20,21 @@ export const CONVOLUTION_SIGNAL_TYPES = [
 ] as const;
 
 export type ConvolutionSignalType = (typeof CONVOLUTION_SIGNAL_TYPES)[number];
-export type ConvolutionSignalTypeSelection = ConvolutionSignalType | "random";
-export type ConvolutionParameterMode = "default" | "random";
-export type ConvolutionAmplitudeSelection =
-	"default" | "random_signed" | "-3" | "-2" | "-1" | "1" | "2" | "3";
-export type ConvolutionShiftState = "unshifted" | "shifted" | "random";
-export type ConvolutionShiftValueSelection =
-	| "random_signed"
-	| "random_negative"
-	| "random_positive"
-	| "-5"
-	| "-4"
-	| "-3"
-	| "-2"
-	| "-1"
-	| "1"
-	| "2"
-	| "3"
-	| "4"
-	| "5";
+export type ConvolutionSignalTypeSelection = WithRandom<ConvolutionSignalType>;
+export type ConvolutionParameterMode = WithRandom<"default">;
+type ConvolutionFixedAmplitude =
+	"default" | "-3" | "-2" | "-1" | "1" | "2" | "3";
+export type ConvolutionAmplitudeSelection = WithRandom<
+	ConvolutionFixedAmplitude,
+	"random_signed"
+>;
+export type ConvolutionShiftState = WithRandom<"unshifted" | "shifted">;
+type ConvolutionFixedShiftValue =
+	"-5" | "-4" | "-3" | "-2" | "-1" | "1" | "2" | "3" | "4" | "5";
+export type ConvolutionShiftValueSelection = WithRandom<
+	ConvolutionFixedShiftValue,
+	"random_signed" | "random_negative" | "random_positive"
+>;
 
 export interface ConvolutionSignalSelection {
 	type: ConvolutionSignalTypeSelection;
@@ -146,7 +148,7 @@ function formatShiftedArgument(shift: number): string {
 }
 
 function scaleLatex(amplitude: number, body: string): string {
-	return formatPulseScale(amplitude, body);
+	return sanitizeLatexMath(formatScaledMathBody(amplitude, body));
 }
 
 function section(

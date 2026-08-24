@@ -10,8 +10,8 @@ import {
 	type ConvolutionMovingSignal,
 	type ConvolutionProblem,
 	generateConvolutionProblem,
-} from "$lib/math-engine/convolution";
-import { buildConvolutionItsData } from "$lib/math-engine/convolution/its-scaffolding";
+} from "$lib/math-engine/convolution/index";
+import { buildConvolutionItsData } from "$lib/math-engine/convolution/its-scaffolding/index";
 
 /** Finds the guided contact represented by one Step 4 substep identifier. */
 function contactFor(

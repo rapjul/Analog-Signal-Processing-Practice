@@ -11,7 +11,7 @@
 		type ConvolutionProblemSelection,
 		DEFAULT_CONVOLUTION_SELECTION,
 		generateConfiguredConvolutionProblem,
-	} from "$lib/math-engine/convolution";
+	} from "$lib/math-engine/convolution/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
 	import {
 		CONVOLUTION_AMPLITUDE_SELECTIONS,

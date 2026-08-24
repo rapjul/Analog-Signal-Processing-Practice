@@ -1,36 +1,13 @@
 /** Shared exact LaTeX formatting for configured convolution pulses. */
 
-/**
- * Formats a translated variable without redundant signs.
- *
- * @param variable - Mathematical variable to translate.
- * @param shift - Pulse center applied as `variable - shift`.
- * @returns Simplified translated argument.
- */
-export function formatTranslatedArgument(
-	variable: string,
-	shift: number,
-): string {
-	if (shift === 0) return variable;
-	return shift > 0
-		? `${variable} - ${shift}`
-		: `${variable} + ${Math.abs(shift)}`;
-}
+import {
+	formatScaledMathBody,
+	formatSubstitutedDifference,
+	formatTranslatedArgument,
+	sanitizeLatexMath,
+} from "$lib/math-engine/formatting";
 
-/**
- * Formats direct substitution into a subtraction without doubled signs.
- *
- * @param variable - Mathematical variable preceding the subtraction.
- * @param value - Numeric value substituted for the subtracted quantity.
- * @returns Substitution form with parentheses around negative values.
- */
-export function formatSubstitutedDifference(
-	variable: string,
-	value: number,
-): string {
-	if (value < 0) return `${variable}-(${value})`;
-	return `${variable}-${value}`;
-}
+export { formatSubstitutedDifference, formatTranslatedArgument };
 
 /**
  * Formats an amplitude multiplier without writing a redundant coefficient.
@@ -40,9 +17,7 @@ export function formatSubstitutedDifference(
  * @returns Scaled LaTeX expression.
  */
 export function formatPulseScale(amplitude: number, body: string): string {
-	if (amplitude === 1) return body;
-	if (amplitude === -1) return `-${body}`;
-	return `${amplitude}${body}`;
+	return sanitizeLatexMath(formatScaledMathBody(amplitude, body));
 }
 
 /**
@@ -63,5 +38,5 @@ export function formatRectPulseLatex(
 		width === 1
 			? `\\operatorname{rect}(${argument})`
 			: `\\operatorname{rect}\\left(\\frac{${argument}}{${width}}\\right)`;
-	return formatPulseScale(amplitude, body);
+	return sanitizeLatexMath(formatPulseScale(amplitude, body));
 }

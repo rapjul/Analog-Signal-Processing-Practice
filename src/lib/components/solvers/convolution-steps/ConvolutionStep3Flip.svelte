@@ -9,7 +9,7 @@
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
-	import type { ConvolutionProblem } from "$lib/math-engine/convolution";
+	import type { ConvolutionProblem } from "$lib/math-engine/convolution/index";
 
 	interface Props {
 		/** Active convolution problem. */

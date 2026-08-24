@@ -12,7 +12,7 @@
 	import {
 		type ConvolutionProblem,
 		formatConvolutionScalar,
-	} from "$lib/math-engine/convolution";
+	} from "$lib/math-engine/convolution/index";
 
 	interface Props {
 		/** Active exact convolution problem. */
@@ -157,12 +157,8 @@
 				{@const signal = activeId === "section-count-x" ? "x" : "h"}
 				<p class="step-prompt">
 					<MathText
-						text={`How many distinct non-zero pulses or connected sections does $${signal}(t)$ contain? Count overlapping sections separately.`}
+						text={`How many connected non-zero sections does $${signal}(t)$ contain? A zero-valued gap separates two sections.`}
 					/>
-				</p>
-				<p class="context-note">
-					Known overlaps between these sections: {problem.itsData
-						.step4.sectionOverlapCounts[signal]}.
 				</p>
 			{:else if breakpoint}
 				<p class="step-prompt">

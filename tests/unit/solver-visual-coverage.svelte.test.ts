@@ -15,7 +15,7 @@ import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svel
 import {
 	type ConvolutionPairType,
 	generateConvolutionProblem,
-} from "$lib/math-engine/convolution";
+} from "$lib/math-engine/convolution/index";
 import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,

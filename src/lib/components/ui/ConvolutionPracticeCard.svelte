@@ -16,7 +16,7 @@
 	import {
 		type ConvolutionProblem,
 		getFiniteConvolutionTransitionTimes,
-	} from "$lib/math-engine/convolution";
+	} from "$lib/math-engine/convolution/index";
 	import type { SolutionStep } from "$lib/math-engine/types";
 
 	interface Props {
