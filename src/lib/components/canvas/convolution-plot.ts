@@ -50,6 +50,8 @@ export interface ConvolutionPlotTheme {
 	movingSignal?: string;
 	/** Overlap-product fill color. */
 	overlapFill?: string;
+	/** Negative overlap-product fill color. */
+	overlapNegativeFill?: string;
 	/** Convolution-output curve color. */
 	output?: string;
 	/** Faint complete-output preview color. */
@@ -438,41 +440,29 @@ function drawOverlapPanel(
 	const { frame } = options;
 	const scaleY =
 		(geometry.upper.zeroY - geometry.upper.top - 8) / frame.upperAmplitude;
-	context.fillStyle = options.theme.overlapFill ?? "rgba(16, 185, 129, 0.3)";
-	context.beginPath();
-	context.moveTo(toX(frame.samples[0]?.time ?? 0), geometry.upper.zeroY);
-	let previous: ConvolutionPlotSample | undefined;
-	const productDiscontinuities = [
-		...(options.fixedDiscontinuities ?? []),
-		...(options.movingDiscontinuities ?? []),
-	].sort((left, right) => left - right);
-	for (const sample of frame.samples) {
-		for (const boundary of productDiscontinuities) {
-			if (
-				!previous ||
-				boundary <= previous.time ||
-				boundary > sample.time
-			)
-				continue;
-			context.lineTo(
-				toX(boundary),
-				geometry.upper.zeroY - previous.product * scaleY,
-			);
-			context.lineTo(
-				toX(boundary),
-				geometry.upper.zeroY - sample.product * scaleY,
-			);
-		}
+	for (let index = 1; index < frame.samples.length; index += 1) {
+		const previous = frame.samples[index - 1];
+		const sample = frame.samples[index];
+		const averageProduct = (previous.product + sample.product) / 2;
+		context.fillStyle =
+			averageProduct < 0
+				? (options.theme.overlapNegativeFill ??
+					"rgba(244, 63, 94, 0.3)")
+				: (options.theme.overlapFill ?? "rgba(16, 185, 129, 0.3)");
+		context.beginPath();
+		context.moveTo(toX(previous.time), geometry.upper.zeroY);
+		context.lineTo(
+			toX(previous.time),
+			geometry.upper.zeroY - previous.product * scaleY,
+		);
 		context.lineTo(
 			toX(sample.time),
 			geometry.upper.zeroY - sample.product * scaleY,
 		);
-		previous = sample;
+		context.lineTo(toX(sample.time), geometry.upper.zeroY);
+		context.closePath();
+		context.fill();
 	}
-	const finalSample = frame.samples.at(-1);
-	context.lineTo(toX(finalSample?.time ?? 0), geometry.upper.zeroY);
-	context.closePath();
-	context.fill();
 	drawSampleCurve(
 		context,
 		frame.samples,

@@ -239,6 +239,10 @@
 				overlapFill:
 					style.getPropertyValue("--plot-overlap-fill").trim() ||
 					"rgba(16, 185, 129, 0.3)",
+				overlapNegativeFill:
+					style
+						.getPropertyValue("--plot-overlap-negative-fill")
+						.trim() || "rgba(244, 63, 94, 0.3)",
 				output:
 					style.getPropertyValue("--plot-output").trim() || "#06b6d4",
 				outputPreview:
@@ -252,6 +256,7 @@
 					"#f59e0b",
 			},
 		});
+		canvasEl.dataset.visualReady = "true";
 	});
 </script>
 
@@ -276,7 +281,12 @@
 			</div>
 			<div class="legend-item">
 				<span class="dot green"></span><span class="label">
-					Overlap product
+					Positive product
+				</span>
+			</div>
+			<div class="legend-item">
+				<span class="dot rose"></span><span class="label">
+					Negative product
 				</span>
 			</div>
 			<div class="legend-item">
@@ -373,11 +383,13 @@
 		id="convolution-plot-note"
 		class="plot-note"
 	>
-		Purple dashed guides on the output plot mark every finite transformed
-		moving-signal edge. The amber guide and point mark the current time.
-		Fainter cyan dashed guides mark transition times verified in the solver.
-		The faint output curve previews the complete response, while the bright
-		cyan curve shows the portion reached by the moving overlap.
+		Green and rose shading distinguish positive and negative overlap
+		contributions. Purple dashed guides on the output plot mark every finite
+		transformed moving-signal edge. The amber guide and point mark the
+		current time. Fainter cyan dashed guides mark transition times verified
+		in the solver. The faint output curve previews the complete response,
+		while the bright cyan curve shows the portion reached by the moving
+		overlap.
 	</p>
 </div>
 
@@ -443,6 +455,9 @@
 	}
 	.dot.green {
 		background: #10b981;
+	}
+	.dot.rose {
+		background: #f43f5e;
 	}
 	.dot.cyan {
 		background: #06b6d4;
