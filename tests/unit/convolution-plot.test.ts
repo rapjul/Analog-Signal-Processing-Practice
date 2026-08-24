@@ -178,6 +178,7 @@ describe("convolution plot model", () => {
 				fixedSignal: "fixed-blue",
 				movingSignal: "moving-orange",
 				overlapFill: "overlap-green",
+				overlapNegativeFill: "overlap-rose",
 				output: "output-cyan",
 				outputPreview: "output-preview-cyan",
 				movingEdge: "edge-purple",
@@ -188,7 +189,7 @@ describe("convolution plot model", () => {
 		expect(context.fillRect).toHaveBeenCalledWith(0, 0, 640, 360);
 		expect(context.fillText).toHaveBeenCalledTimes(5);
 		expect(context.closePath).toHaveBeenCalled();
-		expect(context.fill).toHaveBeenCalledTimes(2);
+		expect(context.fill).toHaveBeenCalledTimes(9);
 		expect(context.arc).toHaveBeenCalledTimes(1);
 		expect(context.stroke).toHaveBeenCalled();
 		expect(context.setLineDash).toHaveBeenCalledWith([5, 5]);
@@ -204,6 +205,7 @@ describe("convolution plot model", () => {
 			]),
 		);
 		expect(fillStyles).toContain("overlap-green");
+		expect(fillStyles).not.toContain("overlap-rose");
 		const geometry = createConvolutionPlotGeometry(640, 360);
 		const movingEdgeX = 40 + ((1.75 - -1) / 4) * 560;
 		expect(context.moveTo).toHaveBeenCalledWith(
@@ -248,6 +250,39 @@ describe("convolution plot model", () => {
 		});
 		expect(context.arc).toHaveBeenCalled();
 		expect(context.fillRect).toHaveBeenCalled();
+	});
+
+	it("uses a distinct configurable fill for negative overlap products", () => {
+		const context = createMockContext();
+		const fillStyles: string[] = [];
+		Object.defineProperty(context, "fillStyle", {
+			get: () => fillStyles.at(-1) ?? "",
+			set: (value: string) => fillStyles.push(value),
+		});
+		const frame = sampleConvolutionPlot(
+			() => 2,
+			() => -3,
+			() => -1,
+			0,
+			[-1, 1],
+			4,
+		);
+		drawConvolutionPlot(context, {
+			width: 320,
+			height: 160,
+			timeRange: [-1, 1],
+			shift: 0,
+			transitionTimes: [],
+			frame,
+			theme: {
+				background: "black",
+				axis: "gray",
+				muted: "darkgray",
+				text: "white",
+				overlapNegativeFill: "negative-rose",
+			},
+		});
+		expect(fillStyles).toContain("negative-rose");
 	});
 
 	it("keeps the renderer defensive when supplied an empty sampled frame", () => {

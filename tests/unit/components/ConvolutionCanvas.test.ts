@@ -123,6 +123,11 @@ describe("ConvolutionCanvas", () => {
 		).toBeTruthy();
 		expect(mockContext.fillRect).toHaveBeenCalled();
 		expect(mockContext.scale).toHaveBeenCalled();
+		expect(
+			view.container
+				.querySelector("canvas")
+				?.getAttribute("data-visual-ready"),
+		).toBe("true");
 
 		await fireEvent.change(speed, { target: { value: "1.1" } });
 		await fireEvent.click(view.getByText("Animate shift"));

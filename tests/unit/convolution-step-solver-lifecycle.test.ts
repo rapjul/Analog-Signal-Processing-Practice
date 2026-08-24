@@ -274,6 +274,15 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			new Set(solver.devGetVisualStates().map(({ step }) => step)),
 		).toEqual(new Set([1, 2, 3, 4, 5, 6, 7]));
 		expect(solver.devGetVisualStates().length).toBeGreaterThan(7);
+		expect(
+			solver
+				.devGetVisualStates()
+				.some(({ kind }) => kind === "diagnostic"),
+		).toBe(true);
+		expect(
+			solver.devGoToVisualState("convolution.step-02.misconception"),
+		).toBe(true);
+		expect(solver.currentFeedbackType).toBe("misconception");
 		for (let step = 1; step <= 7; step += 1) solver.devAutoFillStep(step);
 		expect(solver.isCompleted).toBe(true);
 		solver.reset();

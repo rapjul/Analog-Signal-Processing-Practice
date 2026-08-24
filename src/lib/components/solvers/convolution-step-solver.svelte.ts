@@ -802,6 +802,12 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			step: 2,
 			kind: "interactive",
 		});
+		states.push({
+			id: "convolution.step-02.misconception",
+			label: "Step 2 · Convolution Definition Misconception",
+			step: 2,
+			kind: "diagnostic",
+		});
 		addMultipart(3, "Flip Path", this.step3.subStepOrder);
 		addMultipart(4, "Transition Points", this.step4.subStepOrder);
 		addMultipart(5, "Integration Bounds", this.step5.subStepOrder);
@@ -836,6 +842,14 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		);
 		if (!descriptor || !this.devPrepareParentStep(descriptor.step))
 			return false;
+		if (stateId === "convolution.step-02.misconception") {
+			const incorrect = this.problem.itsData.step2.options.find(
+				({ isCorrect }) => !isCorrect,
+			);
+			if (!incorrect) return false;
+			this.checkStep2(incorrect);
+			return this.currentFeedbackType === "misconception";
+		}
 		if (!descriptor.subStep) return true;
 		const state = this.currentStepState;
 		if (!state || !("subStepOrder" in state) || !("subSteps" in state))

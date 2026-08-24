@@ -203,7 +203,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		module: "convolution",
 		slug: "convolution-continuous-time",
 		title: "Continuous-Time Convolution",
-		path: "/convolution?pair=rect_rect&seed=3101",
+		path: "/convolution?share=1&v=2&seed=3101&xType=rect&xParameter=default&xAmplitude=default&xAmplitude1=default&xAmplitude2=default&xShift=unshifted&xShiftValue=random_signed&hType=rect&hParameter=default&hAmplitude=default&hAmplitude1=default&hAmplitude2=default&hShift=unshifted&hShiftValue=random_signed",
 		seed: 3101,
 		isItsStepper: true,
 	},

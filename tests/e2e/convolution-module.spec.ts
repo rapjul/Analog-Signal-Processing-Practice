@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  */
 test.describe("Continuous-Time Convolution Module", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/convolution?pair=rect_rect&seed=42");
+		await page.goto("/convolution");
 		await page.waitForLoadState("networkidle");
 	});
 
@@ -31,13 +31,16 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.getByText("Problem Completed!")).toHaveCount(0);
 	});
 
-	test("defaults a bare route to canonical seeded Random mode", async ({
+	test("defaults a bare route to the ECE 210 textbook rectangle problem", async ({
 		page,
 	}) => {
 		await page.goto("/convolution");
-		await expect(page.locator("#pair-type-select")).toHaveValue("random");
+		await expect(page.locator("#x-type")).toHaveValue("rect");
+		await expect(page.locator("#h-type")).toHaveValue("rect");
+		await expect(page.locator("#x-shift-state")).toHaveValue("unshifted");
+		await expect(page.locator("#h-shift-state")).toHaveValue("unshifted");
 		await expect(page.locator('input[name="seed"]')).not.toHaveValue("");
-		await expect(page).toHaveURL(/pair=random&seed=\d+/);
+		await expect(page).toHaveURL(/\/convolution$/);
 	});
 
 	test("shows progressive hints and targeted misconception feedback", async ({
@@ -55,14 +58,15 @@ test.describe("Continuous-Time Convolution Module", () => {
 		);
 	});
 
-	test("switches signal categories and resets tutor progression", async ({
+	test("configures each signal independently and resets tutor progression", async ({
 		page,
 	}) => {
 		await page.locator(".drill-summary").click();
-		const pairSelect = page.locator("#pair-type-select");
-		await pairSelect.selectOption("rect_exp");
+		await page.locator("#h-type").selectOption("exponential");
 		await expect(
-			page.getByText("Pulse-Exponential Convolution"),
+			page.getByText(
+				"Rectangular Pulse and Causal Exponential Convolution",
+			),
 		).toBeVisible();
 
 		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
@@ -70,9 +74,11 @@ test.describe("Continuous-Time Convolution Module", () => {
 			page.getByText("Define the Convolution Integral"),
 		).toBeVisible();
 
-		await pairSelect.selectOption("exp_exp");
+		await page.locator("#x-type").selectOption("exponential");
 		await expect(
-			page.getByText("Exponential-Exponential Convolution"),
+			page.getByText(
+				"Causal Exponential and Causal Exponential Convolution",
+			),
 		).toBeVisible();
 		await expect(
 			page.getByText("Find Signal Start Times, End Times, and Widths"),
@@ -80,24 +86,32 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator(".progress-pill.active")).toHaveText("1");
 	});
 
-	test("offers distinct rectangle placement categories", async ({ page }) => {
+	test("freezes the current independent configuration only when sharing", async ({
+		page,
+	}) => {
 		await page.locator(".drill-summary").click();
-		const pairSelect = page.locator("#pair-type-select");
-		await expect(pairSelect).toContainText(
-			"Unshifted Rectangular Pulse * Unshifted Rectangular Pulse (Piecewise Linear)",
-		);
-		await expect(pairSelect).toContainText(
-			"Unshifted Rectangular Pulse * Shifted Rectangular Pulse (Trapezoid)",
-		);
-		await expect(pairSelect).toContainText(
-			"Shifted Rectangular Pulse * Shifted Rectangular Pulse (Trapezoid)",
-		);
+		await page.locator("#x-type").selectOption("triangle");
+		await page.locator("#x-amplitude").selectOption("-2");
+		await page.locator("#h-shift-state").selectOption("shifted");
+		await page.locator("#h-shift-value").selectOption("3");
+		await expect(page).toHaveURL(/\/convolution$/);
 
-		await pairSelect.selectOption("rect_both_shifted");
-		await expect(
-			page.getByText("Two Shifted Rectangular Pulses Convolution"),
-		).toBeVisible();
-		await expect(page).toHaveURL(/pair=rect_both_shifted&seed=\d+/);
+		await page.getByRole("button", { name: "Share This Problem" }).click();
+		const frozenUrl = await page
+			.locator("#convolution-share-url")
+			.inputValue();
+		expect(frozenUrl).toContain("share=1&v=2");
+		expect(frozenUrl).toContain("xType=triangle");
+		expect(frozenUrl).toContain("xAmplitude=-2");
+		expect(frozenUrl).toContain("hShift=shifted");
+		expect(frozenUrl).toContain("hShiftValue=3");
+		await expect(page).toHaveURL(/\/convolution$/);
+
+		await page.goto(frozenUrl);
+		await expect(page.locator("#x-type")).toHaveValue("triangle");
+		await expect(page.locator("#x-amplitude")).toHaveValue("-2");
+		await expect(page.locator("#h-shift-state")).toHaveValue("shifted");
+		await expect(page.locator("#h-shift-value")).toHaveValue("3");
 	});
 
 	test("reveals worked derivation and animator only after solver completion", async ({
