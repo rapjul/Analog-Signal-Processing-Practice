@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { replaceState } from "$app/navigation";
 	import { page } from "$app/state";
+	import MathInline from "$lib/components/math/MathInline.svelte";
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
@@ -119,11 +120,13 @@
 				{#each signals as signal}
 					{@const resolved = currentProblem.resolvedSignals?.[signal]}
 					<fieldset class="signal-card">
-						<legend
-							>{signal === "x"
-								? "Input signal x(t)"
-								: "Impulse response h(t)"}</legend
-						>
+						<legend>
+							{#if signal === "x"}
+								Input signal <MathInline math="x(t)" />
+							{:else}
+								Impulse response <MathInline math="h(t)" />
+							{/if}
+						</legend>
 
 						<label for={`${signal}-type`}>Signal Type</label>
 						<select
@@ -134,12 +137,12 @@
 							<option value="random">Random</option>
 							<option value="rect">Rectangular Pulse</option>
 							<option value="triangle">Triangular Pulse</option>
-							<option value="multi_rect"
-								>Multiple Rectangular Pulses</option
-							>
-							<option value="exponential"
-								>Causal Exponential Decay</option
-							>
+							<option value="multi_rect">
+								Multiple Rectangular Pulses
+							</option>
+							<option value="exponential">
+								Causal Exponential Decay
+							</option>
 						</select>
 						<p class="resolved-type">
 							Current problem: {signalTypeName(resolved?.kind)}
@@ -157,11 +160,11 @@
 							bind:value={selection[signal].parameterMode}
 							onchange={regenerateCurrentSeed}
 						>
-							<option value="default"
-								>Default ({resolved?.kind === "triangle"
+							<option value="default">
+								Default ({resolved?.kind === "triangle"
 									? 2
-									: 1})</option
-							>
+									: 1})
+							</option>
 							<option value="random">Random (1–3)</option>
 						</select>
 
@@ -248,10 +251,10 @@
 
 			<div class="configuration-footer">
 				<p class="complexity-preview">
-					<strong
-						>{currentProblem.regionCount ??
-							currentProblem.intervals.length}</strong
-					>
+					<strong>
+						{currentProblem.regionCount ??
+							currentProblem.intervals.length}
+					</strong>
 					piecewise regions. The tutor reveals one region at a time.
 				</p>
 				<button
