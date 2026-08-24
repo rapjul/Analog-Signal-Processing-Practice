@@ -45,6 +45,9 @@ Chosen Option: **Option 4**, because it eliminates persistent screen clutter, re
     - _ODEs_: Roots, homogeneous templates, undetermined coefficients ansatz table, resonance rules, ZI/ZS definitions.
     - _Fourier Series_: Complex & trig formulas, symmetry vanishing shortcuts, Parseval power, Gibbs phenomenon.
     - _Transforms & Circuits_: Laplace transform tables, Fourier transform pairs, phasor relationships.
+    - _Convolution_: Definition and commutativity, signal timing, reflection and translation, breakpoint contacts, active bounds, pulse definitions, and piecewise assembly.
+5. **Route-Aware Opening**: Each time the drawer opens, it selects the reference tab for the active solver route. Fourier Transform, Laplace, and Circuits share the Transforms & Circuits tab; the homepage and unknown routes use the first ODE tab.
+6. **Accessible Dialog and Tabs**: Opening the drawer moves focus inside it, traps `Tab` navigation, supports arrow-key tab navigation with roving `tabindex`, labels every tab panel, closes with `Escape`, and restores focus to the trigger.
 
 ## Consequences
 

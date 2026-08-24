@@ -43,6 +43,9 @@ Chosen Option: **Option 3**, because it aligns visual feedback with the natural 
     - `FourierCanvas.svelte`: Harmonic spectrum line graphs, interactive harmonic count slider ($N=1\dots 50$), and partial sum reconstruction showing Gibbs phenomenon overshoot ($\approx 8.95\%$).
     - `WaveformCanvas.svelte`: Complete multi-curve response graphs plotting $y(t)$, $y_{ZI}(t)$, and $y_{ZS}(t)$.
     - Parseval's Power Theorem metrics and harmonic power distribution tables.
+3. **Geometry-Driven Solver Exceptions (Explicitly Requested)**:
+    - _Continuous-Time Convolution_: A closed-by-default native `<details>` disclosure may expose the complete geometric animation and output curve before completion. The learner must deliberately open it, and may preview either signal as the reflected and translated signal. This preview remains exploratory until the corresponding tutor choice is explicitly verified.
+    - _Circuits_: An early disclosure may contain only the problem-defining circuit and inputs. Analytical circuit responses remain deferred. This exception is architectural guidance and does not require every Circuits solver to implement a disclosure immediately.
 
 ## Consequences
 

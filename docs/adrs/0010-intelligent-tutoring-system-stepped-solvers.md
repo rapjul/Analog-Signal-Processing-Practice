@@ -45,7 +45,12 @@ Chosen Option: **Option 3**, because it combines the rigorous mathematical compu
     - _Tier 2 (Formula Setup)_: The exact mathematical identity or template to apply.
     - _Tier 3 (Partial Calculation)_: Intermediate arithmetic or worked step.
 3. **Misconception-Driven Diagnostics**: Distractor options and error evaluators provide specific feedback explaining _why_ an error occurred rather than generic failure notices.
-4. **Smooth Focus and Navigation**: The interface automatically nudges active steps into view upon progression and supports keyboard navigation (`Enter` to check/advance).
+4. **Smooth Focus and Navigation**: The interface supports keyboard navigation (`Enter` to check/advance) and deliberately manages focus when progression replaces the active controls.
+    - Preserve the verified answer briefly so the learner can see the successful result before advancing.
+    - After the DOM update, focus the newly active step or sub-step heading with a programmatic `tabindex="-1"`; do not skip its instructions by focusing the first input.
+    - Use `focus({ preventScroll: true })`, then scroll only when that heading is outside the visible viewport.
+    - Honor reduced-motion preferences by using instant rather than smooth scrolling.
+    - Keep focus and scroll position unchanged after an incorrect answer.
 
 ## Consequences
 
