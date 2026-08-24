@@ -76,6 +76,16 @@
 				text={String.raw`For fixed section $[a,b]$ and original moving section $[c,d]$, the transformed section is $[t-d,t-c]$. Use $L(t)=\max(a,t-d)$ and $U(t)=\min(b,t-c)$.`}
 			/>
 		</p>
+		<details class="other-methods">
+			<summary>Other valid methods for comparing bounds</summary>
+			<p>
+				You may instead solve an algebraic inequality between the two
+				candidates or draw both intervals on a number line. The tutor
+				uses an interior test value because it is quick and avoids an
+				endpoint tie. Step 4 guarantees the ordering cannot change
+				inside the verified interval.
+			</p>
+		</details>
 		{#each problem.itsData.step5.parts.slice(0, activeIndex) as part, index}
 			<SubStepBlock
 				badge={`Part 5${String.fromCharCode(65 + index)}`}
@@ -154,6 +164,47 @@
 												responsive={true}
 											/>
 										</div>
+									</div>
+									<p class="comparison-prompt">
+										<MathText
+											text={`First substitute the safe interior value $t=${activeSetup.overlaps[overlapIndex]?.representativeTime}$. Choose the larger lower value and the smaller upper value.`}
+										/>
+									</p>
+									<div class="candidate-value-grid">
+										{#each overlap.lowerCandidatesLatex as candidate, candidateIndex}
+											<label>
+												<MathText
+													text={`$${candidate}$ at the test time`}
+												/>
+												<input
+													type="text"
+													bind:value={
+														activeState.boundInputs[
+															overlapIndex
+														].lowerValues[
+															candidateIndex
+														]
+													}
+												/>
+											</label>
+										{/each}
+										{#each overlap.upperCandidatesLatex as candidate, candidateIndex}
+											<label>
+												<MathText
+													text={`$${candidate}$ at the test time`}
+												/>
+												<input
+													type="text"
+													bind:value={
+														activeState.boundInputs[
+															overlapIndex
+														].upperValues[
+															candidateIndex
+														]
+													}
+												/>
+											</label>
+										{/each}
 									</div>
 									<div class="bound-input-grid">
 										<label>
@@ -237,10 +288,26 @@
 		min-width: 0;
 	}
 	.method,
-	.step-prompt {
+	.step-prompt,
+	.comparison-prompt,
+	.other-methods p {
 		margin: 0;
 		line-height: var(--leading-relaxed);
 		color: var(--text-primary);
+	}
+	.other-methods {
+		padding: 0.65rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+	}
+	.other-methods summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: var(--accent-primary);
+	}
+	.other-methods summary:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 	.binary-grid {
 		display: grid;
@@ -273,6 +340,7 @@
 		color: var(--accent-primary);
 	}
 	.candidate-grid,
+	.candidate-value-grid,
 	.bound-input-grid,
 	.split-grid {
 		display: grid;
@@ -280,6 +348,7 @@
 		gap: 0.65rem;
 	}
 	.candidate-grid > div,
+	.candidate-value-grid label,
 	.bound-input-grid label,
 	.split-grid label {
 		display: flex;
@@ -291,6 +360,7 @@
 		font-weight: 600;
 	}
 	.bound-input-grid input,
+	.candidate-value-grid input,
 	.split-grid input {
 		min-width: 0;
 		padding: 0.5rem;
@@ -318,6 +388,7 @@
 		cursor: pointer;
 	}
 	.binary-grid button:focus-visible,
+	.candidate-value-grid input:focus-visible,
 	.bound-input-grid input:focus-visible,
 	.split-grid input:focus-visible,
 	.check-button:focus-visible {
@@ -330,6 +401,7 @@
 	/* ── Mobile media query (≤640px) ──────────────────────── */
 	@media (max-width: 640px) {
 		.candidate-grid,
+		.candidate-value-grid,
 		.bound-input-grid,
 		.split-grid,
 		.summary-row {

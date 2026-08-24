@@ -59,7 +59,11 @@
 			{#if titleSnippet}
 				{@render titleSnippet()}
 			{:else if title}
-				<h4 class="subpart-title">
+				<h4
+					class="subpart-title"
+					tabindex="-1"
+					data-progress-heading
+				>
 					<MathText text={title} />
 				</h4>
 			{/if}

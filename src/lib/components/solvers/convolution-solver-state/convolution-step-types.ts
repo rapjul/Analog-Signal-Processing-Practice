@@ -63,6 +63,10 @@ export interface ConvolutionTransitionStepState extends MultiPartStepState<strin
 
 /** Typed bound values for one connected overlap. */
 export interface ConvolutionBoundInput {
+	/** Student evaluations of both lower candidates at the representative time. */
+	lowerValues: [string, string];
+	/** Student evaluations of both upper candidates at the representative time. */
+	upperValues: [string, string];
 	/** Student-entered lower integration limit. */
 	lower: string;
 	/** Student-entered upper integration limit. */
@@ -87,6 +91,10 @@ export interface ConvolutionBoundsStepState extends MultiPartStepState<string> {
 
 /** State for one typed Step 6 expression. */
 export interface ConvolutionEvaluationSubStepState extends BaseSubStepState {
+	/** Student-entered antiderivative evaluated at the upper bound. */
+	upperSubstitution: string;
+	/** Student-entered antiderivative evaluated at the lower bound. */
+	lowerSubstitution: string;
 	/** Student-entered expression for y(t). */
 	input: string;
 }
@@ -95,4 +103,22 @@ export interface ConvolutionEvaluationSubStepState extends BaseSubStepState {
 export interface ConvolutionEvaluationStepState extends MultiPartStepState<string> {
 	/** Per-interval expression state. */
 	subSteps: Record<string, ConvolutionEvaluationSubStepState>;
+}
+
+/** One interval-aligned expression in the Step 7 piecewise builder. */
+export interface ConvolutionPiecewiseRowState {
+	/** Student-entered interval expression. */
+	input: string;
+	/** Whether this row has been verified. */
+	isValid: boolean;
+	/** Whether a carried exterior zero row is locked. */
+	isLocked: boolean;
+	/** Row-specific validation feedback. */
+	feedback: string | null;
+}
+
+/** State for the Step 7 typed piecewise assembly. */
+export interface ConvolutionPiecewiseStepState extends BaseStepState {
+	/** Rows aligned one-to-one with the verified Step 4 intervals. */
+	rows: ConvolutionPiecewiseRowState[];
 }

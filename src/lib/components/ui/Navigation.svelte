@@ -216,6 +216,7 @@
 <FormulaDrawer
 	isOpen={isFormulaDrawerOpen}
 	onClose={closeFormulaDrawer}
+	{activeRoute}
 />
 
 <style>

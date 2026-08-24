@@ -68,7 +68,11 @@
 		>
 			{badgeText}
 		</div>
-		<h3 class="step-title">
+		<h3
+			class="step-title"
+			tabindex="-1"
+			data-progress-heading
+		>
 			<MathText text={title} />
 		</h3>
 		{#if headerExtra}

@@ -87,9 +87,32 @@
 				badge={`Part 1${String.fromCharCode(65 + Math.max(0, activeIndex))}`}
 				title={activePart.title}
 			>
+				{#if activePart.id === "y"}
+					<div class="timing-property">
+						<p>
+							The first possible overlap occurs when the two start
+							times add. The final possible overlap occurs when
+							the two end times add.
+						</p>
+						<MathBlock
+							math={String.raw`t_{y,\mathrm{start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\qquad t_{y,\mathrm{end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
+							compact={true}
+							hideHeader={true}
+							responsive={true}
+						/>
+						<div
+							class="number-line"
+							aria-label="Input spans add to form the convolution output span"
+						>
+							<span>input starts</span><span>+</span><span
+								>input ends</span
+							><span>→</span><span>output span</span>
+						</div>
+					</div>
+				{/if}
 				<p class="part-prompt">
 					<MathText
-						text={`Enter the left boundary, right boundary, and overall width of the interval where $${activePart.signalLatex}$ can be non-zero.`}
+						text={`Enter the start time, end time, and ${activePart.id !== "y" && problem.itsData.step3.sectionsBySignal[activePart.id].length > 1 ? "overall span width" : "signal width"} for $${activePart.signalLatex}$.`}
 					/>
 				</p>
 				<form
@@ -101,7 +124,7 @@
 				>
 					<div class="timing-grid">
 						<label>
-							<span>Left boundary</span>
+							<span>Start time</span>
 							<input
 								type="text"
 								bind:value={activeState.start}
@@ -109,7 +132,7 @@
 							/>
 						</label>
 						<label>
-							<span>Right boundary</span>
+							<span>End time</span>
 							<input
 								type="text"
 								bind:value={activeState.end}
@@ -117,7 +140,14 @@
 							/>
 						</label>
 						<label>
-							<span>Overall width</span>
+							<span
+								>{activePart.id !== "y" &&
+								problem.itsData.step3.sectionsBySignal[
+									activePart.id
+								].length > 1
+									? "Overall span width"
+									: "Signal width"}</span
+							>
 							<input
 								type="text"
 								bind:value={activeState.width}
@@ -161,6 +191,28 @@
 	.part-prompt {
 		margin: 0;
 		color: var(--text-primary);
+	}
+	.timing-property {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		padding: 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+	}
+	.timing-property p {
+		margin: 0;
+		color: var(--text-secondary);
+	}
+	.number-line {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr auto 1fr;
+		gap: 0.4rem;
+		align-items: center;
+		text-align: center;
+		font-size: var(--text-xs);
+		color: var(--accent-primary);
 	}
 	.timing-grid {
 		display: grid;

@@ -85,6 +85,24 @@
 				title="Choose the Moving Signal"
 			>
 				<p class="step-prompt">{problem.itsData.step3.prompt}</p>
+				<div class="concept-key">
+					<p>
+						<strong>Fixed:</strong> stays in place and is written as a
+						function of the dummy variable.
+					</p>
+					<p>
+						<strong>Moving:</strong> is reflected first, then translated
+						by the output time.
+					</p>
+					<p>
+						<MathText
+							text={String.raw`Convolution is commutative, so either path gives the same $y(t)$ even though its notation and bounds look different.`}
+						/>
+					</p>
+				</div>
+				<p class="recommendation">
+					<MathText text={problem.itsData.step3.recommendation} />
+				</p>
 				<div class="binary-grid">
 					<button
 						type="button"
@@ -289,6 +307,23 @@
 		font-size: var(--text-sm);
 		line-height: var(--leading-relaxed);
 	}
+	.concept-key {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.6rem;
+	}
+	.concept-key p,
+	.recommendation {
+		margin: 0;
+		padding: 0.65rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+	.recommendation {
+		border-left: 3px solid var(--accent-primary);
+	}
 	.binary-grid,
 	.option-grid {
 		display: grid;
@@ -364,7 +399,8 @@
 	/* ── Mobile media query (≤720px) ──────────────────────── */
 	@media (max-width: 720px) {
 		.summary-grid,
-		.edge-grid {
+		.edge-grid,
+		.concept-key {
 			grid-template-columns: 1fr;
 		}
 	}

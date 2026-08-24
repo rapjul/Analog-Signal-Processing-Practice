@@ -32,6 +32,10 @@
 	let isCompleted = $state(false);
 	/** Signal selected by the student for the completed animation. */
 	let flippedSignal = $state<"x" | "h">("h");
+	/** Exploratory moving signal used by the optional early animation. */
+	let previewFlippedSignal = $state<"x" | "h">("h");
+	/** Whether Step 3 has made the exploratory preview path authoritative. */
+	let movingPathVerified = $state(false);
 	/** Finite overlap boundaries reused by the completed animation. */
 	const transitionTimes = $derived(
 		getFiniteConvolutionTransitionTimes(problem.intervals),
@@ -135,8 +139,18 @@
 	});
 
 	$effect(() => {
-		if (problem) isCompleted = false;
+		if (problem) {
+			isCompleted = false;
+			movingPathVerified = false;
+			previewFlippedSignal = "h";
+		}
 	});
+
+	/** Synchronizes the optional preview to the learner's verified Step 3 path. */
+	function handleMovingSignalVerified(selectedSignal: "x" | "h"): void {
+		previewFlippedSignal = selectedSignal;
+		movingPathVerified = true;
+	}
 
 	/** Reveals the worked solution and graphical verifier after tutor completion. */
 	function handleProblemCompleted(selectedSignal: "x" | "h"): void {
@@ -169,6 +183,11 @@
 					compact={true}
 					responsive={true}
 				/>
+				<p class="endpoint-definition">
+					<MathText
+						text={`Endpoint convention: ${problem.itsData.step3.sectionsBySignal.x.map(({ originalLatex }) => `$${originalLatex}$`).join(", ")}.`}
+					/>
+				</p>
 			</div>
 			<div class="signal-box">
 				<span class="signal-label">
@@ -179,15 +198,76 @@
 					compact={true}
 					responsive={true}
 				/>
+				<p class="endpoint-definition">
+					<MathText
+						text={`Endpoint convention: ${problem.itsData.step3.sectionsBySignal.h.map(({ originalLatex }) => `$${originalLatex}$`).join(", ")}.`}
+					/>
+				</p>
 			</div>
 		</div>
 	</div>
+
+	<details class="early-visual-disclosure">
+		<summary>Explore the convolution animation before solving</summary>
+		<p>
+			This optional geometric preview shows the complete output. Use it to
+			build intuition; the tutor still asks you to derive every interval.
+		</p>
+		<div
+			class="preview-path-controls"
+			aria-label="Choose the moving signal in the exploratory animation"
+		>
+			<button
+				type="button"
+				class:selected={previewFlippedSignal === "x"}
+				aria-pressed={previewFlippedSignal === "x"}
+				disabled={movingPathVerified}
+				onclick={() => (previewFlippedSignal = "x")}
+			>
+				<MathText text={String.raw`Preview moving $x(t)$`} />
+			</button>
+			<button
+				type="button"
+				class:selected={previewFlippedSignal === "h"}
+				aria-pressed={previewFlippedSignal === "h"}
+				disabled={movingPathVerified}
+				onclick={() => (previewFlippedSignal = "h")}
+			>
+				<MathText text={String.raw`Preview moving $h(t)$`} />
+			</button>
+		</div>
+		{#if movingPathVerified}
+			<p class="verified-preview-note">
+				Step 3 is verified, so this animation now follows the selected
+				path.
+			</p>
+		{/if}
+		<ConvolutionCanvas
+			evalX={problem.evalX}
+			evalH={problem.evalH}
+			evalY={problem.eval}
+			timeRange={problem.timeRange ?? [-2, 6]}
+			{transitionTimes}
+			flippedSignal={previewFlippedSignal}
+			movingBreakpoints={previewFlippedSignal === "x"
+				? (problem.xBreakpoints ?? [])
+				: (problem.hBreakpoints ?? [])}
+			movingSupportEdges={previewFlippedSignal === "x"
+				? problem.xSupportEdges
+				: problem.hSupportEdges}
+			fixedBreakpoints={previewFlippedSignal === "x"
+				? (problem.hBreakpoints ?? [])
+				: (problem.xBreakpoints ?? [])}
+			title="Optional Convolution Geometry Preview"
+		/>
+	</details>
 
 	<!-- Intelligent Tutoring System stepped solver -->
 	<div class="solver-container">
 		<ConvolutionStepSolver
 			{problem}
 			onComplete={handleProblemCompleted}
+			onMovingSignalVerified={handleMovingSignalVerified}
 		/>
 	</div>
 
@@ -278,7 +358,7 @@
 	}
 
 	.statement-text {
-		font-size: 0.95rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		line-height: 1.5;
 		margin: 0;
@@ -323,6 +403,65 @@
 		font-size: var(--text-xs);
 		font-weight: 600;
 		color: var(--text-muted);
+	}
+
+	.endpoint-definition {
+		margin: 0;
+		font-size: var(--text-xs);
+		color: var(--text-secondary);
+	}
+
+	/* ── Optional early geometric preview ─────────────────── */
+
+	.early-visual-disclosure {
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-md);
+		padding: 0.8rem;
+		min-width: 0;
+	}
+
+	.early-visual-disclosure > summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: var(--accent-primary);
+	}
+
+	.early-visual-disclosure > summary:focus-visible,
+	.preview-path-controls button:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	.early-visual-disclosure > p,
+	.verified-preview-note {
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+
+	.preview-path-controls {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+		margin-block: 0.75rem;
+	}
+
+	.preview-path-controls button {
+		padding: 0.65rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+
+	.preview-path-controls button.selected {
+		border-color: var(--accent-primary);
+		background: var(--accent-bg);
+	}
+
+	.preview-path-controls button:disabled {
+		cursor: not-allowed;
+		opacity: 0.75;
 	}
 
 	/* ── Solver & completion sections ─────────────────────── */
@@ -397,6 +536,10 @@
 
 		.signal-box {
 			padding: 0.5rem;
+		}
+
+		.preview-path-controls {
+			grid-template-columns: 1fr;
 		}
 	}
 

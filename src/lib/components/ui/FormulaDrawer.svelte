@@ -6,6 +6,7 @@
 	 * formulas, and shortcuts for ODEs, Fourier Series, and Transforms.
 	 */
 
+	import { tick } from "svelte";
 	import MathBlock from "../math/MathBlock.svelte";
 	import MathText from "../math/MathText.svelte";
 
@@ -14,12 +15,50 @@
 		isOpen: boolean;
 		/** Callback triggered when the drawer is closed */
 		onClose: () => void;
+		/** Current route used to select the most relevant reference. */
+		activeRoute?: string;
 	}
 
-	let { isOpen = $bindable(false), onClose }: Props = $props();
+	let {
+		isOpen = $bindable(false),
+		onClose,
+		activeRoute = "/",
+	}: Props = $props();
 
-	type TabId = "odes" | "fourier" | "transforms";
+	type TabId = "odes" | "fourier" | "convolution" | "transforms";
+	const tabs: TabId[] = ["odes", "fourier", "convolution", "transforms"];
 	let activeTab = $state<TabId>("odes");
+	let drawerElement = $state<HTMLDivElement>();
+	let tabElements = $state<HTMLButtonElement[]>([]);
+	let priorFocus: HTMLElement | null = null;
+	let wasOpen = false;
+
+	/** Maps the current solver route to its formula reference tab. */
+	function tabForRoute(route: string): TabId {
+		if (route.startsWith("/convolution")) return "convolution";
+		if (route.startsWith("/fourier-series")) return "fourier";
+		if (
+			route.startsWith("/fourier-transform") ||
+			route.startsWith("/laplace") ||
+			route.startsWith("/circuits")
+		)
+			return "transforms";
+		return "odes";
+	}
+
+	$effect(() => {
+		if (isOpen && !wasOpen) {
+			wasOpen = true;
+			priorFocus = document.activeElement as HTMLElement | null;
+			activeTab = tabForRoute(activeRoute);
+			void tick().then(() =>
+				tabElements[tabs.indexOf(activeTab)]?.focus(),
+			);
+		} else if (!isOpen && wasOpen) {
+			wasOpen = false;
+			void tick().then(() => priorFocus?.focus());
+		}
+	});
 
 	/**
 	 * Handles keydown events to close drawer on Esc key and stop propagation to underlying listeners.
@@ -29,6 +68,24 @@
 		if (event.key === "Escape" && isOpen) {
 			event.stopImmediatePropagation();
 			onClose();
+			return;
+		}
+		if (!isOpen || event.key !== "Tab") return;
+		if (!drawerElement) return;
+		const focusable = Array.from(
+			drawerElement.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+			),
+		);
+		const first = focusable[0];
+		const last = focusable.at(-1);
+		if (!first || !last) return;
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
 		}
 	}
 
@@ -38,6 +95,20 @@
 	 */
 	function setTab(tab: TabId) {
 		activeTab = tab;
+	}
+
+	/** Moves roving tab focus with the horizontal arrow keys. */
+	function handleTabKeydown(event: KeyboardEvent, index: number): void {
+		let nextIndex = index;
+		if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+		else if (event.key === "ArrowLeft")
+			nextIndex = (index - 1 + tabs.length) % tabs.length;
+		else if (event.key === "Home") nextIndex = 0;
+		else if (event.key === "End") nextIndex = tabs.length - 1;
+		else return;
+		event.preventDefault();
+		setTab(tabs[nextIndex] ?? "odes");
+		void tick().then(() => tabElements[nextIndex]?.focus());
 	}
 </script>
 
@@ -55,6 +126,7 @@
 
 	<div
 		class="formula-drawer"
+		bind:this={drawerElement}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="drawer-title"
@@ -84,40 +156,38 @@
 			class="drawer-tabs"
 			role="tablist"
 		>
-			<button
-				type="button"
-				role="tab"
-				class="tab-btn"
-				class:active={activeTab === "odes"}
-				aria-selected={activeTab === "odes"}
-				onclick={() => setTab("odes")}
-			>
-				LCC ODEs
-			</button>
-			<button
-				type="button"
-				role="tab"
-				class="tab-btn"
-				class:active={activeTab === "fourier"}
-				aria-selected={activeTab === "fourier"}
-				onclick={() => setTab("fourier")}
-			>
-				Fourier Series
-			</button>
-			<button
-				type="button"
-				role="tab"
-				class="tab-btn"
-				class:active={activeTab === "transforms"}
-				aria-selected={activeTab === "transforms"}
-				onclick={() => setTab("transforms")}
-			>
-				Transforms & Circuits
-			</button>
+			{#each tabs as tab, index}
+				<button
+					type="button"
+					role="tab"
+					class="tab-btn"
+					class:active={activeTab === tab}
+					aria-selected={activeTab === tab}
+					aria-controls={`formula-panel-${tab}`}
+					id={`formula-tab-${tab}`}
+					tabindex={activeTab === tab ? 0 : -1}
+					bind:this={tabElements[index]}
+					onclick={() => setTab(tab)}
+					onkeydown={(event) => handleTabKeydown(event, index)}
+				>
+					{tab === "odes"
+						? "LCC ODEs"
+						: tab === "fourier"
+							? "Fourier Series"
+							: tab === "convolution"
+								? "Convolution"
+								: "Transforms & Circuits"}
+				</button>
+			{/each}
 		</div>
 
 		<!-- Drawer Body Content -->
-		<div class="drawer-content">
+		<div
+			class="drawer-content"
+			role="tabpanel"
+			id={`formula-panel-${activeTab}`}
+			aria-labelledby={`formula-tab-${activeTab}`}
+		>
 			{#if activeTab === "odes"}
 				<div class="ref-section">
 					<h3 class="section-heading">
@@ -346,6 +416,60 @@
 							midpoint of the left- and right-hand limits.
 						</p>
 					</div>
+				</div>
+			{:else if activeTab === "convolution"}
+				<div class="ref-section">
+					<h3 class="section-heading">
+						Definition and Commutativity
+					</h3>
+					<MathBlock
+						math={String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau=\int_{-\infty}^{\infty}h(\tau)x(t-\tau)\,d\tau`}
+						compact={true}
+					/>
+					<p class="ref-text">
+						<MathText
+							text={String.raw`The variable $\tau$ is a dummy integration variable. Either signal may be reflected and shifted.`}
+						/>
+					</p>
+				</div>
+				<div class="ref-section">
+					<h3 class="section-heading">
+						Timing and Contact Equations
+					</h3>
+					<MathBlock
+						math={String.raw`t_{y,\mathrm{start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\quad t_{y,\mathrm{end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
+						compact={true}
+					/>
+					<MathBlock
+						math={String.raw`a=t-b\quad\Longrightarrow\quad t=a+b`}
+						compact={true}
+					/>
+				</div>
+				<div class="ref-section">
+					<h3 class="section-heading">Overlap Bounds</h3>
+					<p class="ref-text">
+						<MathText
+							text={String.raw`If the fixed interval is $[a,b]$ and the original moving interval is $[c,d]$, its transformed interval is $[t-d,t-c]$.`}
+						/>
+					</p>
+					<MathBlock
+						math={String.raw`\tau_{\min}=\max(a,t-d),\quad \tau_{\max}=\min(b,t-c)`}
+						compact={true}
+					/>
+				</div>
+				<div class="ref-section">
+					<h3 class="section-heading">
+						Pulse Definitions and Assembly
+					</h3>
+					<MathBlock
+						math={String.raw`\operatorname{rect}(t)=1\text{ for }-\tfrac12<t<\tfrac12,\quad \operatorname{tri}(t)=\max(1-|t|,0)`}
+						compact={true}
+					/>
+					<p class="ref-text">
+						Evaluate each verified interval, then place its
+						expression beside the same interval condition in a cases
+						expression.
+					</p>
 				</div>
 			{:else if activeTab === "transforms"}
 				<div class="ref-section">

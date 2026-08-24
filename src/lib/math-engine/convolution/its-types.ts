@@ -86,6 +86,10 @@ export interface ConvolutionItsFlipStep {
 	choiceHints: string[];
 	/** Transformed-edge hints. */
 	edgeHints: string[];
+	/** Problem-specific path recommended to a beginner. */
+	recommendedSignal: ConvolutionMovingSignal;
+	/** Plain-language reason for the recommendation. */
+	recommendation: string;
 }
 
 /** One original breakpoint challenge. */
@@ -171,6 +175,12 @@ export interface ConvolutionOverlapBounds {
 	lowerCandidatesLatex: [string, string];
 	/** Candidates compared by min. */
 	upperCandidatesLatex: [string, string];
+	/** Interior time used to compare the candidates safely. */
+	representativeTime: number;
+	/** Numerical lower-candidate values at the representative time. */
+	lowerCandidateValues: [number, number];
+	/** Numerical upper-candidate values at the representative time. */
+	upperCandidateValues: [number, number];
 	/** Simplified active lower limit. */
 	lowerLatex: string;
 	/** Simplified active upper limit. */
@@ -210,6 +220,12 @@ export interface ConvolutionItsIntervalPart {
 	hints: string[];
 	/** Moving-path-specific hints. */
 	hintsBySignal?: Record<ConvolutionMovingSignal, string[]>;
+	/** Whether a verified zero region is carried forward without another answer. */
+	carriedZero?: boolean;
+	/** Supplied antiderivative or evaluation primitive for Step 6. */
+	primitiveLatex?: string;
+	/** Optional geometric shortcut for constant rectangular products. */
+	geometryShortcut?: string;
 }
 
 /** Complete seven-step tutoring scaffold. */

@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { replaceState } from "$app/navigation";
 	import { page } from "$app/state";
-	import MathInline from "$lib/components/math/MathInline.svelte";
+	import MathText from "$lib/components/math/MathText.svelte";
 	import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
@@ -122,9 +122,13 @@
 					<fieldset class="signal-card">
 						<legend>
 							{#if signal === "x"}
-								Input signal <MathInline math="x(t)" />
+								<MathText
+									text={String.raw`Input signal $x(t)$`}
+								/>
 							{:else}
-								Impulse response <MathInline math="h(t)" />
+								<MathText
+									text={String.raw`Impulse response $h(t)$`}
+								/>
 							{/if}
 						</legend>
 

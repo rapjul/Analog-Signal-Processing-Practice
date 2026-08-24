@@ -71,7 +71,30 @@
 	summarySnippet={completedSummary}
 >
 	<div class="step-body">
-		{#each problem.itsData.step6.parts.slice(0, activeIndex) as part, index}
+		{#each problem.itsData.step6.parts.filter(({ carriedZero }) => carriedZero) as part}
+			{@const index = problem.itsData.step6.parts.indexOf(part)}
+			<SubStepBlock
+				badge={`Part 6${String.fromCharCode(65 + index)}`}
+				title={part.title}
+				isCompleted={true}
+			>
+				{#snippet summarySnippet()}<div class="compact-result">
+						<MathText text={`$${part.intervalLatex}$`} />
+						<MathBlock
+							math="y(t)=0"
+							compact={true}
+							hideHeader={true}
+							responsive={true}
+						/>
+						<span class="carried-note"
+							>Carried forward from the verified no-overlap result
+							in Step 5.</span
+						>
+					</div>{/snippet}
+			</SubStepBlock>
+		{/each}
+		{#each problem.itsData.step6.parts.filter((part) => !part.carriedZero && solver.step6.subSteps[part.id]?.isValid) as part}
+			{@const index = problem.itsData.step6.parts.indexOf(part)}
 			<SubStepBlock
 				badge={`Part 6${String.fromCharCode(65 + index)}`}
 				title={part.title}
@@ -102,6 +125,21 @@
 					compact={true}
 					responsive={true}
 				/>
+				<div class="primitive-card">
+					<p>
+						Use this supplied antiderivative; this tutor is testing
+						convolution reasoning, not antiderivative recall.
+					</p>
+					<MathBlock
+						math={activePart.primitiveLatex ?? ""}
+						compact={true}
+						hideHeader={true}
+						responsive={true}
+					/>
+					{#if activePart.geometryShortcut}<p>
+							{activePart.geometryShortcut}
+						</p>{/if}
+				</div>
 				<form
 					class="evaluation-form"
 					onsubmit={(event) => {
@@ -109,6 +147,27 @@
 						solver.checkStep6();
 					}}
 				>
+					<div class="substitution-grid">
+						<label>
+							<span>Antiderivative at the upper bound</span>
+							<input
+								type="text"
+								bind:value={activeState.upperSubstitution}
+							/>
+						</label>
+						<label>
+							<span>Antiderivative at the lower bound</span>
+							<input
+								type="text"
+								bind:value={activeState.lowerSubstitution}
+							/>
+						</label>
+					</div>
+					<p class="difference-note">
+						<MathText
+							text={String.raw`Now subtract: $F(\text{upper})-F(\text{lower})$.`}
+						/>
+					</p>
 					<label class="expression-entry">
 						<span>
 							<MathText
@@ -175,7 +234,33 @@
 		font-size: var(--text-sm);
 		font-weight: 600;
 	}
-	.expression-entry input {
+	.primitive-card {
+		padding: 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+	}
+	.primitive-card p,
+	.difference-note,
+	.carried-note {
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+	.substitution-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+	.substitution-grid label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+	.expression-entry input,
+	.substitution-grid input {
 		width: 100%;
 		min-width: 0;
 		padding: 0.6rem 0.7rem;
@@ -217,6 +302,7 @@
 		cursor: pointer;
 	}
 	.expression-entry input:focus-visible,
+	.substitution-grid input:focus-visible,
 	.check-button:focus-visible {
 		position: relative;
 		z-index: 1;
@@ -227,7 +313,8 @@
 	/* ── Mobile media query (≤560px) ──────────────────────── */
 	@media (max-width: 560px) {
 		.summary-row,
-		.compact-result {
+		.compact-result,
+		.substitution-grid {
 			grid-template-columns: 1fr;
 		}
 		.check-button {

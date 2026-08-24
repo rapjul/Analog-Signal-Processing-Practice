@@ -35,6 +35,8 @@
 		summaryLatex: string;
 		/** Whether option cards should remain in a single column. */
 		singleColumn?: boolean;
+		/** Whether to teach the convolution symbols before the choices. */
+		showNotationKey?: boolean;
 	}
 
 	let {
@@ -46,6 +48,7 @@
 		onCheck,
 		summaryLatex,
 		singleColumn = false,
+		showNotationKey = false,
 	}: Props = $props();
 
 	/** Visual status derived from the active solver step. */
@@ -74,6 +77,33 @@
 	{summaryLatex}
 >
 	<div class="step-body">
+		{#if showNotationKey}
+			<div
+				class="notation-key"
+				aria-label="Convolution notation key"
+			>
+				<p>
+					<MathText
+						text={String.raw`$t$ is the output time. Treat it as fixed while evaluating one integral.`}
+					/>
+				</p>
+				<p>
+					<MathText
+						text={String.raw`$\tau$ is a dummy variable used only inside the integral. Renaming it does not change the result.`}
+					/>
+				</p>
+				<p>
+					<MathText
+						text={String.raw`$d\tau$ means that integration is performed with respect to $\tau$.`}
+					/>
+				</p>
+				<p>
+					<MathText
+						text={String.raw`The fixed signal is written in $\tau$; the reflected and shifted signal uses $t-\tau$.`}
+					/>
+				</p>
+			</div>
+		{/if}
 		<p class="step-prompt">
 			<MathText text={data.prompt} />
 		</p>
@@ -124,6 +154,22 @@
 		color: var(--text-primary);
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+
+	.notation-key {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.5rem 0.8rem;
+		padding: 0.75rem;
+		border-left: 3px solid var(--accent-primary);
+		background: var(--accent-bg);
+		border-radius: var(--radius-sm);
+	}
+
+	.notation-key p {
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
 	}
 
 	/* ── Mathematical choice cards ─────────────────────────── */
@@ -191,7 +237,8 @@
 	/* ── Mobile media query (≤640px) ──────────────────────── */
 
 	@media (max-width: 640px) {
-		.option-grid {
+		.option-grid,
+		.notation-key {
 			grid-template-columns: 1fr;
 		}
 	}

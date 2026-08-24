@@ -86,6 +86,9 @@ function buildPathSetup(
 				id: `overlap-${overlaps.length + 1}`,
 				lowerCandidatesLatex: [fixedStart, movingLeft],
 				upperCandidatesLatex: [fixedEnd, movingRight],
+				representativeTime: time,
+				lowerCandidateValues: [fixed.start, movingLeftValue],
+				upperCandidateValues: [fixed.end, movingRightValue],
 				lowerLatex:
 					fixed.start >= movingLeftValue ? fixedStart : movingLeft,
 				upperLatex:
@@ -187,12 +190,27 @@ export function buildEvaluationPart(
 	interval: ConvolutionInterval,
 	index: number,
 ): ConvolutionItsIntervalPart {
+	const carriedZero =
+		interval.exprLatex === "0" && interval.hasGeometricOverlap !== true;
+	const setup = interval.integralSetupLatex ?? "";
+	let primitiveLatex = String.raw`F(\tau)=A_xA_h\tau`;
+	if (setup.includes(String.raw`1+\frac{\tau}{2}`))
+		primitiveLatex = String.raw`F(\tau)=\tau+\frac{\tau^2}{4}`;
+	else if (setup.includes(String.raw`1-\frac{\tau}{2}`))
+		primitiveLatex = String.raw`F(\tau)=\tau-\frac{\tau^2}{4}`;
+	else if (setup.includes("e^"))
+		primitiveLatex = String.raw`\int e^{-a\tau}\,d\tau=-\frac{1}{a}e^{-a\tau}`;
 	return {
 		id: `interval-${String(index + 1).padStart(2, "0")}`,
 		title: `Evaluate Region ${index + 1}`,
 		intervalLatex: interval.labelLatex,
 		resultLatex: `y(t)=${interval.exprLatex},\\quad ${interval.labelLatex}`,
 		options: [],
+		carriedZero,
+		primitiveLatex: carriedZero ? "0" : primitiveLatex,
+		geometryShortcut: carriedZero
+			? undefined
+			: "For constant rectangular pieces, the same result is amplitude product times overlap width.",
 		hints: [
 			`Evaluate only for $${interval.labelLatex}$.`,
 			"Use the supplied antiderivative and substitute the verified bounds.",

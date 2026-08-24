@@ -15,7 +15,6 @@
 		normalizeConvolutionTimeRange,
 		sampleConvolutionPlot,
 	} from "$lib/components/canvas/convolution-plot";
-	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	/** Public properties for the convolution animator. */
@@ -364,7 +363,7 @@
 		</div>
 		<div class="slider-group">
 			<label for="shift-slider">
-				Shift <MathInline math={String.raw`t`} />
+				<MathText text={String.raw`Shift $t$`} />
 			</label>
 			<input
 				id="shift-slider"
@@ -644,7 +643,7 @@
 		.panel-header {
 			left: 28px;
 			right: 12px;
-			font-size: 0.68rem;
+			font-size: var(--text-2xs);
 		}
 		.legend {
 			gap: 0.45rem 0.65rem;

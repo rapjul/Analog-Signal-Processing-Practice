@@ -170,9 +170,60 @@ export function buildConvolutionItsData(
 	const missingExteriorLatex = formatConvolutionPiecewiseLatex(
 		context.intervals.slice(1),
 	);
+	const recommendationScore = (signal: "x" | "h"): number => {
+		const sections = signal === "x" ? context.xSections : context.hSections;
+		const breakpoints =
+			signal === "x" ? context.xBreakpoints : context.hBreakpoints;
+		const infinitePenalty = sections.some(
+			({ start, end }) =>
+				!Number.isFinite(start) || !Number.isFinite(end),
+		)
+			? 10
+			: 0;
+		return sections.length * 4 + breakpoints.length + infinitePenalty;
+	};
+	const xScore = recommendationScore("x");
+	const hScore = recommendationScore("h");
+	const recommendedSignal: ConvolutionMovingSignal =
+		xScore < hScore ? "x" : "h";
+	const definitionOptions = [
+		{
+			id: "convolution-integral",
+			latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+			isCorrect: true,
+		},
+		{
+			id: "pointwise-product",
+			latex: "y(t)=x(t)h(t)",
+			isCorrect: false,
+			feedback:
+				"A pointwise product does not slide one signal across the other.",
+		},
+		{
+			id: "correlation-integral",
+			latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau",
+			isCorrect: false,
+			feedback:
+				"The moving argument has the wrong orientation; reflection requires $t-\\tau$.",
+		},
+		{
+			id: "outside-variable",
+			latex: "y(t)=x(t)\\int_{-\\infty}^{\\infty}h(t-\\tau)\\,d\\tau",
+			isCorrect: false,
+			feedback:
+				"Both signals must depend on the integration variable inside the convolution integral.",
+		},
+	];
+	const definitionOffset = (context.seed ?? 0) % definitionOptions.length;
+	const shuffledDefinitionOptions = definitionOptions.map(
+		(_, index) =>
+			definitionOptions[
+				(index + definitionOffset) % definitionOptions.length
+			] ?? definitionOptions[0],
+	);
 	return {
 		step1: {
-			intro: "A signal's support is the interval where it can be non-zero. Its left boundary, right boundary, and width tell us when overlap can begin, when it must end, and how wide the convolution can be.",
+			intro: "A signal's support is all times where it can be non-zero. Its start time, end time, and signal width tell us when overlap can begin, when it must end, and how wide the convolution can be. For disconnected signals, the tutor calls the earliest-to-latest measurement the overall span width.",
 			parts: [
 				timingPart("x", xStart, xEnd),
 				timingPart("h", hStart, hEnd),
@@ -181,34 +232,7 @@ export function buildConvolutionItsData(
 		},
 		step2: {
 			prompt: "Which expression correctly defines the continuous-time convolution output $y(t)$?",
-			options: [
-				{
-					id: "convolution-integral",
-					latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
-					isCorrect: true,
-				},
-				{
-					id: "pointwise-product",
-					latex: "y(t)=x(t)h(t)",
-					isCorrect: false,
-					feedback:
-						"A pointwise product does not slide one signal across the other.",
-				},
-				{
-					id: "correlation-integral",
-					latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau",
-					isCorrect: false,
-					feedback:
-						"The moving argument has the wrong orientation; reflection requires $t-\\tau$.",
-				},
-				{
-					id: "outside-variable",
-					latex: "y(t)=x(t)\\int_{-\\infty}^{\\infty}h(t-\\tau)\\,d\\tau",
-					isCorrect: false,
-					feedback:
-						"Both signals must depend on the integration variable inside the convolution integral.",
-				},
-			],
+			options: shuffledDefinitionOptions,
 			hints: [
 				"Convolution combines reflection, translation, multiplication, and integration.",
 				"Use $\\tau$ as the integration variable while $t$ remains a parameter.",
@@ -217,6 +241,11 @@ export function buildConvolutionItsData(
 		},
 		step3: {
 			prompt: "Choose one signal to reflect and slide now. Either path is valid; this choice controls the notation, bounds, and animator in the remaining work.",
+			recommendedSignal,
+			recommendation:
+				xScore === hScore
+					? `Recommended: move $${recommendedSignal}(t)$, following the textbook tie-breaking convention.`
+					: `Recommended: move $${recommendedSignal}(t)$ because it has fewer connected sections, breakpoints, or infinite edges to track.`,
 			formulaBySignal: {
 				x: buildFormulaStep("x", context.seed ?? 0),
 				h: buildFormulaStep("h", context.seed ?? 0),
