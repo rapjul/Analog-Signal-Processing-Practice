@@ -25,6 +25,11 @@ import {
 	createBoundsState,
 	validateBoundsStage,
 } from "$lib/components/solvers/convolution-solver-state/step5-bounds";
+import {
+	createEvaluationState,
+	intervalSampleTimes,
+	validateEvaluationStage,
+} from "$lib/components/solvers/convolution-solver-state/step6-evaluation";
 import type {
 	ConvolutionBreakpointContact,
 	ConvolutionItsOption,
@@ -207,37 +212,6 @@ function step4Contacts(
 	);
 }
 
-/** Creates ordered expression state for every Step 6 interval. */
-function createEvaluationState(
-	problem: ConvolutionProblem,
-): ConvolutionEvaluationStepState {
-	const order = problem.itsData.step6.parts
-		.filter(({ carriedZero }) => !carriedZero)
-		.map(({ id }) => id);
-	const subSteps = Object.fromEntries(
-		problem.itsData.step6.parts.map((part) => [
-			part.id,
-			{
-				...createSubStepState(
-					part.id,
-					part.title,
-					{ upperSubstitution: "", lowerSubstitution: "", input: "" },
-					part.hints,
-				),
-				isValid: Boolean(part.carriedZero),
-			},
-		]),
-	);
-	return createMultiPartStepState(
-		{},
-		order,
-		subSteps,
-		order[0] ??
-			problem.itsData.step6.parts[0]?.id ??
-			"interval-placeholder",
-	) as ConvolutionEvaluationStepState;
-}
-
 /** Creates interval-aligned typed rows for final piecewise assembly. */
 function createPiecewiseState(
 	problem: ConvolutionProblem,
@@ -255,21 +229,6 @@ function createPiecewiseState(
 			};
 		}),
 	});
-}
-
-/** Returns safe deterministic sample times strictly inside one interval. */
-function intervalSampleTimes(minimum: number, maximum: number): number[] {
-	if (Number.isFinite(minimum) && Number.isFinite(maximum)) {
-		const span = maximum - minimum;
-		return [0.17, 0.33, 0.5, 0.67, 0.83].map(
-			(ratio) => minimum + span * ratio,
-		);
-	}
-	if (Number.isFinite(minimum))
-		return [0.5, 1, 2, 3, 5].map((offset) => minimum + offset);
-	if (Number.isFinite(maximum))
-		return [0.5, 1, 2, 3, 5].map((offset) => maximum - offset);
-	return [-3, -1, 0, 2, 5];
 }
 
 /** Reactive state and validation controller for the seven-step convolution tutor. */
@@ -465,6 +424,8 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 	chooseMovingSignal(signal: ConvolutionMovingSignal): void {
 		this.step3.selectedSignal = signal;
 		this.step4 = createTransitionState(this.problem, signal);
+		this.step5 = createBoundsState(this.problem);
+		this.step6 = createEvaluationState(this.problem, signal);
 		this.setSubStepPassed(this.step3, "choose-signal", "choose-formula");
 	}
 
@@ -738,45 +699,32 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		const index = this.problem.itsData.step6.parts.findIndex(
 			(part) => part.id === id,
 		);
+		const part = this.problem.itsData.step6.parts[index];
 		const interval = this.problem.intervals[index];
-		if (!state || !interval) return;
-		if (
-			!state.upperSubstitution.trim() ||
-			!state.lowerSubstitution.trim()
-		) {
-			this.setSubStepValidation(
-				this.step6,
-				id,
-				"Enter the supplied antiderivative evaluated at the upper and lower bounds before simplifying their difference.",
-			);
+		if (!state || !part || !interval) return;
+		const result = validateEvaluationStage(
+			state,
+			part,
+			this.flippedSignal,
+			interval.exprLatex,
+			interval.min,
+			interval.max,
+		);
+		if (result.kind === "blank" || result.kind === "malformed") {
+			this.setSubStepValidation(this.step6, id, result.message);
 			return;
 		}
-		if (!state.input.trim()) {
-			this.setSubStepValidation(
-				this.step6,
-				id,
-				"Enter the evaluated expression for this interval.",
-			);
+		if (result.kind === "incorrect") {
+			this.setSubStepIncorrect(this.step6, id, result.message);
 			return;
 		}
-		for (const time of intervalSampleTimes(interval.min, interval.max)) {
-			const actual = tryEvaluateLatexAt(state.input, time);
-			if (actual === null) {
-				this.setSubStepValidation(
-					this.step6,
-					id,
-					"The expression could not be parsed. Enter valid math in $t$, such as $t-1$ or $e^{-t}$.",
-				);
-				return;
-			}
-			if (Math.abs(actual - interval.eval(time)) > 1e-6) {
-				this.setSubStepIncorrect(
-					this.step6,
-					id,
-					"The expression does not match the verified definite integral throughout this interval.",
-				);
-				return;
-			}
+		if (result.kind !== "valid") return;
+		this.clearSubStepFeedback(this.step6, id);
+		if (result.nextTermIndex !== undefined)
+			state.activeTermIndex = result.nextTermIndex;
+		if (result.nextStage) {
+			state.stage = result.nextStage;
+			return;
 		}
 		this.passActiveSubStep(this.step6, 7);
 	}
@@ -844,7 +792,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.step3 = createFlipState(this.problem);
 		this.step4 = createTransitionState(this.problem, "h");
 		this.step5 = createBoundsState(this.problem);
-		this.step6 = createEvaluationState(this.problem);
+		this.step6 = createEvaluationState(this.problem, "h");
 		this.step7 = createPiecewiseState(this.problem);
 	}
 
@@ -1037,7 +985,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						(part) => part.id === id,
 					)?.setupBySignal?.[this.flippedSignal];
 					if (!setup) break;
-					state.hasOverlap = setup.hasOverlap;
+					if (state.stage === "overlap") {
+						this.chooseStep5Overlap(setup.hasOverlap);
+						continue;
+					}
 					state.boundInputs = setup.overlaps.map((overlap) => ({
 						lowerValues: overlap.lowerCandidateValues.map(
 							String,
@@ -1057,12 +1008,30 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 					const index = this.problem.itsData.step6.parts.findIndex(
 						(part) => part.id === this.step6.activeSubStepId,
 					);
+					const part = this.problem.itsData.step6.parts[index];
 					const state =
 						this.step6.subSteps[this.step6.activeSubStepId];
-					state.upperSubstitution = "F(U)";
-					state.lowerSubstitution = "F(L)";
-					state.input =
-						this.problem.intervals[index]?.exprLatex ?? "0";
+					const term =
+						part?.evaluationBySignal?.[this.flippedSignal][
+							state.activeTermIndex
+						];
+					const termInput = state.termInputs[state.activeTermIndex];
+					if (state.stage === "combined")
+						state.input =
+							this.problem.intervals[index]?.exprLatex ?? "0";
+					else if (term && termInput) {
+						if (state.stage === "geometry-amplitude")
+							termInput.amplitudeProduct =
+								term.geometry?.amplitudeProductLatex ?? "0";
+						else if (state.stage === "geometry-width")
+							termInput.overlapWidth =
+								term.geometry?.overlapWidthLatex ?? "0";
+						else if (state.stage === "upper")
+							termInput.upper = term.upperSubstitutionLatex;
+						else if (state.stage === "lower")
+							termInput.lower = term.lowerSubstitutionLatex;
+						else termInput.difference = term.differenceLatex;
+					}
 					this.checkStep6();
 				}
 				break;

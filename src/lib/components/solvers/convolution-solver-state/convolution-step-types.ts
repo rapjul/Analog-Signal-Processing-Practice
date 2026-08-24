@@ -91,12 +91,34 @@ export interface ConvolutionBoundsStepState extends MultiPartStepState<string> {
 	subSteps: Record<string, ConvolutionBoundsSubStepState>;
 }
 
+/** Typed work for one concrete Step 6 integral term. */
+export interface ConvolutionEvaluationTermInput {
+	/** Rectangle amplitude product, when the geometry shortcut applies. */
+	amplitudeProduct: string;
+	/** Rectangle overlap width, when the geometry shortcut applies. */
+	overlapWidth: string;
+	/** Antiderivative evaluated at the upper limit. */
+	upper: string;
+	/** Antiderivative evaluated at the lower limit. */
+	lower: string;
+	/** Signed upper-minus-lower contribution. */
+	difference: string;
+}
+
 /** State for one typed Step 6 expression. */
 export interface ConvolutionEvaluationSubStepState extends BaseSubStepState {
-	/** Student-entered antiderivative evaluated at the upper bound. */
-	upperSubstitution: string;
-	/** Student-entered antiderivative evaluated at the lower bound. */
-	lowerSubstitution: string;
+	/** Active integral term within a split or connected setup. */
+	activeTermIndex: number;
+	/** Active guided evaluation task. */
+	stage:
+		| "geometry-amplitude"
+		| "geometry-width"
+		| "upper"
+		| "lower"
+		| "difference"
+		| "combined";
+	/** Per-term substitution work. */
+	termInputs: ConvolutionEvaluationTermInput[];
 	/** Student-entered expression for y(t). */
 	input: string;
 }

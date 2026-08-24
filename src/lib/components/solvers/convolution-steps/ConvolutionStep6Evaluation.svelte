@@ -45,6 +45,15 @@
 			activePart?.primitiveLatex ??
 			"",
 	);
+	const evaluationTerms = $derived(
+		activePart?.evaluationBySignal?.[solver.flippedSignal] ?? [],
+	);
+	const activeTerm = $derived(
+		evaluationTerms[activeState?.activeTermIndex ?? 0],
+	);
+	const activeTermInput = $derived(
+		activeState?.termInputs[activeState?.activeTermIndex ?? 0],
+	);
 </script>
 
 {#snippet headerExtra()}
@@ -135,20 +144,56 @@
 						Use this supplied antiderivative; this tutor is testing
 						convolution reasoning, not antiderivative recall.
 					</p>
-					<MathBlock
-						math={suppliedPrimitive}
-						compact={true}
-						hideHeader={true}
-						responsive={true}
-					/>
-					{#if activePart.geometryShortcut}<p>
-							{activePart.geometryShortcut}
-						</p>{/if}
-					<p>
-						Your remaining job is substitution and simplification:
-						evaluate the supplied primitive at the verified upper
-						and lower limits, then subtract.
-					</p>
+					{#if activeTerm}
+						<p>
+							Term {activeState.activeTermIndex + 1} of {evaluationTerms.length}
+						</p>
+						<div class="formula-ledger">
+							<div>
+								<span>Active fixed piece</span>
+								<MathBlock
+									math={activeTerm.fixedPieceLatex}
+									compact={true}
+									hideHeader={true}
+									responsive={true}
+								/>
+							</div>
+							<div>
+								<span>Active transformed moving piece</span>
+								<MathBlock
+									math={activeTerm.movingPieceLatex}
+									compact={true}
+									hideHeader={true}
+									responsive={true}
+								/>
+							</div>
+							<div>
+								<span>Concrete expanded integrand</span>
+								<MathBlock
+									math={activeTerm.integrandLatex}
+									compact={true}
+									hideHeader={true}
+									responsive={true}
+								/>
+							</div>
+							<div>
+								<span>Supplied primitive</span>
+								<MathBlock
+									math={activeTerm.primitiveLatex}
+									compact={true}
+									hideHeader={true}
+									responsive={true}
+								/>
+							</div>
+						</div>
+					{:else}
+						<MathBlock
+							math={suppliedPrimitive}
+							compact={true}
+							hideHeader={true}
+							responsive={true}
+						/>
+					{/if}
 				</div>
 				<form
 					class="evaluation-form"
@@ -157,58 +202,86 @@
 						solver.checkStep6();
 					}}
 				>
-					<div class="substitution-grid">
-						<label>
-							<span>Antiderivative at the upper bound</span>
+					{#if activeTerm && activeTermInput && activeState.stage !== "combined"}
+						<label class="expression-entry">
+							<span>
+								<MathText
+									text={activeState.stage ===
+									"geometry-amplitude"
+										? String.raw`Enter the signed amplitude product:`
+										: activeState.stage === "geometry-width"
+											? String.raw`Enter the overlap width $U(t)-L(t)$:`
+											: activeState.stage === "upper"
+												? `Evaluate $F(\\tau,t)$ at the upper limit $${activeTerm.upperLatex}$:`
+												: activeState.stage === "lower"
+													? `Evaluate $F(\\tau,t)$ at the lower limit $${activeTerm.lowerLatex}$:`
+													: String.raw`Enter $F(U(t),t)-F(L(t),t)$ with the subtraction sign preserved:`}
+								/>
+							</span>
+							{#if activeState.stage === "geometry-amplitude"}
+								<input
+									type="text"
+									bind:value={
+										activeTermInput.amplitudeProduct
+									}
+								/>
+							{:else if activeState.stage === "geometry-width"}
+								<input
+									type="text"
+									bind:value={activeTermInput.overlapWidth}
+								/>
+							{:else if activeState.stage === "upper"}
+								<input
+									type="text"
+									bind:value={activeTermInput.upper}
+								/>
+							{:else if activeState.stage === "lower"}
+								<input
+									type="text"
+									bind:value={activeTermInput.lower}
+								/>
+							{:else}
+								<input
+									type="text"
+									bind:value={activeTermInput.difference}
+								/>
+							{/if}
+						</label>
+					{:else}
+						<label class="expression-entry">
+							<span>
+								<MathText
+									text={String.raw`Enter the simplified expression for $y(t)$:`}
+								/>
+							</span>
 							<input
 								type="text"
-								bind:value={activeState.upperSubstitution}
+								bind:value={activeState.input}
+								placeholder="e.g. t-1 or (t+3)^2/4"
 							/>
 						</label>
-						<label>
-							<span>Antiderivative at the lower bound</span>
-							<input
-								type="text"
-								bind:value={activeState.lowerSubstitution}
+						<div
+							class="preview"
+							aria-live="polite"
+						>
+							<span>Live preview</span>
+							<MathBlock
+								math={activeState.input.trim()
+									? `y(t)=${activeState.input}`
+									: String.raw`y(t)\;=\;?`}
+								compact={true}
+								hideHeader={true}
+								responsive={true}
 							/>
-						</label>
-					</div>
-					<p class="difference-note">
-						<MathText
-							text={String.raw`Now subtract: $F(\text{upper})-F(\text{lower})$.`}
-						/>
-					</p>
-					<label class="expression-entry">
-						<span>
-							<MathText
-								text={String.raw`Enter the simplified expression for $y(t)$:`}
-							/>
-						</span>
-						<input
-							type="text"
-							bind:value={activeState.input}
-							placeholder="e.g. t-1 or (t+3)^2/4"
-						/>
-					</label>
-					<div
-						class="preview"
-						aria-live="polite"
-					>
-						<span>Live preview</span>
-						<MathBlock
-							math={activeState.input.trim()
-								? `y(t)=${activeState.input}`
-								: String.raw`y(t)\;=\;?`}
-							compact={true}
-							hideHeader={true}
-							responsive={true}
-						/>
-					</div>
+						</div>
+					{/if}
 					<button
 						type="submit"
 						class="check-button"
 					>
-						Check evaluated expression
+						{activeState.stage === "combined"
+							? "Check combined expression"
+							: "Check this evaluation step"}
 					</button>
 				</form>
 			</SubStepBlock>
@@ -251,26 +324,26 @@
 		background: var(--bg-secondary);
 	}
 	.primitive-card p,
-	.difference-note,
 	.carried-note {
 		margin: 0;
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 	}
-	.substitution-grid {
+	.formula-ledger {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.75rem;
+		margin-top: 0.65rem;
 	}
-	.substitution-grid label {
+	.formula-ledger > div {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+		min-width: 0;
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 	}
-	.expression-entry input,
-	.substitution-grid input {
+	.expression-entry input {
 		width: 100%;
 		min-width: 0;
 		padding: 0.6rem 0.7rem;
@@ -312,7 +385,6 @@
 		cursor: pointer;
 	}
 	.expression-entry input:focus-visible,
-	.substitution-grid input:focus-visible,
 	.check-button:focus-visible {
 		position: relative;
 		z-index: 1;
@@ -324,7 +396,7 @@
 	@media (max-width: 560px) {
 		.summary-row,
 		.compact-result,
-		.substitution-grid {
+		.formula-ledger {
 			grid-template-columns: 1fr;
 		}
 		.check-button {

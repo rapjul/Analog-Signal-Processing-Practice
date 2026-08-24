@@ -293,6 +293,7 @@ export function withConvolutionItsData(
 			hSections,
 			xBreakpoints,
 			hBreakpoints,
+			resolvedSignals: problem.resolvedSignals,
 		}),
 	};
 }

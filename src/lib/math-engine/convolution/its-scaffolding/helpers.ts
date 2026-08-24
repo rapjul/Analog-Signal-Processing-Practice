@@ -337,7 +337,12 @@ export function buildConvolutionItsData(
 		},
 		step6: {
 			parts: context.intervals.map((interval, index) =>
-				buildEvaluationPart(interval, index, setupParts[index]),
+				buildEvaluationPart(
+					interval,
+					index,
+					context,
+					setupParts[index],
+				),
 			),
 		},
 		step7: {

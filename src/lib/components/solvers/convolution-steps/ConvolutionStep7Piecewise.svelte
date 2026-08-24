@@ -4,6 +4,7 @@
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
+	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import type { ConvolutionProblem } from "$lib/math-engine/convolution/index";
 
@@ -41,25 +42,29 @@
 >
 	<div class="step-body">
 		<p>
-			Copy each verified Step 6 expression into its matching Step 4
-			interval. Exterior no-overlap rows are already locked.
+			Assemble the expression that belongs in each verified Step 4
+			interval. Exterior no-overlap rows are already locked. Open the
+			reference only when you need to review Step 6.
 		</p>
-		<div
-			class="reference-table"
-			aria-label="Verified Step 6 results"
-		>
-			{#each problem.intervals as interval}
-				<div><MathText text={`$${interval.labelLatex}$`} /></div>
-				<div>
-					<MathBlock
-						math={`y(t)=${interval.exprLatex}`}
-						compact={true}
-						hideHeader={true}
-						responsive={true}
-					/>
-				</div>
-			{/each}
-		</div>
+		<details class="verified-reference">
+			<summary>Show verified Step 6 expressions</summary>
+			<div
+				class="reference-table"
+				aria-label="Verified Step 6 results"
+			>
+				{#each problem.intervals as interval}
+					<div><MathText text={`$${interval.labelLatex}$`} /></div>
+					<div>
+						<MathBlock
+							math={`y(t)=${interval.exprLatex}`}
+							compact={true}
+							hideHeader={true}
+							responsive={true}
+						/>
+					</div>
+				{/each}
+			</div>
+		</details>
 		<div class="piecewise-builder">
 			{#each problem.intervals as interval, index}
 				{@const row = solver.step7.rows[index]}
@@ -81,7 +86,8 @@
 						<input
 							type="text"
 							bind:value={row.input}
-							disabled={row.isLocked || row.isValid}
+							readonly={row.isLocked || row.isValid}
+							aria-readonly={row.isLocked || row.isValid}
 							aria-label={`Expression for ${interval.labelLatex}`}
 						/>
 					</label>
@@ -97,6 +103,11 @@
 				</form>
 			{/each}
 		</div>
+		<HintDisclosure
+			hints={solver.activeHints}
+			hintTier={solver.hintTier}
+			onRevealNextHint={() => solver.revealNextHint()}
+		/>
 	</div>
 </StepCard>
 
@@ -120,6 +131,21 @@
 		padding: 0.75rem;
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
+	}
+	.verified-reference {
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+	}
+	.verified-reference summary {
+		padding: 0.7rem;
+		font-weight: 700;
+		color: var(--accent-primary);
+		cursor: pointer;
+	}
+	.verified-reference .reference-table {
+		border: 0;
+		border-top: 1px solid var(--border-color);
+		border-radius: 0;
 	}
 	.piecewise-builder form {
 		display: grid;
@@ -168,7 +194,8 @@
 		opacity: 0.75;
 	}
 	.piecewise-builder input:focus-visible,
-	.piecewise-builder button:focus-visible {
+	.piecewise-builder button:focus-visible,
+	.verified-reference summary:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}

@@ -11,16 +11,10 @@ import type {
 	ConvolutionInterval,
 	ConvolutionSignalSection,
 } from "$lib/math-engine/convolution/types";
+import { buildEvaluationTerms, representativeTime } from "./evaluation-terms";
 import { formatConvolutionScalar, formatTranslatedEdge } from "./presentation";
 
-/** Returns a representative interior time for active max/min bounds. */
-export function representativeTime(interval: ConvolutionInterval): number {
-	if (Number.isFinite(interval.min) && Number.isFinite(interval.max))
-		return (interval.min + interval.max) / 2;
-	if (Number.isFinite(interval.min)) return interval.min + 1;
-	if (Number.isFinite(interval.max)) return interval.max - 1;
-	return 0;
-}
+export { representativeTime } from "./evaluation-terms";
 
 /** Sorts and deduplicates symbolic split points. */
 function uniqueSplitPoints(
@@ -206,6 +200,7 @@ export function buildSetupPart(
 export function buildEvaluationPart(
 	interval: ConvolutionInterval,
 	index: number,
+	context: ConvolutionItsBuildContext,
 	setupPart?: ConvolutionItsIntervalPart,
 ): ConvolutionItsIntervalPart {
 	const carriedZero =
@@ -239,6 +234,20 @@ export function buildEvaluationPart(
 				"",
 		),
 	};
+	const evaluationBySignal = {
+		h: buildEvaluationTerms(
+			interval,
+			setupPart?.setupBySignal?.h,
+			context,
+			"h",
+		),
+		x: buildEvaluationTerms(
+			interval,
+			setupPart?.setupBySignal?.x,
+			context,
+			"x",
+		),
+	};
 	return {
 		id: `interval-${String(index + 1).padStart(2, "0")}`,
 		title: `Evaluate Region ${index + 1}`,
@@ -251,6 +260,7 @@ export function buildEvaluationPart(
 		geometryShortcut: carriedZero
 			? undefined
 			: "For constant rectangular pieces, the same result is amplitude product times overlap width.",
+		evaluationBySignal,
 		hints: [
 			`Evaluate only for $${interval.labelLatex}$.`,
 			"Use the supplied antiderivative and substitute the verified bounds.",

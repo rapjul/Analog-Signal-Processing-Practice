@@ -1,5 +1,6 @@
 /** Shared structured tutoring metadata for continuous-time convolution. */
 
+import type { ResolvedConvolutionSelection } from "./configuration";
 import type { ConvolutionInterval, ConvolutionSignalSection } from "./types";
 
 /** Signal selected as the reflected and translated convolution operand. */
@@ -248,6 +249,42 @@ export interface ConvolutionItsIntervalPart {
 	primitiveBySignal?: Record<ConvolutionMovingSignal, string>;
 	/** Optional geometric shortcut for constant rectangular products. */
 	geometryShortcut?: string;
+	/** Concrete per-term evaluation work for both moving-signal paths. */
+	evaluationBySignal?: Record<
+		ConvolutionMovingSignal,
+		ConvolutionEvaluationTerm[]
+	>;
+}
+
+/** Exact work expected for one definite-integral term in Step 6. */
+export interface ConvolutionEvaluationTerm {
+	/** Stable term identifier. */
+	id: string;
+	/** Concrete active fixed signal piece. */
+	fixedPieceLatex: string;
+	/** Concrete reflected and translated moving signal piece. */
+	movingPieceLatex: string;
+	/** Expanded product integrated with respect to tau. */
+	integrandLatex: string;
+	/** Exact antiderivative in tau. */
+	primitiveLatex: string;
+	/** Verified lower integration limit. */
+	lowerLatex: string;
+	/** Verified upper integration limit. */
+	upperLatex: string;
+	/** Expected primitive evaluated at the upper limit. */
+	upperSubstitutionLatex: string;
+	/** Expected primitive evaluated at the lower limit. */
+	lowerSubstitutionLatex: string;
+	/** Expected signed upper-minus-lower contribution. */
+	differenceLatex: string;
+	/** Optional rectangle geometry shortcut values. */
+	geometry?: {
+		/** Product of the two active piece amplitudes. */
+		amplitudeProductLatex: string;
+		/** Symbolic overlap width for this term. */
+		overlapWidthLatex: string;
+	};
 }
 
 /** Complete seven-step tutoring scaffold. */
@@ -282,4 +319,6 @@ export interface ConvolutionItsBuildContext {
 	xBreakpoints: number[];
 	/** Support edges and interior breakpoints of h. */
 	hBreakpoints: number[];
+	/** Concrete configured signal formulas when available. */
+	resolvedSignals?: ResolvedConvolutionSelection;
 }

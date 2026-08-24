@@ -62,7 +62,7 @@
 	/* ── Native disclosure summary ────────────────────────── */
 	.step-main-title {
 		display: list-item;
-		font-size: 1rem;
+		font-size: var(--text-base);
 		font-weight: 700;
 		color: var(--text-primary);
 		cursor: pointer;
@@ -94,15 +94,15 @@
 	}
 
 	.step-title {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		color: var(--accent-primary);
 	}
 
 	.step-description {
-		font-size: 0.88rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
-		line-height: 1.5;
+		line-height: var(--leading-normal);
 		margin: 0;
 	}
 </style>
