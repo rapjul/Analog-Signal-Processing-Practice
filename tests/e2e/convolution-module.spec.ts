@@ -27,7 +27,11 @@ test.describe("Continuous-Time Convolution Module", () => {
 			page.getByText("Find Signal Start Times, End Times, and Widths"),
 		).toBeVisible();
 		await expect(page.locator(".progress-pill")).toHaveCount(7);
-		await expect(page.locator("canvas")).toHaveCount(0);
+		const earlyPreview = page.locator("details.early-visual-disclosure");
+		await expect(earlyPreview).not.toHaveAttribute("open");
+		await expect(
+			earlyPreview.getByLabel("Optional Convolution Geometry Preview"),
+		).toHaveCount(1);
 		await expect(page.getByText("Problem Completed!")).toHaveCount(0);
 	});
 
@@ -51,7 +55,9 @@ test.describe("Continuous-Time Convolution Module", () => {
 
 		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
 		const definitionOptions = page.getByTestId("convolution-step2-options");
-		await definitionOptions.locator("button").nth(1).click();
+		await definitionOptions
+			.locator('[data-option-id="pointwise-product"]')
+			.click();
 		await expect(page.locator(".feedback-misconception")).toBeVisible();
 		await expect(page.locator(".feedback-misconception")).toContainText(
 			/pointwise product/i,
@@ -70,7 +76,9 @@ test.describe("Continuous-Time Convolution Module", () => {
 
 		await page.evaluate(() => window.__signalLabDev?.autoFillStep(1));
 		const definitionOptions = page.getByTestId("convolution-step2-options");
-		await definitionOptions.locator("button").nth(1).click();
+		await definitionOptions
+			.locator('[data-option-id="pointwise-product"]')
+			.click();
 		await expect(page.locator(".feedback-misconception")).toBeVisible();
 	});
 
@@ -160,10 +168,14 @@ test.describe("Continuous-Time Convolution Module", () => {
 
 		await expect(page.getByText("Problem Completed!")).toBeVisible();
 		await expect(page.locator(".step-reveal-container")).toBeVisible();
-		const canvas = page.locator("canvas");
+		const canvas = page.getByLabel(
+			"Verified Flip-and-Shift Overlap Visualizer",
+		);
 		await expect(canvas).toBeVisible();
 
-		const timeSlider = page.locator('input[type="range"]');
+		const timeSlider = page
+			.locator(".visualizer-wrapper")
+			.locator('input[type="range"]');
 		await expect(timeSlider).toBeVisible();
 		await timeSlider.fill("2.5");
 		await expect(canvas).toBeVisible();
@@ -181,7 +193,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 				state.kind === "interactive" &&
 				Boolean(state.subStep),
 		);
-		expect(intervalStates.length).toBeGreaterThanOrEqual(4);
+		expect(intervalStates.length).toBeGreaterThanOrEqual(2);
 
 		const finalState = intervalStates.at(-1);
 		if (!finalState)

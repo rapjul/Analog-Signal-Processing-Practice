@@ -259,5 +259,12 @@ describe("ConvolutionStepSolver", () => {
 				".piecewise-builder input:not(:disabled)",
 			).length,
 		).toBeGreaterThan(0);
+		const editable = view.container.querySelector<HTMLInputElement>(
+			".piecewise-builder input:not(:disabled)",
+		);
+		if (!editable) throw new Error("Expected an editable piecewise row.");
+		await fireEvent.input(editable, { target: { value: "999" } });
+		await fireEvent.submit(editable.closest("form")!);
+		expect(view.getByText(/different interval/i)).toBeTruthy();
 	});
 });

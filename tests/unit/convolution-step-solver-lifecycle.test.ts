@@ -114,6 +114,14 @@ function completeTypedRemainder(
 		if (!setup) throw new Error("Expected bounds setup.");
 		state.hasOverlap = setup.hasOverlap;
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: overlap.lowerCandidateValues.map(String) as [
+				string,
+				string,
+			],
+			upperValues: overlap.upperCandidateValues.map(String) as [
+				string,
+				string,
+			],
 			lower: overlap.lowerLatex,
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],
@@ -127,7 +135,15 @@ function completeTypedRemainder(
 		);
 		solver.step6.subSteps[id].input =
 			problem.intervals[index]?.exprLatex ?? "0";
+		solver.step6.subSteps[id].upperSubstitution = "F(U)";
+		solver.step6.subSteps[id].lowerSubstitution = "F(L)";
 		solver.checkStep6();
+	}
+	while (solver.currentStep === 7) {
+		const index = solver.step7.rows.findIndex(({ isValid }) => !isValid);
+		if (index < 0) break;
+		solver.step7.rows[index].input = problem.intervals[index].exprLatex;
+		solver.checkStep7Row(index);
 	}
 }
 
@@ -188,7 +204,6 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			solver.checkStep2(option(problem.itsData.step2.options, true));
 			completeFlip(solver, problem, signal);
 			completeTypedRemainder(solver, problem);
-			solver.checkStep7(option(problem.itsData.step7.options, true));
 			expect(solver.flippedSignal).toBe(signal);
 			expect(solver.currentStep).toBe(8);
 			expect(solver.isCompleted).toBe(true);
@@ -288,7 +303,24 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		expect(positions).toEqual(new Set([0, 1, 2, 3]));
 	});
 
-	it("guides contact formulation and solving as separate typed phases", () => {
+	it("places the seeded Step 2 answer in every option position deterministically", () => {
+		const positions = new Set<number>();
+		for (let seed = 0; seed < 4; seed += 1) {
+			const first = generateConvolutionProblem("rect_rect", { seed });
+			const second = generateConvolutionProblem("rect_rect", { seed });
+			expect(first.itsData.step2.options.map(({ id }) => id)).toEqual(
+				second.itsData.step2.options.map(({ id }) => id),
+			);
+			positions.add(
+				first.itsData.step2.options.findIndex(
+					({ isCorrect }) => isCorrect,
+				),
+			);
+		}
+		expect(positions).toEqual(new Set([0, 1, 2, 3]));
+	});
+
+	it("guides contact formulation and solving as separate typed sub-steps", () => {
 		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
@@ -502,6 +534,10 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			solver.step6.subSteps[solver.step6.activeSubStepId];
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
+		expressionState.upperSubstitution = "F(U)";
+		expressionState.lowerSubstitution = "F(L)";
+		solver.checkStep6();
+		expect(solver.currentFeedback).toMatch(/evaluated expression/i);
 		expressionState.input = "not valid math";
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
@@ -540,10 +576,24 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("validation");
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: overlap.lowerCandidateValues.map(String) as [
+				string,
+				string,
+			],
+			upperValues: overlap.upperCandidateValues.map(String) as [
+				string,
+				string,
+			],
 			lower: "99",
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],
 		}));
+		state.boundInputs[0].lowerValues[0] = "99";
+		solver.checkStep5();
+		expect(solver.currentFeedback).toMatch(/representative time/i);
+		state.boundInputs[0].lowerValues[0] = String(
+			setup.overlaps[0].lowerCandidateValues[0],
+		);
 		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/larger.*left/i);
 		state.boundInputs[0].lower = setup.overlaps[0].lowerLatex;
@@ -569,6 +619,14 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const state = solver.step5.subSteps[part.id];
 		state.hasOverlap = true;
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: overlap.lowerCandidateValues.map(String) as [
+				string,
+				string,
+			],
+			upperValues: overlap.upperCandidateValues.map(String) as [
+				string,
+				string,
+			],
 			lower: overlap.lowerLatex,
 			upper: overlap.upperLatex,
 			splits: overlap.splitPointsLatex.map(() => "99"),
@@ -576,6 +634,32 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		expect(solver.currentFeedback).toMatch(/triangle apex/i);
+	});
+
+	it("locks carried zero rows and validates each nonzero piecewise row", () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const solver = new ConvolutionStepSolverState(() => problem);
+		for (let step = 1; step <= 6; step += 1) solver.devAutoFillStep(step);
+		const locked = solver.step7.rows.filter(({ isLocked }) => isLocked);
+		expect(locked.length).toBeGreaterThan(0);
+		expect(
+			locked.every(({ input, isValid }) => input === "0" && isValid),
+		).toBe(true);
+		const index = solver.step7.rows.findIndex(({ isLocked }) => !isLocked);
+		expect(solver.activeHints).toEqual(problem.itsData.step7.hints);
+		solver.checkStep7Row(index);
+		expect(solver.currentFeedbackType).toBe("validation");
+		solver.step7.rows[index].input = "999";
+		solver.checkStep7Row(index);
+		expect(solver.currentFeedbackType).toBe("incorrect");
+		solver.step7.rows[index].input = "not valid math";
+		solver.checkStep7Row(index);
+		expect(solver.currentFeedbackType).toBe("validation");
+		solver.step7.rows[index].input = problem.intervals[index].exprLatex;
+		problem.intervals[index].min = Number.NEGATIVE_INFINITY;
+		problem.intervals[index].max = 2;
+		solver.checkStep7Row(index);
+		expect(solver.step7.rows[index].isValid).toBe(true);
 	});
 
 	it("handles defensive missing-state and developer-harness branches", () => {
@@ -668,6 +752,8 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		interval.max = Number.POSITIVE_INFINITY;
 		interval.eval = () => 0;
 		solver.step6.subSteps[evaluationId].input = "0";
+		solver.step6.subSteps[evaluationId].upperSubstitution = "F(U)";
+		solver.step6.subSteps[evaluationId].lowerSubstitution = "F(L)";
 		solver.checkStep6();
 		expect(solver.step6.subSteps[evaluationId].isValid).toBe(true);
 	});

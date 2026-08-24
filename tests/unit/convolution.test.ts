@@ -341,18 +341,19 @@ describe("Continuous-Time Convolution Math Engine", () => {
 				const problem = generateConvolutionProblem(pairType);
 				expect(problem.itsData.step1.parts).toHaveLength(3);
 				expect(problem.itsData.step1.intro).toMatch(
-					/interval where it can be non-zero/i,
+					/all times where it can be non-zero/i,
 				);
-				for (const step of [
-					problem.itsData.step2,
-					problem.itsData.step7,
-				]) {
+				for (const step of [problem.itsData.step2]) {
 					expect(step.hints).toHaveLength(3);
 					expect(step.options).toHaveLength(4);
 					expect(
 						step.options.filter(({ isCorrect }) => isCorrect),
 					).toHaveLength(1);
 				}
+				expect(problem.itsData.step7.hints).toHaveLength(3);
+				expect(problem.itsData.step7.resultLatex).toContain(
+					"\\begin{cases}",
+				);
 				for (const signal of ["x", "h"] as const) {
 					const formula =
 						problem.itsData.step3.formulaBySignal[signal];
@@ -484,6 +485,24 @@ describe("Continuous-Time Convolution Math Engine", () => {
 					expect.stringContaining("y(t)=2"),
 				]),
 			);
+		});
+
+		it("supplies valid primitives for affine, exponential, and affine-product integrands", () => {
+			const setups = [
+				String.raw`y(t)=\int_0^t\left(1+\frac{\tau}{2}\right)d\tau`,
+				String.raw`y(t)=\int_0^t e^{-\tau}d\tau`,
+				String.raw`y(t)=\int_0^t\operatorname{tri}(\tau)\operatorname{tri}(t-\tau)d\tau`,
+			];
+			const intervals = setups.map((integralSetupLatex, index) => ({
+				...interval(`r_${index}`, index, index + 1, "t"),
+				integralSetupLatex,
+			}));
+			const primitives = buildConvolutionItsData(
+				context(intervals),
+			).step6.parts.map(({ primitiveLatex }) => primitiveLatex);
+			expect(primitives[0]).toContain(String.raw`\tau^2`);
+			expect(primitives[1]).toContain(String.raw`e^{-a\tau}`);
+			expect(primitives[2]).toContain(String.raw`\tau^3`);
 		});
 
 		it("covers left-unbounded and fully unbounded representative interval times", () => {

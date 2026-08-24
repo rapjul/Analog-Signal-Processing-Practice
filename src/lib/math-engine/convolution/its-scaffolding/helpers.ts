@@ -221,6 +221,9 @@ export function buildConvolutionItsData(
 				(index + definitionOffset) % definitionOptions.length
 			] ?? definitionOptions[0],
 	);
+	const setupParts = context.intervals.map((interval, index) =>
+		buildSetupPart(interval, index, context),
+	);
 	return {
 		step1: {
 			intro: "A signal's support is all times where it can be non-zero. Its start time, end time, and signal width tell us when overlap can begin, when it must end, and how wide the convolution can be. For disconnected signals, the tutor calls the earliest-to-latest measurement the overall span width.",
@@ -330,11 +333,13 @@ export function buildConvolutionItsData(
 			],
 		},
 		step5: {
+			parts: setupParts,
+		},
+		step6: {
 			parts: context.intervals.map((interval, index) =>
-				buildSetupPart(interval, index, context),
+				buildEvaluationPart(interval, index, setupParts[index]),
 			),
 		},
-		step6: { parts: context.intervals.map(buildEvaluationPart) },
 		step7: {
 			prompt: "Which piecewise expression attaches every evaluated result to its verified interval?",
 			resultLatex: finalLatex,

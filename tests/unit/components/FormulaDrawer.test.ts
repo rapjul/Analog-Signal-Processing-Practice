@@ -37,8 +37,29 @@ describe("FormulaDrawer.svelte Component", () => {
 
 		expect(getByText("LCC ODEs")).toBeTruthy();
 		expect(getByText("Fourier Series")).toBeTruthy();
+		expect(getByText("Convolution")).toBeTruthy();
 		expect(getByText("Transforms & Circuits")).toBeTruthy();
 		expect(container.querySelector("button.close-btn")).toBeTruthy();
+	});
+
+	it("opens the route-selected Convolution reference and supports arrow navigation", async () => {
+		const { getByRole, getByText } = render(FormulaDrawer, {
+			props: {
+				isOpen: true,
+				onClose: vi.fn(),
+				activeRoute: "/convolution",
+			},
+		});
+		const convolutionTab = getByRole("tab", { name: "Convolution" });
+		expect(convolutionTab.getAttribute("aria-selected")).toBe("true");
+		expect(getByText("Timing and Contact Equations")).toBeTruthy();
+		expect(getByText("Overlap Bounds")).toBeTruthy();
+		await fireEvent.keyDown(convolutionTab, { key: "ArrowRight" });
+		expect(
+			getByRole("tab", { name: "Transforms & Circuits" }).getAttribute(
+				"aria-selected",
+			),
+		).toBe("true");
 	});
 
 	it("calls onClose when close button is clicked", async () => {

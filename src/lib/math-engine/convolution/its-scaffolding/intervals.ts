@@ -189,17 +189,39 @@ export function buildSetupPart(
 export function buildEvaluationPart(
 	interval: ConvolutionInterval,
 	index: number,
+	setupPart?: ConvolutionItsIntervalPart,
 ): ConvolutionItsIntervalPart {
 	const carriedZero =
 		interval.exprLatex === "0" && interval.hasGeometricOverlap !== true;
-	const setup = interval.integralSetupLatex ?? "";
-	let primitiveLatex = String.raw`F(\tau)=A_xA_h\tau`;
-	if (setup.includes(String.raw`1+\frac{\tau}{2}`))
-		primitiveLatex = String.raw`F(\tau)=\tau+\frac{\tau^2}{4}`;
-	else if (setup.includes(String.raw`1-\frac{\tau}{2}`))
-		primitiveLatex = String.raw`F(\tau)=\tau-\frac{\tau^2}{4}`;
-	else if (setup.includes("e^"))
-		primitiveLatex = String.raw`\int e^{-a\tau}\,d\tau=-\frac{1}{a}e^{-a\tau}`;
+	const primitiveFor = (setup: string): string => {
+		if (setup.includes("e^"))
+			return String.raw`\int e^{-a\tau}\,d\tau=-\frac{1}{a}e^{-a\tau}`;
+		const triangleFactors =
+			setup.match(/\\operatorname\{tri\}/g)?.length ?? 0;
+		if (triangleFactors >= 2)
+			return String.raw`\int(a\tau+b)(c\tau+d)\,d\tau=\frac{ac}{3}\tau^3+\frac{ad+bc}{2}\tau^2+bd\tau`;
+		if (
+			triangleFactors === 1 ||
+			setup.includes(String.raw`1+\frac{\tau}{2}`) ||
+			setup.includes(String.raw`1-\frac{\tau}{2}`) ||
+			setup.includes(String.raw`1+\frac{t-\tau}{2}`) ||
+			setup.includes(String.raw`1-\frac{t-\tau}{2}`)
+		)
+			return String.raw`\int(a\tau+b)\,d\tau=\frac{a}{2}\tau^2+b\tau`;
+		return String.raw`F(\tau)=A_xA_h\tau`;
+	};
+	const primitiveBySignal = {
+		h: primitiveFor(
+			interval.integralSetupLatex ??
+				setupPart?.setupBySignal?.h.integralLatex ??
+				"",
+		),
+		x: primitiveFor(
+			interval.flipXIntegralSetupLatex ??
+				setupPart?.setupBySignal?.x.integralLatex ??
+				"",
+		),
+	};
 	return {
 		id: `interval-${String(index + 1).padStart(2, "0")}`,
 		title: `Evaluate Region ${index + 1}`,
@@ -207,7 +229,8 @@ export function buildEvaluationPart(
 		resultLatex: `y(t)=${interval.exprLatex},\\quad ${interval.labelLatex}`,
 		options: [],
 		carriedZero,
-		primitiveLatex: carriedZero ? "0" : primitiveLatex,
+		primitiveLatex: carriedZero ? "0" : primitiveBySignal.h,
+		primitiveBySignal: carriedZero ? { h: "0", x: "0" } : primitiveBySignal,
 		geometryShortcut: carriedZero
 			? undefined
 			: "For constant rectangular pieces, the same result is amplitude product times overlap width.",

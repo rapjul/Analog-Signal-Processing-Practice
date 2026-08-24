@@ -115,6 +115,7 @@
 			{#each data.options as option}
 				<button
 					type="button"
+					data-option-id={option.id}
 					class="option-card"
 					class:selected={state.selected === option.id}
 					onclick={() => handleSelection(option)}

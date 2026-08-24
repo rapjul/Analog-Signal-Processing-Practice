@@ -40,6 +40,11 @@
 			solver.flippedSignal
 		].integralLatex ?? "y(t)=0",
 	);
+	const suppliedPrimitive = $derived(
+		activePart?.primitiveBySignal?.[solver.flippedSignal] ??
+			activePart?.primitiveLatex ??
+			"",
+	);
 </script>
 
 {#snippet headerExtra()}
@@ -131,7 +136,7 @@
 						convolution reasoning, not antiderivative recall.
 					</p>
 					<MathBlock
-						math={activePart.primitiveLatex ?? ""}
+						math={suppliedPrimitive}
 						compact={true}
 						hideHeader={true}
 						responsive={true}

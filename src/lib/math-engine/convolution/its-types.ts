@@ -224,6 +224,8 @@ export interface ConvolutionItsIntervalPart {
 	carriedZero?: boolean;
 	/** Supplied antiderivative or evaluation primitive for Step 6. */
 	primitiveLatex?: string;
+	/** Supplied antiderivative matched to each verified moving-signal path. */
+	primitiveBySignal?: Record<ConvolutionMovingSignal, string>;
 	/** Optional geometric shortcut for constant rectangular products. */
 	geometryShortcut?: string;
 }
