@@ -1,86 +1,182 @@
-/** Seeded URL filtering for reproducible convolution drills. */
+/** Frozen share-state parsing for independently configured convolution signals. */
 
-import type { ConvolutionPairType } from "$lib/math-engine/convolution";
 import {
-	createRandomSeed,
-	createSeededPrng,
-	randomChoice,
-} from "$lib/math-engine/random";
-import type { WithRandom } from "$lib/math-engine/types";
-import { parseEnumParam, parseSafeSeedParam } from "$lib/problems/url-params";
+	CONVOLUTION_SIGNAL_TYPES,
+	type ConvolutionAmplitudeSelection,
+	type ConvolutionParameterMode,
+	type ConvolutionProblemSelection,
+	type ConvolutionShiftState,
+	type ConvolutionShiftValueSelection,
+	type ConvolutionSignalSelection,
+	type ConvolutionSignalTypeSelection,
+	DEFAULT_CONVOLUTION_SELECTION,
+} from "$lib/math-engine/convolution";
+import { createRandomSeed } from "$lib/math-engine/random";
+import { parseSafeSeedParam } from "$lib/problems/url-params";
 
-/** Fully implemented signal pairs exposed by the practice route. */
-export type ConvolutionDrillPairType = Extract<
-	ConvolutionPairType,
-	| "rect_rect"
-	| "rect_shifted_rect"
-	| "rect_both_shifted"
-	| "multi_rect"
-	| "rect_exp"
-	| "exp_exp"
-	| "tri_rect"
-	| "tri_shifted_tri"
->;
+export const CONVOLUTION_SHARE_VERSION = "2";
+export const CONVOLUTION_SIGNAL_TYPE_SELECTIONS = [
+	"random",
+	...CONVOLUTION_SIGNAL_TYPES,
+] as const;
+export const CONVOLUTION_PARAMETER_MODES = ["default", "random"] as const;
+export const CONVOLUTION_AMPLITUDE_SELECTIONS = [
+	"default",
+	"random_signed",
+	"-3",
+	"-2",
+	"-1",
+	"1",
+	"2",
+	"3",
+] as const;
+export const CONVOLUTION_SHIFT_STATES = [
+	"unshifted",
+	"shifted",
+	"random",
+] as const;
+export const CONVOLUTION_SHIFT_VALUE_SELECTIONS = [
+	"random_signed",
+	"random_negative",
+	"random_positive",
+	"-5",
+	"-4",
+	"-3",
+	"-2",
+	"-1",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+] as const;
 
-/** Concrete pair selection or the seeded Random sentinel. */
-export type ConvolutionPairSelection = WithRandom<ConvolutionDrillPairType>;
-
-/** Ordered signal pairs used by the selector and Random resolver. */
-export const CONVOLUTION_DRILL_PAIR_TYPES: readonly ConvolutionDrillPairType[] =
-	[
-		"rect_rect",
-		"rect_shifted_rect",
-		"rect_both_shifted",
-		"multi_rect",
-		"rect_exp",
-		"exp_exp",
-		"tri_rect",
-		"tri_shifted_tri",
-	] as const;
-
-/** All URL-safe selector values. */
-export const CONVOLUTION_PAIR_SELECTIONS: readonly ConvolutionPairSelection[] =
-	["random", ...CONVOLUTION_DRILL_PAIR_TYPES] as const;
-
-/** Canonical route state for a convolution drill. */
 export interface ConvolutionFilterSelections {
-	/** Selected concrete pair or Random mode. */
-	pair: ConvolutionPairSelection;
-	/** Unsigned deterministic seed. */
+	selection: ConvolutionProblemSelection;
 	seed: number;
+	isShared: boolean;
 }
 
-/** Parses safe convolution filters, defaulting missing and invalid pairs to Random. */
+function cloneDefaultSelection(): ConvolutionProblemSelection {
+	return {
+		x: {
+			...DEFAULT_CONVOLUTION_SELECTION.x,
+			componentAmplitudes: [
+				...DEFAULT_CONVOLUTION_SELECTION.x.componentAmplitudes,
+			],
+		},
+		h: {
+			...DEFAULT_CONVOLUTION_SELECTION.h,
+			componentAmplitudes: [
+				...DEFAULT_CONVOLUTION_SELECTION.h.componentAmplitudes,
+			],
+		},
+	};
+}
+
+function enumValue<T extends string>(
+	value: string | null,
+	allowed: readonly T[],
+	fallback: T,
+): T {
+	return value !== null && allowed.includes(value as T)
+		? (value as T)
+		: fallback;
+}
+
+function parseSignal(
+	params: URLSearchParams,
+	prefix: "x" | "h",
+	fallback: ConvolutionSignalSelection,
+): ConvolutionSignalSelection {
+	return {
+		type: enumValue<ConvolutionSignalTypeSelection>(
+			params.get(`${prefix}Type`),
+			CONVOLUTION_SIGNAL_TYPE_SELECTIONS,
+			fallback.type,
+		),
+		parameterMode: enumValue<ConvolutionParameterMode>(
+			params.get(`${prefix}Parameter`),
+			CONVOLUTION_PARAMETER_MODES,
+			fallback.parameterMode,
+		),
+		amplitude: enumValue<ConvolutionAmplitudeSelection>(
+			params.get(`${prefix}Amplitude`),
+			CONVOLUTION_AMPLITUDE_SELECTIONS,
+			fallback.amplitude,
+		),
+		componentAmplitudes: [
+			enumValue<ConvolutionAmplitudeSelection>(
+				params.get(`${prefix}Amplitude1`),
+				CONVOLUTION_AMPLITUDE_SELECTIONS,
+				fallback.componentAmplitudes[0],
+			),
+			enumValue<ConvolutionAmplitudeSelection>(
+				params.get(`${prefix}Amplitude2`),
+				CONVOLUTION_AMPLITUDE_SELECTIONS,
+				fallback.componentAmplitudes[1],
+			),
+		],
+		shiftState: enumValue<ConvolutionShiftState>(
+			params.get(`${prefix}Shift`),
+			CONVOLUTION_SHIFT_STATES,
+			fallback.shiftState,
+		),
+		shiftValue: enumValue<ConvolutionShiftValueSelection>(
+			params.get(`${prefix}ShiftValue`),
+			CONVOLUTION_SHIFT_VALUE_SELECTIONS,
+			fallback.shiftValue,
+		),
+	};
+}
+
+/** Parses only versioned Share URLs; bare, legacy, and partial URLs use defaults. */
 export function parseConvolutionFilters(
 	searchParams: URLSearchParams,
 	fallbackSeed: number = createRandomSeed(),
 ): ConvolutionFilterSelections {
-	const pair = parseEnumParam(searchParams, {
-		key: "pair",
-		allowedValues: CONVOLUTION_PAIR_SELECTIONS,
-		fallback: "random",
-	}).value;
+	const defaults = cloneDefaultSelection();
+	const isShared =
+		searchParams.get("share") === "1" &&
+		searchParams.get("v") === CONVOLUTION_SHARE_VERSION;
+	if (!isShared)
+		return { selection: defaults, seed: fallbackSeed, isShared: false };
 	const seed = parseSafeSeedParam(searchParams, {
 		fallbackGenerator: () => fallbackSeed,
 	}).value;
-	return { pair, seed };
+	return {
+		selection: {
+			x: parseSignal(searchParams, "x", defaults.x),
+			h: parseSignal(searchParams, "h", defaults.h),
+		},
+		seed,
+		isShared: true,
+	};
 }
 
-/** Serializes canonical shareable convolution filters. */
+function serializeSignal(
+	params: URLSearchParams,
+	prefix: "x" | "h",
+	selection: ConvolutionSignalSelection,
+): void {
+	params.set(`${prefix}Type`, selection.type);
+	params.set(`${prefix}Parameter`, selection.parameterMode);
+	params.set(`${prefix}Amplitude`, selection.amplitude);
+	params.set(`${prefix}Amplitude1`, selection.componentAmplitudes[0]);
+	params.set(`${prefix}Amplitude2`, selection.componentAmplitudes[1]);
+	params.set(`${prefix}Shift`, selection.shiftState);
+	params.set(`${prefix}ShiftValue`, selection.shiftValue);
+}
+
+/** Serializes one frozen, versioned, reproducible Share URL query. */
 export function serializeConvolutionFilters(
-	filters: ConvolutionFilterSelections,
+	filters: Omit<ConvolutionFilterSelections, "isShared">,
 ): URLSearchParams {
 	const params = new URLSearchParams();
-	params.set("pair", filters.pair);
+	params.set("share", "1");
+	params.set("v", CONVOLUTION_SHARE_VERSION);
 	params.set("seed", String(filters.seed >>> 0));
+	serializeSignal(params, "x", filters.selection.x);
+	serializeSignal(params, "h", filters.selection.h);
 	return params;
-}
-
-/** Resolves Random deterministically while preserving concrete selections. */
-export function resolveConvolutionPairSelection(
-	selection: ConvolutionPairSelection,
-	seed: number,
-): ConvolutionDrillPairType {
-	if (selection !== "random") return selection;
-	return randomChoice(createSeededPrng(seed), CONVOLUTION_DRILL_PAIR_TYPES);
 }
