@@ -459,7 +459,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.problem.itsData.step3.sectionsBySignal[this.flippedSignal];
 		for (const expected of expectedSections) {
 			const input = this.step3.edgeInputs[expected.id];
-			if (!input || !input.left.trim() || !input.right.trim()) {
+			if (!input?.left.trim() || !input?.right.trim()) {
 				this.setSubStepValidation(
 					this.step3,
 					id,
@@ -632,7 +632,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		}
 		this.clearSubStepFeedback(this.step5, id);
 		if (!hasOverlap) this.passActiveSubStep(this.step5, 6);
-		else state.stage = "bounds";
+		else state.stage = "evaluate";
 	}
 
 	/** Validates overlap existence, every bound, and every split point for Step 5. */
@@ -962,11 +962,40 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						this.chooseStep5Overlap(setup.hasOverlap);
 						continue;
 					}
-					state.boundInputs = setup.overlaps.map((overlap) => ({
-						lower: overlap.lowerLatex,
-						upper: overlap.upperLatex,
-						splits: [...overlap.splitPointsLatex],
-					}));
+					if (state.stage === "evaluate") {
+						state.boundInputs = setup.overlaps.map((overlap) => ({
+							lowerValues: [
+								String(overlap.lowerCandidateValues[0]),
+								String(overlap.lowerCandidateValues[1] ?? ""),
+							],
+							upperValues: [
+								String(overlap.upperCandidateValues[0]),
+								String(overlap.upperCandidateValues[1] ?? ""),
+							],
+							lower: overlap.lowerLatex,
+							upper: overlap.upperLatex,
+							splits: [...overlap.splitPointsLatex],
+						}));
+						this.checkStep5();
+						continue;
+					}
+					state.boundInputs = setup.overlaps.map(
+						(overlap, index) => ({
+							lowerValues: state.boundInputs[index]
+								?.lowerValues ?? [
+								String(overlap.lowerCandidateValues[0]),
+								String(overlap.lowerCandidateValues[1] ?? ""),
+							],
+							upperValues: state.boundInputs[index]
+								?.upperValues ?? [
+								String(overlap.upperCandidateValues[0]),
+								String(overlap.upperCandidateValues[1] ?? ""),
+							],
+							lower: overlap.lowerLatex,
+							upper: overlap.upperLatex,
+							splits: [...overlap.splitPointsLatex],
+						}),
+					);
 					this.checkStep5();
 				}
 				break;

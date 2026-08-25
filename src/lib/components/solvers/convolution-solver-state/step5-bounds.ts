@@ -8,7 +8,10 @@ import type {
 	ConvolutionBoundsStepState,
 	ConvolutionBoundsSubStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
-import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import {
+	convolutionExpressionsMatch,
+	convolutionScalarMatches,
+} from "$lib/components/solvers/convolution-solver-state/expression-validation";
 import type {
 	ConvolutionIntegralPathSetup,
 	ConvolutionProblem,
@@ -39,6 +42,8 @@ export function createBoundsState(
 						stage: "overlap" as const,
 						hasOverlap: null as boolean | null,
 						boundInputs: template.map((overlap) => ({
+							lowerValues: ["", ""],
+							upperValues: ["", ""],
 							lower: "",
 							upper: "",
 							splits: overlap.splitPointsLatex.map(() => ""),
@@ -87,6 +92,62 @@ export function validateBoundsStage(
 		if (!input)
 			return { kind: "blank", message: "Complete this overlap first." };
 
+		if (state.stage === "evaluate") {
+			const lower0 = input.lowerValues?.[0] ?? "";
+			const lower1 = input.lowerValues?.[1] ?? "";
+			const upper0 = input.upperValues?.[0] ?? "";
+			const upper1 = input.upperValues?.[1] ?? "";
+
+			if (
+				!lower0.trim() ||
+				!upper0.trim() ||
+				(expected.lowerCandidatesLatex[1] && !lower1.trim()) ||
+				(expected.upperCandidatesLatex[1] && !upper1.trim())
+			) {
+				return {
+					kind: "blank",
+					message:
+						"Evaluate all candidate boundary expressions at the test time.",
+				};
+			}
+
+			if (
+				!convolutionScalarMatches(
+					lower0,
+					expected.lowerCandidateValues[0],
+				) ||
+				(expected.lowerCandidatesLatex[1] &&
+					!convolutionScalarMatches(
+						lower1,
+						expected.lowerCandidateValues[1],
+					))
+			) {
+				return {
+					kind: "incorrect",
+					message:
+						"Recheck your evaluation of the lower limit candidates at the test time.",
+				};
+			}
+
+			if (
+				!convolutionScalarMatches(
+					upper0,
+					expected.upperCandidateValues[0],
+				) ||
+				(expected.upperCandidatesLatex[1] &&
+					!convolutionScalarMatches(
+						upper1,
+						expected.upperCandidateValues[1],
+					))
+			) {
+				return {
+					kind: "incorrect",
+					message:
+						"Recheck your evaluation of the upper limit candidates at the test time.",
+				};
+			}
+		}
+
 		if (state.stage === "bounds") {
 			if (!input.lower.trim() || !input.upper.trim())
 				return {
@@ -128,6 +189,10 @@ export function validateBoundsStage(
 						"Split wherever an active triangle apex, slope change, or piecewise formula change lies inside the bounds.",
 				};
 		}
+	}
+
+	if (state.stage === "evaluate") {
+		return { kind: "valid", nextStage: "bounds" };
 	}
 
 	if (

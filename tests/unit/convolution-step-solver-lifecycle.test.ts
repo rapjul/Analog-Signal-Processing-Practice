@@ -115,7 +115,32 @@ function completeTypedRemainder(
 			solver.chooseStep5Overlap(setup.hasOverlap);
 			continue;
 		}
+		if (state.stage === "evaluate") {
+			state.boundInputs = setup.overlaps.map((overlap) => ({
+				lowerValues: [
+					String(overlap.lowerCandidateValues[0]),
+					String(overlap.lowerCandidateValues[1] ?? ""),
+				],
+				upperValues: [
+					String(overlap.upperCandidateValues[0]),
+					String(overlap.upperCandidateValues[1] ?? ""),
+				],
+				lower: overlap.lowerLatex,
+				upper: overlap.upperLatex,
+				splits: [...overlap.splitPointsLatex],
+			}));
+			solver.checkStep5();
+			continue;
+		}
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: [
+				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[1] ?? ""),
+			],
+			upperValues: [
+				String(overlap.upperCandidateValues[0]),
+				String(overlap.upperCandidateValues[1] ?? ""),
+			],
 			lower: overlap.lowerLatex,
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],
@@ -602,9 +627,36 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const setup = interior.setupBySignal.h;
 		solver.chooseStep5Overlap(true);
 		expect(solver.step5.activeSubStepId).toBe(interior.id);
+		expect(state.stage).toBe("evaluate");
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("validation");
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: [
+				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[1] ?? ""),
+			],
+			upperValues: [
+				String(overlap.upperCandidateValues[0]),
+				String(overlap.upperCandidateValues[1] ?? ""),
+			],
+			lower: "",
+			upper: "",
+			splits: overlap.splitPointsLatex.map(() => ""),
+		}));
+		solver.checkStep5();
+		expect(state.stage).toBe("bounds");
+		expect(solver.currentFeedbackType).toBeNull();
+		solver.checkStep5();
+		expect(solver.currentFeedbackType).toBe("validation");
+		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: [
+				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[1] ?? ""),
+			],
+			upperValues: [
+				String(overlap.upperCandidateValues[0]),
+				String(overlap.upperCandidateValues[1] ?? ""),
+			],
 			lower: "99",
 			upper: overlap.upperLatex,
 			splits: [...overlap.splitPointsLatex],

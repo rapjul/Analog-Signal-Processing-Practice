@@ -128,6 +128,8 @@
 					time={activeSetup.representativeTime}
 					revealOverlap={activeState.hasOverlap ===
 						activeSetup.hasOverlap}
+					fixedSignal={solver.flippedSignal === "h" ? "x" : "h"}
+					movingSignal={solver.flippedSignal}
 				/>
 				<div class="binary-grid">
 					<button
@@ -162,14 +164,119 @@
 									<h5>
 										Connected overlap {overlapIndex + 1}
 									</h5>
-									<p class="comparison-prompt">
-										<MathText
-											text={activeState.stage === "bounds"
-												? "Use the interval comparisons to enter the symbolic lower limit L(t) and upper limit U(t)."
-												: "Enter each interior point where an active signal formula changes."}
-										/>
-									</p>
-									{#if activeState.stage === "bounds"}
+									{#if activeState.stage === "evaluate"}
+										<p class="comparison-prompt">
+											<MathText
+												text={`Evaluate each candidate boundary expression at test time $t = ${overlap.representativeTime}$ to see which candidate determines the integration limit.`}
+											/>
+										</p>
+										<div class="evaluate-candidates-block">
+											<h6>
+												<MathText
+													text={String.raw`Lower limit candidates: $L(t)=\max\left(${overlap.lowerCandidatesLatex.join(",")}\right)$`}
+												/>
+											</h6>
+											<div class="bound-input-grid">
+												<label>
+													<span>
+														<MathText
+															text={`Evaluate $${overlap.lowerCandidatesLatex[0]}$ at $t = ${overlap.representativeTime}$`}
+														/>
+													</span>
+													<input
+														type="text"
+														bind:value={
+															activeState
+																.boundInputs[
+																overlapIndex
+															].lowerValues[0]
+														}
+														placeholder="e.g. 0"
+													/>
+												</label>
+												{#if overlap.lowerCandidatesLatex[1]}
+													<label>
+														<span>
+															<MathText
+																text={`Evaluate $${overlap.lowerCandidatesLatex[1]}$ at $t = ${overlap.representativeTime}$`}
+															/>
+														</span>
+														<input
+															type="text"
+															bind:value={
+																activeState
+																	.boundInputs[
+																	overlapIndex
+																].lowerValues[1]
+															}
+															placeholder="e.g. -1"
+														/>
+													</label>
+												{/if}
+											</div>
+
+											<h6>
+												<MathText
+													text={String.raw`Upper limit candidates: $U(t)=\min\left(${overlap.upperCandidatesLatex.join(",")}\right)$`}
+												/>
+											</h6>
+											<div class="bound-input-grid">
+												<label>
+													<span>
+														<MathText
+															text={`Evaluate $${overlap.upperCandidatesLatex[0]}$ at $t = ${overlap.representativeTime}$`}
+														/>
+													</span>
+													<input
+														type="text"
+														bind:value={
+															activeState
+																.boundInputs[
+																overlapIndex
+															].upperValues[0]
+														}
+														placeholder="e.g. 2"
+													/>
+												</label>
+												{#if overlap.upperCandidatesLatex[1]}
+													<label>
+														<span>
+															<MathText
+																text={`Evaluate $${overlap.upperCandidatesLatex[1]}$ at $t = ${overlap.representativeTime}$`}
+															/>
+														</span>
+														<input
+															type="text"
+															bind:value={
+																activeState
+																	.boundInputs[
+																	overlapIndex
+																].upperValues[1]
+															}
+															placeholder="e.g. 1"
+														/>
+													</label>
+												{/if}
+											</div>
+										</div>
+									{:else if activeState.stage === "bounds"}
+										<div class="evaluated-summary-recap">
+											<p>
+												<MathText
+													text={String.raw`At $t=${overlap.representativeTime}$, lower candidates evaluate to $${overlap.lowerCandidatesLatex[0]}=${overlap.lowerCandidateValues[0]}$ and $${overlap.lowerCandidatesLatex[1] ?? ""}=${overlap.lowerCandidateValues[1] ?? ""}$. Since $\max$ picks the larger value, $L(t)=${overlap.lowerLatex}$.`}
+												/>
+											</p>
+											<p>
+												<MathText
+													text={String.raw`At $t=${overlap.representativeTime}$, upper candidates evaluate to $${overlap.upperCandidatesLatex[0]}=${overlap.upperCandidateValues[0]}$ and $${overlap.upperCandidatesLatex[1] ?? ""}=${overlap.upperCandidateValues[1] ?? ""}$. Since $\min$ picks the smaller value, $U(t)=${overlap.upperLatex}$.`}
+												/>
+											</p>
+										</div>
+										<p class="comparison-prompt">
+											<MathText
+												text="Enter the symbolic lower limit L(t) and upper limit U(t)."
+											/>
+										</p>
 										<MathBlock
 											math={String.raw`L(t)=\max\left(${overlap.lowerCandidatesLatex.join(",")}\right),\qquad U(t)=\min\left(${overlap.upperCandidatesLatex.join(",")}\right)`}
 											compact={true}
@@ -206,30 +313,12 @@
 												/>
 											</label>
 										</div>
-										<details class="candidate-assist">
-											<summary>
-												Need help comparing candidates?
-												Check at test time
-												<MathText
-													text={`$t=${overlap.representativeTime}$`}
-												/>
-											</summary>
-											<div
-												class="candidate-assist-content"
-											>
-												<p>
-													<MathText
-														text={String.raw`At $t=${overlap.representativeTime}$, the left candidates evaluate to $${overlap.lowerCandidatesLatex[0]}=${overlap.lowerCandidateValues[0]}$ and $${overlap.lowerCandidatesLatex[1] ?? ""}=${overlap.lowerCandidateValues[1] ?? ""}$. The larger value gives $L(t)$.`}
-													/>
-												</p>
-												<p>
-													<MathText
-														text={String.raw`At $t=${overlap.representativeTime}$, the right candidates evaluate to $${overlap.upperCandidatesLatex[0]}=${overlap.upperCandidateValues[0]}$ and $${overlap.upperCandidatesLatex[1] ?? ""}=${overlap.upperCandidateValues[1] ?? ""}$. The smaller value gives $U(t)$.`}
-													/>
-												</p>
-											</div>
-										</details>
 									{:else if activeState.stage === "splits"}
+										<p class="comparison-prompt">
+											<MathText
+												text="Enter each interior point where an active signal formula changes."
+											/>
+										</p>
 										<div class="split-grid">
 											{#each overlap.splitPointsLatex as _, splitIndex}
 												<label>
@@ -258,9 +347,11 @@
 							type="submit"
 							class="check-button"
 						>
-							{activeState.stage === "bounds"
-								? "Check symbolic bounds"
-								: "Check split points"}
+							{activeState.stage === "evaluate"
+								? "Check candidate evaluations"
+								: activeState.stage === "bounds"
+									? "Check symbolic bounds"
+									: "Check split points"}
 						</button>
 					</form>
 				{/if}
@@ -377,30 +468,29 @@
 		margin: 0;
 		color: var(--accent-primary);
 	}
-	.candidate-assist {
-		padding: 0.5rem 0.65rem;
-		border: 1px dashed var(--border-color);
-		border-radius: var(--radius-sm);
-		background: var(--bg-card);
+	.evaluate-candidates-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.evaluate-candidates-block h6 {
+		margin: 0.35rem 0 0;
 		font-size: var(--text-xs);
+		color: var(--text-secondary);
+		font-weight: 700;
 	}
-	.candidate-assist summary {
-		cursor: pointer;
-		color: var(--accent-primary);
-		font-weight: 600;
-	}
-	.candidate-assist summary:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
-	}
-	.candidate-assist-content {
+	.evaluated-summary-recap {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
-		margin-top: 0.45rem;
+		padding: 0.65rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-card);
+		border-left: 3px solid var(--accent-primary);
+		font-size: var(--text-xs);
 		color: var(--text-secondary);
 	}
-	.candidate-assist-content p {
+	.evaluated-summary-recap p {
 		margin: 0;
 		line-height: var(--leading-relaxed);
 	}

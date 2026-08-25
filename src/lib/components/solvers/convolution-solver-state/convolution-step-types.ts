@@ -61,10 +61,10 @@ export interface ConvolutionTransitionStepState extends MultiPartStepState<strin
 
 /** Typed bound values for one connected overlap. */
 export interface ConvolutionBoundInput {
-	/** Optional student evaluations of both lower candidates at the representative time. */
-	lowerValues?: [string, string];
-	/** Optional student evaluations of both upper candidates at the representative time. */
-	upperValues?: [string, string];
+	/** Student evaluations of both lower candidates at the representative time. */
+	lowerValues: [string, string];
+	/** Student evaluations of both upper candidates at the representative time. */
+	upperValues: [string, string];
 	/** Student-entered lower integration limit. */
 	lower: string;
 	/** Student-entered upper integration limit. */
@@ -76,7 +76,7 @@ export interface ConvolutionBoundInput {
 /** State for one Step 5 interval setup. */
 export interface ConvolutionBoundsSubStepState extends BaseSubStepState {
 	/** Active guided task within the current interval. */
-	stage: "overlap" | "bounds" | "splits";
+	stage: "overlap" | "evaluate" | "bounds" | "splits";
 	/** Whether the learner believes overlap exists. */
 	hasOverlap: boolean | null;
 	/** One typed bound group per connected overlap. */

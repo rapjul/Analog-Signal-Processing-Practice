@@ -11,9 +11,19 @@
 		time: number;
 		/** Whether verified overlap ranges may be revealed. */
 		revealOverlap?: boolean;
+		/** Fixed signal function name (e.g. "x" or "h"). */
+		fixedSignal?: string;
+		/** Moving signal function name (e.g. "h" or "x"). */
+		movingSignal?: string;
 	}
 
-	let { comparisons, time, revealOverlap = false }: Props = $props();
+	let {
+		comparisons,
+		time,
+		revealOverlap = false,
+		fixedSignal = "x",
+		movingSignal = "h",
+	}: Props = $props();
 
 	/** Maps finite and infinite endpoints into the shared visible axis. */
 	function positions(comparison: ConvolutionIntervalComparison): {
@@ -55,7 +65,7 @@
 
 	/** Builds a screen-reader description without relying on plot colors. */
 	function description(comparison: ConvolutionIntervalComparison): string {
-		return `At output time ${time}, compare the fixed interval from ${comparison.fixedValues[0]} to ${comparison.fixedValues[1]} with the transformed interval from ${comparison.transformedValues[0]} to ${comparison.transformedValues[1]}. ${revealOverlap ? (comparison.hasOverlap ? "Their shared range is highlighted." : "They have no shared range.") : "Decide whether they share any values."}`;
+		return `At output time ${time}, compare the fixed ${fixedSignal} interval from ${comparison.fixedValues[0]} to ${comparison.fixedValues[1]} with the transformed ${movingSignal} interval from ${comparison.transformedValues[0]} to ${comparison.transformedValues[1]}. ${revealOverlap ? (comparison.hasOverlap ? "Their shared range is highlighted." : "They have no shared range.") : "Decide whether they share any values."}`;
 	}
 </script>
 
@@ -64,12 +74,19 @@
 		{@const range = positions(comparison)}
 		<figure aria-label={description(comparison)}>
 			<figcaption>
-				<MathText
-					text={`Section pair ${index + 1} at $t=${time}$: fixed $${comparison.fixedIntervalLatex}$; transformed $${comparison.transformedIntervalLatex}$.`}
-				/>
+				<div class="caption-header">
+					<MathText
+						text={`Section pair ${index + 1}: fixed $${comparison.fixedIntervalLatex}$; transformed $${comparison.transformedIntervalLatex}$.`}
+					/>
+					<span class="time-badge">
+						<MathText text={`Snapshot at $t = ${time}$`} />
+					</span>
+				</div>
 			</figcaption>
 			<div class="axis-row fixed-row">
-				<span class="row-label">Fixed</span>
+				<span class="row-label">
+					<MathText text={`Fixed $${fixedSignal}(\\tau)$`} />
+				</span>
 				<span
 					class="axis"
 					aria-hidden="true"
@@ -81,7 +98,9 @@
 				</span>
 			</div>
 			<div class="axis-row moving-row">
-				<span class="row-label">Transformed</span>
+				<span class="row-label">
+					<MathText text={`Moving $${movingSignal}(t-\\tau)$`} />
+				</span>
 				<span
 					class="axis"
 					aria-hidden="true"
@@ -113,6 +132,7 @@
 </div>
 
 <style>
+	/* ── Comparison figure and axis styling ────────────────── */
 	.comparison-list {
 		display: grid;
 		gap: 0.75rem;
@@ -130,9 +150,27 @@
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 	}
+	.caption-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+	.time-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.15rem 0.5rem;
+		border-radius: var(--radius-pill);
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		font-size: var(--text-xs);
+		color: var(--accent-primary);
+		font-weight: 600;
+	}
 	.axis-row {
 		display: grid;
-		grid-template-columns: minmax(5.5rem, auto) minmax(5rem, 1fr);
+		grid-template-columns: minmax(7.5rem, auto) minmax(5rem, 1fr);
 		gap: 0.65rem;
 		align-items: center;
 	}
@@ -159,7 +197,9 @@
 	.overlap-row .range {
 		background: var(--color-success);
 	}
-	@media (max-width: 420px) {
+
+	/* ── Mobile media query (≤480px) ───────────────────────── */
+	@media (max-width: 480px) {
 		.axis-row {
 			grid-template-columns: 1fr;
 		}
