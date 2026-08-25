@@ -203,6 +203,13 @@
 					}}
 				>
 					{#if activeTerm && activeTermInput && activeState.stage !== "combined"}
+						{#if activeState.stage === "geometry-amplitude"}
+							<p class="geometry-note">
+								<MathText
+									text={String.raw`Both active pieces are constant (flat rectangles), so the integral reduces to finding the area of a rectangle: $(\text{amplitude product}) \times (\text{overlap width})$.`}
+								/>
+							</p>
+						{/if}
 						<label class="expression-entry">
 							<span>
 								<MathText
@@ -248,6 +255,33 @@
 							{/if}
 						</label>
 					{:else}
+						{#if evaluationTerms.length > 0}
+							<div class="terms-recap">
+								{#each evaluationTerms as term, termIdx}
+									{@const termInput =
+										activeState.termInputs[termIdx]}
+									<div class="term-recap-item">
+										<span class="term-recap-label">
+											Term {termIdx + 1} contribution:
+										</span>
+										<MathBlock
+											math={term.geometry
+												? String.raw`(${termInput?.amplitudeProduct || term.geometry.amplitudeProductLatex}) \cdot (${termInput?.overlapWidth || term.geometry.overlapWidthLatex}) = ${term.differenceLatex}`
+												: term.differenceLatex}
+											compact={true}
+											hideHeader={true}
+											responsive={true}
+										/>
+									</div>
+								{/each}
+								{#if evaluationTerms.length > 1}
+									<p class="recap-prompt">
+										Enter the simplified sum of all term
+										contributions.
+									</p>
+								{/if}
+							</div>
+						{/if}
 						<label class="expression-entry">
 							<span>
 								<MathText
@@ -308,6 +342,41 @@
 	.step-prompt {
 		margin: 0;
 		color: var(--text-primary);
+	}
+	.geometry-note {
+		margin: 0;
+		padding: 0.65rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		border-left: 3px solid var(--accent-primary);
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+	.terms-recap {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.65rem;
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		border-left: 3px solid var(--accent-primary);
+	}
+	.term-recap-item {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		font-size: var(--text-sm);
+	}
+	.term-recap-label {
+		color: var(--text-secondary);
+		font-weight: 600;
+	}
+	.recap-prompt {
+		margin: 0.25rem 0 0;
+		color: var(--text-primary);
+		font-size: var(--text-sm);
+		font-weight: 600;
 	}
 	.expression-entry {
 		display: flex;

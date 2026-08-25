@@ -42,9 +42,9 @@
 >
 	<div class="step-body">
 		<p>
-			Assemble the expression that belongs in each verified Step 4
-			interval. Exterior no-overlap rows are already locked. Open the
-			reference only when you need to review Step 6.
+			<MathText
+				text={String.raw`Copy each verified Step 6 expression for $y(t)$ into its matching interval row below. Exterior no-overlap rows are pre-filled and locked.`}
+			/>
 		</p>
 		<details class="verified-reference">
 			<summary>Show verified Step 6 expressions</summary>

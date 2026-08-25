@@ -38,7 +38,7 @@
 	/** Last problem identifier used to synchronize state resets. */
 	let lastProblemId = "";
 	let lastVerifiedMovingSignal = "";
-	let solverElement: HTMLDivElement;
+	let solverElement: HTMLDivElement | undefined = $state();
 	let lastProgressKey = "";
 	$effect(() => {
 		if (problem.id !== lastProblemId) {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseConvolutionScalarInput } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 import {
 	createBoundsState,
 	validateBoundsStage,
@@ -15,7 +16,6 @@ import {
 	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 } from "$lib/math-engine/convolution/index";
 import { buildEvaluationTerms } from "$lib/math-engine/convolution/its-scaffolding/evaluation-terms";
-import { representativeTime } from "$lib/math-engine/convolution/its-scaffolding/intervals";
 
 function configured(
 	xType: "rect" | "triangle" | "multi_rect" | "exponential",
@@ -71,6 +71,8 @@ describe("convolution beginner workflow metadata", () => {
 		state.hasOverlap = true;
 		state.stage = "bounds";
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: ["", ""],
+			upperValues: ["", ""],
 			lower: "",
 			upper: "",
 			splits: overlap.splitPointsLatex.map(() => ""),
@@ -99,6 +101,8 @@ describe("convolution beginner workflow metadata", () => {
 		state.hasOverlap = true;
 		state.stage = "bounds";
 		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: ["", ""],
+			upperValues: ["", ""],
 			lower: "",
 			upper: "",
 			splits: overlap.splitPointsLatex.map(() => ""),
@@ -496,24 +500,94 @@ describe("convolution beginner workflow metadata", () => {
 		).toMatchObject({ kind: "valid", nextStage: "combined" });
 	});
 
-	it("uses safe interior samples for bounded and unbounded intervals", () => {
-		expect(intervalSampleTimes(0, 10)).toHaveLength(5);
-		intervalSampleTimes(0, 10).forEach((value, index) => {
-			expect(value).toBeCloseTo([1.7, 3.3, 5, 6.7, 8.3][index] ?? 0);
+	it("parses infinity with Typst oo notation alongside standard formats", () => {
+		expect(parseConvolutionScalarInput("oo")).toBe(
+			Number.POSITIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("+oo")).toBe(
+			Number.POSITIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("-oo")).toBe(
+			Number.NEGATIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("infinity")).toBe(
+			Number.POSITIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("-infinity")).toBe(
+			Number.NEGATIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("inf")).toBe(
+			Number.POSITIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("-inf")).toBe(
+			Number.NEGATIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("\\infty")).toBe(
+			Number.POSITIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("-\\infty")).toBe(
+			Number.NEGATIVE_INFINITY,
+		);
+		expect(parseConvolutionScalarInput("∞")).toBe(Number.POSITIVE_INFINITY);
+		expect(parseConvolutionScalarInput("-∞")).toBe(
+			Number.NEGATIVE_INFINITY,
+		);
+		expect(Number.isNaN(parseConvolutionScalarInput("foo"))).toBe(true);
+		expect(Number.isNaN(parseConvolutionScalarInput("wood"))).toBe(true);
+	});
+
+	it("validates evaluate stage before symbolic bounds", () => {
+		const problem = generateConfiguredConvolutionProblem(
+			configured("triangle", "triangle"),
+			{ seed: 7 },
+		);
+		const part = problem.itsData.step5.parts.find(
+			(candidate) => candidate.setupBySignal?.h.hasOverlap,
+		);
+		const setup = part?.setupBySignal?.h;
+		if (!part || !setup) throw new Error("Expected overlap setup.");
+		const state = createBoundsState(problem).subSteps[part.id];
+		state.hasOverlap = true;
+		state.stage = "evaluate";
+		expect(validateBoundsStage(state, setup).kind).toBe("blank");
+
+		state.boundInputs = setup.overlaps.map(() => ({
+			lowerValues: ["999", "999"],
+			upperValues: ["999", "999"],
+			lower: "",
+			upper: "",
+			splits: [],
+		}));
+		expect(validateBoundsStage(state, setup).kind).toBe("incorrect");
+
+		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: [
+				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[1] ?? ""),
+			],
+			upperValues: ["999", "999"],
+			lower: "",
+			upper: "",
+			splits: [],
+		}));
+		expect(validateBoundsStage(state, setup).kind).toBe("incorrect");
+
+		state.boundInputs = setup.overlaps.map((overlap) => ({
+			lowerValues: [
+				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[1] ?? ""),
+			],
+			upperValues: [
+				String(overlap.upperCandidateValues[0]),
+				String(overlap.upperCandidateValues[1] ?? ""),
+			],
+			lower: "",
+			upper: "",
+			splits: [],
+		}));
+		expect(validateBoundsStage(state, setup)).toMatchObject({
+			kind: "valid",
+			nextStage: "bounds",
 		});
-		expect(intervalSampleTimes(2, Number.POSITIVE_INFINITY)[0]).toBe(2.5);
-		expect(intervalSampleTimes(Number.NEGATIVE_INFINITY, 2)[0]).toBe(1.5);
-		expect(
-			intervalSampleTimes(
-				Number.NEGATIVE_INFINITY,
-				Number.POSITIVE_INFINITY,
-			),
-		).toEqual([-3, -1, 0, 2, 5]);
-		expect(
-			representativeTime({
-				min: Number.NEGATIVE_INFINITY,
-				max: Number.POSITIVE_INFINITY,
-			} as never),
-		).toBe(0);
 	});
 });

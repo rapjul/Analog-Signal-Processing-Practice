@@ -9,7 +9,7 @@ export function parseConvolutionScalarInput(input: string): number {
 		.trim()
 		.toLowerCase()
 		.replace(/\s+/g, "")
-		.replace(/\\infty|∞/g, "infinity");
+		.replace(/\\infty|∞|(?<![a-z])oo(?![a-z])/g, "infinity");
 	if (["infinity", "+infinity", "inf", "+inf"].includes(normalized))
 		return Number.POSITIVE_INFINITY;
 	if (["-infinity", "-inf"].includes(normalized))

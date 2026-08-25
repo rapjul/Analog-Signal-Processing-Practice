@@ -44,6 +44,14 @@
 		contacts.find(({ id }) => activeId.startsWith(id)),
 	);
 	const fixedSignal = $derived(solver.flippedSignal === "h" ? "x" : "h");
+	const fixedPart = $derived(
+		problem.itsData.step1.parts.find(({ id }) => id === fixedSignal),
+	);
+	const movingPart = $derived(
+		problem.itsData.step1.parts.find(
+			({ id }) => id === solver.flippedSignal,
+		),
+	);
 	const completedTransitions = $derived(
 		problem.itsData.step4.transitionGroups
 			.map(({ time }) => `t=${time}`)
@@ -98,6 +106,34 @@
 	summarySnippet={completedSummary}
 >
 	<div class="step-body">
+		<details
+			class="why-transitions"
+			open
+		>
+			<summary>Why do we need transition times?</summary>
+			<div class="why-content">
+				{#if fixedPart && movingPart}
+					<p>
+						<MathText
+							text={`In Step 1, you found that the fixed signal $${fixedSignal}(\\tau)$ is non-zero on $[${fixedPart.start}, ${fixedPart.end}]$, and the moving signal $${solver.flippedSignal}(t)$ is non-zero on $[${movingPart.start}, ${movingPart.end}]$.`}
+						/>
+					</p>
+				{/if}
+				<p>
+					As the reflected moving signal slides across the fixed
+					signal, the overlap region and integration bounds change
+					whenever a breakpoint (start edge, end edge, or slope
+					change) of one signal passes a breakpoint of the other.
+				</p>
+				<p>
+					These critical moments are your <strong
+						>transition times</strong
+					>. They divide the time axis into distinct intervals where
+					each interval has a single, consistent integration formula.
+				</p>
+			</div>
+		</details>
+
 		<p class="definition">
 			<strong>Breakpoint:</strong> a start edge, end edge, interior slope change,
 			or piecewise formula change.
@@ -203,7 +239,7 @@
 				</div>
 				<p class="context-note">
 					<MathText
-						text={String.raw`Reflect and translate the moving breakpoint to obtain its position in $\tau$.`}
+						text={String.raw`Apply the reflection rule: the original moving breakpoint $b$ appears at $\tau = t - b$ after reflection and translation.`}
 					/>
 				</p>
 			{:else if activeContact}
@@ -351,6 +387,33 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		min-width: 0;
+	}
+	.why-transitions {
+		padding: 0.65rem 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+	}
+	.why-transitions summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: var(--accent-primary);
+	}
+	.why-transitions summary:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+	.why-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		line-height: var(--leading-relaxed);
+	}
+	.why-content p {
+		margin: 0;
 	}
 	.summary-grid,
 	.contact-context,
