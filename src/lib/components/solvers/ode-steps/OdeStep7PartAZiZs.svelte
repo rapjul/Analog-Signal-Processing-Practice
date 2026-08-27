@@ -48,11 +48,22 @@
 		</div>
 	{/snippet}
 
+	<div class="zi-concept-callout">
+		<span class="callout-badge">
+			<MathText text={"💡 Why solve again for $y_{ZI}(t)$?"} />
+		</span>
+		<p class="callout-text">
+			<MathText
+				text={"The Zero-Input response represents the system's natural release of stored energy when no external forcing is applied ($x(t) = 0$). Because $x(t) = 0 \\implies y_p(t) = 0$, the initial condition targets match the full initial energy directly: $y_{ZI}(0) = y(0)$."}
+			/>
+		</p>
+	</div>
+
 	<p class="step-prompt">
 		<MathText
 			text={problem.params.order === 1
-				? String.raw`For $y_{ZI}(t) = C_{1,ZI} e^{rt}$ with $x(t)=0$, match the initial condition $y(0^-) = ${problem.initialConditions.y0}$ to find $C_{1,ZI}$:`
-				: String.raw`Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching the original initial conditions $y(0^-) = ${problem.initialConditions.y0}, \quad y'(0^-) = ${problem.initialConditions.dy0}$:`}
+				? String.raw`Because there are no impulse inputs at $t=0$, initial energy states are continuous ($y(0) = y(0^-) = y(0^+) = ${problem.initialConditions.y0}$). For $y_{ZI}(t) = C_{1,ZI} e^{rt}$ with $x(t)=0$, solve for $C_{1,ZI}$ matching the initial condition $y_{ZI}(0) = ${problem.initialConditions.y0}$:`
+				: String.raw`Because there are no impulse inputs at $t=0$, initial energy states are continuous ($y(0) = y(0^-) = y(0^+) = ${problem.initialConditions.y0}, \quad y'(0) = y'(0^-) = y'(0^+) = ${problem.initialConditions.dy0}$). Find the Zero-Input response $y_{ZI}(t)$ by setting forcing $x(t) = 0$ and solving for constants matching these initial conditions:`}
 		/>
 	</p>
 
@@ -145,6 +156,37 @@
 </SubStepBlock>
 
 <style>
+	/* ── Zero-input conceptual callout ───────────────────── */
+
+	.zi-concept-callout {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 0.75rem 0.9rem;
+		background: var(--accent-bg-subtle, rgba(6, 182, 212, 0.06));
+		border: 1px solid var(--accent-bg, rgba(6, 182, 212, 0.25));
+		border-left: 3px solid var(--accent-primary);
+		border-radius: var(--radius-sm, 6px);
+		box-sizing: border-box;
+		width: 100%;
+	}
+
+	.callout-badge {
+		font-size: var(--text-xs);
+		font-weight: 700;
+		color: var(--accent-primary);
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.callout-text {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		margin: 0;
+		line-height: var(--leading-normal, 1.5);
+	}
+
 	/* ── Step prompt & verified items ──────────────────────── */
 
 	.step-prompt {
