@@ -297,14 +297,15 @@ export function validateQuadRoots(
 
 			const expSig = s2Data.r1;
 			const expOm = s2Data.im ?? 0;
+			const isOmMatch = approximatelyEqual(
+				Math.abs(vOm),
+				Math.abs(expOm),
+			);
 
-			if (
-				approximatelyEqual(vSig, expSig) &&
-				approximatelyEqual(vOm, expOm)
-			) {
+			if (approximatelyEqual(vSig, expSig) && isOmMatch) {
 				return { kind: "pass" };
 			}
-			if (approximatelyEqual(vSig, -expSig)) {
+			if (approximatelyEqual(vSig, -expSig) && isOmMatch) {
 				return {
 					kind: "misconception",
 					message:

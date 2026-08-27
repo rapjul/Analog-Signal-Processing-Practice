@@ -193,12 +193,13 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 			expect(solver.step2.quadDiscriminantVerified).toBe(true);
 			expect(solver.step2.activeSubStepId).toBe("quad_root_inputs");
 
-			// Complex conjugate roots input validation
+			// Complex conjugate roots input validation: accepts negative or positive omegaD
 			const sigma = problem.params.roots.r1;
 			const omegaD = problem.params.roots.im ?? 1;
 
+			// Entering signed negative omegaD should pass
 			solver.step2.sigma = String(sigma);
-			solver.step2.omegaD = String(omegaD);
+			solver.step2.omegaD = String(-Math.abs(omegaD));
 			solver.checkStep2QuadRoots();
 			expect(solver.currentStep).toBe(3);
 		});
@@ -363,8 +364,19 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 				"Please enter numeric values for both coefficients",
 			);
 
-			solver.step5.a = String(problem.itsData.step5.expectedA ?? 0);
-			solver.step5.b = String(problem.itsData.step5.expectedB ?? 0);
+			// Swapped A and B test
+			const expA = problem.itsData.step5.expectedA ?? 0;
+			const expB = problem.itsData.step5.expectedB ?? 0;
+			if (expA !== expB) {
+				solver.step5.a = String(expB);
+				solver.step5.b = String(expA);
+				solver.checkStep5Coeffs();
+				expect(solver.currentStep).toBe(5);
+				expect(solver.currentFeedback).toContain("Swapped Coefficients");
+			}
+
+			solver.step5.a = String(expA);
+			solver.step5.b = String(expB);
 			solver.checkStep5Coeffs();
 			expect(solver.currentStep).toBe(6);
 		});

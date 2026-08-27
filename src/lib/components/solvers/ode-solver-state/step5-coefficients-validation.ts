@@ -43,6 +43,14 @@ export function validateStep5Coefficients(
 			return { kind: "pass" };
 		}
 
+		if (approximatelyEqual(vA, expB) && approximatelyEqual(vB, expA)) {
+			return {
+				kind: "misconception",
+				message:
+					"Swapped Coefficients: You inverted $A$ and $B$. Remember that $A$ is the coefficient for $\\cos(\\omega t)$ and $B$ is the coefficient for $\\sin(\\omega t)$.",
+			};
+		}
+
 		return {
 			kind: "incorrect",
 			message:
