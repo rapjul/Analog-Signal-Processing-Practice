@@ -7,6 +7,7 @@
 
 import { formatRootFactor } from "../../formatting";
 import { toFractionLatex } from "../../fraction";
+import { approximatelyEqual } from "../../numeric";
 import type {
 	FirstOrderOdeItsStep2,
 	OdeItsStep2,
@@ -14,6 +15,55 @@ import type {
 	SecondOrderOdeItsStep2,
 	SecondOrderRootType,
 } from "../types";
+
+/**
+ * Root pair match status classification.
+ */
+export type RootPairMatchStatus =
+	| "exact"
+	| "swapped"
+	| "both_inverted"
+	| "one_inverted"
+	| "incorrect";
+
+/**
+ * Matches student-entered root values against expected roots, checking order invariance and sign mistakes.
+ *
+ * @param {number} v1 - First entered root value.
+ * @param {number} v2 - Second entered root value.
+ * @param {number} r1 - Expected first root.
+ * @param {number} r2 - Expected second root.
+ * @returns {RootPairMatchStatus} Classification of match quality or specific sign misconception.
+ */
+export function matchRootPair(
+	v1: number,
+	v2: number,
+	r1: number,
+	r2: number,
+): RootPairMatchStatus {
+	const matchDirect = approximatelyEqual(v1, r1) && approximatelyEqual(v2, r2);
+	const matchSwapped = approximatelyEqual(v1, r2) && approximatelyEqual(v2, r1);
+	if (matchDirect) return "exact";
+	if (matchSwapped) return "swapped";
+
+	const bothInverted =
+		(approximatelyEqual(v1, -r1) && approximatelyEqual(v2, -r2)) ||
+		(approximatelyEqual(v1, -r2) && approximatelyEqual(v2, -r1));
+	if (bothInverted && (Math.abs(r1) > 0.01 || Math.abs(r2) > 0.01)) {
+		return "both_inverted";
+	}
+
+	const oneInverted =
+		(approximatelyEqual(v1, -r1) && approximatelyEqual(v2, r2)) ||
+		(approximatelyEqual(v1, r1) && approximatelyEqual(v2, -r2)) ||
+		(approximatelyEqual(v1, -r2) && approximatelyEqual(v2, r1)) ||
+		(approximatelyEqual(v1, r2) && approximatelyEqual(v2, -r1));
+	if (oneInverted && (Math.abs(r1) > 0.01 || Math.abs(r2) > 0.01)) {
+		return "one_inverted";
+	}
+
+	return "incorrect";
+}
 
 /**
  * Parameters required to build Step 2 ITS data.

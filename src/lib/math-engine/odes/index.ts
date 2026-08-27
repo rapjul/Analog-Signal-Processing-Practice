@@ -5,6 +5,7 @@
  * and ITS data structures.
  */
 
+export * from "./formatting";
 export * from "./generator";
 export * from "./its-scaffolding";
 export * from "./solver";
