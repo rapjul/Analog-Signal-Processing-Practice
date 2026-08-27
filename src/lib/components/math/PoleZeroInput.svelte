@@ -6,6 +6,7 @@
 	 * and partial fraction decomposition expressions.
 	 */
 
+	import { formatRootFactor } from "$lib/math-engine/formatting";
 	import MathInline from "./MathInline.svelte";
 
 	export type BuilderSubMode = "rational" | "partial_fractions";
@@ -78,10 +79,12 @@
 	function formatFactor(pStr: string): string {
 		const val = pStr.trim();
 		if (!val || val === "0") return "s";
-
+		const num = parseFloat(val);
+		if (!Number.isNaN(num) && String(num) === val) {
+			return formatRootFactor(num, "s");
+		}
 		if (val.startsWith("-")) {
-			const positive = val.substring(1).trim();
-			return `(s + ${positive})`;
+			return `(s + ${val.substring(1).trim()})`;
 		}
 		return `(s - ${val})`;
 	}

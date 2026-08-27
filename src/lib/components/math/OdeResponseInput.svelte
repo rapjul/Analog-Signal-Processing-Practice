@@ -6,6 +6,7 @@
 	 * Allows users to choose the damping mode template and input numerical/symbolic coefficients.
 	 */
 
+	import { formatSignedLinearTerm } from "$lib/math-engine/formatting";
 	import MathText from "./MathText.svelte";
 
 	export type ResponseMode =

@@ -8,6 +8,7 @@
 	 * without requiring manual LaTeX coding. Includes live LaTeX preview cards.
 	 */
 
+	import FourierCoefficientCard from "./FourierCoefficientCard.svelte";
 	import MathInline from "./MathInline.svelte";
 	import MathText from "./MathText.svelte";
 
@@ -99,28 +100,40 @@
 		if (inputMode === "zero") return "0";
 		if (inputMode === "direct") return directVal.trim() || "0";
 
-		// Structured Fraction mode
 		const cleanNum = formatMathLatex(num) || "1";
 		const cleanDen = formatMathLatex(den) || "1";
 
-		const frac =
-			cleanDen === "1" ? cleanNum : `\\frac{${cleanNum}}{${cleanDen}}`;
-
-		let multiplier = "";
-		if (harmonic === "odd") {
-			multiplier = "(1 - (-1)^n)";
-		} else if (harmonic === "even") {
-			multiplier = "(1 + (-1)^n)";
-		} else if (harmonic === "alt") {
-			multiplier = "(-1)^n";
-		} else if (harmonic === "custom" && customHarmonic.trim()) {
-			multiplier = formatMathLatex(customHarmonic);
+		let fractionPart = "";
+		if (cleanDen === "1") {
+			fractionPart = cleanNum;
+		} else {
+			fractionPart = `\\frac{${cleanNum}}{${cleanDen}}`;
 		}
 
-		if (multiplier) {
-			return `${frac} ${multiplier}`;
+		let multiplierPart = "";
+		switch (harmonic) {
+			case "odd":
+				multiplierPart = "(1 - (-1)^n)";
+				break;
+			case "even":
+				multiplierPart = "(1 + (-1)^n)";
+				break;
+			case "alt":
+				multiplierPart = "(-1)^n";
+				break;
+			case "custom":
+				multiplierPart = formatMathLatex(customHarmonic);
+				break;
+			case "none":
+			default:
+				multiplierPart = "";
+				break;
 		}
-		return frac;
+
+		if (multiplierPart) {
+			return `${fractionPart} ${multiplierPart}`;
+		}
+		return fractionPart;
 	}
 
 	/** Derived reactive LaTeX strings for coefficients */
@@ -323,410 +336,70 @@
 	<!-- Form Inputs Grid -->
 	<div class="inputs-grid">
 		{#if mode === "trigonometric"}
-			<!-- Cosine Coefficient an Builder -->
-			<div class="coeff-card">
-				<div class="coeff-header">
-					<span class="coeff-label">
-						<MathText text={"Cosine Coefficient $a_n$"} />
-					</span>
-					<div class="input-mode-toggle">
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={anMode === "zero"}
-							onclick={() => {
-								anMode = "zero";
-								updateValue();
-							}}
-						>
-							Zero (0)
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={anMode === "fraction"}
-							onclick={() => {
-								anMode = "fraction";
-								updateValue();
-							}}
-						>
-							🧱 Fraction Builder
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={anMode === "direct"}
-							onclick={() => {
-								anMode = "direct";
-								updateValue();
-							}}
-						>
-							✍️ Freehand
-						</button>
-					</div>
-				</div>
+			<FourierCoefficientCard
+				title={"Cosine Coefficient $a_n$"}
+				symbol="a_n"
+				bind:mode={anMode}
+				bind:num={anNum}
+				bind:den={anDen}
+				bind:harmonic={anHarmonic}
+				bind:customHarmonic={anCustomHarmonic}
+				bind:direct={anDirect}
+				coeffLatex={anLatex}
+				numPlaceholder="e.g. 4 or 2"
+				denPlaceholder="e.g. n \pi or n^2 \pi^2"
+				directPlaceholder="e.g. 2 / (n \pi)"
+				onUpdate={updateValue}
+			/>
 
-				{#if anMode === "fraction"}
-					<div class="fraction-builder-grid">
-						<div class="fraction-column">
-							<div class="fraction-field">
-								<span class="field-tag">Numerator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={anNum}
-									oninput={updateValue}
-									placeholder="e.g. 4 or 2"
-								/>
-							</div>
-							<div class="fraction-line"></div>
-							<div class="fraction-field">
-								<span class="field-tag">Denominator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={anDen}
-									oninput={updateValue}
-									placeholder="e.g. n \pi or n^2 \pi^2"
-								/>
-							</div>
-						</div>
-
-						<div class="multiplier-column">
-							<span class="field-tag">
-								Harmonics / Parity Factor
-							</span>
-							<select
-								class="select-input"
-								bind:value={anHarmonic}
-								onchange={updateValue}
-							>
-								<option value="none">None (1)</option>
-								<option value="odd">
-									Odd Harmonics: (1 - (-1)^n)
-								</option>
-								<option value="even">
-									Even Harmonics: (1 + (-1)^n)
-								</option>
-								<option value="alt">
-									Alternating Signs: (-1)^n
-								</option>
-								<option value="custom">
-									Custom Multiplier...
-								</option>
-							</select>
-
-							{#if anHarmonic === "custom"}
-								<input
-									type="text"
-									class="text-input custom-mult-input"
-									bind:value={anCustomHarmonic}
-									oninput={updateValue}
-									placeholder="e.g. \sin(n \pi / 2)"
-								/>
-							{/if}
-						</div>
-					</div>
-				{:else if anMode === "direct"}
-					<div class="direct-input-row">
-						<label for="an-direct-input">LaTeX / Expression:</label>
-						<input
-							id="an-direct-input"
-							type="text"
-							class="text-input mono flex-grow"
-							bind:value={anDirect}
-							oninput={updateValue}
-							placeholder="e.g. 2 / (n \pi)"
-						/>
-					</div>
-				{/if}
-
-				<!-- Live Rendered Coefficient Card -->
-				<div class="coeff-preview">
-					<span class="preview-title">Built Expression:</span>
-					<MathInline
-						math={`a_n = ${anLatex}`}
-						displayStyle
-					/>
-				</div>
-			</div>
-
-			<!-- Sine Coefficient bn Builder -->
-			<div class="coeff-card">
-				<div class="coeff-header">
-					<span class="coeff-label">
-						<MathText text={"Sine Coefficient $b_n$"} />
-					</span>
-					<div class="input-mode-toggle">
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={bnMode === "zero"}
-							onclick={() => {
-								bnMode = "zero";
-								updateValue();
-							}}
-						>
-							Zero (0)
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={bnMode === "fraction"}
-							onclick={() => {
-								bnMode = "fraction";
-								updateValue();
-							}}
-						>
-							🧱 Fraction Builder
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={bnMode === "direct"}
-							onclick={() => {
-								bnMode = "direct";
-								updateValue();
-							}}
-						>
-							✍️ Freehand
-						</button>
-					</div>
-				</div>
-
-				{#if bnMode === "fraction"}
-					<div class="fraction-builder-grid">
-						<div class="fraction-column">
-							<div class="fraction-field">
-								<span class="field-tag">Numerator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={bnNum}
-									oninput={updateValue}
-									placeholder="e.g. 2 or 4"
-								/>
-							</div>
-							<div class="fraction-line"></div>
-							<div class="fraction-field">
-								<span class="field-tag">Denominator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={bnDen}
-									oninput={updateValue}
-									placeholder="e.g. n \pi"
-								/>
-							</div>
-						</div>
-
-						<div class="multiplier-column">
-							<span class="field-tag">
-								Harmonics / Parity Factor
-							</span>
-							<select
-								class="select-input"
-								bind:value={bnHarmonic}
-								onchange={updateValue}
-							>
-								<option value="none">None (1)</option>
-								<option value="odd">
-									Odd Harmonics: (1 - (-1)^n)
-								</option>
-								<option value="even">
-									Even Harmonics: (1 + (-1)^n)
-								</option>
-								<option value="alt">
-									Alternating Signs: (-1)^n
-								</option>
-								<option value="custom">
-									Custom Multiplier...
-								</option>
-							</select>
-
-							{#if bnHarmonic === "custom"}
-								<input
-									type="text"
-									class="text-input custom-mult-input"
-									bind:value={bnCustomHarmonic}
-									oninput={updateValue}
-									placeholder="e.g. \sin(n \pi / 2)"
-								/>
-							{/if}
-						</div>
-					</div>
-				{:else if bnMode === "direct"}
-					<div class="direct-input-row">
-						<label for="bn-direct-input">LaTeX / Expression:</label>
-						<input
-							id="bn-direct-input"
-							type="text"
-							class="text-input mono flex-grow"
-							bind:value={bnDirect}
-							oninput={updateValue}
-							placeholder="e.g. 2 / (n \pi)"
-						/>
-					</div>
-				{/if}
-
-				<!-- Live Rendered Coefficient Card -->
-				<div class="coeff-preview">
-					<span class="preview-title">Built Expression:</span>
-					<MathInline
-						math={`b_n = ${bnLatex}`}
-						displayStyle
-					/>
-				</div>
-			</div>
+			<FourierCoefficientCard
+				title={"Sine Coefficient $b_n$"}
+				symbol="b_n"
+				bind:mode={bnMode}
+				bind:num={bnNum}
+				bind:den={bnDen}
+				bind:harmonic={bnHarmonic}
+				bind:customHarmonic={bnCustomHarmonic}
+				bind:direct={bnDirect}
+				coeffLatex={bnLatex}
+				numPlaceholder="e.g. 2 or 4"
+				denPlaceholder="e.g. n \pi"
+				directPlaceholder="e.g. 2 / (n \pi)"
+				onUpdate={updateValue}
+			/>
 		{:else}
-			<!-- Exponential Coefficient Fn Builder -->
-			<div class="coeff-card">
-				<div class="coeff-header">
-					<span class="coeff-label">
-						<MathText
-							text={"Complex Exponential Coefficient $F_n$"}
-						/>
-					</span>
-					<div class="input-mode-toggle">
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={FnMode === "zero"}
-							onclick={() => {
-								FnMode = "zero";
-								updateValue();
-							}}
-						>
-							Zero (0)
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={FnMode === "fraction"}
-							onclick={() => {
-								FnMode = "fraction";
-								updateValue();
-							}}
-						>
-							🧱 Fraction Builder
-						</button>
-						<button
-							type="button"
-							class="toggle-btn"
-							class:active={FnMode === "direct"}
-							onclick={() => {
-								FnMode = "direct";
-								updateValue();
-							}}
-						>
-							✍️ Freehand
-						</button>
-					</div>
-				</div>
-
-				{#if FnMode === "fraction"}
-					<div class="fraction-builder-grid">
-						<div class="fraction-column">
-							<div class="fraction-field">
-								<span class="field-tag">Numerator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={FnNum}
-									oninput={updateValue}
-									placeholder="e.g. 1 or A"
-								/>
-							</div>
-							<div class="fraction-line"></div>
-							<div class="fraction-field">
-								<span class="field-tag">Denominator</span>
-								<input
-									type="text"
-									class="text-input fraction-input"
-									bind:value={FnDen}
-									oninput={updateValue}
-									placeholder="e.g. j n \pi"
-								/>
-							</div>
-						</div>
-
-						<div class="multiplier-column">
-							<span class="field-tag">
-								Harmonics / Parity Factor
-							</span>
-							<select
-								class="select-input"
-								bind:value={FnHarmonic}
-								onchange={updateValue}
-							>
-								<option value="none">None (1)</option>
-								<option value="odd">
-									Odd Harmonics: (1 - (-1)^n)
-								</option>
-								<option value="even">
-									Even Harmonics: (1 + (-1)^n)
-								</option>
-								<option value="alt">
-									Alternating Signs: (-1)^n
-								</option>
-								<option value="custom">
-									Custom Multiplier...
-								</option>
-							</select>
-
-							{#if FnHarmonic === "custom"}
-								<input
-									type="text"
-									class="text-input custom-mult-input"
-									bind:value={FnCustomHarmonic}
-									oninput={updateValue}
-									placeholder="e.g. \sin(n \pi / 2)"
-								/>
-							{/if}
-						</div>
-					</div>
-				{:else if FnMode === "direct"}
-					<div class="direct-input-row">
-						<label for="Fn-direct-input">LaTeX / Expression:</label>
-						<input
-							id="Fn-direct-input"
-							type="text"
-							class="text-input mono flex-grow"
-							bind:value={FnDirect}
-							oninput={updateValue}
-							placeholder="e.g. 1 / (j n \pi)"
-						/>
-					</div>
-				{/if}
-
-				<!-- Live Rendered Coefficient Card -->
-				<div class="coeff-preview">
-					<span class="preview-title">Built Expression:</span>
-					<MathInline
-						math={`F_n = ${FnLatex}`}
-						displayStyle
-					/>
-				</div>
-			</div>
+			<FourierCoefficientCard
+				title={"Complex Exponential Coefficient $F_n$"}
+				symbol="F_n"
+				bind:mode={FnMode}
+				bind:num={FnNum}
+				bind:den={FnDen}
+				bind:harmonic={FnHarmonic}
+				bind:customHarmonic={FnCustomHarmonic}
+				bind:direct={FnDirect}
+				coeffLatex={FnLatex}
+				numPlaceholder="e.g. 1 or A"
+				denPlaceholder="e.g. j n \pi"
+				directPlaceholder="e.g. 1 / (j n \pi)"
+				onUpdate={updateValue}
+			/>
 		{/if}
 	</div>
 </div>
 
 <style>
-	/* ── Fourier builder container ─────────────────────────── */
-
+	/* ── Box-drawing section dividers ────────────────────────────────────────── */
 	.fourier-builder {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-md);
+		background: var(--bg-secondary, #18181b);
+		border: 1px solid var(--border-color, #27272a);
+		border-radius: 8px;
 		padding: 1rem;
 	}
 
 	/* ── Mode switcher tabs (Trig vs Exp) ──────────────────── */
-
 	.mode-tabs {
 		display: flex;
 		gap: 0.4rem;
@@ -734,11 +407,11 @@
 	}
 
 	.mode-btn {
-		background: var(--bg-card);
-		color: var(--text-muted);
-		border: 1px solid var(--border-color);
+		background: var(--bg-card, #121214);
+		color: var(--text-secondary, #a1a1aa);
+		border: 1px solid var(--border-color, #27272a);
 		padding: 0.35rem 0.65rem;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
@@ -747,35 +420,32 @@
 
 	.mode-btn:hover,
 	.mode-btn:focus-visible {
-		color: var(--text-primary);
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
+		color: var(--text-primary, #f4f4f5);
+		border-color: var(--primary, #06b6d4);
+		outline: 2px solid var(--primary, #06b6d4);
 		outline-offset: 2px;
 	}
 
 	/* Active mode tab — filled accent button */
 	.mode-btn.active {
-		background: var(--accent-primary);
+		background: var(--primary, #06b6d4);
 		color: #000;
-		border-color: var(--accent-primary);
-		box-shadow: 0 0 10px var(--accent-glow);
+		border-color: var(--primary, #06b6d4);
 	}
 
 	.mode-btn.active:focus-visible {
-		outline: 2px solid var(--text-primary);
+		outline: 2px solid var(--text-primary, #f4f4f5);
 		outline-offset: 2px;
-		box-shadow: 0 0 14px var(--accent-glow);
 	}
 
 	/* ── Global parameter cards (w0, DC offset) ─────────────── */
-
 	.global-params-card {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 1rem;
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
+		background: var(--bg-card, #121214);
+		border: 1px solid var(--border-color, #27272a);
+		border-radius: 6px;
 		padding: 0.6rem 0.75rem;
 		align-items: center;
 	}
@@ -788,164 +458,26 @@
 	}
 
 	label {
-		color: var(--text-muted);
+		color: var(--text-secondary, #a1a1aa);
 		font-size: 0.8rem;
 		white-space: nowrap;
 	}
 
 	/* ── Form inputs grid ──────────────────────────────────── */
-
 	.inputs-grid {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 	}
 
-	/* ── Coefficient builder card ──────────────────────────── */
-
-	.coeff-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.75rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-	}
-
-	.coeff-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		padding-bottom: 0.35rem;
-		border-bottom: 1px dashed var(--border-color);
-	}
-
-	.coeff-label {
-		font-size: 0.82rem;
-		font-weight: 700;
-		color: var(--accent-primary);
-	}
-
-	.input-mode-toggle {
-		display: flex;
-		gap: 0.25rem;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.15rem;
-	}
-
-	.toggle-btn {
-		background: transparent;
-		color: var(--text-muted);
-		border: none;
-		padding: 0.2rem 0.45rem;
-		font-size: 0.75rem;
-		font-weight: 600;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.toggle-btn:hover,
-	.toggle-btn:focus-visible {
-		color: var(--text-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 1px;
-	}
-
-	/* Active mode toggle — highlighted pill */
-	.toggle-btn.active {
-		background: var(--accent-primary);
-		color: #000;
-	}
-
-	/* ── Fraction builder layout ───────────────────────────── */
-
-	.fraction-builder-grid {
-		display: grid;
-		grid-template-columns: minmax(180px, 1fr) minmax(200px, 1fr);
-		gap: 1rem;
-		align-items: center;
-	}
-
-	.fraction-column {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.2rem;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.5rem;
-	}
-
-	.fraction-field {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		width: 100%;
-	}
-
-	.field-tag {
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		min-width: 75px;
-	}
-
-	.fraction-line {
-		width: 100%;
-		height: 2px;
-		background: var(--border-color);
-		margin: 0.15rem 0;
-	}
-
-	.multiplier-column {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	/* ── Form controls (selects & inputs) ──────────────────── */
-
-	.select-input {
-		background: var(--bg-input);
-		color: var(--text-primary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.35rem 0.5rem;
-		font-size: 0.82rem;
-		cursor: pointer;
-	}
-
-	.select-input:focus {
-		border-color: var(--accent-primary);
-	}
-
-	.select-input:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
-	}
-
 	.text-input {
-		background: var(--bg-input);
-		color: var(--text-primary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
+		background: var(--bg-surface, #09090b);
+		color: var(--text-primary, #f4f4f5);
+		border: 1px solid var(--border-color, #27272a);
+		border-radius: 6px;
 		padding: 0.3rem 0.5rem;
 		font-size: 0.85rem;
 		min-width: 0;
-	}
-
-	.text-input.mono {
-		font-family: var(--font-mono);
 	}
 
 	.text-input.sm {
@@ -953,64 +485,13 @@
 		text-align: center;
 	}
 
-	.text-input.fraction-input {
-		flex: 1;
-		width: 100%;
-		font-family: var(--font-mono);
-	}
-
-	.text-input.custom-mult-input {
-		width: 100%;
-		font-family: var(--font-mono);
-	}
-
 	.text-input:focus {
-		border-color: var(--accent-primary);
+		border-color: var(--primary, #06b6d4);
 	}
 
 	.text-input:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
+		border-color: var(--primary, #06b6d4);
+		outline: 2px solid var(--primary, #06b6d4);
 		outline-offset: 2px;
-	}
-
-	.direct-input-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.flex-grow {
-		flex: 1;
-	}
-
-	/* ── Live rendered coefficient card ────────────────────── */
-
-	.coeff-preview {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		background: var(--bg-secondary);
-		border: 1px dashed var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.6rem 0.85rem;
-		overflow-x: auto;
-	}
-
-	.preview-title {
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		flex-shrink: 0;
-	}
-
-	/* ── Mobile media query (≤600px) ─────────────────────── */
-
-	@media (max-width: 600px) {
-		.fraction-builder-grid {
-			grid-template-columns: 1fr;
-		}
 	}
 </style>
