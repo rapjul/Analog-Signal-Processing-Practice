@@ -463,8 +463,10 @@ describe("Continuous-Time Convolution Math Engine", () => {
 					),
 				]),
 			);
-			expect(data.step6.parts[0].resultLatex).toContain("y(t)=0");
-			expect(data.step5.parts[0].setupBySignal?.x.hasOverlap).toBe(false);
+			expect(data.step6.parts[0]?.resultLatex).toContain("y(t)=0");
+			expect(data.step5.parts[0]?.setupBySignal?.x.hasOverlap).toBe(
+				false,
+			);
 		});
 
 		it("retains zero, linear, repeated, and constant typed expressions", () => {
@@ -559,8 +561,8 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			expect(
 				sections.map(({ includedEndpoint }) => includedEndpoint),
 			).toEqual(["both", "left"]);
-			expect(sections[0].leftLatex).toBe("\\infty");
-			expect(sections[0].originalLatex).toContain("]");
+			expect(sections[0]?.leftLatex).toBe("\\infty");
+			expect(sections[0]?.originalLatex).toContain("]");
 		});
 
 		it("counts overlapping sections, removes duplicate splits, and defaults empty supports", () => {
@@ -596,7 +598,7 @@ describe("Continuous-Time Convolution Math Engine", () => {
 			};
 			const data = buildConvolutionItsData(overlapping);
 			const overlaps =
-				data.step5.parts[0].setupBySignal?.h.overlaps ?? [];
+				data.step5.parts[0]?.setupBySignal?.h.overlaps ?? [];
 			expect(overlaps).not.toHaveLength(0);
 			expect(
 				overlaps.every(

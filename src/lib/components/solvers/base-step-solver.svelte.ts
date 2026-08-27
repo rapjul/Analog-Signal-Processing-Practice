@@ -80,7 +80,7 @@ export interface BaseSubStepState {
 	/** Current progressive hint tier for this sub-step (0 = closed, 1..N) */
 	hintTier: number;
 	/** Available hint strings specific to this sub-step */
-	hints?: string[];
+	hints?: string[] | undefined;
 	/** Whether this sub-step has been validated and completed */
 	isValid: boolean;
 }
@@ -232,7 +232,7 @@ export abstract class BaseStepSolverState {
 	readonly totalSteps: number;
 
 	/** Getter closure for the completion callback function */
-	readonly getOnComplete?: () => (() => void) | undefined;
+	readonly getOnComplete?: (() => (() => void) | undefined) | undefined;
 
 	/**
 	 * Abstract getter returning the active step state object for the current step.
@@ -480,7 +480,7 @@ export abstract class BaseStepSolverState {
 	 * @param {BaseStepState} step - Step state to mark as valid.
 	 * @param {number} [nextStep] - Optional next step index to advance to.
 	 */
-	setPassed(step: BaseStepState, nextStep?: number): void {
+	setPassed(step: BaseStepState, nextStep?: number | undefined): void {
 		step.isValid = true;
 		step.feedback = null;
 		step.feedbackType = null;
@@ -508,7 +508,7 @@ export abstract class BaseStepSolverState {
 		misconceptions: Record<string, string>,
 		fallbackFeedback: string,
 		validationMsg = "Please select an option.",
-		nextStep?: number,
+		nextStep?: number | undefined,
 	): void {
 		if (!selection) {
 			this.setValidation(step, validationMsg);
@@ -537,13 +537,17 @@ export abstract class BaseStepSolverState {
 	 * @param {number} [nextStep] - Step to advance to upon success.
 	 */
 	checkOptionCardStep<
-		T extends { id: string; isCorrect: boolean; feedback?: string },
+		T extends {
+			id: string;
+			isCorrect: boolean;
+			feedback?: string | undefined;
+		},
 	>(
 		step: BaseStepState & { selected: string | null },
 		option: T | null,
 		fallbackFeedback: string,
 		validationMsg = "Please select an option.",
-		nextStep?: number,
+		nextStep?: number | undefined,
 	): void {
 		if (!option) {
 			this.setValidation(step, validationMsg);
@@ -647,8 +651,8 @@ export abstract class BaseStepSolverState {
 	setSubStepPassed(
 		step: MultiPartStepState,
 		subStepId: string,
-		nextSubStepId?: string,
-		nextParentStep?: number,
+		nextSubStepId?: string | undefined,
+		nextParentStep?: number | undefined,
 	): void {
 		const sub = step.subSteps[subStepId];
 		if (sub) {

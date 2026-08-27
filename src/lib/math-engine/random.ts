@@ -29,7 +29,11 @@ export function randomInt(
 export function randomChoice<T>(random: RandomSource, values: readonly T[]): T {
 	if (values.length === 0)
 		throw new Error("Cannot choose from an empty array");
-	return values[randomInt(random, 0, values.length - 1)];
+	const chosen = values[randomInt(random, 0, values.length - 1)];
+	if (chosen === undefined) {
+		throw new Error("Cannot choose from an empty array");
+	}
+	return chosen;
 }
 
 /** Returns a deterministically shuffled copy using Fisher-Yates. */
@@ -40,7 +44,12 @@ export function shuffleWithRandom<T>(
 	const shuffled = [...values];
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = randomInt(random, 0, i);
-		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		const valI = shuffled[i];
+		const valJ = shuffled[j];
+		if (valI !== undefined && valJ !== undefined) {
+			shuffled[i] = valJ;
+			shuffled[j] = valI;
+		}
 	}
 	return shuffled;
 }
@@ -48,7 +57,10 @@ export function shuffleWithRandom<T>(
 /** Creates a shareable unsigned 32-bit seed for a new problem. */
 export function createRandomSeed(): number {
 	if (typeof globalThis.crypto?.getRandomValues === "function") {
-		return globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
+		return (
+			globalThis.crypto.getRandomValues(new Uint32Array(1))[0] ??
+			Date.now() >>> 0
+		);
 	}
 	return (Date.now() ^ Math.floor(Math.random() * 0x1_0000_0000)) >>> 0;
 }

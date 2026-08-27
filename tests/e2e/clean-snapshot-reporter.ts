@@ -157,7 +157,9 @@ export function formatViewport(rawViewport: string): string {
 		return rawViewport;
 	}
 
-	const [, namePart, width, height] = vpMatch;
+	const namePart = vpMatch[1] ?? "";
+	const width = vpMatch[2] ?? "";
+	const height = vpMatch[3] ?? "";
 	const formattedName = namePart
 		.split("-")
 		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -180,13 +182,13 @@ export function parseSnapshotMessage(line: string): ParsedSnapshotEntry | null {
 
 	for (const pattern of SNAPSHOT_PATTERNS) {
 		const match = trimmed.match(pattern.regex);
-		if (match) {
+		if (match && match[1] !== undefined) {
 			const fullPath = match[1].trim();
 
 			// Extract path relative to solver-visual-baselines
 			const marker = "solver-visual-baselines/";
 			const markerIndex = fullPath.indexOf(marker);
-			let relPath =
+			const relPath =
 				markerIndex !== -1
 					? fullPath.slice(markerIndex + marker.length)
 					: path.basename(fullPath);
@@ -197,12 +199,12 @@ export function parseSnapshotMessage(line: string): ParsedSnapshotEntry | null {
 			let filename = parts[parts.length - 1] ?? "";
 
 			if (parts.length >= 3) {
-				module = parts[parts.length - 3];
-				archetype = parts[parts.length - 2];
-				filename = parts[parts.length - 1];
+				module = parts[parts.length - 3] ?? module;
+				archetype = parts[parts.length - 2] ?? archetype;
+				filename = parts[parts.length - 1] ?? filename;
 			} else if (parts.length === 2) {
-				archetype = parts[0];
-				filename = parts[1];
+				archetype = parts[0] ?? archetype;
+				filename = parts[1] ?? filename;
 			}
 
 			// Remove .png extension

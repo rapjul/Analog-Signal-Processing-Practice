@@ -68,39 +68,41 @@
 		<div class="piecewise-builder">
 			{#each problem.intervals as interval, index}
 				{@const row = solver.step7.rows[index]}
-				<form
-					class:verified={row?.isValid}
-					onsubmit={(event) => {
-						event.preventDefault();
-						solver.checkStep7Row(index);
-					}}
-				>
-					<h4
-						tabindex="-1"
-						data-progress-heading
+				{#if row}
+					<form
+						class:verified={row.isValid}
+						onsubmit={(event) => {
+							event.preventDefault();
+							solver.checkStep7Row(index);
+						}}
 					>
-						<MathText text={`$${interval.labelLatex}$`} />
-					</h4>
-					<label>
-						<MathText text={String.raw`$y(t)=$`} />
-						<input
-							type="text"
-							bind:value={row.input}
-							readonly={row.isLocked || row.isValid}
-							aria-readonly={row.isLocked || row.isValid}
-							aria-label={`Expression for ${interval.labelLatex}`}
-						/>
-					</label>
-					<button
-						type="submit"
-						disabled={row.isLocked || row.isValid}
-					>
-						{row.isValid ? "Verified" : "Check row"}
-					</button>
-					{#if row.feedback}<p class="row-feedback">
-							{row.feedback}
-						</p>{/if}
-				</form>
+						<h4
+							tabindex="-1"
+							data-progress-heading
+						>
+							<MathText text={`$${interval.labelLatex}$`} />
+						</h4>
+						<label>
+							<MathText text={String.raw`$y(t)=$`} />
+							<input
+								type="text"
+								bind:value={row.input}
+								readonly={row.isLocked || row.isValid}
+								aria-readonly={row.isLocked || row.isValid}
+								aria-label={`Expression for ${interval.labelLatex}`}
+							/>
+						</label>
+						<button
+							type="submit"
+							disabled={row.isLocked || row.isValid}
+						>
+							{row.isValid ? "Verified" : "Check row"}
+						</button>
+						{#if row.feedback}<p class="row-feedback">
+								{row.feedback}
+							</p>{/if}
+					</form>
+				{/if}
 			{/each}
 		</div>
 		<HintDisclosure

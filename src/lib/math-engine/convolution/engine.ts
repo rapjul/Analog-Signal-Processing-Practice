@@ -161,23 +161,23 @@ export interface ConvolutionProblem {
 	/** Evaluator function for impulse response h(tau) */
 	evalH: (tau: number) => number;
 	/** Support edges and interior breakpoints for the input signal. */
-	xBreakpoints?: number[];
+	xBreakpoints?: number[] | undefined;
 	/** Support edges and interior breakpoints for the impulse response. */
-	hBreakpoints?: number[];
+	hBreakpoints?: number[] | undefined;
 	/** Start and end edges for every connected input-signal section. */
 	xSupportEdges: number[];
 	/** Start and end edges for every connected impulse-response section. */
 	hSupportEdges: number[];
 	/** Time range [min, max] for visualization */
-	timeRange?: [number, number];
+	timeRange?: [number, number] | undefined;
 	/** Structured seven-step Intelligent Tutoring System data. */
 	itsData: ConvolutionItsData;
 	/** Independent selections used by the configured generator. */
-	selection?: ConvolutionProblemSelection;
+	selection?: ConvolutionProblemSelection | undefined;
 	/** Concrete resolved signals used by the configured generator. */
-	resolvedSignals?: ResolvedConvolutionSelection;
+	resolvedSignals?: ResolvedConvolutionSelection | undefined;
 	/** Number of finite transition regions shown before tutoring begins. */
-	regionCount?: number;
+	regionCount?: number | undefined;
 }
 
 /** Convolution problem before its standardized tutor scaffold is attached. */

@@ -37,9 +37,10 @@ export interface FourierPlotTheme {
  * @param {CSSStyleDeclaration} style - Computed document style declaration.
  * @returns {FourierPlotTheme} Theme descriptor with fallback values.
  */
-export function getFourierPlotTheme(style: CSSStyleDeclaration): FourierPlotTheme {
-	const bgCard =
-		style.getPropertyValue("--bg-card").trim() || "#121214";
+export function getFourierPlotTheme(
+	style: CSSStyleDeclaration,
+): FourierPlotTheme {
+	const bgCard = style.getPropertyValue("--bg-card").trim() || "#121214";
 	const borderColor =
 		style.getPropertyValue("--border-color").trim() || "#2d2d35";
 	const textSecondary =
@@ -203,13 +204,11 @@ export function drawFourierHarmonicSpectrum(
 	const padX = width < 500 ? 15 : 30;
 
 	// Cap max stepX spacing to 36px per harmonic on wide screens
-	const rawStepX =
-		(width - padX * 2) / Math.max(1, currentDisplayN);
+	const rawStepX = (width - padX * 2) / Math.max(1, currentDisplayN);
 	const stepX = Math.min(36, rawStepX);
 	const spectrumContentW = stepX * Math.max(1, currentDisplayN);
 	// Center the spectrum plot horizontally if stepX was capped
-	const startX =
-		padX + (width - padX * 2 - spectrumContentW) / 2;
+	const startX = padX + (width - padX * 2 - spectrumContentW) / 2;
 
 	// Scale bar width generously (takes 70% of stepX on small screens, clamped between 3px and 22px)
 	const barWidth = Math.min(22, Math.max(3, stepX * 0.7));
@@ -265,7 +264,10 @@ export function drawFourierHarmonicSpectrum(
 	} else if (displayN <= 25) {
 		if (activeHarmonics.length > 0) {
 			for (let i = 0; i < activeHarmonics.length; i += 2) {
-				candidates.push(activeHarmonics[i]);
+				const harm = activeHarmonics[i];
+				if (harm !== undefined) {
+					candidates.push(harm);
+				}
 			}
 		} else {
 			for (let n = 1; n <= displayN; n += 2) {
@@ -275,7 +277,10 @@ export function drawFourierHarmonicSpectrum(
 	} else {
 		if (activeHarmonics.length > 0) {
 			for (let i = 0; i < activeHarmonics.length; i += 4) {
-				candidates.push(activeHarmonics[i]);
+				const harm = activeHarmonics[i];
+				if (harm !== undefined) {
+					candidates.push(harm);
+				}
 			}
 		} else {
 			for (let n = 1; n <= displayN; n += 4) {
@@ -295,10 +300,8 @@ export function drawFourierHarmonicSpectrum(
 	const selectedLabels: number[] = [];
 	for (const n of sortedCandidates) {
 		const px = xPos(n);
-		const prevX =
-			selectedLabels.length > 0
-				? xPos(selectedLabels[selectedLabels.length - 1])
-				: -1000;
+		const last = selectedLabels[selectedLabels.length - 1];
+		const prevX = last !== undefined ? xPos(last) : -1000;
 		if (px - prevX >= minPixelSpacing || selectedLabels.length === 0) {
 			selectedLabels.push(n);
 		}

@@ -59,7 +59,7 @@ export function createCoefficientMultiPartState(
 		{},
 		order,
 		subSteps,
-		order[0],
+		order[0] ?? "",
 	) as FourierCoefficientMultiPartState;
 }
 

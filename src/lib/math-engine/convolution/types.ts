@@ -43,15 +43,15 @@ export interface ConvolutionInterval {
 	/** Piecewise formula in LaTeX. */
 	exprLatex: string;
 	/** Exact active support intersection for this interval. */
-	supportIntersectionLatex?: string;
+	supportIntersectionLatex?: string | undefined;
 	/** Exact unevaluated convolution integral for this interval. */
-	integralSetupLatex?: string;
+	integralSetupLatex?: string | undefined;
 	/** Exact support intersection when x is the moving signal. */
-	flipXSupportIntersectionLatex?: string;
+	flipXSupportIntersectionLatex?: string | undefined;
 	/** Exact integral setup when x is the moving signal. */
-	flipXIntegralSetupLatex?: string;
+	flipXIntegralSetupLatex?: string | undefined;
 	/** Whether the original signals geometrically overlap in this region. */
-	hasGeometricOverlap?: boolean;
+	hasGeometricOverlap?: boolean | undefined;
 	/** Numerical evaluator for this interval. */
 	eval: (t: number) => number;
 }
@@ -87,5 +87,5 @@ export type ConvolutionPairType =
 /** Deterministic problem-generation controls. */
 export interface ConvolutionGenerationOptions {
 	/** Unsigned seed used for randomized parameters. */
-	seed?: number;
+	seed?: number | undefined;
 }

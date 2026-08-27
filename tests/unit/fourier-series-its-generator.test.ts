@@ -76,9 +76,9 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 
 		// Step 5
 		expect(itsData.step5.parts).toHaveLength(1);
-		expect(itsData.step5.parts[0].target).toBe("bn");
-		expect(itsData.step5.parts[0].options.length).toBe(4);
-		const correctOpt5 = itsData.step5.parts[0].options.find(
+		expect(itsData.step5.parts[0]!.target).toBe("bn");
+		expect(itsData.step5.parts[0]!.options.length).toBe(4);
+		const correctOpt5 = itsData.step5.parts[0]!.options.find(
 			(o) => o.isCorrect,
 		);
 		expect(correctOpt5).toBeDefined();
@@ -86,9 +86,9 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 
 		// Step 6: one evaluated coefficient family
 		expect(itsData.step6.parts).toHaveLength(1);
-		expect(itsData.step6.parts[0].target).toBe("bn");
-		expect(itsData.step6.parts[0].options.length).toBe(4);
-		const correctOpt6 = itsData.step6.parts[0].options.find(
+		expect(itsData.step6.parts[0]!.target).toBe("bn");
+		expect(itsData.step6.parts[0]!.options.length).toBe(4);
+		const correctOpt6 = itsData.step6.parts[0]!.options.find(
 			(o) => o.isCorrect,
 		);
 		expect(correctOpt6).toBeDefined();
@@ -224,7 +224,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 			"bn",
 		]);
 		expect(
-			itsData.step5.parts[1].options.find((option) => option.isCorrect)
+			itsData.step5.parts[1]?.options.find((option) => option.isCorrect)
 				?.latex,
 		).toContain("a_n=");
 	});
@@ -235,7 +235,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(problem.itsData).toBeDefined();
 		expect(problem.itsData.step1.expectedT).toBeGreaterThan(0);
 		expect(problem.solutionSteps).toHaveLength(7);
-		expect(problem.solutionSteps[0].title).not.toContain("Step 1:");
+		expect(problem.solutionSteps[0]?.title).not.toContain("Step 1:");
 	});
 
 	it.each(supportedWaveforms)(

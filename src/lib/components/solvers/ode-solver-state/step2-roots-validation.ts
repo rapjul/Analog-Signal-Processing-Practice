@@ -13,10 +13,7 @@ import {
 	type SecondOrderRootType,
 } from "$lib/math-engine/odes/index";
 import type { OdeProblem } from "$lib/math-engine/odes/types";
-import type {
-	OdeStep1State,
-	OdeStep2State,
-} from "./ode-step-types";
+import type { OdeStep1State, OdeStep2State } from "./ode-step-types";
 
 /** Validation outcome result descriptor */
 export type StepValidationResult =
@@ -55,7 +52,9 @@ export function validateStep1CharEq(
 	) {
 		return {
 			kind: "misconception",
-			message: s1Data.misconceptions.forcing_rhs,
+			message:
+				s1Data.misconceptions.forcing_rhs ??
+				"Do not include the forcing function on the characteristic equation RHS.",
 		};
 	}
 
@@ -202,7 +201,9 @@ export function validateFactoringRoots(
 export function validateQuadClassChoice(
 	choice: SecondOrderRootType,
 	problem: OdeProblem,
-): { kind: "pass" } | { kind: "first_order_guard" | "misconception"; message: string } {
+):
+	| { kind: "pass" }
+	| { kind: "first_order_guard" | "misconception"; message: string } {
 	if (problem.params.order === 1) {
 		return {
 			kind: "first_order_guard",
@@ -245,8 +246,7 @@ export function validateDiscriminantInput(
 	if (Number.isNaN(vDisc)) {
 		return {
 			kind: "validation",
-			message:
-				"Please enter a numeric value for $\\Delta = b^2 - 4ac$.",
+			message: "Please enter a numeric value for $\\Delta = b^2 - 4ac$.",
 		};
 	}
 

@@ -203,10 +203,10 @@ export function generateCtftProblem(
 	const w0Values = [2, 3, 4, 5, 10];
 	const shiftValues = [1, 2, 3];
 
-	const a = aValues[Math.floor(Math.random() * aValues.length)];
-	const T = tValues[Math.floor(Math.random() * tValues.length)];
-	const w0 = w0Values[Math.floor(Math.random() * w0Values.length)];
-	const t0 = shiftValues[Math.floor(Math.random() * shiftValues.length)];
+	const a = aValues[Math.floor(Math.random() * aValues.length)] ?? 1;
+	const T = tValues[Math.floor(Math.random() * tValues.length)] ?? 1;
+	const w0 = w0Values[Math.floor(Math.random() * w0Values.length)] ?? 2;
+	const t0 = shiftValues[Math.floor(Math.random() * shiftValues.length)] ?? 1;
 
 	const pair = getCtftPairLatex(type, { a, T, w0 });
 	const id = `ctft-${type}-${Date.now()}`;

@@ -27,13 +27,13 @@ describe("ConvolutionStepSolver", () => {
 					".timing-grid input",
 				);
 			expect(inputs).toHaveLength(3);
-			await fireEvent.input(inputs[0], {
+			await fireEvent.input(inputs[0]!, {
 				target: { value: String(part.start) },
 			});
-			await fireEvent.input(inputs[1], {
+			await fireEvent.input(inputs[1]!, {
 				target: { value: String(part.end) },
 			});
-			await fireEvent.input(inputs[2], {
+			await fireEvent.input(inputs[2]!, {
 				target: { value: String(part.width) },
 			});
 			await fireEvent.click(
@@ -93,7 +93,7 @@ describe("ConvolutionStepSolver", () => {
 				part.end,
 				part.width,
 			].entries())
-				await fireEvent.input(inputs[index], {
+				await fireEvent.input(inputs[index]!, {
 					target: { value: String(value) },
 				});
 			await fireEvent.click(
@@ -107,13 +107,13 @@ describe("ConvolutionStepSolver", () => {
 		const correctIndex = problem.itsData.step2.options.findIndex(
 			({ isCorrect }) => isCorrect,
 		);
-		await fireEvent.click(definitionButtons[correctIndex]);
+		await fireEvent.click(definitionButtons[correctIndex]!);
 		const pathButtons = view.container.querySelectorAll<HTMLButtonElement>(
 			".binary-grid button",
 		);
 		expect(pathButtons).toHaveLength(2);
-		expect(pathButtons[0].textContent).toContain("Move");
-		expect(pathButtons[1].textContent).toContain("Move");
+		expect(pathButtons[0]!.textContent).toContain("Move");
+		expect(pathButtons[1]!.textContent).toContain("Move");
 	});
 
 	it("renders every multipart visual state for the broad multi-pulse problem", async () => {
@@ -158,7 +158,7 @@ describe("ConvolutionStepSolver", () => {
 	it("uses native forms for Enter submission and renders Step 3C transformed edge inputs", async () => {
 		const problem = generateConvolutionProblem("rect_rect", { seed: 21 });
 		const view = render(ConvolutionStepSolver, { problem });
-		const firstPart = problem.itsData.step1.parts[0];
+		const firstPart = problem.itsData.step1.parts[0]!;
 		const inputs =
 			view.container.querySelectorAll<HTMLInputElement>(
 				".timing-grid input",
@@ -168,10 +168,10 @@ describe("ConvolutionStepSolver", () => {
 			firstPart.end,
 			firstPart.width,
 		].entries())
-			await fireEvent.input(inputs[index], {
+			await fireEvent.input(inputs[index]!, {
 				target: { value: String(value) },
 			});
-		const timingForm = inputs[0].closest("form");
+		const timingForm = inputs[0]!.closest("form");
 		if (!timingForm) throw new Error("Expected the timing form.");
 		await fireEvent.submit(timingForm);
 		expect(view.getByText("Part 1B")).toBeTruthy();

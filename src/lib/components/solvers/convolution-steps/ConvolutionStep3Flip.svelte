@@ -203,11 +203,18 @@
 										<span>Transformed left edge</span>
 										<input
 											type="text"
-											bind:value={
-												solver.step3.edgeInputs[
-													section.id
-												].left
-											}
+											value={solver.step3.edgeInputs[
+												section.id
+											]?.left ?? ""}
+											oninput={(event) => {
+												const entry =
+													solver.step3.edgeInputs[
+														section.id
+													];
+												if (entry)
+													entry.left =
+														event.currentTarget.value;
+											}}
 											placeholder="e.g. t-2"
 										/>
 									</label>
@@ -215,11 +222,18 @@
 										<span>Transformed right edge</span>
 										<input
 											type="text"
-											bind:value={
-												solver.step3.edgeInputs[
-													section.id
-												].right
-											}
+											value={solver.step3.edgeInputs[
+												section.id
+											]?.right ?? ""}
+											oninput={(event) => {
+												const entry =
+													solver.step3.edgeInputs[
+														section.id
+													];
+												if (entry)
+													entry.right =
+														event.currentTarget.value;
+											}}
 											placeholder="e.g. t"
 										/>
 									</label>

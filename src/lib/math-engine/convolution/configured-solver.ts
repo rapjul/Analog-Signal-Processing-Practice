@@ -39,7 +39,8 @@ function multiplyPolynomial(left: Polynomial, right: Polynomial): Polynomial {
 	);
 	for (const [leftIndex, leftValue] of left.entries()) {
 		for (const [rightIndex, rightValue] of right.entries()) {
-			result[leftIndex + rightIndex] += leftValue * rightValue;
+			const idx = leftIndex + rightIndex;
+			result[idx] = (result[idx] ?? 0) + leftValue * rightValue;
 		}
 	}
 	return trimPolynomial(result);
@@ -79,7 +80,7 @@ function rationalParts(value: number): [number, number] {
 }
 
 function scalarLatex(value: number, absolute = false): string {
-	const [rawNumerator, denominator] = rationalParts(value);
+	const [rawNumerator = 0, denominator = 1] = rationalParts(value);
 	const numerator = absolute ? Math.abs(rawNumerator) : rawNumerator;
 	return denominator === 1
 		? String(numerator)
@@ -98,8 +99,13 @@ function polynomialLatex(polynomial: Polynomial): string {
 				? ""
 				: scalarLatex(magnitude, true);
 		const body = `${magnitudeLatex}${variable}` || "0";
-		if (terms.length === 0) terms.push(coefficient < 0 ? `-${body}` : body);
-		else terms.push(`${coefficient < 0 ? "-" : "+"}${body}`);
+		terms.push(
+			terms.length === 0
+				? coefficient < 0
+					? `-${body}`
+					: body
+				: `${coefficient < 0 ? "-" : "+"}${body}`,
+		);
 	}
 	return terms.join("") || "0";
 }
@@ -114,7 +120,8 @@ function uniqueSorted(values: number[]): number[] {
 		.sort((left, right) => left - right)
 		.filter(
 			(value, index, sorted) =>
-				index === 0 || Math.abs(value - sorted[index - 1]) > EPSILON,
+				index === 0 ||
+				Math.abs(value - (sorted[index - 1] ?? 0)) > EPSILON,
 		);
 }
 
@@ -128,12 +135,15 @@ function intervalRanges(boundaries: number[]): Array<[number, number]> {
 	if (boundaries.length === 0)
 		return [[Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]];
 	return [
-		[Number.NEGATIVE_INFINITY, boundaries[0]],
+		[Number.NEGATIVE_INFINITY, boundaries[0] ?? 0],
 		...boundaries
 			.slice(0, -1)
 			.map(
 				(boundary, index) =>
-					[boundary, boundaries[index + 1]] as [number, number],
+					[boundary, boundaries[index + 1] ?? boundary] as [
+						number,
+						number,
+					],
 			),
 		[boundaries.at(-1) ?? 0, Number.POSITIVE_INFINITY],
 	];

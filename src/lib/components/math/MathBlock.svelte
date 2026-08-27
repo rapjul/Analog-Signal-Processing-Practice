@@ -10,21 +10,21 @@
 		/** LaTeX expression to render */
 		math: string;
 		/** Whether to wrap the LaTeX expression in an aligned environment */
-		aligned?: boolean;
+		aligned?: boolean | undefined;
 		/** Whether to wrap the LaTeX expression in a cases environment */
-		cases?: boolean;
+		cases?: boolean | undefined;
 		/** Matrix environment type: "bmatrix" | "pmatrix" | "matrix" */
-		matrix?: "bmatrix" | "pmatrix" | "matrix";
+		matrix?: "bmatrix" | "pmatrix" | "matrix" | undefined;
 		/** Whether to wrap the LaTeX expression in a gathered environment */
-		gathered?: boolean;
+		gathered?: boolean | undefined;
 		/** Whether to apply compact padding and responsive font sizing for narrow containers */
-		compact?: boolean;
+		compact?: boolean | undefined;
 		/** Whether to apply responsive line breaks/wrapping */
-		responsive?: boolean;
+		responsive?: boolean | undefined;
 		/** Whether to hide the LaTeX copy button and header bar */
-		hideHeader?: boolean;
+		hideHeader?: boolean | undefined;
 		/** Optional additional CSS class */
-		class?: string;
+		class?: string | undefined;
 	}
 
 	let {

@@ -21,12 +21,12 @@ describe("FourierSeriesInput", () => {
 
 		const modeButtons = view.container.querySelectorAll(".mode-btn");
 		expect(modeButtons).toHaveLength(2);
-		expect(modeButtons[0].textContent).toContain("Trigonometric Series");
-		expect(modeButtons[1].textContent).toContain(
+		expect(modeButtons[0]!.textContent).toContain("Trigonometric Series");
+		expect(modeButtons[1]!.textContent).toContain(
 			"Complex Exponential Series",
 		);
 		expect(onChange).toHaveBeenCalled();
-		const initialLatex = onChange.mock.calls[0][0];
+		const initialLatex = onChange.mock.calls[0]![0];
 		expect(initialLatex).toContain("\\sin(");
 	});
 
@@ -38,7 +38,7 @@ describe("FourierSeriesInput", () => {
 		const view = render(FourierSeriesInput, { onChange });
 
 		const modeButtons = view.container.querySelectorAll(".mode-btn");
-		await fireEvent.click(modeButtons[1]); // Exponential mode
+		await fireEvent.click(modeButtons[1]!); // Exponential mode
 
 		const f0Input = view.container.querySelector("#F0-input");
 		expect(f0Input).toBeTruthy();
@@ -49,7 +49,7 @@ describe("FourierSeriesInput", () => {
 			expect.stringContaining("e^{j n"),
 		);
 
-		await fireEvent.click(modeButtons[0]); // Trigonometric mode
+		await fireEvent.click(modeButtons[0]!); // Trigonometric mode
 		const a0Input = view.container.querySelector("#a0-input");
 		expect(a0Input).toBeTruthy();
 	});
@@ -88,7 +88,9 @@ describe("FourierSeriesInput", () => {
 
 		// Click Fraction Builder for an
 		const anCard = view.container.querySelectorAll(".coeff-card")[0];
+		if (!anCard) throw new Error("Expected anCard");
 		const fractionBtn = anCard.querySelectorAll(".toggle-btn")[1];
+		if (!fractionBtn) throw new Error("Expected fractionBtn");
 		await fireEvent.click(fractionBtn);
 
 		const anNum = anCard.querySelectorAll(".fraction-input")[0];
@@ -133,6 +135,7 @@ describe("FourierSeriesInput", () => {
 
 		// Direct / freehand mode for an
 		const freehandBtn = anCard.querySelectorAll(".toggle-btn")[2];
+		if (!freehandBtn) throw new Error("Expected freehandBtn");
 		await fireEvent.click(freehandBtn);
 		const directInput = view.container.querySelector("#an-direct-input");
 		expect(directInput).toBeTruthy();
@@ -143,6 +146,7 @@ describe("FourierSeriesInput", () => {
 
 		// Zero mode for an
 		const zeroBtn = anCard.querySelectorAll(".toggle-btn")[0];
+		if (!zeroBtn) throw new Error("Expected zeroBtn");
 		await fireEvent.click(zeroBtn);
 		expect(onChange.mock.calls.at(-1)?.[0]).not.toContain("\\cos(");
 	});
@@ -156,13 +160,16 @@ describe("FourierSeriesInput", () => {
 
 		const anCard = view.container.querySelectorAll(".coeff-card")[0];
 		const bnCard = view.container.querySelectorAll(".coeff-card")[1];
+		if (!anCard || !bnCard) throw new Error("Expected cards");
 
 		// Enable an
 		const anFractionBtn = anCard.querySelectorAll(".toggle-btn")[1];
+		if (!anFractionBtn) throw new Error("Expected anFractionBtn");
 		await fireEvent.click(anFractionBtn);
 
 		// Disable bn
 		const bnZeroBtn = bnCard.querySelectorAll(".toggle-btn")[0];
+		if (!bnZeroBtn) throw new Error("Expected bnZeroBtn");
 		await fireEvent.click(bnZeroBtn);
 
 		const latex = onChange.mock.calls.at(-1)?.[0];
@@ -178,6 +185,7 @@ describe("FourierSeriesInput", () => {
 		const view = render(FourierSeriesInput, { onChange });
 
 		const bnCard = view.container.querySelectorAll(".coeff-card")[1];
+		if (!bnCard) throw new Error("Expected bnCard");
 		const bnSelect = bnCard.querySelector("select");
 		expect(bnSelect).toBeTruthy();
 
@@ -207,6 +215,7 @@ describe("FourierSeriesInput", () => {
 
 		// Direct mode for bn
 		const directBtn = bnCard.querySelectorAll(".toggle-btn")[2];
+		if (!directBtn) throw new Error("Expected directBtn");
 		await fireEvent.click(directBtn);
 		const bnDirectInput = view.container.querySelector("#bn-direct-input");
 		if (bnDirectInput) {
@@ -220,12 +229,14 @@ describe("FourierSeriesInput", () => {
 
 		// Zero mode for bn
 		const zeroBtn = bnCard.querySelectorAll(".toggle-btn")[0];
+		if (!zeroBtn) throw new Error("Expected zeroBtn");
 		await fireEvent.click(zeroBtn);
 		// With both an and bn zero, it should synthesize DC or 0
 		expect(onChange.mock.calls.at(-1)?.[0]).toBe("0");
 
 		// Fraction mode for bn (switch back from zero)
 		const fractionBtn = bnCard.querySelectorAll(".toggle-btn")[1];
+		if (!fractionBtn) throw new Error("Expected fractionBtn");
 		await fireEvent.click(fractionBtn);
 		expect(onChange.mock.calls.at(-1)?.[0]).toContain("\\sin(");
 	});
@@ -239,7 +250,9 @@ describe("FourierSeriesInput", () => {
 
 		// Switch to exponential mode
 		const modeButtons = view.container.querySelectorAll(".mode-btn");
-		await fireEvent.click(modeButtons[1]);
+		const expModeBtn = modeButtons[1];
+		if (!expModeBtn) throw new Error("Expected expModeBtn");
+		await fireEvent.click(expModeBtn);
 
 		const F0Input = view.container.querySelector("#F0-input");
 		if (F0Input) {
@@ -280,6 +293,7 @@ describe("FourierSeriesInput", () => {
 
 		// Direct mode for Fn
 		const directBtn = fnCard.querySelectorAll(".toggle-btn")[2];
+		if (!directBtn) throw new Error("Expected directBtn");
 		await fireEvent.click(directBtn);
 		const fnDirect = view.container.querySelector("#Fn-direct-input");
 		if (fnDirect) {
@@ -293,11 +307,13 @@ describe("FourierSeriesInput", () => {
 
 		// Zero mode for Fn
 		const zeroBtn = fnCard.querySelectorAll(".toggle-btn")[0];
+		if (!zeroBtn) throw new Error("Expected zeroBtn");
 		await fireEvent.click(zeroBtn);
 		expect(onChange.mock.calls.at(-1)?.[0]).toBe("2");
 
 		// Fraction mode switch back
 		const fractionBtn = fnCard.querySelectorAll(".toggle-btn")[1];
+		if (!fractionBtn) throw new Error("Expected fractionBtn");
 		await fireEvent.click(fractionBtn);
 		expect(onChange.mock.calls.at(-1)?.[0]).toContain("e^{j n");
 
@@ -317,6 +333,7 @@ describe("FourierSeriesInput", () => {
 		const view = render(FourierSeriesInput, { onChange });
 
 		const bnCard = view.container.querySelectorAll(".coeff-card")[1];
+		if (!bnCard) throw new Error("Expected bnCard");
 		const bnNum = bnCard.querySelectorAll(".fraction-input")[0];
 		const bnDen = bnCard.querySelectorAll(".fraction-input")[1];
 		const bnSelect = bnCard.querySelector("select");

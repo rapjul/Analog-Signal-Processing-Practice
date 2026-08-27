@@ -395,9 +395,9 @@ describe("ProblemHeader — badge list construction", () => {
 			{ label: "odd Symmetry", variant: "accent" },
 		];
 		expect(badges).toHaveLength(2);
-		expect(badges[0].label).toContain("Wave");
-		expect(badges[0].variant).toBe("secondary");
-		expect(badges[1].variant).toBe("accent");
+		expect(badges[0]!.label).toContain("Wave");
+		expect(badges[0]!.variant).toBe("secondary");
+		expect(badges[1]!.variant).toBe("accent");
 	});
 
 	it("produces correct badge list for ODE card", () => {
@@ -405,7 +405,7 @@ describe("ProblemHeader — badge list construction", () => {
 			{ label: "2nd-Order", variant: "secondary" },
 			{ label: "real distinct", variant: "accent" },
 		];
-		expect(badges[0].label).toBe("2nd-Order");
+		expect(badges[0]!.label).toBe("2nd-Order");
 	});
 
 	it("allows empty badge list", () => {
@@ -494,9 +494,9 @@ describe("CompletionBanner — stats display logic", () => {
 			{ label: "Hints Used", value: 2 },
 		];
 		expect(stats).toHaveLength(2);
-		expect(stats[0].label).toBe("Steps Completed");
-		expect(stats[0].value).toBe(7);
-		expect(stats[1].value).toBe(2);
+		expect(stats[0]!.label).toBe("Steps Completed");
+		expect(stats[0]!.value).toBe(7);
+		expect(stats[1]!.value).toBe(2);
 	});
 
 	it("supports mixed string and number stat values", () => {
@@ -504,8 +504,8 @@ describe("CompletionBanner — stats display logic", () => {
 			{ label: "Score", value: "100%" },
 			{ label: "Time", value: 42 },
 		];
-		expect(typeof stats[0].value).toBe("string");
-		expect(typeof stats[1].value).toBe("number");
+		expect(typeof stats[0]!.value).toBe("string");
+		expect(typeof stats[1]!.value).toBe("number");
 	});
 });
 

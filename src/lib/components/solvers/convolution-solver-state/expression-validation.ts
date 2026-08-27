@@ -71,7 +71,9 @@ export function convolutionContactEquationMatches(
 	if (trimmed.includes("=")) {
 		const parts = trimmed.split("=").map((p) => p.trim());
 		if (parts.length !== 2) return false;
-		const [left, right] = parts;
+		const left = parts[0];
+		const right = parts[1];
+		if (left === undefined || right === undefined) return false;
 		if (
 			convolutionScalarMatches(left, expectedFixed) &&
 			convolutionExpressionsMatch(right, expectedTransformedLatex)
@@ -107,7 +109,9 @@ export function convolutionContactSolveMatches(
 	if (normalized.includes("=")) {
 		const parts = normalized.split("=").map((p) => p.trim());
 		if (parts.length !== 2) return false;
-		const [left, right] = parts;
+		const left = parts[0];
+		const right = parts[1];
+		if (left === undefined || right === undefined) return false;
 		if (left.toLowerCase() === "t") normalized = right;
 		else if (right.toLowerCase() === "t") normalized = left;
 		else return false;

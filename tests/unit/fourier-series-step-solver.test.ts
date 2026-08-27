@@ -58,7 +58,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 
 		// 1. Invalid period value (incorrect)
 		solver.step1.period = "999";
-		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
+		solver.step1.freq = problem.itsData.step1.w0Aliases[0] ?? "";
 		solver.step1.periodUnit = "s";
 		solver.step1.freqUnit = "rad/s";
 		solver.checkStep1();
@@ -89,7 +89,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		);
 
 		// 4. Unsupported frequency unit (validation)
-		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
+		solver.step1.freq = problem.itsData.step1.w0Aliases[0] ?? "";
 		solver.step1.freqUnit = "cycles/min";
 		solver.checkStep1();
 		expect(solver.step1.isValid).toBe(false);
@@ -262,6 +262,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		const solver = new FourierSeriesStepSolverState(() => problem);
 		solver.advanceToStep(5);
 		const part = problem.itsData.step5.parts[0];
+		if (!part) throw new Error("Expected part");
 		solver.checkStep5(null);
 		expect(solver.step5.feedbackType).toBe("validation");
 
@@ -297,6 +298,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		);
 		solver.advanceToStep(6);
 		const part = problem.itsData.step6.parts[0];
+		if (!part) throw new Error("Expected part");
 		solver.checkStep6(null);
 		expect(solver.step6.feedbackType).toBe("validation");
 
@@ -339,7 +341,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			label: "Part 1 of 2",
 		});
 
-		const setupA0 = problem.itsData.step5.parts[0].options.find(
+		const setupA0 = problem.itsData.step5.parts[0]?.options.find(
 			({ isCorrect }) => isCorrect,
 		);
 		expect(setupA0).toBeDefined();
@@ -348,7 +350,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		expect(solver.step5.activeSubStepId).toBe("setup-an");
 		expect(solver.step5Progress.label).toBe("Part 2 of 2");
 
-		const setupAn = problem.itsData.step5.parts[1].options.find(
+		const setupAn = problem.itsData.step5.parts[1]?.options.find(
 			({ isCorrect }) => isCorrect,
 		);
 		solver.checkStep5(setupAn ?? null);
@@ -426,7 +428,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		const solver = new FourierSeriesStepSolverState(() => problem);
 
 		solver.step1.period = String(problem.itsData.step1.expectedT);
-		solver.step1.freq = problem.itsData.step1.w0Aliases[0];
+		solver.step1.freq = problem.itsData.step1.w0Aliases[0] ?? "";
 		solver.checkStep1();
 		solver.revealNextHint();
 		expect(solver.currentStep).toBe(2);
@@ -464,7 +466,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		const solverEven = new FourierSeriesStepSolverState(() => problemEven);
 
 		const visualStatesEven = solverEven.devGetVisualStates();
-		expect(visualStatesEven.length).toBe(15);
+		expect(visualStatesEven.length).toBe(16);
 		expect(visualStatesEven.map((s) => s.id)).toEqual([
 			"fourier-series.step-01.period-frequency",
 			"fourier-series.step-02.symmetry",
@@ -481,15 +483,16 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			"fourier-series.step-06.coefficient-evaluation-an",
 			"fourier-series.step-06.coefficient-evaluation-an.hints",
 			"fourier-series.step-07.final-series",
+			"fourier-series.step-07.final-series.hints",
 		]);
 
 		// Verify labels
-		expect(visualStatesEven[1].label).toBe("Step 2A · Origin Parity");
-		expect(visualStatesEven[2].label).toBe("Step 2B · Half-Wave Symmetry");
-		expect(visualStatesEven[6].label).toContain("Step 5A");
-		expect(visualStatesEven[8].label).toContain("Step 5B");
-		expect(visualStatesEven[10].label).toContain("Step 6A");
-		expect(visualStatesEven[12].label).toContain("Step 6B");
+		expect(visualStatesEven[1]!.label).toBe("Step 2A · Origin Parity");
+		expect(visualStatesEven[2]!.label).toBe("Step 2B · Half-Wave Symmetry");
+		expect(visualStatesEven[6]!.label).toContain("Step 5A");
+		expect(visualStatesEven[8]!.label).toContain("Step 5B");
+		expect(visualStatesEven[10]!.label).toContain("Step 6A");
+		expect(visualStatesEven[12]!.label).toContain("Step 6B");
 
 		// Test each visual state navigation on even problem
 		for (const state of visualStatesEven) {
@@ -505,7 +508,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 		});
 		const solverOdd = new FourierSeriesStepSolverState(() => problemOdd);
 		const visualStatesOdd = solverOdd.devGetVisualStates();
-		expect(visualStatesOdd.length).toBe(11);
+		expect(visualStatesOdd.length).toBe(12);
 		expect(visualStatesOdd.map((s) => s.id)).toEqual([
 			"fourier-series.step-01.period-frequency",
 			"fourier-series.step-02.symmetry",
@@ -518,6 +521,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			"fourier-series.step-06.coefficient-evaluation",
 			"fourier-series.step-06.coefficient-evaluation.hints",
 			"fourier-series.step-07.final-series",
+			"fourier-series.step-07.final-series.hints",
 		]);
 
 		for (const state of visualStatesOdd) {

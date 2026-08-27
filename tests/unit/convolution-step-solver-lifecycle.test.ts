@@ -81,6 +81,7 @@ function completeTypedRemainder(
 	while (solver.currentStep === 4) {
 		const id = solver.step4.activeSubStepId;
 		const state = solver.step4.subSteps[id];
+		if (!state) break;
 		const contact = contactFor(problem, solver.flippedSignal, id);
 		if (id === "interval-builder")
 			state.intervalInputs =
@@ -108,6 +109,7 @@ function completeTypedRemainder(
 	while (solver.currentStep === 5) {
 		const id = solver.step5.activeSubStepId;
 		const state = solver.step5.subSteps[id];
+		if (!state) break;
 		const setup = problem.itsData.step5.parts.find((part) => part.id === id)
 			?.setupBySignal?.[solver.flippedSignal];
 		if (!setup) throw new Error("Expected bounds setup.");
@@ -153,8 +155,12 @@ function completeTypedRemainder(
 	while (solver.currentStep === 7) {
 		const index = solver.step7.rows.findIndex(({ isValid }) => !isValid);
 		if (index < 0) break;
-		solver.step7.rows[index].input = problem.intervals[index].exprLatex;
-		solver.checkStep7Row(index);
+		const row = solver.step7.rows[index];
+		const interval = problem.intervals[index];
+		if (row && interval) {
+			row.input = interval.exprLatex;
+			solver.checkStep7Row(index);
+		}
 	}
 }
 
@@ -165,12 +171,15 @@ function answerActiveEvaluationPart(
 ): void {
 	const id = solver.step6.activeSubStepId;
 	const state = solver.step6.subSteps[id];
+	if (!state) return;
 	const index = problem.itsData.step6.parts.findIndex(
 		(part) => part.id === id,
 	);
 	const part = problem.itsData.step6.parts[index];
 	const term =
-		part?.evaluationBySignal?.[solver.flippedSignal][state.activeTermIndex];
+		part?.evaluationBySignal?.[solver.flippedSignal]?.[
+			state.activeTermIndex
+		];
 	const input = state.termInputs[state.activeTermIndex];
 	if (state.stage === "combined")
 		state.input = problem.intervals[index]?.exprLatex ?? "0";
@@ -196,6 +205,7 @@ function answerActiveTransitionPart(
 ): void {
 	const id = solver.step4.activeSubStepId;
 	const state = solver.step4.subSteps[id];
+	if (!state) return;
 	const contact = contactFor(problem, solver.flippedSignal, id);
 	if (id === "interval-builder")
 		state.intervalInputs =
@@ -230,7 +240,7 @@ function advanceTransitionUntil(
 		answerActiveTransitionPart(solver, problem);
 }
 
-describe("ConvolutionStepSolverState lifecycle", () => {
+describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	it.each(["x", "h"] as const)(
 		"progresses through all seven steps with %s moving",
 		(signal) => {
@@ -257,6 +267,7 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const problem = generateConvolutionProblem("rect_exp", { seed: 22 });
 		const solver = new ConvolutionStepSolverState(() => problem);
 		const state = solver.step1.subSteps.x;
+		if (!state) throw new Error("Expected state");
 		solver.checkStep1();
 		expect(solver.currentFeedbackType).toBe("validation");
 		state.start = "99";
@@ -264,11 +275,13 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		state.width = "1";
 		solver.checkStep1();
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		state.start = String(problem.itsData.step1.parts[0].start);
+		const firstPart = problem.itsData.step1.parts[0];
+		if (!firstPart) throw new Error("Expected first part");
+		state.start = String(firstPart.start);
 		state.end = "99";
 		solver.checkStep1();
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		state.end = String(problem.itsData.step1.parts[0].end);
+		state.end = String(firstPart.end);
 		state.width = "99";
 		solver.checkStep1();
 		expect(solver.currentFeedbackType).toBe("misconception");
@@ -306,7 +319,9 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		solver.checkStep3Edges();
 		expect(solver.currentFeedbackType).toBe("validation");
 		const expected = problem.itsData.step3.sectionsBySignal.x[0];
+		if (!expected) throw new Error("Expected section.");
 		const input = solver.step3.edgeInputs[expected.id];
+		if (!input) throw new Error("Expected edge input.");
 		input.left = expected.rightLatex;
 		input.right = expected.leftLatex;
 		solver.checkStep3Edges();
@@ -365,7 +380,8 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const formId = solver.step4.activeSubStepId;
 		const formState = solver.step4.subSteps[formId];
 		const contact = contactFor(problem, solver.flippedSignal, formId);
-		if (!contact) throw new Error("Expected contact formulation.");
+		if (!contact || !formState)
+			throw new Error("Expected contact formulation.");
 
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("validation");
@@ -378,14 +394,15 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 
 		const solveId = solver.step4.activeSubStepId;
 		const solveState = solver.step4.subSteps[solveId];
+		if (!solveState) throw new Error("Expected solveState.");
 		solveState.input = "99";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		solveState.input = `t=${contact.transitionTime}`;
 		solver.checkStep4();
 		expect(solver.step4.activeSubStepId).not.toBe(solveId);
-		expect(solver.step4.subSteps[formId].isValid).toBe(true);
-		expect(solver.step4.subSteps[solveId].isValid).toBe(true);
+		expect(solver.step4.subSteps[formId]?.isValid).toBe(true);
+		expect(solver.step4.subSteps[solveId]?.isValid).toBe(true);
 	});
 
 	it("normalizes negative contact substitutions and groups duplicate times", () => {
@@ -489,13 +506,15 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			problem,
 			(id) => id === "transition-count",
 		);
-		solver.step4.subSteps["transition-count"].input = "99";
+		const transCount = solver.step4.subSteps["transition-count"];
+		if (transCount) transCount.input = "99";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		expect(solver.currentFeedback).toMatch(/distinct grouped/i);
 		answerActiveTransitionPart(solver, problem);
 		expect(solver.step4.activeSubStepId).toBe("interval-count");
-		solver.step4.subSteps["interval-count"].input = "1";
+		const intCount = solver.step4.subSteps["interval-count"];
+		if (intCount) intCount.input = "1";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		expect(solver.currentFeedback).toMatch(/one more interval/i);
@@ -506,22 +525,26 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
 		// Advance through section counts
-		solver.step4.subSteps["section-count-x"].input = "1";
+		const countX = solver.step4.subSteps["section-count-x"];
+		if (countX) countX.input = "1";
 		solver.checkStep4();
-		solver.step4.subSteps["section-count-h"].input = "1";
+		const countH = solver.step4.subSteps["section-count-h"];
+		if (countH) countH.input = "1";
 		solver.checkStep4();
 		const formId = solver.step4.activeSubStepId;
 		const contact = contactFor(problem, solver.flippedSignal, formId);
 		if (!contact) throw new Error("Expected contact part.");
 		// Test full equation with 'fixed = transformed'
-		solver.step4.subSteps[formId].input =
-			`${contact.fixed} = ${contact.transformedLatex}`;
+		const formSub = solver.step4.subSteps[formId];
+		if (formSub)
+			formSub.input = `${contact.fixed} = ${contact.transformedLatex}`;
 		solver.checkStep4();
 		expect(solver.step4.activeSubStepId).not.toBe(formId);
 
 		const solveId = solver.step4.activeSubStepId;
 		// Test solve with 't = time'
-		solver.step4.subSteps[solveId].input = `t = ${contact.transitionTime}`;
+		const solveSub = solver.step4.subSteps[solveId];
+		if (solveSub) solveSub.input = `t = ${contact.transitionTime}`;
 		solver.checkStep4();
 		expect(solver.step4.activeSubStepId).not.toBe(solveId);
 	});
@@ -537,41 +560,47 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			const id = solver.step4.activeSubStepId;
 			const state = solver.step4.subSteps[id];
 			const contact = contactFor(problem, solver.flippedSignal, id);
-			if (id === "section-count-x")
-				state.input = String(problem.itsData.step4.sectionCounts.x);
-			else if (id === "section-count-h")
-				state.input = String(problem.itsData.step4.sectionCounts.h);
-			else if (contact)
-				state.input = id.endsWith("-form")
-					? contact.transformedLatex
-					: String(contact.transitionTime);
-			else if (id === "transition-count")
-				state.input = String(
-					problem.itsData.step4.transitionGroups.length,
-				);
-			else if (id === "interval-count")
-				state.input = String(
-					problem.itsData.step4.intervalLabels.length,
-				);
-			else
-				state.input = String(
-					problem.itsData.step4.breakpointParts.find(
-						(part) => part.id === id,
-					)?.value,
-				);
+			if (state) {
+				if (id === "section-count-x")
+					state.input = String(problem.itsData.step4.sectionCounts.x);
+				else if (id === "section-count-h")
+					state.input = String(problem.itsData.step4.sectionCounts.h);
+				else if (contact)
+					state.input = id.endsWith("-form")
+						? contact.transformedLatex
+						: String(contact.transitionTime);
+				else if (id === "transition-count")
+					state.input = String(
+						problem.itsData.step4.transitionGroups.length,
+					);
+				else if (id === "interval-count")
+					state.input = String(
+						problem.itsData.step4.intervalLabels.length,
+					);
+				else
+					state.input = String(
+						problem.itsData.step4.breakpointParts.find(
+							(part) => part.id === id,
+						)?.value,
+					);
+			}
 			solver.checkStep4();
 		}
 		const state = solver.step4.subSteps["interval-builder"];
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("validation");
-		state.intervalInputs = problem.itsData.step4.intervalBoundaries.map(
-			() => "0",
-		);
+		if (state) {
+			state.intervalInputs = problem.itsData.step4.intervalBoundaries.map(
+				() => "0",
+			);
+		}
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("misconception");
-		state.intervalInputs = [...problem.itsData.step4.intervalBoundaries]
-			.reverse()
-			.map(String);
+		if (state) {
+			state.intervalInputs = [...problem.itsData.step4.intervalBoundaries]
+				.reverse()
+				.map(String);
+		}
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 	});
@@ -583,8 +612,8 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		const boundsState = solver.step5.subSteps[solver.step5.activeSubStepId];
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("validation");
-		const setup = problem.itsData.step5.parts[0].setupBySignal?.h;
-		boundsState.hasOverlap = !setup?.hasOverlap;
+		const setup = problem.itsData.step5.parts[0]?.setupBySignal?.h;
+		if (boundsState) boundsState.hasOverlap = !setup?.hasOverlap;
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("misconception");
 		solver.devAutoFillStep(5);
@@ -592,10 +621,10 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			solver.step6.subSteps[solver.step6.activeSubStepId];
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
-		expressionState.input = "not valid math";
+		if (expressionState) expressionState.input = "not valid math";
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
-		expressionState.input = "999";
+		if (expressionState) expressionState.input = "999";
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		expect(convolutionExpressionsMatch("(t+1)(t+1)", "(t+1)^2")).toBe(true);
@@ -624,6 +653,7 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			throw new Error("Expected an overlapping setup.");
 		solver.step5.activeSubStepId = interior.id;
 		const state = solver.step5.subSteps[interior.id];
+		if (!state) throw new Error("Expected state");
 		const setup = interior.setupBySignal.h;
 		solver.chooseStep5Overlap(true);
 		expect(solver.step5.activeSubStepId).toBe(interior.id);
@@ -644,10 +674,11 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			splits: overlap.splitPointsLatex.map(() => ""),
 		}));
 		solver.checkStep5();
-		expect(state.stage).toBe("bounds");
+		expect(state?.stage).toBe("bounds");
 		expect(solver.currentFeedbackType).toBeNull();
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBe("validation");
+		if (!state) throw new Error("Expected state");
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: [
 				String(overlap.lowerCandidateValues[0]),
@@ -663,11 +694,15 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		}));
 		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/larger.*left/i);
-		state.boundInputs[0].lower = setup.overlaps[0].lowerLatex;
-		state.boundInputs[0].upper = "99";
+		const firstBound = state.boundInputs[0];
+		const firstOverlap = setup.overlaps[0];
+		if (!firstBound || !firstOverlap)
+			throw new Error("Expected first bound and overlap");
+		firstBound.lower = firstOverlap.lowerLatex;
+		firstBound.upper = "99";
 		solver.checkStep5();
 		expect(solver.currentFeedback).toMatch(/smaller.*right/i);
-		state.boundInputs[0].upper = setup.overlaps[0].upperLatex;
+		firstBound.upper = firstOverlap.upperLatex;
 		solver.checkStep5();
 		expect(solver.currentFeedbackType).toBeNull();
 	});
@@ -687,6 +722,7 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		if (!part || !setup) throw new Error("Expected an apex-split setup.");
 		solver.step5.activeSubStepId = part.id;
 		const state = solver.step5.subSteps[part.id];
+		if (!state) throw new Error("Expected state");
 		solver.chooseStep5Overlap(true);
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: overlap.lowerCandidateValues.map(String) as [
@@ -723,17 +759,20 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		expect(solver.activeHints).toEqual(problem.itsData.step7.hints);
 		solver.checkStep7Row(index);
 		expect(solver.currentFeedbackType).toBe("validation");
-		solver.step7.rows[index].input = "999";
+		const row = solver.step7.rows[index];
+		const interval = problem.intervals[index];
+		if (!row || !interval) throw new Error("Expected row and interval");
+		row.input = "999";
 		solver.checkStep7Row(index);
 		expect(solver.currentFeedbackType).toBe("incorrect");
-		solver.step7.rows[index].input = "not valid math";
+		row.input = "not valid math";
 		solver.checkStep7Row(index);
 		expect(solver.currentFeedbackType).toBe("validation");
-		solver.step7.rows[index].input = problem.intervals[index].exprLatex;
-		problem.intervals[index].min = Number.NEGATIVE_INFINITY;
-		problem.intervals[index].max = 2;
+		row.input = interval.exprLatex;
+		interval.min = Number.NEGATIVE_INFINITY;
+		interval.max = 2;
 		solver.checkStep7Row(index);
-		expect(solver.step7.rows[index].isValid).toBe(true);
+		expect(row.isValid).toBe(true);
 	});
 
 	it("handles defensive missing-state and developer-harness branches", () => {
@@ -761,7 +800,8 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		solver.currentStep = 4;
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("validation");
-		solver.step4.subSteps[solver.step4.activeSubStepId].input = "99";
+		const subStep4 = solver.step4.subSteps[solver.step4.activeSubStepId];
+		if (subStep4) subStep4.input = "99";
 		solver.checkStep4();
 		expect(solver.currentFeedbackType).toBe("incorrect");
 		solver.reset();
@@ -822,13 +862,16 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 			({ id }) => id === evaluationId,
 		);
 		const interval = problem.intervals[intervalIndex];
+		const subStep6 = solver.step6.subSteps[evaluationId];
+		if (!interval || !subStep6)
+			throw new Error("Expected interval and subStep6");
 		interval.min = Number.NEGATIVE_INFINITY;
 		interval.max = Number.POSITIVE_INFINITY;
 		interval.eval = () => 0;
-		solver.step6.subSteps[evaluationId].stage = "combined";
-		solver.step6.subSteps[evaluationId].input = interval.exprLatex;
+		subStep6.stage = "combined";
+		subStep6.input = interval.exprLatex;
 		solver.checkStep6();
-		expect(solver.step6.subSteps[evaluationId].isValid).toBe(true);
+		expect(subStep6.isValid).toBe(true);
 	});
 
 	it("returns false when a visual substep has no compatible current state", () => {
@@ -932,7 +975,7 @@ describe("ConvolutionStepSolverState lifecycle", () => {
 		expect(solver.activeHints).toEqual([]);
 		solver.reset();
 		expect(solver.currentStep).toBe(1);
-		expect(solver.step1.subSteps.x.start).toBe("");
+		expect(solver.step1.subSteps.x?.start).toBe("");
 		expect(solver.step5Progress.current).toBe(1);
 	});
 });

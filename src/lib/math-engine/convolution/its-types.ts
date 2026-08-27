@@ -15,7 +15,7 @@ export interface ConvolutionItsOption {
 	/** Whether the response is correct. */
 	isCorrect: boolean;
 	/** Targeted diagnostic feedback. */
-	feedback?: string;
+	feedback?: string | undefined;
 }
 
 /** Data for one single-choice tutor step. */
@@ -126,7 +126,7 @@ export interface ConvolutionBreakpointContact {
 	/** Shared equal-time group identifier. */
 	transitionGroupId: string;
 	/** Earlier equal-time contact identifier. */
-	duplicateOf?: string;
+	duplicateOf?: string | undefined;
 	/** Contact-formation hints. */
 	formulationHints: string[];
 	/** Contact-solving hints. */
@@ -233,27 +233,25 @@ export interface ConvolutionItsIntervalPart {
 	/** Legacy selectable responses. */
 	options: ConvolutionItsOption[];
 	/** Exact setup for both moving paths. */
-	setupBySignal?: Record<
-		ConvolutionMovingSignal,
-		ConvolutionIntegralPathSetup
-	>;
+	setupBySignal?:
+		| Record<ConvolutionMovingSignal, ConvolutionIntegralPathSetup>
+		| undefined;
 	/** Interval-specific hints. */
 	hints: string[];
 	/** Moving-path-specific hints. */
-	hintsBySignal?: Record<ConvolutionMovingSignal, string[]>;
+	hintsBySignal?: Record<ConvolutionMovingSignal, string[]> | undefined;
 	/** Whether a verified zero region is carried forward without another answer. */
-	carriedZero?: boolean;
+	carriedZero?: boolean | undefined;
 	/** Supplied antiderivative or evaluation primitive for Step 6. */
-	primitiveLatex?: string;
+	primitiveLatex?: string | undefined;
 	/** Supplied antiderivative matched to each verified moving-signal path. */
-	primitiveBySignal?: Record<ConvolutionMovingSignal, string>;
+	primitiveBySignal?: Record<ConvolutionMovingSignal, string> | undefined;
 	/** Optional geometric shortcut for constant rectangular products. */
-	geometryShortcut?: string;
+	geometryShortcut?: string | undefined;
 	/** Concrete per-term evaluation work for both moving-signal paths. */
-	evaluationBySignal?: Record<
-		ConvolutionMovingSignal,
-		ConvolutionEvaluationTerm[]
-	>;
+	evaluationBySignal?:
+		| Record<ConvolutionMovingSignal, ConvolutionEvaluationTerm[]>
+		| undefined;
 }
 
 /** Exact work expected for one definite-integral term in Step 6. */
@@ -279,12 +277,14 @@ export interface ConvolutionEvaluationTerm {
 	/** Expected signed upper-minus-lower contribution. */
 	differenceLatex: string;
 	/** Optional rectangle geometry shortcut values. */
-	geometry?: {
-		/** Product of the two active piece amplitudes. */
-		amplitudeProductLatex: string;
-		/** Symbolic overlap width for this term. */
-		overlapWidthLatex: string;
-	};
+	geometry?:
+		| {
+				/** Product of the two active piece amplitudes. */
+				amplitudeProductLatex: string;
+				/** Symbolic overlap width for this term. */
+				overlapWidthLatex: string;
+		  }
+		| undefined;
 }
 
 /** Complete seven-step tutoring scaffold. */
@@ -308,7 +308,7 @@ export interface ConvolutionItsData {
 /** Exact metadata needed to build tutoring data. */
 export interface ConvolutionItsBuildContext {
 	/** Reproducible option-ordering seed. */
-	seed?: number;
+	seed?: number | undefined;
 	/** Ordered analytical output intervals. */
 	intervals: ConvolutionInterval[];
 	/** Connected sections of x. */
@@ -320,5 +320,5 @@ export interface ConvolutionItsBuildContext {
 	/** Support edges and interior breakpoints of h. */
 	hBreakpoints: number[];
 	/** Concrete configured signal formulas when available. */
-	resolvedSignals?: ResolvedConvolutionSelection;
+	resolvedSignals?: ResolvedConvolutionSelection | undefined;
 }

@@ -76,7 +76,7 @@ describe("FourierSeriesCanvas", () => {
 			view.container.querySelector(".capture-ratio")?.textContent,
 		).toContain("98.99%");
 		expect(
-			view.container.querySelectorAll(".power-stat")[2].textContent,
+			view.container.querySelectorAll(".power-stat")[2]?.textContent,
 		).toContain("98.99");
 		const thresholdSummary = view.container.querySelector(
 			".power-threshold-summary",

@@ -125,7 +125,7 @@ export const CONVOLUTION_SPEED_PRESETS: ConvolutionSpeedPreset[] = [
 
 /** Default animation rate in time-axis units per second. */
 export const DEFAULT_CONVOLUTION_SPEED =
-	CONVOLUTION_SPEED_PRESETS[1].unitsPerSecond;
+	CONVOLUTION_SPEED_PRESETS[1]?.unitsPerSecond ?? 0.65;
 
 /** Returns a finite plotting value, replacing invalid evaluator output with zero. */
 function finiteValue(value: number): number {
@@ -443,6 +443,7 @@ function drawOverlapPanel(
 	for (let index = 1; index < frame.samples.length; index += 1) {
 		const previous = frame.samples[index - 1];
 		const sample = frame.samples[index];
+		if (!previous || !sample) continue;
 		const averageProduct = (previous.product + sample.product) / 2;
 		context.fillStyle =
 			averageProduct < 0

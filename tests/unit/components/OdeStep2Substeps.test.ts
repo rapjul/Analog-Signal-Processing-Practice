@@ -4,12 +4,12 @@
 
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 import OdeStep2Discriminant from "$lib/components/solvers/ode-steps/step2-substeps/OdeStep2Discriminant.svelte";
 import OdeStep2Factoring from "$lib/components/solvers/ode-steps/step2-substeps/OdeStep2Factoring.svelte";
 import OdeStep2Quadratic from "$lib/components/solvers/ode-steps/step2-substeps/OdeStep2Quadratic.svelte";
 import OdeStep2StrategyGate from "$lib/components/solvers/ode-steps/step2-substeps/OdeStep2StrategyGate.svelte";
 import { generateOdeProblem } from "$lib/math-engine/odes/index";
-import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 
 describe("ODE Step 2 Modular Subcomponents", () => {
 	afterEach(() => {
@@ -70,8 +70,12 @@ describe("ODE Step 2 Modular Subcomponents", () => {
 				props: { problem, solver },
 			});
 
-			const r1Input = container.querySelector("#ode-r1-input") as HTMLInputElement;
-			const r2Input = container.querySelector("#ode-r2-input") as HTMLInputElement;
+			const r1Input = container.querySelector(
+				"#ode-r1-input",
+			) as HTMLInputElement;
+			const r2Input = container.querySelector(
+				"#ode-r2-input",
+			) as HTMLInputElement;
 			expect(r1Input).toBeTruthy();
 			expect(r2Input).toBeTruthy();
 
@@ -95,7 +99,9 @@ describe("ODE Step 2 Modular Subcomponents", () => {
 				props: { problem, solver },
 			});
 
-			const discInput = container.querySelector("#ode-disc-input") as HTMLInputElement;
+			const discInput = container.querySelector(
+				"#ode-disc-input",
+			) as HTMLInputElement;
 			expect(discInput).toBeTruthy();
 
 			const verifyBtn = getByText("Verify Discriminant");
@@ -120,7 +126,7 @@ describe("ODE Step 2 Modular Subcomponents", () => {
 			const choiceCards = container.querySelectorAll(".quad-class-btn");
 			expect(choiceCards.length).toBe(3);
 
-			await fireEvent.click(choiceCards[0]);
+			await fireEvent.click(choiceCards[0]!);
 			expect(solver.step2.quadClassChoice).toBe("distinct_real");
 		});
 	});

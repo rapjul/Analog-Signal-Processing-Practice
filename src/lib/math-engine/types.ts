@@ -11,17 +11,17 @@ export interface SolutionStep {
 	/** Main text description */
 	description: string;
 	/** Optional LaTeX math equation */
-	latex?: string;
+	latex?: string | undefined;
 	/** Whether to wrap in aligned environment */
-	aligned?: boolean;
+	aligned?: boolean | undefined;
 	/** Whether to wrap in cases environment */
-	cases?: boolean;
+	cases?: boolean | undefined;
 	/** Matrix environment type */
-	matrix?: "bmatrix" | "pmatrix" | "matrix";
+	matrix?: "bmatrix" | "pmatrix" | "matrix" | undefined;
 	/** Whether to wrap in gathered environment */
-	gathered?: boolean;
+	gathered?: boolean | undefined;
 	/** Whether to apply responsive wrapping */
-	responsive?: boolean;
+	responsive?: boolean | undefined;
 }
 
 /**
@@ -35,7 +35,7 @@ export interface ItsOption {
 	/** Whether this option is mathematically correct */
 	isCorrect: boolean;
 	/** Targeted diagnostic explanation for why this distractor is incorrect */
-	feedback?: string;
+	feedback?: string | undefined;
 }
 
 /**
@@ -45,7 +45,7 @@ export interface BaseItsStep {
 	/** Progressive tiered hints for this step */
 	hints: string[];
 	/** Diagnostic feedback for known misconceptions */
-	misconceptions?: Record<string, string>;
+	misconceptions?: Record<string, string> | undefined;
 }
 
 /**

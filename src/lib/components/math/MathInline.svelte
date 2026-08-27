@@ -9,9 +9,9 @@
 		/** LaTeX expression to render */
 		math: string;
 		/** Optional additional CSS class */
-		class?: string;
+		class?: string | undefined;
 		/** Optional flag to force KaTeX display style sizing for inline math */
-		displayStyle?: boolean;
+		displayStyle?: boolean | undefined;
 	}
 
 	let {

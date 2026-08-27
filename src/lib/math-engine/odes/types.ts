@@ -98,7 +98,7 @@ export interface SecondOrderOdeParams {
 	/** Coefficient a0 for zero derivative y */
 	a0: number;
 	/** Characteristic polynomial roots r1, r2, and imaginary component im */
-	roots: { r1: number; r2?: number; im?: number };
+	roots: { r1: number; r2?: number | undefined; im?: number | undefined };
 	/** Classification of roots */
 	rootType: SecondOrderRootType;
 }
@@ -113,9 +113,9 @@ export interface ForcingFunction {
 	/** Amplitude K */
 	K: number;
 	/** Exponential growth/decay rate p for K * exp(p*t) */
-	p?: number;
+	p?: number | undefined;
 	/** Radian frequency omega for K * cos(omega*t) */
-	omega?: number;
+	omega?: number | undefined;
 	/** Formatted LaTeX string representation of forcing function x(t) */
 	latex: string;
 }
@@ -131,7 +131,11 @@ export interface ParticularSolution {
 	/** Evaluator function for derivative y_p'(t) at time t */
 	evalDeriv: (t: number) => number;
 	/** Derived undetermined coefficients (Kp, A, B) */
-	coeffs: { Kp?: number; A?: number; B?: number };
+	coeffs: {
+		Kp?: number | undefined;
+		A?: number | undefined;
+		B?: number | undefined;
+	};
 	/** Multiplicity of the forcing frequency as a characteristic root. */
 	resonanceMultiplicity: 0 | 1 | 2;
 }
@@ -143,7 +147,7 @@ export interface HomogeneousSolution {
 	/** Integration constant C1 */
 	C1: number;
 	/** Integration constant C2 (second-order only) */
-	C2?: number;
+	C2?: number | undefined;
 	/** Evaluator function for y_h(t) at time t */
 	eval: (t: number) => number;
 }
@@ -172,13 +176,13 @@ export interface FirstOrderOdeItsStep2 extends BaseItsStep {
 	/** Exact symbolic formatted root string in LaTeX */
 	symbolicRootsLatex: string;
 	/** Formatted factored polynomial expression (e.g. "a1(s - r) = 0") */
-	factoredFormLatex?: string;
+	factoredFormLatex?: string | undefined;
 	/** Single characteristic root */
 	r1: number;
 	/** Diagnostic misconception feedback dictionary */
 	misconceptions: Record<string, string>;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** Second-Order ITS Step 2: Characteristic Roots, Factoring & Quadratic Formula */
@@ -207,17 +211,17 @@ export interface SecondOrderOdeItsStep2 extends BaseItsStep {
 	/** Exact symbolic formatted roots string in LaTeX */
 	symbolicRootsLatex: string;
 	/** Formatted factored polynomial expression if factorable */
-	factoredFormLatex?: string;
+	factoredFormLatex?: string | undefined;
 	/** First root (real part if complex) */
 	r1: number;
 	/** Second root (real part if distinct real) */
 	r2: number;
 	/** Imaginary component omega_d (if complex conjugate) */
-	im?: number;
+	im?: number | undefined;
 	/** Diagnostic misconception feedback dictionary */
 	misconceptions: Record<string, string>;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** ITS Step 2: Characteristic Roots & Strategy */
@@ -255,57 +259,57 @@ export interface OdeItsStep4 extends BaseItsStep {
 /** First-Order ITS Step 5: Particular Coefficients and Scaffolding */
 export interface FirstOrderOdeItsStep5 extends BaseItsStep {
 	/** Solved Kp for constant/exponential forcing */
-	expectedKp?: number;
+	expectedKp?: number | undefined;
 	/** Solved A for sinusoidal forcing */
-	expectedA?: number;
+	expectedA?: number | undefined;
 	/** Solved B for sinusoidal forcing */
-	expectedB?: number;
+	expectedB?: number | undefined;
 	/** Multiple-choice derivative options */
-	derivativeOptions?: OdeItsOption[];
+	derivativeOptions?: OdeItsOption[] | undefined;
 	/** Multiple-choice first derivative options for Part 5A-1 */
-	firstDerivativeOptions?: OdeItsOption[];
+	firstDerivativeOptions?: OdeItsOption[] | undefined;
 	/** Second derivative options (undefined for first order) */
 	secondDerivativeOptions?: undefined;
 	/** Multiple-choice system setup options for Part 5B */
-	systemOptions?: OdeItsOption[];
+	systemOptions?: OdeItsOption[] | undefined;
 	/** Correct derivative LaTeX string */
-	derivativesLatex?: string;
+	derivativesLatex?: string | undefined;
 	/** Correct first derivative LaTeX string */
-	firstDerivLatex?: string;
+	firstDerivLatex?: string | undefined;
 	/** Second derivative LaTeX (undefined for first order) */
 	secondDerivLatex?: undefined;
 	/** Correct system equations LaTeX string */
-	systemLatex?: string;
+	systemLatex?: string | undefined;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** Second-Order ITS Step 5: Particular Coefficients and Scaffolding */
 export interface SecondOrderOdeItsStep5 extends BaseItsStep {
 	/** Solved Kp for constant/exponential forcing */
-	expectedKp?: number;
+	expectedKp?: number | undefined;
 	/** Solved A for sinusoidal forcing */
-	expectedA?: number;
+	expectedA?: number | undefined;
 	/** Solved B for sinusoidal forcing */
-	expectedB?: number;
+	expectedB?: number | undefined;
 	/** Multiple-choice derivative options */
-	derivativeOptions?: OdeItsOption[];
+	derivativeOptions?: OdeItsOption[] | undefined;
 	/** Multiple-choice first derivative options for Part 5A-1 */
-	firstDerivativeOptions?: OdeItsOption[];
+	firstDerivativeOptions?: OdeItsOption[] | undefined;
 	/** Multiple-choice second derivative options for Part 5A-2 */
-	secondDerivativeOptions?: OdeItsOption[];
+	secondDerivativeOptions?: OdeItsOption[] | undefined;
 	/** Multiple-choice system setup options for Part 5B */
-	systemOptions?: OdeItsOption[];
+	systemOptions?: OdeItsOption[] | undefined;
 	/** Correct derivative LaTeX string */
-	derivativesLatex?: string;
+	derivativesLatex?: string | undefined;
 	/** Correct first derivative LaTeX string */
-	firstDerivLatex?: string;
+	firstDerivLatex?: string | undefined;
 	/** Correct second derivative LaTeX string */
-	secondDerivLatex?: string;
+	secondDerivLatex?: string | undefined;
 	/** Correct system equations LaTeX string */
-	systemLatex?: string;
+	systemLatex?: string | undefined;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** ITS Step 5: Particular Coefficients and Scaffolding */
@@ -348,7 +352,7 @@ export interface SecondOrderOdeItsStep6 extends BaseItsStep {
 	/** Concrete evaluated system of initial conditions LaTeX string */
 	icSystemLatex: string;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** ITS Step 6: Initial Conditions System and Constants */
@@ -387,7 +391,7 @@ export interface FirstOrderOdeItsStep7 extends BaseItsStep {
 	/** Evaluated linear system equations for Zero-Input initial conditions */
 	ziSystemLatex: string;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** Second-Order ITS Step 7: Response Decomposition & Conceptual Mastery */
@@ -413,7 +417,7 @@ export interface SecondOrderOdeItsStep7 extends BaseItsStep {
 	/** Evaluated linear system equations for Zero-Input initial conditions */
 	ziSystemLatex: string;
 	/** Sub-step-specific progressive hints */
-	subStepHints?: Record<string, string[]>;
+	subStepHints?: Record<string, string[]> | undefined;
 }
 
 /** ITS Step 7: Response Decomposition */
@@ -515,9 +519,9 @@ export interface SecondOrderOdeProblem extends BaseOdeProblem {
 		/** Second root of characteristic equation (real part if distinct real) */
 		r2: number;
 		/** Imaginary part of first root (if complex) */
-		r1_im?: number;
+		r1_im?: number | undefined;
 		/** Imaginary part of second root (if complex) */
-		r2_im?: number;
+		r2_im?: number | undefined;
 		/** LaTeX rendered homogeneous solution y_h(t) */
 		y_h_latex: string;
 		/** LaTeX rendered particular solution y_p(t) */

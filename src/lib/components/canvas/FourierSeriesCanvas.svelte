@@ -16,14 +16,14 @@
 		type FourierSeriesWaveformType,
 		formatPowerCapturePercent,
 	} from "$lib/math-engine/fourier-series/index";
+	import MathInline from "../math/MathInline.svelte";
+	import MathText from "../math/MathText.svelte";
 	import {
 		computeTargetMagnitudes,
 		drawFourierHarmonicSpectrum,
 		drawFourierTimeDomain,
 		getFourierPlotTheme,
 	} from "./fourier-series-plot";
-	import MathInline from "../math/MathInline.svelte";
-	import MathText from "../math/MathText.svelte";
 
 	interface Props {
 		/** Exact coefficients for the generated problem. */
@@ -139,7 +139,10 @@
 		const currentCoeffs = coeffs;
 
 		const targetDisplayN = Math.min(targetN, 30);
-		const targetMags = computeTargetMagnitudes(currentCoeffs, targetDisplayN);
+		const targetMags = computeTargetMagnitudes(
+			currentCoeffs,
+			targetDisplayN,
+		);
 
 		let isAnimating = true;
 
@@ -157,12 +160,16 @@
 			// Smoothly lerp animatedMags toward targetMags
 			let maxMagDiff = 0;
 			for (let n = 1; n <= 50; n++) {
-				const diff = targetMags[n] - animatedMags[n];
+				const target = targetMags[n] ?? 0;
+				const current = animatedMags[n] ?? 0;
+				const diff = target - current;
 				if (Math.abs(diff) > maxMagDiff) maxMagDiff = Math.abs(diff);
-				animatedMags[n] += diff * 0.18;
+				animatedMags[n] = current + diff * 0.18;
 			}
 
-			const theme = getFourierPlotTheme(getComputedStyle(document.documentElement));
+			const theme = getFourierPlotTheme(
+				getComputedStyle(document.documentElement),
+			);
 
 			const ctxUpper = canvasUpperEl.getContext("2d");
 			const ctxLower = canvasLowerEl.getContext("2d");

@@ -267,7 +267,7 @@ function evalPolyJw(
 	const n = coeffs.length - 1;
 	for (let i = 0; i <= n; i++) {
 		const power = n - i;
-		const coeff = coeffs[i];
+		const coeff = coeffs[i] ?? 0;
 		const wPow = omega ** power;
 		if (power % 4 === 0) re += coeff * wPow;
 		else if (power % 4 === 1) im += coeff * wPow;
@@ -334,9 +334,9 @@ export function generateCircuitProblem(
 	const cValues = [0.01, 0.02, 0.05, 0.1];
 
 	// Randomly sample R, L, and C
-	const R = rValues[Math.floor(Math.random() * rValues.length)];
-	const L = lValues[Math.floor(Math.random() * lValues.length)];
-	const C = cValues[Math.floor(Math.random() * cValues.length)];
+	const R = rValues[Math.floor(Math.random() * rValues.length)] ?? 1000;
+	const L = lValues[Math.floor(Math.random() * lValues.length)] ?? 0.01;
+	const C = cValues[Math.floor(Math.random() * cValues.length)] ?? 0.000001;
 
 	// Calculate symbolic transfer function polynomial coefficients via evaluateTransferFunction
 	const tf = evaluateTransferFunction(topology, { R, L, C });

@@ -4,6 +4,7 @@ import type {
 	ConvolutionBreakpointContact,
 	ConvolutionItsBuildContext,
 	ConvolutionItsData,
+	ConvolutionItsOption,
 	ConvolutionMovingSignal,
 	ConvolutionTimingPart,
 	ConvolutionTransitionGroup,
@@ -215,12 +216,14 @@ export function buildConvolutionItsData(
 		},
 	];
 	const definitionOffset = (context.seed ?? 0) % definitionOptions.length;
-	const shuffledDefinitionOptions = definitionOptions.map(
-		(_, index) =>
-			definitionOptions[
-				(index + definitionOffset) % definitionOptions.length
-			] ?? definitionOptions[0],
-	);
+	const defaultOption = definitionOptions[0] as ConvolutionItsOption;
+	const shuffledDefinitionOptions: ConvolutionItsOption[] =
+		definitionOptions.map(
+			(_, index) =>
+				definitionOptions[
+					(index + definitionOffset) % definitionOptions.length
+				] ?? defaultOption,
+		);
 	const setupParts = context.intervals.map((interval, index) =>
 		buildSetupPart(interval, index, context),
 	);

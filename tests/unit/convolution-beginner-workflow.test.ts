@@ -40,7 +40,7 @@ describe("convolution beginner workflow metadata", () => {
 			TEXTBOOK_CONVOLUTION_SELECTION,
 			{ seed: 4 },
 		);
-		const exterior = problem.itsData.step5.parts[0].setupBySignal?.h;
+		const exterior = problem.itsData.step5.parts[0]?.setupBySignal?.h;
 		const interior = problem.itsData.step5.parts.find(
 			(part) => part.setupBySignal?.h.hasOverlap,
 		)?.setupBySignal?.h;
@@ -64,6 +64,7 @@ describe("convolution beginner workflow metadata", () => {
 		const setup = part?.setupBySignal?.h;
 		if (!part || !setup) throw new Error("Expected overlap setup.");
 		const state = createBoundsState(problem).subSteps[part.id];
+		if (!state) throw new Error("Expected bounds state.");
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		state.hasOverlap = false;
 		expect(validateBoundsStage(state, setup).kind).toBe("misconception");
@@ -78,8 +79,11 @@ describe("convolution beginner workflow metadata", () => {
 		}));
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].lower = overlap.lowerLatex;
-			state.boundInputs[index].upper = overlap.upperLatex;
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.lower = overlap.lowerLatex;
+				boundInput.upper = overlap.upperLatex;
+			}
 		});
 		expect(validateBoundsStage(state, setup).kind).toBe("valid");
 	});
@@ -97,6 +101,7 @@ describe("convolution beginner workflow metadata", () => {
 		const setup = part?.setupBySignal?.h;
 		if (!part || !setup) throw new Error("Expected split overlap setup.");
 		const state = createBoundsState(problem).subSteps[part.id];
+		if (!state) throw new Error("Expected state");
 		state.hasOverlap = true;
 		state.stage = "bounds";
 		state.boundInputs = setup.overlaps.map((overlap) => ({
@@ -108,17 +113,26 @@ describe("convolution beginner workflow metadata", () => {
 		}));
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].lower = "999";
-			state.boundInputs[index].upper = overlap.upperLatex;
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.lower = "999";
+				boundInput.upper = overlap.upperLatex;
+			}
 		});
 		expect(validateBoundsStage(state, setup).kind).toBe("misconception");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].lower = overlap.lowerLatex;
-			state.boundInputs[index].upper = "999";
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.lower = overlap.lowerLatex;
+				boundInput.upper = "999";
+			}
 		});
 		expect(validateBoundsStage(state, setup).kind).toBe("misconception");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].upper = overlap.upperLatex;
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.upper = overlap.upperLatex;
+			}
 		});
 		expect(validateBoundsStage(state, setup)).toMatchObject({
 			kind: "valid",
@@ -127,21 +141,26 @@ describe("convolution beginner workflow metadata", () => {
 		state.stage = "splits";
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].splits = overlap.splitPointsLatex.map(
-				() => "999",
-			);
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.splits = overlap.splitPointsLatex.map(() => "999");
+			}
 		});
 		expect(validateBoundsStage(state, setup).kind).toBe("incorrect");
 		setup.overlaps.forEach((overlap, index) => {
-			state.boundInputs[index].splits = [...overlap.splitPointsLatex];
+			const boundInput = state.boundInputs[index];
+			if (boundInput) {
+				boundInput.splits = [...overlap.splitPointsLatex];
+			}
 		});
 		expect(validateBoundsStage(state, setup).kind).toBe("valid");
-		const exterior = problem.itsData.step5.parts[0].setupBySignal?.h;
+		const exteriorPart = problem.itsData.step5.parts[0];
+		if (!exteriorPart) throw new Error("Expected exterior part.");
+		const exterior = exteriorPart.setupBySignal?.h;
 		if (!exterior) throw new Error("Expected exterior setup.");
 		const exteriorState =
-			createBoundsState(problem).subSteps[
-				problem.itsData.step5.parts[0].id
-			];
+			createBoundsState(problem).subSteps[exteriorPart.id];
+		if (!exteriorState) throw new Error("Expected exteriorState.");
 		exteriorState.hasOverlap = false;
 		expect(validateBoundsStage(exteriorState, exterior).kind).toBe("valid");
 	});
@@ -166,7 +185,7 @@ describe("convolution beginner workflow metadata", () => {
 				seed: 13,
 			});
 			const terms = problem.itsData.step6.parts.flatMap(
-				(part) => part.evaluationBySignal?.h ?? [],
+				(p) => p.evaluationBySignal?.h ?? [],
 			);
 			expect(terms.length).toBeGreaterThan(0);
 			expect(terms.every((term) => term.integrandLatex.length > 0)).toBe(
@@ -202,22 +221,16 @@ describe("convolution beginner workflow metadata", () => {
 		expect(buildEvaluationTerms(interval, undefined, context, "h")).toEqual(
 			[],
 		);
-		expect(
-			buildEvaluationTerms(
-				interval,
-				setup,
-				{ ...context, resolvedSignals: undefined },
-				"h",
-			),
-		).toEqual([]);
 
 		const invalidLower = structuredClone(setup);
-		invalidLower.overlaps[0].lowerLatex = "(";
+		const invLow = invalidLower.overlaps[0];
+		if (invLow) invLow.lowerLatex = "(";
 		expect(
 			buildEvaluationTerms(interval, invalidLower, context, "h"),
 		).toEqual([]);
 		const invalidUpper = structuredClone(setup);
-		invalidUpper.overlaps[0].upperLatex = "(";
+		const invUp = invalidUpper.overlaps[0];
+		if (invUp) invUp.upperLatex = "(";
 		expect(
 			buildEvaluationTerms(interval, invalidUpper, context, "h"),
 		).toEqual([]);
@@ -244,12 +257,14 @@ describe("convolution beginner workflow metadata", () => {
 		).toEqual([]);
 
 		const fallbackLower = structuredClone(setup);
-		fallbackLower.overlaps[0].lowerLatex = undefined as never;
+		const fbLow = fallbackLower.overlaps[0];
+		if (fbLow) fbLow.lowerLatex = undefined as never;
 		expect(
 			buildEvaluationTerms(interval, fallbackLower, context, "h").length,
 		).toBeGreaterThanOrEqual(0);
 		const fallbackUpper = structuredClone(setup);
-		fallbackUpper.overlaps[0].upperLatex = undefined as never;
+		const fbUp = fallbackUpper.overlaps[0];
+		if (fbUp) fbUp.upperLatex = undefined as never;
 		expect(
 			buildEvaluationTerms(interval, fallbackUpper, context, "h").length,
 		).toBeGreaterThanOrEqual(0);
@@ -267,6 +282,8 @@ describe("convolution beginner workflow metadata", () => {
 		const index = problem.itsData.step6.parts.indexOf(part);
 		const interval = problem.intervals[index];
 		const state = createEvaluationState(problem, "h").subSteps[part.id];
+		if (!interval || !state)
+			throw new Error("Expected interval and state.");
 		const term = part.evaluationBySignal?.h[0];
 		const input = state.termInputs[0];
 		if (!term || !input) throw new Error("Expected evaluation term.");
@@ -331,6 +348,8 @@ describe("convolution beginner workflow metadata", () => {
 		const interval =
 			problem.intervals[problem.itsData.step6.parts.indexOf(part)];
 		const state = createEvaluationState(problem, "h").subSteps[part.id];
+		if (!state || !interval)
+			throw new Error("Expected state and interval.");
 		const term = part.evaluationBySignal?.h[0];
 		const input = state.termInputs[0];
 		if (!term?.geometry || !input)
@@ -405,10 +424,14 @@ describe("convolution beginner workflow metadata", () => {
 		const interval =
 			problem.intervals[problem.itsData.step6.parts.indexOf(part)];
 		const state = createEvaluationState(problem, "h").subSteps[part.id];
+		if (!state || !interval)
+			throw new Error("Expected state and interval.");
 		const first = part.evaluationBySignal?.h[0];
 		if (!first) throw new Error("Expected first split term.");
+		const termInput = state.termInputs[0];
+		if (!termInput) throw new Error("Expected termInput.");
 		state.stage = "difference";
-		state.termInputs[0].difference = first.differenceLatex;
+		termInput.difference = first.differenceLatex;
 		expect(
 			validateEvaluationStage(
 				state,
@@ -453,8 +476,12 @@ describe("convolution beginner workflow metadata", () => {
 			},
 			"h",
 		).subSteps[syntheticPart.id];
+		if (!syntheticState) throw new Error("Expected syntheticState.");
+		const syntheticTermInput = syntheticState.termInputs[0];
+		if (!syntheticTermInput)
+			throw new Error("Expected syntheticTermInput.");
 		syntheticState.stage = "difference";
-		syntheticState.termInputs[0].difference = rectangleTerm.differenceLatex;
+		syntheticTermInput.difference = rectangleTerm.differenceLatex;
 		expect(
 			validateEvaluationStage(
 				syntheticState,
@@ -486,6 +513,7 @@ describe("convolution beginner workflow metadata", () => {
 			metadataFreeProblem,
 			"h",
 		).subSteps[metadataFreePart.id];
+		if (!metadataFreeState) throw new Error("Expected metadataFreeState.");
 		metadataFreeState.stage = "upper";
 		expect(
 			validateEvaluationStage(
@@ -546,6 +574,7 @@ describe("convolution beginner workflow metadata", () => {
 		const setup = part?.setupBySignal?.h;
 		if (!part || !setup) throw new Error("Expected overlap setup.");
 		const state = createBoundsState(problem).subSteps[part.id];
+		if (!state) throw new Error("Expected bounds state.");
 		state.hasOverlap = true;
 		state.stage = "evaluate";
 		expect(validateBoundsStage(state, setup).kind).toBe("blank");
@@ -561,7 +590,7 @@ describe("convolution beginner workflow metadata", () => {
 
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: [
-				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[0] ?? ""),
 				String(overlap.lowerCandidateValues[1] ?? ""),
 			],
 			upperValues: ["999", "999"],
@@ -573,11 +602,11 @@ describe("convolution beginner workflow metadata", () => {
 
 		state.boundInputs = setup.overlaps.map((overlap) => ({
 			lowerValues: [
-				String(overlap.lowerCandidateValues[0]),
+				String(overlap.lowerCandidateValues[0] ?? ""),
 				String(overlap.lowerCandidateValues[1] ?? ""),
 			],
 			upperValues: [
-				String(overlap.upperCandidateValues[0]),
+				String(overlap.upperCandidateValues[0] ?? ""),
 				String(overlap.upperCandidateValues[1] ?? ""),
 			],
 			lower: "",

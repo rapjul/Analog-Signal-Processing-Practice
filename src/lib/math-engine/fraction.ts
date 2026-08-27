@@ -153,7 +153,11 @@ function parseSingleNumber(str: string): number {
 
 	// Case 1: Unparenthesized signed number e.g. "42", "-7", "- 11", "+ 3.14", ".5", "-.5"
 	const simpleMatch = trimmed.match(/^([+-]?)\s*(\d+(?:\.\d*)?|\.\d+)$/);
-	if (simpleMatch) {
+	if (
+		simpleMatch &&
+		simpleMatch[1] !== undefined &&
+		simpleMatch[2] !== undefined
+	) {
 		const sign = simpleMatch[1] === "-" ? -1 : 1;
 		const val = Number.parseFloat(simpleMatch[2]);
 		return Number.isNaN(val) ? Number.NaN : sign * val;
@@ -163,7 +167,12 @@ function parseSingleNumber(str: string): number {
 	const parenMatch = trimmed.match(
 		/^([+-]?)\s*\(\s*([+-]?)\s*(\d+(?:\.\d*)?|\.\d+)\s*\)$/,
 	);
-	if (parenMatch) {
+	if (
+		parenMatch &&
+		parenMatch[1] !== undefined &&
+		parenMatch[2] !== undefined &&
+		parenMatch[3] !== undefined
+	) {
 		const sign1 = parenMatch[1] === "-" ? -1 : 1;
 		const sign2 = parenMatch[2] === "-" ? -1 : 1;
 		const val = Number.parseFloat(parenMatch[3]);
@@ -212,8 +221,8 @@ export function parseNumericInput(input: string): number {
 			return Number.NaN;
 		}
 
-		const num = parseSingleNumber(parts[0]);
-		const den = parseSingleNumber(parts[1]);
+		const num = parseSingleNumber(parts[0] ?? "");
+		const den = parseSingleNumber(parts[1] ?? "");
 
 		if (Number.isNaN(num) || Number.isNaN(den) || den === 0) {
 			return Number.NaN;

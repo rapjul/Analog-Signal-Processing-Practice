@@ -418,7 +418,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				state: BaseStepState | MultiPartStepState;
 				its: {
 					hints: string[];
-					subStepHints?: Record<string, string[]>;
+					subStepHints?: Record<string, string[]> | undefined;
 				};
 			}
 		> = {
@@ -487,10 +487,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Live rendered preview equation for Step 2 complex roots.
 	 */
 	previewComplexRoots = $derived.by((): string => {
-		return derivePreviewComplexRoots(
-			this.step2.sigma,
-			this.step2.omegaD,
-		);
+		return derivePreviewComplexRoots(this.step2.sigma, this.step2.omegaD);
 	});
 
 	/**
@@ -546,7 +543,8 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				this.setMisconception(
 					this.step2,
 					s2Data.misconceptions.unfactorable_complex ||
-						s2Data.misconceptions.unfactorable_general,
+						s2Data.misconceptions.unfactorable_general ||
+						"This polynomial cannot be factored cleanly over integers.",
 				);
 				return;
 			}
@@ -574,12 +572,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	checkStep2Factoring(): void {
 		const result = validateFactoringRoots(this.step2, this.problem);
 		if (result.kind === "pass") {
-			this.setSubStepPassed(
-				this.step2,
-				"factoring_inputs",
-				undefined,
-				3,
-			);
+			this.setSubStepPassed(this.step2, "factoring_inputs", undefined, 3);
 		} else if (result.kind === "validation") {
 			this.setSubStepValidation(
 				this.step2,
@@ -664,12 +657,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	checkStep2QuadRoots(): void {
 		const res = validateQuadRoots(this.step2, this.problem);
 		if (res.kind === "pass") {
-			this.setSubStepPassed(
-				this.step2,
-				"quad_root_inputs",
-				undefined,
-				3,
-			);
+			this.setSubStepPassed(this.step2, "quad_root_inputs", undefined, 3);
 		} else if (res.kind === "validation") {
 			this.setSubStepValidation(
 				this.step2,
@@ -868,11 +856,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				);
 			}
 		} else if (res.kind === "validation") {
-			this.setSubStepValidation(
-				this.step6,
-				"target_values",
-				res.message,
-			);
+			this.setSubStepValidation(this.step6, "target_values", res.message);
 		} else if (res.kind === "misconception") {
 			this.setSubStepMisconception(
 				this.step6,
@@ -880,11 +864,7 @@ export class OdeStepSolverState extends BaseStepSolverState {
 				res.message,
 			);
 		} else {
-			this.setSubStepIncorrect(
-				this.step6,
-				"target_values",
-				res.message,
-			);
+			this.setSubStepIncorrect(this.step6, "target_values", res.message);
 		}
 	}
 
@@ -972,23 +952,11 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.step7.ziZsPassed = true;
 			this.setSubStepPassed(this.step7, "zi_zs", "tr_ss");
 		} else if (res.kind === "validation") {
-			this.setSubStepValidation(
-				this.step7,
-				"zi_zs",
-				res.message,
-			);
+			this.setSubStepValidation(this.step7, "zi_zs", res.message);
 		} else if (res.kind === "misconception") {
-			this.setSubStepMisconception(
-				this.step7,
-				"zi_zs",
-				res.message,
-			);
+			this.setSubStepMisconception(this.step7, "zi_zs", res.message);
 		} else {
-			this.setSubStepIncorrect(
-				this.step7,
-				"zi_zs",
-				res.message,
-			);
+			this.setSubStepIncorrect(this.step7, "zi_zs", res.message);
 		}
 	}
 
@@ -996,25 +964,14 @@ export class OdeStepSolverState extends BaseStepSolverState {
 	 * Validates Step 7 Part 7B: Transient and Steady-State response selection.
 	 */
 	checkStep7TrSS(): void {
-		const res = validateStep7TransientSteadyState(
-			this.step7,
-			this.problem,
-		);
+		const res = validateStep7TransientSteadyState(this.step7, this.problem);
 		if (res.kind === "pass") {
 			this.step7.trSsPassed = true;
 			this.setSubStepPassed(this.step7, "tr_ss", "concept");
 		} else if (res.kind === "validation") {
-			this.setSubStepValidation(
-				this.step7,
-				"tr_ss",
-				res.message,
-			);
+			this.setSubStepValidation(this.step7, "tr_ss", res.message);
 		} else {
-			this.setSubStepMisconception(
-				this.step7,
-				"tr_ss",
-				res.message,
-			);
+			this.setSubStepMisconception(this.step7, "tr_ss", res.message);
 		}
 	}
 
@@ -1028,17 +985,9 @@ export class OdeStepSolverState extends BaseStepSolverState {
 			this.step7.conceptPassed = true;
 			this.setSubStepPassed(this.step7, "concept", undefined, 8);
 		} else if (res.kind === "validation") {
-			this.setSubStepValidation(
-				this.step7,
-				"concept",
-				res.message,
-			);
+			this.setSubStepValidation(this.step7, "concept", res.message);
 		} else {
-			this.setSubStepMisconception(
-				this.step7,
-				"concept",
-				res.message,
-			);
+			this.setSubStepMisconception(this.step7, "concept", res.message);
 		}
 	}
 

@@ -521,7 +521,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			}
 			if (
 				!actual.every((value, index) =>
-					convolutionScalarMatches(String(value), expected[index]),
+					convolutionScalarMatches(
+						String(value),
+						expected[index] ?? Number.NaN,
+					),
 				)
 			) {
 				this.setSubStepIncorrect(
@@ -861,7 +864,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		multipart.activeSubStepId = descriptor.subStep;
 		const targetIndex = multipart.subStepOrder.indexOf(descriptor.subStep);
 		multipart.subStepOrder.forEach((id, index) => {
-			multipart.subSteps[id].isValid = index < targetIndex;
+			const subStep = multipart.subSteps[id];
+			if (subStep) {
+				subStep.isValid = index < targetIndex;
+			}
 		});
 		return true;
 	}
@@ -912,6 +918,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				while (this.currentStep === 4) {
 					const id = this.step4.activeSubStepId;
 					const state = this.step4.subSteps[id];
+					if (!state) break;
 					const contact = step4Contacts(
 						this.problem,
 						this.flippedSignal,
@@ -954,6 +961,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				while (this.currentStep === 5) {
 					const id = this.step5.activeSubStepId;
 					const state = this.step5.subSteps[id];
+					if (!state) break;
 					const setup = this.problem.itsData.step5.parts.find(
 						(part) => part.id === id,
 					)?.setupBySignal?.[this.flippedSignal];
@@ -965,11 +973,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 					if (state.stage === "evaluate") {
 						state.boundInputs = setup.overlaps.map((overlap) => ({
 							lowerValues: [
-								String(overlap.lowerCandidateValues[0]),
+								String(overlap.lowerCandidateValues[0] ?? ""),
 								String(overlap.lowerCandidateValues[1] ?? ""),
 							],
 							upperValues: [
-								String(overlap.upperCandidateValues[0]),
+								String(overlap.upperCandidateValues[0] ?? ""),
 								String(overlap.upperCandidateValues[1] ?? ""),
 							],
 							lower: overlap.lowerLatex,
@@ -983,12 +991,12 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						(overlap, index) => ({
 							lowerValues: state.boundInputs[index]
 								?.lowerValues ?? [
-								String(overlap.lowerCandidateValues[0]),
+								String(overlap.lowerCandidateValues[0] ?? ""),
 								String(overlap.lowerCandidateValues[1] ?? ""),
 							],
 							upperValues: state.boundInputs[index]
 								?.upperValues ?? [
-								String(overlap.upperCandidateValues[0]),
+								String(overlap.upperCandidateValues[0] ?? ""),
 								String(overlap.upperCandidateValues[1] ?? ""),
 							],
 							lower: overlap.lowerLatex,
@@ -1007,8 +1015,9 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 					const part = this.problem.itsData.step6.parts[index];
 					const state =
 						this.step6.subSteps[this.step6.activeSubStepId];
+					if (!state) break;
 					const term =
-						part?.evaluationBySignal?.[this.flippedSignal][
+						part?.evaluationBySignal?.[this.flippedSignal]?.[
 							state.activeTermIndex
 						];
 					const termInput = state.termInputs[state.activeTermIndex];

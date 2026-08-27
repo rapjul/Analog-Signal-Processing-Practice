@@ -88,7 +88,7 @@ export function fourierDevGetVisualStates(
 				},
 			);
 		});
-	} else if (s5Parts.length === 1) {
+	} else if (s5Parts.length === 1 && s5Parts[0]) {
 		const part = s5Parts[0];
 		states.push(
 			{
@@ -133,7 +133,7 @@ export function fourierDevGetVisualStates(
 				},
 			);
 		});
-	} else if (s6Parts.length === 1) {
+	} else if (s6Parts.length === 1 && s6Parts[0]) {
 		const part = s6Parts[0];
 		states.push(
 			{
@@ -158,6 +158,12 @@ export function fourierDevGetVisualStates(
 		label: "Step 7 · Final Series",
 		step: 7,
 		kind: "interactive",
+	});
+	states.push({
+		id: "fourier-series.step-07.final-series.hints",
+		label: "Step 7 · Final Series · All Hints",
+		step: 7,
+		kind: "hint",
 	});
 
 	return states;
@@ -190,6 +196,7 @@ function devPrepareStep5SubStep(
 	if (targetIndex === -1) return false;
 	for (let i = 0; i < targetIndex; i++) {
 		const part = parts[i];
+		if (!part) return false;
 		const opt = part.options.find((o) => o.isCorrect);
 		if (!opt) return false;
 		solver.checkStep5(opt);
@@ -208,6 +215,7 @@ function devPrepareStep6SubStep(
 	if (targetIndex === -1) return false;
 	for (let i = 0; i < targetIndex; i++) {
 		const part = parts[i];
+		if (!part) return false;
 		const opt = part.options.find((o) => o.isCorrect);
 		if (!opt) return false;
 		solver.checkStep6(opt);
@@ -247,8 +255,7 @@ export function fourierDevGoToVisualState(
 			const choices = ["even", "odd", "none"];
 			const wrong = choices.find(
 				(choice) =>
-					choice !==
-					solver.problem.itsData.step2.correctOriginParity,
+					choice !== solver.problem.itsData.step2.correctOriginParity,
 			);
 			if (!wrong) return false;
 			solver.checkStep2OriginParity(wrong as OriginParity);
@@ -260,6 +267,10 @@ export function fourierDevGoToVisualState(
 			return devPrepareParentStep(solver, 4);
 		case "fourier-series.step-07.final-series":
 			return devPrepareParentStep(solver, 7);
+		case "fourier-series.step-07.final-series.hints":
+			if (!devPrepareParentStep(solver, 7)) return false;
+			solver.devRevealAllHints();
+			return true;
 		default:
 			break;
 	}

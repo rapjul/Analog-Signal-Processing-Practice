@@ -77,14 +77,16 @@ export function evaluatePfdResidues(
 	const residues: number[] = [];
 
 	for (let i = 0; i < poles.length; i++) {
-		const p_i = poles[i];
+		const p_i = poles[i] ?? 0;
 		// Evaluate N(p_i)
-		const numVal = numCoeffs[0] * p_i + numCoeffs[1];
+		const num0 = numCoeffs[0] ?? 0;
+		const num1 = numCoeffs[1] ?? 0;
+		const numVal = num0 * p_i + num1;
 		// Evaluate product (p_i - p_j) for j != i
 		let denVal = 1;
 		for (let j = 0; j < poles.length; j++) {
 			if (i !== j) {
-				denVal *= p_i - poles[j];
+				denVal *= p_i - (poles[j] ?? 0);
 			}
 		}
 		residues.push(numVal / denVal);
@@ -92,7 +94,7 @@ export function evaluatePfdResidues(
 
 	// Format inverse transform LaTeX: sum_i (A_i * e^{p_i t} u(t))
 	const terms = residues.map((res, idx) => {
-		const p = poles[idx];
+		const p = poles[idx] ?? 0;
 		const sign = res >= 0 ? (idx > 0 ? "+ " : "") : "- ";
 		const absRes = Math.abs(res);
 		const expTerm = p === 0 ? "" : `e^{${p}t}`;
@@ -190,10 +192,14 @@ export function generateLaplaceProblem(
 	switch (problemType) {
 		case "inverse_pfd": {
 			const polesList = [-1, -2, -3, -4, -5];
-			const p1 = polesList[Math.floor(Math.random() * polesList.length)];
-			let p2 = polesList[Math.floor(Math.random() * polesList.length)];
+			const p1 =
+				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+			let p2 =
+				polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
 			while (p2 === p1) {
-				p2 = polesList[Math.floor(Math.random() * polesList.length)];
+				p2 =
+					polesList[Math.floor(Math.random() * polesList.length)] ??
+					-2;
 			}
 
 			const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
@@ -215,11 +221,11 @@ export function generateLaplaceProblem(
 					},
 					{
 						title: `Step 2: Solve Residue A at s = ${p1}`,
-						latex: `A = \\left. (s + ${a1}) X(s) \\right|_{s = ${p1}} = \\frac{${b1}(${p1}) + ${b0}}{${p1} + ${a2}} = ${pfd.residues[0]}`,
+						latex: `A = \\left. (s + ${a1}) X(s) \\right|_{s = ${p1}} = \\frac{${b1}(${p1}) + ${b0}}{${p1} + ${a2}} = ${pfd.residues[0] ?? 0}`,
 					},
 					{
 						title: `Step 3: Solve Residue B at s = ${p2}`,
-						latex: `B = \\left. (s + ${a2}) X(s) \\right|_{s = ${p2}} = \\frac{${b1}(${p2}) + ${b0}}{${p2} + ${a1}} = ${pfd.residues[1]}`,
+						latex: `B = \\left. (s + ${a2}) X(s) \\right|_{s = ${p2}} = \\frac{${b1}(${p2}) + ${b0}}{${p2} + ${a1}} = ${pfd.residues[1] ?? 0}`,
 					},
 					{
 						title: "Step 4: Perform Term-by-Term Inverse Transform",
@@ -231,7 +237,8 @@ export function generateLaplaceProblem(
 		case "inverse_direct": {
 			const directTypes = ["trig", "delay", "impulse"];
 			const chosen =
-				directTypes[Math.floor(Math.random() * directTypes.length)];
+				directTypes[Math.floor(Math.random() * directTypes.length)] ??
+				"trig";
 
 			if (chosen === "trig") {
 				const A = Math.floor(Math.random() * 4) + 1;
@@ -338,11 +345,15 @@ export function generateLaplaceProblem(
 			};
 		}
 		case "roc_stability": {
-			const polesList = [-5, -4, -3, -2, -1, 1, 2, 3];
-			const p1 = polesList[Math.floor(Math.random() * polesList.length)];
-			let p2 = polesList[Math.floor(Math.random() * polesList.length)];
+			const polesList = [-3, -2, -1, 1, 2, 3];
+			const p1 =
+				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+			let p2 =
+				polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
 			while (p2 === p1) {
-				p2 = polesList[Math.floor(Math.random() * polesList.length)];
+				p2 =
+					polesList[Math.floor(Math.random() * polesList.length)] ??
+					2;
 			}
 
 			const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
@@ -351,7 +362,8 @@ export function generateLaplaceProblem(
 				"two-sided",
 			];
 			const direction =
-				directions[Math.floor(Math.random() * directions.length)];
+				directions[Math.floor(Math.random() * directions.length)] ??
+				"right-sided";
 			const stability = determineStability([p1, p2], direction);
 
 			return {

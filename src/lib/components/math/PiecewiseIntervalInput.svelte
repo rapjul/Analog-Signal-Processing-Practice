@@ -92,9 +92,10 @@
 	 */
 	function synthesizeLatex(): string {
 		if (intervals.length === 0) return "";
-		if (intervals.length === 1) {
-			const expr = intervals[0].expression.trim() || "0";
-			const cond = formatCondition(intervals[0]);
+		if (intervals.length === 1 && intervals[0]) {
+			const first = intervals[0];
+			const expr = first.expression.trim() || "0";
+			const cond = formatCondition(first);
 			return `${expr} \\quad \\text{for } ${cond}`;
 		}
 

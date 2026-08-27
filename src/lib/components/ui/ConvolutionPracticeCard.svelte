@@ -92,9 +92,10 @@
 				title: "Define convolution",
 				description:
 					"Use one fixed signal and reflect and translate the other signal.",
-				latex: problem.itsData.step2.options.find(
-					({ isCorrect }) => isCorrect,
-				)?.latex,
+				latex:
+					problem.itsData.step2.options.find(
+						({ isCorrect }) => isCorrect,
+					)?.latex ?? "",
 				responsive: true,
 			},
 			{

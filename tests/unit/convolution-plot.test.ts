@@ -40,10 +40,10 @@ describe("convolution plot model", () => {
 			"fast",
 		]);
 		expect(DEFAULT_CONVOLUTION_SPEED).toBe(0.65);
-		expect(CONVOLUTION_SPEED_PRESETS[0].unitsPerSecond).toBeLessThan(
+		expect(CONVOLUTION_SPEED_PRESETS[0]!.unitsPerSecond).toBeLessThan(
 			DEFAULT_CONVOLUTION_SPEED,
 		);
-		expect(CONVOLUTION_SPEED_PRESETS[2].unitsPerSecond).toBeGreaterThan(
+		expect(CONVOLUTION_SPEED_PRESETS[2]!.unitsPerSecond).toBeGreaterThan(
 			DEFAULT_CONVOLUTION_SPEED,
 		);
 	});

@@ -40,7 +40,7 @@ function evaluateMathJsonStrict(
 			return Math.E;
 		}
 		if (node in vars) {
-			return vars[node];
+			return vars[node] ?? null;
 		}
 		const parsedNum = Number(node);
 		return Number.isFinite(parsedNum) ? parsedNum : null;
@@ -51,14 +51,18 @@ function evaluateMathJsonStrict(
 			"num" in node &&
 			typeof (node as { num: unknown }).num === "string"
 		) {
-			const n = Number((node as { num: string }).num);
-			return Number.isFinite(n) ? n : null;
+			const parsed = Number((node as { num: string }).num);
+			return Number.isFinite(parsed) ? parsed : null;
 		}
 		if (
 			"sym" in node &&
 			typeof (node as { sym: unknown }).sym === "string"
 		) {
-			return evaluateMathJsonStrict((node as { sym: string }).sym, vars);
+			const sym = (node as { sym: string }).sym;
+			if (sym === "Pi" || sym === "pi" || sym === "\\pi") return Math.PI;
+			if (sym === "ExponentialE" || sym === "e") return Math.E;
+			if (sym in vars) return vars[sym] ?? null;
+			return null;
 		}
 		if ("fn" in node && Array.isArray((node as { fn: unknown }).fn)) {
 			return evaluateMathJsonStrict((node as { fn: unknown[] }).fn, vars);
@@ -83,7 +87,7 @@ function evaluateMathJsonStrict(
 			return result;
 		}
 		case "Subtract": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const first = evaluateMathJsonStrict(args[0], vars);
 			if (first === null) return null;
 			if (args.length === 1) return -first;
@@ -107,14 +111,24 @@ function evaluateMathJsonStrict(
 		}
 		case "Divide":
 		case "Rational": {
-			if (args.length < 2) return null;
+			if (
+				args.length < 2 ||
+				args[0] === undefined ||
+				args[1] === undefined
+			)
+				return null;
 			const num = evaluateMathJsonStrict(args[0], vars);
 			const den = evaluateMathJsonStrict(args[1], vars);
 			if (num === null || den === null || den === 0) return null;
 			return num / den;
 		}
 		case "Power": {
-			if (args.length < 2) return null;
+			if (
+				args.length < 2 ||
+				args[0] === undefined ||
+				args[1] === undefined
+			)
+				return null;
 			const base = evaluateMathJsonStrict(args[0], vars);
 			const exp = evaluateMathJsonStrict(args[1], vars);
 			if (base === null || exp === null) return null;
@@ -122,13 +136,18 @@ function evaluateMathJsonStrict(
 			return Number.isFinite(result) ? result : null;
 		}
 		case "Sqrt": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			if (value === null || value < 0) return null;
 			return Math.sqrt(value);
 		}
 		case "Root": {
-			if (args.length < 2) return null;
+			if (
+				args.length < 2 ||
+				args[0] === undefined ||
+				args[1] === undefined
+			)
+				return null;
 			const radicand = evaluateMathJsonStrict(args[0], vars);
 			const index = evaluateMathJsonStrict(args[1], vars);
 			if (radicand === null || index === null || index === 0) return null;
@@ -136,12 +155,12 @@ function evaluateMathJsonStrict(
 			return Number.isFinite(result) ? result : null;
 		}
 		case "Negate": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			return value === null ? null : -value;
 		}
 		case "Exp": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			if (value === null) return null;
 			const result = Math.exp(value);
@@ -150,7 +169,7 @@ function evaluateMathJsonStrict(
 		case "Cos":
 		case "Sin":
 		case "Tan": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			if (value === null) return null;
 			return op === "Cos"
@@ -161,19 +180,19 @@ function evaluateMathJsonStrict(
 		}
 		case "Ln":
 		case "Log": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			if (value === null || value <= 0) return null;
 			return Math.log(value);
 		}
 		case "Abs": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			const value = evaluateMathJsonStrict(args[0], vars);
 			return value === null ? null : Math.abs(value);
 		}
 		case "Delimiter":
 		case "Sequence": {
-			if (args.length === 0) return null;
+			if (args.length === 0 || args[0] === undefined) return null;
 			return evaluateMathJsonStrict(args[0], vars);
 		}
 		default: {
@@ -342,7 +361,13 @@ function evaluateCondition(cond: string, t: number): boolean {
 	const betweenMatch = cleaned.match(
 		/^(-?\d+(?:\.\d+)?)\s*(<=|<)\s*t\s*(<=|<)\s*(-?\d+(?:\.\d+)?)$/,
 	);
-	if (betweenMatch) {
+	if (
+		betweenMatch &&
+		betweenMatch[1] &&
+		betweenMatch[2] &&
+		betweenMatch[3] &&
+		betweenMatch[4]
+	) {
 		const lower = Number.parseFloat(betweenMatch[1]);
 		const op1 = betweenMatch[2];
 		const op2 = betweenMatch[3];
@@ -355,7 +380,7 @@ function evaluateCondition(cond: string, t: number): boolean {
 
 	// Match t < a or t <= a
 	const tLessMatch = cleaned.match(/^t\s*(<=|<)\s*(-?\d+(?:\.\d+)?)$/);
-	if (tLessMatch) {
+	if (tLessMatch && tLessMatch[1] && tLessMatch[2]) {
 		const op = tLessMatch[1];
 		const val = Number.parseFloat(tLessMatch[2]);
 		return op === "<=" ? t <= val : t < val;
@@ -363,7 +388,7 @@ function evaluateCondition(cond: string, t: number): boolean {
 
 	// Match t > a or t >= a
 	const tGreaterMatch = cleaned.match(/^t\s*(>=|>)\s*(-?\d+(?:\.\d+)?)$/);
-	if (tGreaterMatch) {
+	if (tGreaterMatch && tGreaterMatch[1] && tGreaterMatch[2]) {
 		const op = tGreaterMatch[1];
 		const val = Number.parseFloat(tGreaterMatch[2]);
 		return op === ">=" ? t >= val : t > val;
@@ -385,7 +410,7 @@ export function evaluatePiecewiseLatexAt(latex: string, t: number): number {
 	}
 
 	const match = trimmed.match(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/);
-	if (!match) {
+	if (!match || !match[1]) {
 		return evaluateLatexAt(trimmed, t);
 	}
 
@@ -401,16 +426,16 @@ export function evaluatePiecewiseLatexAt(latex: string, t: number): number {
 
 		if (row.includes("&")) {
 			const parts = row.split("&");
-			exprPart = parts[0].trim().replace(/[,;]$/, "").trim();
+			exprPart = (parts[0] ?? "").trim().replace(/[,;]$/, "").trim();
 			condPart = parts.slice(1).join("&").trim();
 		} else if (row.includes("\\text{for}")) {
 			const parts = row.split("\\text{for}");
-			exprPart = parts[0]
+			exprPart = (parts[0] ?? "")
 				.trim()
 				.replace(/\\quad$/, "")
 				.replace(/[,;]$/, "")
 				.trim();
-			condPart = parts[1].trim();
+			condPart = (parts[1] ?? "").trim();
 		}
 
 		if (condPart) {
@@ -435,13 +460,13 @@ export function validateConvolutionResponse(
 	studentLatex: string,
 	refEval: (t: number) => number,
 	timeRange: [number, number] = [-2, 6],
-	tolerance: number = 0.05,
+	tolerance = 0.05,
 ): boolean {
 	if (!studentLatex?.trim()) {
 		return false;
 	}
 
-	const [tMin, tMax] = timeRange;
+	const [tMin = -2, tMax = 6] = timeRange;
 	const count = 20;
 	const step = (tMax - tMin) / count;
 	let validMatches = 0;

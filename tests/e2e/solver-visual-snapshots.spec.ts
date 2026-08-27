@@ -76,7 +76,7 @@ interface HarnessVisualState {
 	id: string;
 	label: string;
 	step: number;
-	subStep?: string;
+	subStep?: string | undefined;
 	kind: "interactive" | "hint" | "diagnostic";
 }
 
@@ -87,8 +87,8 @@ interface VisualArtifactEntry {
 	stateId: string;
 	stateLabel: string;
 	stateKind: StateKind;
-	step?: number;
-	subStep?: string;
+	step?: number | undefined;
+	subStep?: string | undefined;
 	theme: Theme;
 	viewport: string;
 	captureKind: CaptureKind;
@@ -533,13 +533,13 @@ function artifactPath(
 
 async function recordArtifact(args: {
 	page: Page;
-	locator?: Locator;
+	locator?: Locator | undefined;
 	archetype: ProblemArchetype;
 	stateId: string;
 	stateLabel: string;
 	stateKind: StateKind;
-	step?: number;
-	subStep?: string;
+	step?: number | undefined;
+	subStep?: string | undefined;
 	theme: Theme;
 	viewport: ViewportDefinition;
 	captureKind: CaptureKind;
@@ -666,7 +666,7 @@ async function assertAndRecordActiveState(args: {
 	stateLabel: string;
 	stateKind: HarnessVisualState["kind"];
 	step: number;
-	subStep?: string;
+	subStep?: string | undefined;
 	theme: Theme;
 	viewport: ViewportDefinition;
 }): Promise<void> {

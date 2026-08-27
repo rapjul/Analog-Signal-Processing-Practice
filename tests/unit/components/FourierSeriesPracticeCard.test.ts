@@ -43,27 +43,27 @@ describe("FourierSeriesPracticeCard", () => {
 			.getByTestId("fourier-conversion-options")
 			.querySelectorAll("button");
 		const wrongIndex =
-			problem.conversionChallenge.parts[0].options.findIndex(
+			problem.conversionChallenge.parts[0]!.options.findIndex(
 				({ isCorrect }) => !isCorrect,
 			);
-		await fireEvent.click(optionButtons[wrongIndex]);
+		await fireEvent.click(optionButtons[wrongIndex]!);
 		expect(view.getByRole("alert")).toBeTruthy();
 
 		const firstCorrectIndex =
-			problem.conversionChallenge.parts[0].options.findIndex(
+			problem.conversionChallenge.parts[0]!.options.findIndex(
 				({ isCorrect }) => isCorrect,
 			);
-		await fireEvent.click(optionButtons[firstCorrectIndex]);
+		await fireEvent.click(optionButtons[firstCorrectIndex]!);
 		expect(view.getByText("Part 2 of 2")).toBeTruthy();
 
 		optionButtons = view
 			.getByTestId("fourier-conversion-options")
 			.querySelectorAll("button");
 		const secondCorrectIndex =
-			problem.conversionChallenge.parts[1].options.findIndex(
+			problem.conversionChallenge.parts[1]!.options.findIndex(
 				({ isCorrect }) => isCorrect,
 			);
-		await fireEvent.click(optionButtons[secondCorrectIndex]);
+		await fireEvent.click(optionButtons[secondCorrectIndex]!);
 
 		expect(view.getByText(/Optional conversions completed/)).toBeTruthy();
 		expect(view.getByText("All 9 Steps")).toBeTruthy();

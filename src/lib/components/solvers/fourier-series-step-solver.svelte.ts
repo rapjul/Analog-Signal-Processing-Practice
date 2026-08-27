@@ -46,14 +46,14 @@ export type {
 };
 
 import {
-	createCoefficientMultiPartState,
-	createSymmetryMultiPartState,
-} from "./fourier-series-solver-state/factory-helpers";
-import {
 	fourierDevAutoFillStep,
 	fourierDevGetVisualStates,
 	fourierDevGoToVisualState,
 } from "./fourier-series-solver-state/dev-helpers";
+import {
+	createCoefficientMultiPartState,
+	createSymmetryMultiPartState,
+} from "./fourier-series-solver-state/factory-helpers";
 
 /**
  * Reactive State and Controller for the 7-Step Fourier Series ITS Solver.
@@ -390,6 +390,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	): void {
 		const activeId = step.activeSubStepId;
 		const active = step.subSteps[activeId];
+		if (!active) return;
 		if (!opt) {
 			this.setSubStepValidation(
 				step,

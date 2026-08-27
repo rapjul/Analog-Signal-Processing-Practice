@@ -185,12 +185,20 @@
 													</span>
 													<input
 														type="text"
-														bind:value={
-															activeState
-																.boundInputs[
-																overlapIndex
-															].lowerValues[0]
-														}
+														value={activeState
+															.boundInputs[
+															overlapIndex
+														]?.lowerValues[0] ?? ""}
+														oninput={(e) => {
+															const b =
+																activeState
+																	.boundInputs[
+																	overlapIndex
+																];
+															if (b)
+																b.lowerValues[0] =
+																	e.currentTarget.value;
+														}}
 														placeholder="e.g. 0"
 													/>
 												</label>
@@ -203,12 +211,21 @@
 														</span>
 														<input
 															type="text"
-															bind:value={
-																activeState
-																	.boundInputs[
-																	overlapIndex
-																].lowerValues[1]
-															}
+															value={activeState
+																.boundInputs[
+																overlapIndex
+															]?.lowerValues[1] ??
+																""}
+															oninput={(e) => {
+																const b =
+																	activeState
+																		.boundInputs[
+																		overlapIndex
+																	];
+																if (b)
+																	b.lowerValues[1] =
+																		e.currentTarget.value;
+															}}
 															placeholder="e.g. -1"
 														/>
 													</label>
@@ -229,12 +246,20 @@
 													</span>
 													<input
 														type="text"
-														bind:value={
-															activeState
-																.boundInputs[
-																overlapIndex
-															].upperValues[0]
-														}
+														value={activeState
+															.boundInputs[
+															overlapIndex
+														]?.upperValues[0] ?? ""}
+														oninput={(e) => {
+															const b =
+																activeState
+																	.boundInputs[
+																	overlapIndex
+																];
+															if (b)
+																b.upperValues[0] =
+																	e.currentTarget.value;
+														}}
 														placeholder="e.g. 2"
 													/>
 												</label>
@@ -247,12 +272,21 @@
 														</span>
 														<input
 															type="text"
-															bind:value={
-																activeState
-																	.boundInputs[
-																	overlapIndex
-																].upperValues[1]
-															}
+															value={activeState
+																.boundInputs[
+																overlapIndex
+															]?.upperValues[1] ??
+																""}
+															oninput={(e) => {
+																const b =
+																	activeState
+																		.boundInputs[
+																		overlapIndex
+																	];
+																if (b)
+																	b.upperValues[1] =
+																		e.currentTarget.value;
+															}}
 															placeholder="e.g. 1"
 														/>
 													</label>
@@ -290,11 +324,20 @@
 												>
 												<input
 													type="text"
-													bind:value={
-														activeState.boundInputs[
-															overlapIndex
-														].lower
-													}
+													value={activeState
+														.boundInputs[
+														overlapIndex
+													]?.lower ?? ""}
+													oninput={(e) => {
+														const b =
+															activeState
+																.boundInputs[
+																overlapIndex
+															];
+														if (b)
+															b.lower =
+																e.currentTarget.value;
+													}}
 													placeholder="e.g. 0 or t-2"
 												/>
 											</label>
@@ -304,11 +347,20 @@
 												>
 												<input
 													type="text"
-													bind:value={
-														activeState.boundInputs[
-															overlapIndex
-														].upper
-													}
+													value={activeState
+														.boundInputs[
+														overlapIndex
+													]?.upper ?? ""}
+													oninput={(e) => {
+														const b =
+															activeState
+																.boundInputs[
+																overlapIndex
+															];
+														if (b)
+															b.upper =
+																e.currentTarget.value;
+													}}
 													placeholder="e.g. t or 1"
 												/>
 											</label>
@@ -328,12 +380,23 @@
 													</span>
 													<input
 														type="text"
-														bind:value={
-															activeState
-																.boundInputs[
-																overlapIndex
-															].splits[splitIndex]
-														}
+														value={activeState
+															.boundInputs[
+															overlapIndex
+														]?.splits[splitIndex] ??
+															""}
+														oninput={(e) => {
+															const b =
+																activeState
+																	.boundInputs[
+																	overlapIndex
+																];
+															if (b)
+																b.splits[
+																	splitIndex
+																] =
+																	e.currentTarget.value;
+														}}
 														placeholder="slope or formula change"
 													/>
 												</label>

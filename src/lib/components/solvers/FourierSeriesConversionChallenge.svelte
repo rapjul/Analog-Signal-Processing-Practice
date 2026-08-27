@@ -45,7 +45,7 @@
 			{ completed: false },
 			order,
 			subSteps,
-			order[0],
+			order[0] ?? "alternate",
 		) as ConversionState;
 	}
 

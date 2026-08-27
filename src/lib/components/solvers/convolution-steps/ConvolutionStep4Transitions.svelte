@@ -157,215 +157,239 @@
 				{@const completedContact = contacts.find(({ id }) =>
 					completedId.startsWith(id),
 				)}
-				<SubStepBlock
-					badge={ledgerLabel(completedId)}
-					title={completedState.title}
-					isCompleted={true}
-				>
-					{#snippet summarySnippet()}
-						<div class="verified-summary">
-							{#if completedId === "section-count-x" || completedId === "section-count-h"}
-								{@const signal =
-									completedId === "section-count-x"
-										? "x"
-										: "h"}
-								<MathText
-									text={`$${signal}(t)$ contains ${completedState.input} connected non-zero section${completedState.input === "1" ? "" : "s"}.`}
-								/>
-							{:else if completedBreakpoint}
-								<MathText
-									text={`Verified interior breakpoint: $t=${completedState.input}$.`}
-								/>
-							{:else if completedContact && completedId.endsWith("-form")}
-								<MathText
-									text={`Verified contact equation: $${completedContact.equationLatex}$.`}
-								/>
-							{:else if completedContact}
-								<MathText
-									text={`Verified contact time: $t=${completedContact.transitionTime}$.`}
-								/>
-								{#if completedContact.duplicateOf}
-									<p class="group-note">
-										This matches an earlier contact, so both
-										contacts form one transition time.
+				{#if completedState}
+					<SubStepBlock
+						badge={ledgerLabel(completedId)}
+						title={completedState.title}
+						isCompleted={true}
+					>
+						{#snippet summarySnippet()}
+							<div class="verified-summary">
+								{#if completedId === "section-count-x" || completedId === "section-count-h"}
+									{@const signal =
+										completedId === "section-count-x"
+											? "x"
+											: "h"}
+									<MathText
+										text={`$${signal}(t)$ contains ${completedState.input} connected non-zero section${completedState.input === "1" ? "" : "s"}.`}
+									/>
+								{:else if completedBreakpoint}
+									<MathText
+										text={`Verified interior breakpoint: $t=${completedState.input}$.`}
+									/>
+								{:else if completedContact && completedId.endsWith("-form")}
+									<MathText
+										text={`Verified contact equation: $${completedContact.equationLatex}$.`}
+									/>
+								{:else if completedContact}
+									<MathText
+										text={`Verified contact time: $t=${completedContact.transitionTime}$.`}
+									/>
+									{#if completedContact.duplicateOf}
+										<p class="group-note">
+											This matches an earlier contact, so
+											both contacts form one transition
+											time.
+										</p>
+									{/if}
+								{:else if completedId === "transition-count"}
+									<p>
+										{completedState.input} distinct transition
+										times verified.
+									</p>
+								{:else if completedId === "interval-count"}
+									<p>
+										{completedState.input} output intervals verified.
 									</p>
 								{/if}
-							{:else if completedId === "transition-count"}
-								<p>
-									{completedState.input} distinct transition times
-									verified.
-								</p>
-							{:else if completedId === "interval-count"}
-								<p>
-									{completedState.input} output intervals verified.
-								</p>
-							{/if}
-						</div>
-					{/snippet}
-				</SubStepBlock>
+							</div>
+						{/snippet}
+					</SubStepBlock>
+				{/if}
 			{/each}
 		</div>
 
-		<SubStepBlock
-			badge={ledgerLabel(activeId)}
-			title={activeState.title}
-		>
-			{#if activeId === "section-count-x" || activeId === "section-count-h"}
-				{@const signal = activeId === "section-count-x" ? "x" : "h"}
-				<p class="step-prompt">
-					<MathText
-						text={`How many connected non-zero sections does $${signal}(t)$ contain? A zero-valued gap separates two sections.`}
+		{#if activeState}
+			<SubStepBlock
+				badge={ledgerLabel(activeId)}
+				title={activeState.title}
+			>
+				{#if activeId === "section-count-x" || activeId === "section-count-h"}
+					{@const signal = activeId === "section-count-x" ? "x" : "h"}
+					<p class="step-prompt">
+						<MathText
+							text={`How many connected non-zero sections does $${signal}(t)$ contain? A zero-valued gap separates two sections.`}
+						/>
+					</p>
+				{:else if breakpoint}
+					<p class="step-prompt">
+						<MathText
+							text={`Find interior edge, slope, or formula change ${breakpoint.index} of $${breakpoint.signal}(t)$. Enter its time value.`}
+						/>
+					</p>
+				{:else if activeContact && activeId.endsWith("-form")}
+					<p class="step-prompt">
+						Use this breakpoint pair to formulate one contact
+						equation. The fixed and transformed positions are equal
+						when they touch.
+					</p>
+					<div class="contact-context">
+						<MathText
+							text={`Fixed $${fixedSignal}(\\tau)$ breakpoint: $\\tau=${formatConvolutionScalar(activeContact.fixed)}$.`}
+						/>
+						<MathText
+							text={`Original moving $${solver.flippedSignal}(t)$ breakpoint: $${formatConvolutionScalar(activeContact.moving)}$.`}
+						/>
+					</div>
+					<p class="context-note">
+						<MathText
+							text={String.raw`Apply the reflection rule: the original moving breakpoint $b$ appears at $\tau = t - b$ after reflection and translation.`}
+						/>
+					</p>
+				{:else if activeContact}
+					<p class="step-prompt">
+						<MathText
+							text={String.raw`Solve the verified contact equation. This value of $t$ is a possible boundary between two overlap formulas.`}
+						/>
+					</p>
+					<MathBlock
+						math={activeContact.equationLatex}
+						compact={true}
+						hideHeader={true}
+						responsive={true}
 					/>
-				</p>
-			{:else if breakpoint}
-				<p class="step-prompt">
-					<MathText
-						text={`Find interior edge, slope, or formula change ${breakpoint.index} of $${breakpoint.signal}(t)$. Enter its time value.`}
-					/>
-				</p>
-			{:else if activeContact && activeId.endsWith("-form")}
-				<p class="step-prompt">
-					Use this breakpoint pair to formulate one contact equation.
-					The fixed and transformed positions are equal when they
-					touch.
-				</p>
-				<div class="contact-context">
-					<MathText
-						text={`Fixed $${fixedSignal}(\\tau)$ breakpoint: $\\tau=${formatConvolutionScalar(activeContact.fixed)}$.`}
-					/>
-					<MathText
-						text={`Original moving $${solver.flippedSignal}(t)$ breakpoint: $${formatConvolutionScalar(activeContact.moving)}$.`}
-					/>
-				</div>
-				<p class="context-note">
-					<MathText
-						text={String.raw`Apply the reflection rule: the original moving breakpoint $b$ appears at $\tau = t - b$ after reflection and translation.`}
-					/>
-				</p>
-			{:else if activeContact}
-				<p class="step-prompt">
-					<MathText
-						text={String.raw`Solve the verified contact equation. This value of $t$ is a possible boundary between two overlap formulas.`}
-					/>
-				</p>
-				<MathBlock
-					math={activeContact.equationLatex}
-					compact={true}
-					hideHeader={true}
-					responsive={true}
-				/>
-			{:else if activeId === "transition-count"}
-				<p class="step-prompt">
-					How many distinct transition times remain after equal
-					contact answers are grouped together?
-				</p>
-			{:else if activeId === "interval-count"}
-				<p class="step-prompt">
-					How many output intervals are created by the verified
-					transition times? Include both exterior intervals.
-				</p>
-			{:else if activeId === "interval-builder"}
-				<p class="step-prompt">
-					Use the verified sorted transition times to fill every
-					interval boundary.
-				</p>
-				<form
-					class="interval-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						solver.checkStep4();
-					}}
-				>
-					<div class="interval-list">
-						<label>
-							<MathText text={String.raw`$t<$`} />
-							<input
-								type="text"
-								bind:value={activeState.intervalInputs[0]}
-								aria-label="First interval upper boundary"
-							/>
-						</label>
-						{#each activeState.intervalInputs.slice(0, -1) as _, index}
+				{:else if activeId === "transition-count"}
+					<p class="step-prompt">
+						How many distinct transition times remain after equal
+						contact answers are grouped together?
+					</p>
+				{:else if activeId === "interval-count"}
+					<p class="step-prompt">
+						How many output intervals are created by the verified
+						transition times? Include both exterior intervals.
+					</p>
+				{:else if activeId === "interval-builder"}
+					<p class="step-prompt">
+						Use the verified sorted transition times to fill every
+						interval boundary.
+					</p>
+					<form
+						class="interval-form"
+						onsubmit={(event) => {
+							event.preventDefault();
+							solver.checkStep4();
+						}}
+					>
+						<div class="interval-list">
 							<label>
+								<MathText text={String.raw`$t<$`} />
 								<input
 									type="text"
-									bind:value={
-										activeState.intervalInputs[index]
-									}
-									aria-label={`Interval ${index + 2} lower boundary`}
-								/><MathText text={String.raw`$\le t<$`} /><input
-									type="text"
-									bind:value={
-										activeState.intervalInputs[index + 1]
-									}
-									aria-label={`Interval ${index + 2} upper boundary`}
+									value={activeState.intervalInputs[0] ?? ""}
+									oninput={(e) => {
+										activeState.intervalInputs[0] =
+											e.currentTarget.value;
+									}}
+									aria-label="First interval upper boundary"
 								/>
 							</label>
-						{/each}
-						<label>
-							<MathText text={String.raw`$t\ge$`} />
+							{#each activeState.intervalInputs.slice(0, -1) as _, index}
+								<label>
+									<input
+										type="text"
+										value={activeState.intervalInputs[
+											index
+										] ?? ""}
+										oninput={(e) => {
+											activeState.intervalInputs[index] =
+												e.currentTarget.value;
+										}}
+										aria-label={`Interval ${index + 2} lower boundary`}
+									/><MathText
+										text={String.raw`$\le t<$`}
+									/><input
+										type="text"
+										value={activeState.intervalInputs[
+											index + 1
+										] ?? ""}
+										oninput={(e) => {
+											activeState.intervalInputs[
+												index + 1
+											] = e.currentTarget.value;
+										}}
+										aria-label={`Interval ${index + 2} upper boundary`}
+									/>
+								</label>
+							{/each}
+							<label>
+								<MathText text={String.raw`$t\ge$`} />
+								<input
+									type="text"
+									value={activeState.intervalInputs[
+										activeState.intervalInputs.length - 1
+									] ?? ""}
+									oninput={(e) => {
+										activeState.intervalInputs[
+											activeState.intervalInputs.length -
+												1
+										] = e.currentTarget.value;
+									}}
+									aria-label="Final interval lower boundary"
+								/>
+							</label>
+						</div>
+						<button
+							type="submit"
+							class="check-button"
+						>
+							Check interval partition
+						</button>
+					</form>
+				{/if}
+
+				{#if activeId !== "interval-builder"}
+					<form
+						class="scalar-form"
+						onsubmit={(event) => {
+							event.preventDefault();
+							solver.checkStep4();
+						}}
+					>
+						<label class:equation-entry={Boolean(activeContact)}>
+							{#if activeContact && activeId.endsWith("-form")}
+								<MathText
+									text={`$${formatConvolutionScalar(activeContact.fixed)}=$`}
+								/>
+							{:else if activeContact}
+								<MathText text={String.raw`$t=$`} />
+							{:else}
+								<span>Your answer</span>
+							{/if}
 							<input
 								type="text"
-								bind:value={
-									activeState.intervalInputs[
-										activeState.intervalInputs.length - 1
-									]
-								}
-								aria-label="Final interval lower boundary"
+								bind:value={activeState.input}
+								placeholder={activeContact &&
+								activeId.endsWith("-form")
+									? "e.g. t-1 or 2 = t-1"
+									: activeContact
+										? "e.g. 3 or t = 3"
+										: "e.g. 0 or 2"}
+								aria-label={activeContact &&
+								activeId.endsWith("-form")
+									? "Transformed moving breakpoint"
+									: activeContact
+										? "Contact time after t equals"
+										: "Step answer"}
 							/>
 						</label>
-					</div>
-					<button
-						type="submit"
-						class="check-button"
-					>
-						Check interval partition
-					</button>
-				</form>
-			{/if}
-
-			{#if activeId !== "interval-builder"}
-				<form
-					class="scalar-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						solver.checkStep4();
-					}}
-				>
-					<label class:equation-entry={Boolean(activeContact)}>
-						{#if activeContact && activeId.endsWith("-form")}
-							<MathText
-								text={`$${formatConvolutionScalar(activeContact.fixed)}=$`}
-							/>
-						{:else if activeContact}
-							<MathText text={String.raw`$t=$`} />
-						{:else}
-							<span>Your answer</span>
-						{/if}
-						<input
-							type="text"
-							bind:value={activeState.input}
-							placeholder={activeContact &&
-							activeId.endsWith("-form")
-								? "e.g. t-1 or 2 = t-1"
-								: activeContact
-									? "e.g. 3 or t = 3"
-									: "e.g. 0 or 2"}
-							aria-label={activeContact &&
-							activeId.endsWith("-form")
-								? "Transformed moving breakpoint"
-								: activeContact
-									? "Contact time after t equals"
-									: "Step answer"}
-						/>
-					</label>
-					<button
-						type="submit"
-						class="check-button">Check this part</button
-					>
-				</form>
-			{/if}
-		</SubStepBlock>
+						<button
+							type="submit"
+							class="check-button">Check this part</button
+						>
+					</form>
+				{/if}
+			</SubStepBlock>
+		{/if}
 
 		<StepFeedback {solver} />
 		<HintDisclosure

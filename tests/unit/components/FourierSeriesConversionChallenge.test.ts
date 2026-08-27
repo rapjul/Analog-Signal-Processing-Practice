@@ -67,16 +67,16 @@ describe("FourierSeriesConversionChallenge", () => {
 		expect(hintButton.hasAttribute("disabled")).toBe(true);
 
 		// Click wrong option
-		await fireEvent.click(optionButtons[wrongOptionIndex]);
+		await fireEvent.click(optionButtons[wrongOptionIndex]!);
 		const feedback = view.container.querySelector(".conversion-feedback");
 		expect(feedback).toBeTruthy();
 
 		// Click correct option to advance to Part 2
-		await fireEvent.click(optionButtons[correctOptionIndex]);
+		await fireEvent.click(optionButtons[correctOptionIndex]!);
 
 		// Part 2
 		expect(view.getByText("Part 2 of 2")).toBeTruthy();
-		const secondPart = challenge.parts[1];
+		const secondPart = challenge.parts[1]!;
 		const secondOptionsContainer = view.getByTestId(
 			"fourier-conversion-options",
 		);
@@ -86,7 +86,7 @@ describe("FourierSeriesConversionChallenge", () => {
 			(opt) => opt.isCorrect,
 		);
 
-		await fireEvent.click(secondOptionButtons[secondCorrectIndex]);
+		await fireEvent.click(secondOptionButtons[secondCorrectIndex]!);
 
 		// Completion state
 		expect(onComplete).toHaveBeenCalledTimes(1);
@@ -154,7 +154,7 @@ describe("FourierSeriesConversionChallenge", () => {
 		await fireEvent.click(hintButton);
 
 		// Click wrong option with undefined feedback
-		await fireEvent.click(optionButtons[0]);
+		await fireEvent.click(optionButtons[0]!);
 		expect(
 			view.container.querySelector(".conversion-feedback")?.textContent,
 		).toContain("Recheck the coefficient conversion identities");
@@ -182,14 +182,14 @@ describe("FourierSeriesConversionChallenge", () => {
 		expect(view.getByText("Part 1 of 2")).toBeTruthy();
 
 		// Advance part 1
-		const firstPart = problem1.conversionChallenge.parts[0];
+		const firstPart = problem1.conversionChallenge.parts[0]!;
 		const correctIndex = firstPart.options.findIndex(
 			(opt) => opt.isCorrect,
 		);
 		const optionButtons = view
 			.getByTestId("fourier-conversion-options")
 			.querySelectorAll("button");
-		await fireEvent.click(optionButtons[correctIndex]);
+		await fireEvent.click(optionButtons[correctIndex]!);
 		expect(view.getByText("Part 2 of 2")).toBeTruthy();
 
 		// Update props with a new challenge

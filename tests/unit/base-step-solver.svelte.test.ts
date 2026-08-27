@@ -131,8 +131,8 @@ class MinimalSolverState extends BaseStepSolverState {
 	get activeHints() {
 		return [];
 	}
-	devAutoFillStep() {}
-	reset() {}
+	override devAutoFillStep() {}
+	override reset() {}
 }
 
 describe("BaseStepSolverState Harness & State Management", () => {
