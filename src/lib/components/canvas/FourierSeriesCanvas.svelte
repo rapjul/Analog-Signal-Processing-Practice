@@ -11,13 +11,17 @@
 	import {
 		computeFourierSeriesCoefficients,
 		computeHarmonicPowerThresholds,
-		computePartialSum,
 		computeSignalPower,
-		evaluateFourierSeriesWaveform,
 		type FourierSeriesCoefficients,
 		type FourierSeriesWaveformType,
 		formatPowerCapturePercent,
 	} from "$lib/math-engine/fourier-series/index";
+	import {
+		computeTargetMagnitudes,
+		drawFourierHarmonicSpectrum,
+		drawFourierTimeDomain,
+		getFourierPlotTheme,
+	} from "./fourier-series-plot";
 	import MathInline from "../math/MathInline.svelte";
 	import MathText from "../math/MathText.svelte";
 
@@ -135,17 +139,7 @@
 		const currentCoeffs = coeffs;
 
 		const targetDisplayN = Math.min(targetN, 30);
-
-		// Target magnitudes for harmonics 1..50
-		const targetMags = Array.from({ length: 51 }, () => 0);
-		for (let n = 1; n <= 50; n++) {
-			if (n <= targetDisplayN) {
-				const { re, im } = currentCoeffs.Fn(n);
-				targetMags[n] = Math.sqrt(re * re + im * im);
-			} else {
-				targetMags[n] = 0;
-			}
-		}
+		const targetMags = computeTargetMagnitudes(currentCoeffs, targetDisplayN);
 
 		let isAnimating = true;
 
@@ -168,23 +162,13 @@
 				animatedMags[n] += diff * 0.18;
 			}
 
-			const style = getComputedStyle(document.documentElement);
-			const bgCard =
-				style.getPropertyValue("--bg-card").trim() || "#121214";
-			const borderColor =
-				style.getPropertyValue("--border-color").trim() || "#2d2d35";
-			const textSecondary =
-				style.getPropertyValue("--text-secondary").trim() || "#a1a1aa";
-			const fontFamily =
-				style.getPropertyValue("--font-sans").trim() ||
-				style.fontFamily ||
-				"Inter, system-ui, -apple-system, sans-serif";
+			const theme = getFourierPlotTheme(getComputedStyle(document.documentElement));
 
 			const ctxUpper = canvasUpperEl.getContext("2d");
 			const ctxLower = canvasLowerEl.getContext("2d");
 			if (!ctxUpper || !ctxLower) return;
 
-			// Use native devicePixelRatio (high resolution automatically active on HiDPI / Retina displays)
+			// Use native devicePixelRatio for crisp rendering on HiDPI displays
 			const dpr = window.devicePixelRatio || 1;
 
 			// Upper Canvas setup
@@ -192,230 +176,32 @@
 			canvasUpperEl.width = rectUpper.width * dpr;
 			canvasUpperEl.height = rectUpper.height * dpr;
 			ctxUpper.scale(dpr, dpr);
-			const widthUpper = rectUpper.width;
-			const heightUpper = rectUpper.height;
 
 			// Lower Canvas setup
 			const rectLower = canvasLowerEl.getBoundingClientRect();
 			canvasLowerEl.width = rectLower.width * dpr;
 			canvasLowerEl.height = rectLower.height * dpr;
 			ctxLower.scale(dpr, dpr);
-			const widthLower = rectLower.width;
-			const heightLower = rectLower.height;
 
-			// Clear both canvases
-			ctxUpper.fillStyle = bgCard;
-			ctxUpper.fillRect(0, 0, widthUpper, heightUpper);
-
-			ctxLower.fillStyle = bgCard;
-			ctxLower.fillRect(0, 0, widthLower, heightLower);
-
-			const padding = 35;
-			const tMin = -currentCoeffs.T0;
-			const tMax = currentCoeffs.T0;
-			const toX = (t: number) =>
-				padding +
-				((t - tMin) / (tMax - tMin)) * (widthUpper - padding * 2);
-
-			// --- Panel 1: Upper Time-Domain S_N(t) ---
-			const p1ZeroY = heightUpper / 2;
-			const p1ScaleY = (heightUpper - 40) / (2.6 * currentCoeffs.A);
-
-			ctxUpper.strokeStyle = borderColor;
-			ctxUpper.lineWidth = 1;
-			ctxUpper.beginPath();
-			ctxUpper.moveTo(padding, p1ZeroY);
-			ctxUpper.lineTo(widthUpper - padding, p1ZeroY);
-			ctxUpper.stroke();
-
-			// High-resolution sampling density for smooth waveform curves & sharp Gibbs overshoot
-			const numSamples = 1000;
-			const dt = (tMax - tMin) / numSamples;
-
-			// Ideal waveform reference, segmented at jump discontinuities.
-			ctxUpper.strokeStyle = textSecondary;
-			ctxUpper.lineWidth = 1.5;
-			ctxUpper.setLineDash([6, 5]);
-			ctxUpper.beginPath();
-			let previousIdeal: number | null = null;
-			let previousIdealY: number | null = null;
-			for (let i = 0; i <= numSamples; i++) {
-				const t = tMin + i * dt;
-				const ideal = evaluateFourierSeriesWaveform(currentCoeffs, t);
-				const px = toX(t);
-				const py = p1ZeroY - ideal * p1ScaleY;
-				const crossesJump =
-					previousIdeal !== null &&
-					Math.abs(ideal - previousIdeal) > currentCoeffs.A;
-				if (i === 0) {
-					ctxUpper.moveTo(px, py);
-				} else if (crossesJump && previousIdealY !== null) {
-					ctxUpper.lineTo(px, previousIdealY);
-					ctxUpper.lineTo(px, py);
-				} else {
-					ctxUpper.lineTo(px, py);
-				}
-				previousIdeal = ideal;
-				previousIdealY = py;
-			}
-			ctxUpper.stroke();
-			ctxUpper.setLineDash([]);
-
-			ctxUpper.strokeStyle = "#06b6d4";
-			ctxUpper.lineWidth = 2;
-			ctxUpper.beginPath();
-
-			for (let i = 0; i <= numSamples; i++) {
-				const t = tMin + i * dt;
-				const valSum = computePartialSum(currentCoeffs, currentN, t);
-				const px = toX(t);
-				const py = p1ZeroY - valSum * p1ScaleY;
-
-				if (i === 0) ctxUpper.moveTo(px, py);
-				else ctxUpper.lineTo(px, py);
-			}
-			ctxUpper.stroke();
-
-			// --- Panel 2: Lower Frequency-Domain Spectrum |F_n| Bar Chart ---
-			// Added 35px top padding so bars don't touch upper boundary
-			const p2ZeroY = heightLower - 30;
-			const availableHeight = heightLower - 65; // 35px top margin + 30px bottom label margin
-
-			// Responsive horizontal padding (15px on small screens, 30px on larger screens)
-			const padX = widthLower < 500 ? 15 : 30;
-
-			// Cap max stepX spacing to 36px per harmonic on wide screens
-			const rawStepX =
-				(widthLower - padX * 2) / Math.max(1, currentDisplayN);
-			const stepX = Math.min(36, rawStepX);
-			const spectrumContentW = stepX * Math.max(1, currentDisplayN);
-			// Center the spectrum plot horizontally if stepX was capped
-			const startX =
-				padX + (widthLower - padX * 2 - spectrumContentW) / 2;
-
-			// Scale bar width generously (takes 70% of stepX on small screens, clamped between 3px and 22px)
-			const barWidth = Math.min(22, Math.max(3, stepX * 0.7));
-
-			const axisLeftX = startX;
-			const axisRightX = startX + spectrumContentW;
-
-			ctxLower.strokeStyle = borderColor;
-			ctxLower.lineWidth = 1;
-			ctxLower.beginPath();
-			ctxLower.moveTo(axisLeftX, p2ZeroY);
-			ctxLower.lineTo(axisRightX, p2ZeroY);
-			ctxLower.stroke();
-
-			const displayN = Math.max(1, Math.round(currentDisplayN));
-
-			const harmonicsByMag: { n: number; mag: number }[] = [];
-			let maxCnMag = 0;
-			for (let n = 1; n <= Math.max(displayN, targetDisplayN); n++) {
-				const mag = animatedMags[n] || 0;
-				if (mag > maxCnMag) maxCnMag = mag;
-				harmonicsByMag.push({ n, mag });
-			}
-			if (maxCnMag === 0) maxCnMag = 1;
-
-			const p2ScaleY = availableHeight / maxCnMag;
-
-			// Identify top 3 biggest non-zero harmonics by energy
-			harmonicsByMag.sort((a, b) => b.mag - a.mag);
-			const top3Harmonics = new Set<number>(
-				harmonicsByMag
-					.filter((h) => h.mag > 1e-4)
-					.slice(0, 3)
-					.map((h) => h.n),
+			// Draw time domain and spectrum panels
+			drawFourierTimeDomain(
+				ctxUpper,
+				rectUpper.width,
+				rectUpper.height,
+				currentCoeffs,
+				targetN,
+				theme,
 			);
 
-			// Calculate candidate labeled harmonic indices up to displayN (always include top 3 biggest energy harmonics)
-			const candidates: number[] = Array.from(top3Harmonics);
-			const activeHarmonics = harmonicsByMag
-				.filter((h) => h.mag > 1e-4)
-				.map((h) => h.n);
-
-			if (displayN <= 11) {
-				// For displayN <= 11, label ALL harmonics 1..displayN (including zero magnitude ones)
-				for (let n = 1; n <= displayN; n++) {
-					candidates.push(n);
-				}
-			} else if (displayN <= 20) {
-				// For displayN 12..20, label all active (non-zero magnitude) harmonics
-				for (let n = 1; n <= displayN; n++) {
-					if (
-						activeHarmonics.length === 0 ||
-						activeHarmonics.includes(n)
-					) {
-						candidates.push(n);
-					}
-				}
-			} else if (displayN <= 25) {
-				// For displayN 21..25, label every 2nd active harmonic
-				if (activeHarmonics.length > 0) {
-					for (let i = 0; i < activeHarmonics.length; i += 2) {
-						candidates.push(activeHarmonics[i]);
-					}
-				} else {
-					for (let n = 1; n <= displayN; n += 2) {
-						candidates.push(n);
-					}
-				}
-			} else {
-				// For displayN > 25, label every 4th active harmonic
-				if (activeHarmonics.length > 0) {
-					for (let i = 0; i < activeHarmonics.length; i += 4) {
-						candidates.push(activeHarmonics[i]);
-					}
-				} else {
-					for (let n = 1; n <= displayN; n += 4) {
-						candidates.push(n);
-					}
-				}
-			}
-
-			// Sort candidate indices ascending
-			const sortedCandidates = Array.from(new Set(candidates)).sort(
-				(a, b) => a - b,
+			drawFourierHarmonicSpectrum(
+				ctxLower,
+				rectLower.width,
+				rectLower.height,
+				currentDisplayN,
+				animatedMags,
+				targetDisplayN,
+				theme,
 			);
-			const xPos = (n: number) => startX + (n - 0.5) * stepX;
-			const minPixelSpacing = 24;
-
-			// Select labels guaranteeing minimum pixel spacing without collisions
-			const selectedLabels: number[] = [];
-			for (const n of sortedCandidates) {
-				const px = xPos(n);
-				const prevX =
-					selectedLabels.length > 0
-						? xPos(selectedLabels[selectedLabels.length - 1])
-						: -1000;
-				if (
-					px - prevX >= minPixelSpacing ||
-					selectedLabels.length === 0
-				) {
-					selectedLabels.push(n);
-				}
-			}
-			const finalLabeledSet = new Set(selectedLabels);
-
-			const renderMaxN = Math.max(displayN, Math.ceil(currentDisplayN));
-			for (let n = 1; n <= renderMaxN; n++) {
-				const mag = animatedMags[n] || 0;
-				if (mag < 1e-5 && n > displayN) continue;
-
-				const bx = xPos(n);
-				const bHeight = Math.max(0, mag * p2ScaleY);
-				const by = p2ZeroY - bHeight;
-
-				ctxLower.fillStyle = mag > 1e-4 ? "#f59e0b" : "#475569";
-				ctxLower.fillRect(bx - barWidth / 2, by, barWidth, bHeight);
-
-				if (finalLabeledSet.has(n)) {
-					ctxLower.fillStyle = textSecondary;
-					ctxLower.font = `13px ${fontFamily}`;
-					ctxLower.textAlign = "center";
-					ctxLower.fillText(`${n}`, bx, p2ZeroY + 14);
-				}
-			}
 
 			if (Math.abs(diffN) >= 0.01 || maxMagDiff >= 0.001) {
 				animFrameId = requestAnimationFrame(renderFrame);
