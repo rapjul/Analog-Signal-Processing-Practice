@@ -6,7 +6,6 @@ import {
 } from "$lib/components/solvers/convolution-solver-state/step5-bounds";
 import {
 	createEvaluationState,
-	intervalSampleTimes,
 	validateEvaluationStage,
 } from "$lib/components/solvers/convolution-solver-state/step6-evaluation";
 import {
