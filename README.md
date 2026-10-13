@@ -46,7 +46,7 @@ An interactive, offline-first Intelligent Tutoring System (ITS) and practice lab
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) `v24.0.0` or higher (recommended for the current Vite and JSDOM dependencies).
+- [Node.js](https://nodejs.org/) `22.x` from `v22.22.1`, or `v24.12.0` and higher (`24.x` is recommended for the resolved dependencies).
 - `npm` `v10.0.0` or higher
 
 ### Local Setup

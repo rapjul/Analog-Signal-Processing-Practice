@@ -6,7 +6,7 @@ This guide provides technical instructions for developing, testing, and maintain
 
 ## 🛠️ Prerequisites & Setup
 
-- **Node.js**: `v24.0.0` or higher (recommended for the current Vite and JSDOM dependencies).
+- **Node.js**: `22.x` from `v22.22.1`, or `v24.12.0` and higher (`24.x` is recommended for the resolved dependencies).
 - **Package Manager**: `npm` (v10+)
 
 ### Initial Setup
