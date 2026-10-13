@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import type { Plugin } from "vite";
@@ -196,10 +198,43 @@ export default defineConfig(({ command }) => {
 					],
 				},
 				workbox: {
-					// Static HTML is emitted after the worker is generated. Cache the
-					// served SPA shell explicitly and refresh it with every new build.
-					additionalManifestEntries: isBuild
-						? [{ url: "/", revision: String(Date.now()) }]
+					// Static HTML is emitted after worker generation. Cache the served
+					// SPA shell using its template and emitted asset revisions.
+					manifestTransforms: isBuild
+						? [
+								/**
+								 * Adds a shell revision that changes with its template or assets.
+								 * @param entries - Generated asset precache entries.
+								 * @returns Precache entries including the served app shell.
+								 */
+								async (entries) => {
+									const template = readFileSync(
+										"./src/app.html",
+										"utf8",
+									);
+									const sortedEntries = [...entries].sort(
+										/**
+										 * Makes hashing independent of asset discovery order.
+										 * @param left - First asset entry.
+										 * @param right - Second asset entry.
+										 */
+										(left, right) =>
+											left.url.localeCompare(right.url),
+									);
+									const revision = createHash("sha256")
+										.update(template)
+										.update(JSON.stringify(sortedEntries))
+										.digest("hex");
+									return {
+										manifest: [
+											...entries,
+											// The adapter has not emitted HTML, so its size is unknown.
+											{ url: "/", revision, size: 0 },
+										],
+										warnings: [],
+									};
+								},
+							]
 						: [],
 					navigateFallback: "/",
 					// Only pre-cache static assets during production build; in dev mode, Vite serves on-demand from memory.

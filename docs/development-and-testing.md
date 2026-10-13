@@ -125,7 +125,7 @@ npm run test:e2e:production:solvers
 
 To verify service worker precaching and offline navigation through the three implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
 
-The production worker explicitly precaches the served root app shell because static HTML is emitted after worker generation. A new shell revision on every build keeps the document and bundled assets in sync; navigation fallback serves that shell when visiting solver routes offline.
+The production worker explicitly precaches the served root app shell because static HTML is emitted after worker generation. Its revision hashes the HTML template and emitted asset revisions to keep the document and bundled assets in sync; navigation fallback serves that shell when visiting solver routes offline.
 
 Production runs require port `33210` to be free and never reuse a running development server. Functional tests tagged `@dev-harness` are excluded because their state-selection helpers are available only in development builds; the development suite still runs them. The production solver visual command compares initial problem pages across all configured viewports and both themes, using existing local baselines without updating them. Later solver states still require `npm run test:e2e:solvers`.
 
