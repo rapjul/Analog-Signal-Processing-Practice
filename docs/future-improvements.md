@@ -72,7 +72,7 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 - **Context:** If a student refreshes mid-problem, all interactive progress is lost.
 - **Improvement Idea:**
-    - Connect IndexedDB attempt history to actual practice interactions; the current history utility only stores attempts in memory.
+    - Add IndexedDB-backed attempt history, then connect actual practice interactions to it; the current history utility only stores attempts in memory.
     - Store versioned unfinished-problem snapshots containing reproducible problem parameters or seeds, entered answers, verified steps, hint tiers, and assisted-solution status.
     - Restore unfinished work after reload or navigation without treating a revealed solution as independent success.
     - Reject incompatible snapshots safely and keep practice usable when storage is denied, unavailable, or full. Preserve the blocked-storage behavior covered by the existing browser regressions.
