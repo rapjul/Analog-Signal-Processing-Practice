@@ -73,13 +73,6 @@
 			label: problem.params.order === 1 ? "1st-Order" : "2nd-Order",
 			variant: "secondary" as const,
 		},
-		{
-			label:
-				problem.params.order === 1
-					? "single real root"
-					: problem.params.rootType.replace("_", " "),
-			variant: "accent" as const,
-		},
 	]);
 </script>
 

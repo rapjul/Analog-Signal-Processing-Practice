@@ -37,6 +37,7 @@
 </script>
 
 {#snippet summarySnippet()}
+	<span>Classification: {problem.params.rootType.replaceAll("_", " ")}</span>
 	<span>
 		Roots:
 		<MathText text={`$${problem.itsData.step2.symbolicRootsLatex}$`} />
