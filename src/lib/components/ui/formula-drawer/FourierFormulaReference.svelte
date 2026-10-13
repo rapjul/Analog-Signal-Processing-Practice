@@ -109,8 +109,8 @@
 			compact={true}
 		/>
 		<p class="ref-text">
-			At a jump, the Fourier series converges to the midpoint of the
-			left- and right-hand limits.
+			At a jump, the Fourier series converges to the midpoint of the left-
+			and right-hand limits.
 		</p>
 	</div>
 </div>

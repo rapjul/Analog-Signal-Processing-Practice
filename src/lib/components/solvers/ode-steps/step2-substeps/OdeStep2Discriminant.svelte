@@ -36,8 +36,7 @@
 			class="text-input disc-input"
 			placeholder="e.g. -36"
 			bind:value={solver.step2.quadDiscriminantInput}
-			onkeydown={(e) =>
-				e.key === "Enter" && solver.verifyDiscriminant()}
+			onkeydown={(e) => e.key === "Enter" && solver.verifyDiscriminant()}
 		/>
 		<button
 			type="button"

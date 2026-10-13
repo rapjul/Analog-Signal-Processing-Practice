@@ -20,11 +20,7 @@ import type {
  * Root pair match status classification.
  */
 export type RootPairMatchStatus =
-	| "exact"
-	| "swapped"
-	| "both_inverted"
-	| "one_inverted"
-	| "incorrect";
+	"exact" | "swapped" | "both_inverted" | "one_inverted" | "incorrect";
 
 /**
  * Matches student-entered root values against expected roots, checking order invariance and sign mistakes.
@@ -41,8 +37,10 @@ export function matchRootPair(
 	r1: number,
 	r2: number,
 ): RootPairMatchStatus {
-	const matchDirect = approximatelyEqual(v1, r1) && approximatelyEqual(v2, r2);
-	const matchSwapped = approximatelyEqual(v1, r2) && approximatelyEqual(v2, r1);
+	const matchDirect =
+		approximatelyEqual(v1, r1) && approximatelyEqual(v2, r2);
+	const matchSwapped =
+		approximatelyEqual(v1, r2) && approximatelyEqual(v2, r1);
 	if (matchDirect) return "exact";
 	if (matchSwapped) return "swapped";
 

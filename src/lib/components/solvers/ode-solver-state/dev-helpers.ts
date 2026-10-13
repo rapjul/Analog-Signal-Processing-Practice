@@ -400,10 +400,9 @@ export function odeDevGoToVisualState(
 				solver.problem.itsData.step7.transientOptions.find(
 					(option) => option.isCorrect,
 				);
-			const steady =
-				solver.problem.itsData.step7.steadyStateOptions.find(
-					(option) => option.isCorrect,
-				);
+			const steady = solver.problem.itsData.step7.steadyStateOptions.find(
+				(option) => option.isCorrect,
+			);
 			if (!transient || !steady) return false;
 			solver.step7.selectedTransient = transient.id;
 			solver.step7.selectedSteadyState = steady.id;
@@ -461,9 +460,7 @@ export function odeDevAutoFillStep(
 				solver.checkStep2QuadClass("repeated_real");
 				solver.step2.r1 = toFractionLatex(s2Quad.r1);
 				solver.checkStep2QuadRoots();
-			} else if (
-				solver.problem.params.rootType === "complex_conjugate"
-			) {
+			} else if (solver.problem.params.rootType === "complex_conjugate") {
 				const s2Quad = s2 as SecondOrderOdeItsStep2;
 				solver.step2.strategy = "quadratic";
 				solver.step2.activeSubStepId = "quad_classification";

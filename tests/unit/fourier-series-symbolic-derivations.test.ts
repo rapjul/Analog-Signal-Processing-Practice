@@ -3,13 +3,13 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { computeFourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
 import {
 	buildCompactSeriesLatex,
 	buildFinalSeriesLatex,
 	buildFourierSeriesSymbolicDerivation,
 	buildSignalLatex,
 } from "$lib/math-engine/fourier-series/symbolic-derivations";
-import { computeFourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
 import type {
 	FourierSeriesCoefficients,
 	FourierSeriesWaveformType,

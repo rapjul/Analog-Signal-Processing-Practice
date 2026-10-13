@@ -3,16 +3,16 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { fourierDevGetVisualStates } from "$lib/components/solvers/fourier-series-solver-state/dev-helpers";
 import {
 	createCoefficientMultiPartState,
 	createSymmetryMultiPartState,
 } from "$lib/components/solvers/fourier-series-solver-state/factory-helpers";
-import { fourierDevGetVisualStates } from "$lib/components/solvers/fourier-series-solver-state/dev-helpers";
-import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 import type {
 	FourierCoefficientPart,
 	FourierItsStep2,
 } from "$lib/math-engine/fourier-series/index";
+import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("Fourier Series Solver State Factories & Dev Helpers", () => {
 	describe("createCoefficientMultiPartState", () => {
@@ -42,7 +42,9 @@ describe("Fourier Series Solver State Factories & Dev Helpers", () => {
 			expect(state.subStepOrder).toEqual(["a0-part", "an-part"]);
 			expect(state.activeSubStepId).toBe("a0-part");
 			expect(state.subSteps["a0-part"]?.title).toBe("DC Offset a0");
-			expect(state.subSteps["an-part"]?.title).toBe("Cosine Coefficient an");
+			expect(state.subSteps["an-part"]?.title).toBe(
+				"Cosine Coefficient an",
+			);
 		});
 
 		it("falls back gracefully when given empty coefficient parts", () => {
@@ -80,9 +82,9 @@ describe("Fourier Series Solver State Factories & Dev Helpers", () => {
 			const problem = generateFourierSeriesProblem("square");
 			const visualStates = fourierDevGetVisualStates(problem);
 			expect(visualStates.length).toBeGreaterThan(6);
-			expect(visualStates.some((s) => s.id.includes("period-frequency"))).toBe(
-				true,
-			);
+			expect(
+				visualStates.some((s) => s.id.includes("period-frequency")),
+			).toBe(true);
 			expect(visualStates.some((s) => s.id.includes("symmetry"))).toBe(
 				true,
 			);

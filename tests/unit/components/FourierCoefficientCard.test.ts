@@ -55,10 +55,14 @@ describe("FourierCoefficientCard.svelte Component", () => {
 		await fireEvent.click(freehandBtn);
 		expect(onUpdate).toHaveBeenCalled();
 
-		const directInput = container.querySelector("#an-direct-input") as HTMLInputElement;
+		const directInput = container.querySelector(
+			"#an-direct-input",
+		) as HTMLInputElement;
 		expect(directInput).toBeTruthy();
 
-		await fireEvent.input(directInput, { target: { value: "\\frac{4}{n}" } });
+		await fireEvent.input(directInput, {
+			target: { value: "\\frac{4}{n}" },
+		});
 		expect(onUpdate).toHaveBeenCalled();
 	});
 
@@ -77,7 +81,9 @@ describe("FourierCoefficientCard.svelte Component", () => {
 			},
 		});
 
-		const customInput = container.querySelector(".custom-mult-input") as HTMLInputElement;
+		const customInput = container.querySelector(
+			".custom-mult-input",
+		) as HTMLInputElement;
 		expect(customInput).toBeTruthy();
 		expect(customInput.value).toBe("\\sin(n \\pi / 2)");
 

@@ -9,8 +9,8 @@ import {
 	drawFourierTimeDomain,
 	getFourierPlotTheme,
 } from "$lib/components/canvas/fourier-series-plot";
-import { computeFourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
 import type { FourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
+import { computeFourierSeriesCoefficients } from "$lib/math-engine/fourier-series/index";
 
 describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 	describe("getFourierPlotTheme", () => {
@@ -145,7 +145,15 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				fontFamily: "",
 			} as unknown as CSSStyleDeclaration);
 
-			drawFourierHarmonicSpectrum(ctx, 400, 200, 5, animatedMags, 5, theme);
+			drawFourierHarmonicSpectrum(
+				ctx,
+				400,
+				200,
+				5,
+				animatedMags,
+				5,
+				theme,
+			);
 
 			expect(ctx.fillRect).toHaveBeenCalled();
 			expect(ctx.stroke).toHaveBeenCalled(); // axis line
@@ -162,7 +170,15 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				fontFamily: "",
 			} as unknown as CSSStyleDeclaration);
 
-			drawFourierHarmonicSpectrum(ctx, 800, 300, 30, animatedMags, 30, theme);
+			drawFourierHarmonicSpectrum(
+				ctx,
+				800,
+				300,
+				30,
+				animatedMags,
+				30,
+				theme,
+			);
 
 			expect(ctx.fillRect).toHaveBeenCalled();
 			expect(ctx.fillText).toHaveBeenCalled();
@@ -176,7 +192,15 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				fontFamily: "",
 			} as unknown as CSSStyleDeclaration);
 
-			drawFourierHarmonicSpectrum(ctx, 600, 250, 10, animatedMags, 10, theme);
+			drawFourierHarmonicSpectrum(
+				ctx,
+				600,
+				250,
+				10,
+				animatedMags,
+				10,
+				theme,
+			);
 
 			expect(ctx.fillRect).toHaveBeenCalled();
 		});

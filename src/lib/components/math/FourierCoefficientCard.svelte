@@ -130,27 +130,17 @@
 			</div>
 
 			<div class="multiplier-column">
-				<span class="field-tag">
-					Harmonics / Parity Factor
-				</span>
+				<span class="field-tag"> Harmonics / Parity Factor </span>
 				<select
 					class="select-input"
 					bind:value={harmonic}
 					onchange={onUpdate}
 				>
 					<option value="none">None (1)</option>
-					<option value="odd">
-						Odd Harmonics: (1 - (-1)^n)
-					</option>
-					<option value="even">
-						Even Harmonics: (1 + (-1)^n)
-					</option>
-					<option value="alt">
-						Alternating Signs: (-1)^n
-					</option>
-					<option value="custom">
-						Custom Multiplier...
-					</option>
+					<option value="odd"> Odd Harmonics: (1 - (-1)^n) </option>
+					<option value="even"> Even Harmonics: (1 + (-1)^n) </option>
+					<option value="alt"> Alternating Signs: (-1)^n </option>
+					<option value="custom"> Custom Multiplier... </option>
 				</select>
 
 				{#if harmonic === "custom"}

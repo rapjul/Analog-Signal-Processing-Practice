@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { odeDevGetVisualStates } from "$lib/components/solvers/ode-solver-state/dev-helpers";
 import {
 	derivePreviewCharEq,
 	derivePreviewComplexRoots,
@@ -12,13 +13,12 @@ import {
 	deriveZSC1,
 	deriveZSC2,
 } from "$lib/components/solvers/ode-solver-state/ode-previews";
-import { odeDevGetVisualStates } from "$lib/components/solvers/ode-solver-state/dev-helpers";
-import { generateOdeProblem } from "$lib/math-engine/odes/index";
-import type { OdeParams } from "$lib/math-engine/odes/types";
 import type {
 	OdeStep1State,
 	OdeStep7State,
 } from "$lib/components/solvers/ode-solver-state/ode-step-types";
+import { generateOdeProblem } from "$lib/math-engine/odes/index";
+import type { OdeParams } from "$lib/math-engine/odes/types";
 
 describe("ODE Solver State Previews & Dev Helpers", () => {
 	describe("derivePreviewCharEq", () => {
@@ -64,7 +64,9 @@ describe("ODE Solver State Previews & Dev Helpers", () => {
 	describe("derivePreviewQuadSetup", () => {
 		it("formats quadratic formula substitutions", () => {
 			const setup = derivePreviewQuadSetup(1, 5, 6);
-			expect(setup).toContain("s = \\frac{-(5) \\pm \\sqrt{(5)^2 - 4(1)(6)}}{2(1)}");
+			expect(setup).toContain(
+				"s = \\frac{-(5) \\pm \\sqrt{(5)^2 - 4(1)(6)}}{2(1)}",
+			);
 			expect(setup).toContain("\\frac{-5 \\pm \\sqrt{1}}{2}");
 		});
 
@@ -140,10 +142,12 @@ describe("ODE Solver State Previews & Dev Helpers", () => {
 			});
 			const states = odeDevGetVisualStates(problem);
 			expect(states.length).toBeGreaterThan(3);
-			expect(states.some((s) => s.id.includes("characteristic-equation"))).toBe(
+			expect(
+				states.some((s) => s.id.includes("characteristic-equation")),
+			).toBe(true);
+			expect(states.some((s) => s.id.includes("strategy-gate"))).toBe(
 				true,
 			);
-			expect(states.some((s) => s.id.includes("strategy-gate"))).toBe(true);
 		});
 
 		it("returns visual states for 1st order problem without strategy gate", () => {
@@ -152,7 +156,9 @@ describe("ODE Solver State Previews & Dev Helpers", () => {
 				forcingType: "constant",
 			});
 			const states = odeDevGetVisualStates(problem);
-			expect(states.some((s) => s.id.includes("strategy-gate"))).toBe(false);
+			expect(states.some((s) => s.id.includes("strategy-gate"))).toBe(
+				false,
+			);
 		});
 	});
 });
