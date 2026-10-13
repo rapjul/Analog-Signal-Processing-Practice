@@ -24,7 +24,7 @@ export interface ValidationResult {
  * @param {Record<string, number>} vars Dictionary of variable values (e.g. { t: 1.5, s: 1.5 })
  * @returns {number} Evaluated numerical value
  */
-function evaluateMathJsonStrict(
+export function evaluateMathJsonStrict(
 	node: unknown,
 	vars: Record<string, number>,
 ): number | null {
@@ -224,29 +224,38 @@ function evaluateMathJsonStrict(
 export function tryEvaluateLatexAt(latex: string, t: number): number | null {
 	if (!latex.trim()) return null;
 	try {
-		// Preserve unit-step support before legacy normalization assumes positive time.
-		const expression = latex
-			.trim()
-			.replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "")
-			.replace(/\\left|\\right/g, "")
-			.replace(
-				/\\(?:operatorname|text|mathrm)\s*\{[^{}]*\}|\\[a-zA-Z]+|(?<![a-zA-Z])[ts]?u\s*(?=\()/g,
-				/**
-				 * Rewrites time-variable step shorthand while preserving named/text commands.
-				 * @param token - Command or bare unit-step token.
-				 * @returns Original command or explicit Heaviside operator.
-				 */
-				(token: string): string =>
-					token.startsWith("\\")
-						? token
-						: token.replace(/u\s*$/, "\\operatorname{Heaviside}"),
-			);
-		const mathJson = parse(normalizeMathLatex(expression, false));
+		const mathJson = parseStrictLatex(latex);
 		const result = evaluateMathJsonStrict(mathJson, { t, s: t });
 		return result !== null && Number.isFinite(result) ? result : null;
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Parses one expression while preserving unit-step support and command names.
+ * @param latex - Mathematical expression without a domain-specific equation prefix.
+ * @returns Parsed MathJSON; callers must reject unsupported or error nodes.
+ */
+export function parseStrictLatex(latex: string): unknown {
+	// Preserve unit-step support before legacy normalization assumes positive time.
+	const expression = latex
+		.trim()
+		.replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "")
+		.replace(/\\left|\\right/g, "")
+		.replace(
+			/\\(?:operatorname|text|mathrm)\s*\{[^{}]*\}|\\[a-zA-Z]+|(?<![a-zA-Z])[ts]?u\s*(?=\()/g,
+			/**
+			 * Rewrites time-variable step shorthand while preserving named/text commands.
+			 * @param token - Command or bare unit-step token.
+			 * @returns Original command or explicit Heaviside operator.
+			 */
+			(token: string): string =>
+				token.startsWith("\\")
+					? token
+					: token.replace(/u\s*$/, "\\operatorname{Heaviside}"),
+		);
+	return parse(normalizeMathLatex(expression, false));
 }
 
 /**
