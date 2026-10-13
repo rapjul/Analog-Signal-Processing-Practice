@@ -35,8 +35,15 @@ test("reloads all implemented solvers offline after caching", async ({
 		)
 		.toBe(true);
 	await context.setOffline(true);
-	for (const route of ["/odes", "/fourier-series", "/convolution"]) {
+	for (const { route, heading } of [
+		{ route: "/odes", heading: "Linear Constant-Coefficient ODEs" },
+		{ route: "/fourier-series", heading: "Fourier Series Analysis" },
+		{ route: "/convolution", heading: "Continuous-Time Convolution" },
+	]) {
 		await page.goto(`${route}?seed=10`);
+		await expect(
+			page.getByRole("heading", { name: heading, exact: true }),
+		).toBeVisible();
 		await expect(page.locator(".step-card.active")).toBeVisible();
 		await expect(page.locator(".katex-error")).toHaveCount(0);
 	}

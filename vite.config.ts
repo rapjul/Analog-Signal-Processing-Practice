@@ -219,7 +219,11 @@ export default defineConfig(({ command }) => {
 										 * @param right - Second asset entry.
 										 */
 										(left, right) =>
-											left.url.localeCompare(right.url),
+											left.url < right.url
+												? -1
+												: left.url > right.url
+													? 1
+													: 0,
 									);
 									const revision = createHash("sha256")
 										.update(template)
