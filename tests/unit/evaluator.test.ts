@@ -10,6 +10,46 @@ import {
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
 	describe("tryEvaluateLatexAt", () => {
+		/** Unsupported identifiers and text must remain unevaluable during grading. */
+		it.each([
+			"mu(t-100)",
+			"nu(t-100)",
+			String.raw`\operatorname{menu}(t)`,
+			String.raw`\text{u(t-100)}`,
+			String.raw`\mathrm{u}(t)`,
+		])(
+			"rejects unsupported named or text input %s",
+			/** @param expression - Identifier or formatted text containing u. */
+			(expression) => {
+				expect(tryEvaluateLatexAt(expression, 2)).toBeNull();
+			},
+		);
+		/** Mathematical brace groups must retain valid unit-step multiplication. */
+		it("evaluates unit-step shorthand inside fractions", () => {
+			expect(tryEvaluateLatexAt(String.raw`\frac{tu(t-1)}{2}`, 0)).toBe(
+				0,
+			);
+			expect(tryEvaluateLatexAt(String.raw`\frac{tu(t-1)}{2}`, 2)).toBe(
+				1,
+			);
+		});
+		/** Unit-step shorthand must preserve support regardless of multiplication syntax. */
+		it.each(["tu(t-100)", "t u(t-100)", "t*u(t-100)"])(
+			"preserves the delayed support of %s",
+			/** @param expression - Equivalent unit-step multiplication spelling. */
+			(expression) => {
+				expect(tryEvaluateLatexAt(expression, -3)).toBeCloseTo(0);
+				expect(tryEvaluateLatexAt(expression, 2)).toBe(0);
+			},
+		);
+
+		/** Rewriting bare unit steps must not corrupt LaTeX command names. */
+		it("preserves LaTeX commands ending in u while handling adjacent bare steps", () => {
+			expect(tryEvaluateLatexAt("tu(t-1)", 0)).toBe(0);
+			expect(tryEvaluateLatexAt("tu(t-1)", 2)).toBe(2);
+			expect(tryEvaluateLatexAt(String.raw`\mu(t-100)`, 2)).toBeNull();
+			expect(tryEvaluateLatexAt(String.raw`\nu(t-100)`, 2)).toBeNull();
+		});
 		/** Strict single-expression evaluation must reject multi-value answers. */
 		it("rejects sequences while retaining nested scalar delimiters", () => {
 			expect(tryEvaluateLatexAt("(t,99)", 2)).toBeNull();

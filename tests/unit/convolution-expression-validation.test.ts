@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 describe("convolution expression equivalence", () => {
+	/** A delayed step must never disappear when typed without a multiplication sign. */
+	it.each(["tu(t-100)", "t u(t-100)", "t*u(t-100)"])(
+		"rejects the incorrectly gated answer %s",
+		/** @param answer - Equivalent spellings of the incorrect gated answer. */
+		(answer) => {
+			expect(convolutionExpressionsMatch(answer, "t")).toBe(false);
+		},
+	);
 	/** Empty sampling must not establish equivalence between finite expressions. */
 	it("requires samples for finite expressions but not infinity sentinels", () => {
 		expect(convolutionExpressionsMatch("4", "5", [])).toBe(false);
