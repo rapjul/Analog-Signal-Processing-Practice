@@ -47,6 +47,11 @@ function playwrightProbePlugin(): Plugin {
 	};
 }
 
+/**
+ * Configures development servers, production asset caching, and test runtimes.
+ * @param context - Vite configuration context.
+ * @param context.command - Whether Vite is serving or building the application.
+ */
 export default defineConfig(({ command }) => {
 	const isBuild = command === "build";
 
@@ -191,6 +196,12 @@ export default defineConfig(({ command }) => {
 					],
 				},
 				workbox: {
+					// Static HTML is emitted after the worker is generated. Cache the
+					// served SPA shell explicitly and refresh it with every new build.
+					additionalManifestEntries: isBuild
+						? [{ url: "/", revision: String(Date.now()) }]
+						: [],
+					navigateFallback: "/",
 					// Only pre-cache static assets during production build; in dev mode, Vite serves on-demand from memory.
 					globPatterns: isBuild
 						? ["**/*.{js,css,html,svg,woff2,png}"]
