@@ -9,35 +9,45 @@
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
+	import WorkedSolution from "$lib/components/ui/WorkedSolution.svelte";
 	import {
 		determineStability,
 		generateLaplaceProblem,
-		type LaplaceProblem,
+		validateLaplacePfdAnswer,
 	} from "$lib/math-engine/laplace";
+	import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 
-	let currentProblem = $state<LaplaceProblem>(
-		generateLaplaceProblem("inverse_pfd"),
-	);
+	let currentProblem = $state(generateLaplaceProblem("inverse_pfd"));
 	let userAttempt = $state("");
 	let isSubmitted = $state(false);
-	let isCorrect = $state(false);
+	let result = $state<TransformValidationResult | null>(null);
+	let isCorrect = $derived(result?.status === "correct");
 
-	let stability = $derived(determineStability([-2, -3], "right-sided"));
+	let stability = $derived(
+		determineStability(
+			currentProblem.pfd.poles,
+			currentProblem.pfd.rocDirection,
+		),
+	);
 
+	/** Generates another causal inverse transform and resets verification. */
 	function handleGenerateNext() {
 		currentProblem = generateLaplaceProblem("inverse_pfd");
 		userAttempt = "";
 		isSubmitted = false;
-		isCorrect = false;
+		result = null;
 	}
 
+	/** Validates the residue sum, including its causal support. */
 	function handleCheck() {
 		isSubmitted = true;
-		const cleanAttempt = userAttempt.trim().replace(/\s+/g, "");
-		const cleanRef = currentProblem.referenceAnswerLatex
-			.trim()
-			.replace(/\s+/g, "");
-		isCorrect = cleanAttempt === cleanRef || cleanAttempt.length > 0;
+		result = validateLaplacePfdAnswer(userAttempt, currentProblem);
+	}
+
+	/** Clears verification when the submitted answer is edited. */
+	function handleInput() {
+		result = null;
+		isSubmitted = false;
 	}
 </script>
 
@@ -50,17 +60,15 @@
 	<div class="practice-card">
 		<div class="card-header">
 			<h2 class="card-title">Inverse Laplace & PFD Practice</h2>
-			<div
-				class="stability-pill"
-				class:stable={stability.isBiboStable}
-			>
-				<span><MathText text={"Poles: $s = -2, -3$"} /></span> |
-				<span>
-					<MathText text={`ROC: $${stability.rocLatex}$`} />
-				</span>
+			<div class="stability-pill">
+				<span
+					><MathText
+						text={`Poles: $s = ${currentProblem.pfd.poles.join(", ")}$`}
+					/></span
+				>
 				|
 				<span>
-					{stability.isBiboStable ? "BIBO Stable" : "Unstable"}
+					<MathText text={`ROC: $${stability.rocLatex}$`} />
 				</span>
 			</div>
 		</div>
@@ -81,6 +89,7 @@
 				type="text"
 				class="math-text-input"
 				bind:value={userAttempt}
+				oninput={handleInput}
 				placeholder="Enter LaTeX answer..."
 			/>
 
@@ -107,34 +116,37 @@
 				class="feedback-box"
 				class:correct={isCorrect}
 				class:incorrect={!isCorrect}
+				role="status"
+				data-validation={result?.status}
 			>
 				<p class="feedback-status">
-					{isCorrect
-						? "✅ Correct!"
-						: "❌ Check reference solution below."}
+					{result?.message}
 				</p>
-				<div class="ref-solution">
-					<strong>Reference Answer:</strong>
-					<MathBlock
-						math={currentProblem.referenceAnswerLatex}
-						compact={true}
-					/>
-				</div>
 			</div>
 		{/if}
 
-		<div class="solution-breakdown">
-			<h3 class="solution-title">Solution Breakdown</h3>
-			{#each currentProblem.solutionSteps as step}
-				<div class="step-card">
-					<h4 class="step-heading">{step.title}</h4>
-					<MathBlock
-						math={step.latex}
-						compact={true}
-					/>
+		{#key currentProblem}
+			<WorkedSolution verified={isCorrect}>
+				<p>{stability.isBiboStable ? "BIBO Stable" : "Unstable"}</p>
+				<strong>Reference Answer:</strong>
+				<MathBlock
+					math={currentProblem.referenceAnswerLatex}
+					compact={true}
+				/>
+				<div class="solution-breakdown">
+					<h3 class="solution-title">Solution Breakdown</h3>
+					{#each currentProblem.solutionSteps as step}
+						<div class="step-card">
+							<h4 class="step-heading">{step.title}</h4>
+							<MathBlock
+								math={step.latex}
+								compact={true}
+							/>
+						</div>
+					{/each}
 				</div>
-			{/each}
-		</div>
+			</WorkedSolution>
+		{/key}
 	</div>
 </PageLayout>
 
@@ -183,11 +195,6 @@
 		flex-wrap: wrap;
 	}
 
-	.stability-pill.stable {
-		border-color: var(--color-success);
-		color: var(--color-success);
-	}
-
 	/* ── Problem prompt ────────────────────────────────────── */
 
 	.problem-prompt {
@@ -215,6 +222,7 @@
 	.action-bar {
 		display: flex;
 		gap: 0.75rem;
+		flex-wrap: wrap;
 	}
 
 	.btn-primary {
@@ -279,11 +287,6 @@
 
 	.feedback-status {
 		font-weight: 700;
-		font-size: var(--text-sm);
-	}
-
-	.ref-solution {
-		margin-top: 0.5rem;
 		font-size: var(--text-sm);
 	}
 

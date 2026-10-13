@@ -4,6 +4,33 @@
  * Region of Convergence (ROC) analysis, and BIBO/Asymptotic stability determination for UIUC ECE 210.
  */
 
+import { Complex } from "$lib/math-engine/complex";
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import {
+	type TransformValidationResult,
+	validateTransformAnswer,
+} from "$lib/math-engine/transform-validation";
+
+/** Structured parameters for a distinct-real-pole inverse PFD drill. */
+export interface LaplacePfdData {
+	/** Numerator coefficients in descending order. */
+	numerator: [number, number];
+	/** Distinct poles of the denominator. */
+	poles: [number, number];
+	/** Residues corresponding to those poles. */
+	residues: number[];
+	/** Given sidedness of the signal. */
+	rocDirection: "right-sided";
+}
+
+/** Generated inverse PFD problem with mandatory structured grading data. */
+export interface GeneratedLaplacePfdProblem extends LaplaceProblem {
+	/** Distinguishes this drill from other Laplace topics. */
+	problemType: "inverse_pfd";
+	/** Reproducible transform data. */
+	pfd: LaplacePfdData;
+}
+
 /**
  * Region of Convergence (ROC) direction classification in the s-domain.
  * Determines system causality and stability properties.
@@ -93,18 +120,22 @@ export function evaluatePfdResidues(
 	}
 
 	// Format inverse transform LaTeX: sum_i (A_i * e^{p_i t} u(t))
-	const terms = residues.map((res, idx) => {
+	const terms = residues.flatMap((res, idx) => {
+		if (res === 0) return [];
 		const p = poles[idx] ?? 0;
-		const sign = res >= 0 ? (idx > 0 ? "+ " : "") : "- ";
+		const hasPrior = residues.slice(0, idx).some((value) => value !== 0);
+		const sign = res >= 0 ? (hasPrior ? "+ " : "") : "- ";
 		const absRes = Math.abs(res);
 		const expTerm = p === 0 ? "" : `e^{${p}t}`;
-		return `${sign}${absRes}${expTerm} u(t)`;
+		return [
+			`${sign}${absRes === 1 ? "" : toFractionLatex(absRes)}${expTerm} u(t)`,
+		];
 	});
 
 	return {
 		poles,
 		residues,
-		inverseLatex: terms.join(" "),
+		inverseLatex: terms.join(" ") || "0",
 	};
 }
 
@@ -185,6 +216,12 @@ export function getLaplacePairLatex(type: string): {
  * @returns {LaplaceProblem} LaplaceProblem object
  */
 export function generateLaplaceProblem(
+	problemType?: "inverse_pfd",
+): GeneratedLaplacePfdProblem;
+export function generateLaplaceProblem(
+	problemType: LaplaceProblemType,
+): LaplaceProblem;
+export function generateLaplaceProblem(
 	problemType: LaplaceProblemType = "inverse_pfd",
 ): LaplaceProblem {
 	const id = `laplace-${problemType}-${Date.now()}`;
@@ -204,35 +241,7 @@ export function generateLaplaceProblem(
 
 			const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
 			const b0 = Math.floor(Math.random() * 8) + 1; // 1 to 8
-
-			const pfd = evaluatePfdResidues([b1, b0], [p1, p2]);
-			const a1 = Math.abs(p1);
-			const a2 = Math.abs(p2);
-
-			return {
-				id,
-				problemType: "inverse_pfd",
-				promptLatex: `\\text{Find the inverse Laplace transform } x(t) \\text{ of } X(s) = \\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`,
-				referenceAnswerLatex: pfd.inverseLatex,
-				solutionSteps: [
-					{
-						title: "Step 1: Set Up Partial Fraction Expansion",
-						latex: `X(s) = \\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})} = \\frac{A}{s + ${a1}} + \\frac{B}{s + ${a2}}`,
-					},
-					{
-						title: `Step 2: Solve Residue A at s = ${p1}`,
-						latex: `A = \\left. (s + ${a1}) X(s) \\right|_{s = ${p1}} = \\frac{${b1}(${p1}) + ${b0}}{${p1} + ${a2}} = ${pfd.residues[0] ?? 0}`,
-					},
-					{
-						title: `Step 3: Solve Residue B at s = ${p2}`,
-						latex: `B = \\left. (s + ${a2}) X(s) \\right|_{s = ${p2}} = \\frac{${b1}(${p2}) + ${b0}}{${p2} + ${a1}} = ${pfd.residues[1] ?? 0}`,
-					},
-					{
-						title: "Step 4: Perform Term-by-Term Inverse Transform",
-						latex: `x(t) = \\mathcal{L}^{-1}\\left\\{${pfd.inverseLatex}\\right\\}`,
-					},
-				],
-			};
+			return createLaplacePfdProblem([b1, b0], [p1, p2]);
 		}
 		case "inverse_direct": {
 			const directTypes = ["trig", "delay", "impulse"];
@@ -394,4 +403,101 @@ export function generateLaplaceProblem(
 			);
 		}
 	}
+}
+
+/**
+ * Builds a causal inverse PFD problem from reproducible rational parameters.
+ * @param numerator - Linear numerator coefficients.
+ * @param poles - Distinct negative real poles.
+ * @returns Display and grading data for the same transform.
+ */
+export function createLaplacePfdProblem(
+	numerator: [number, number],
+	poles: [number, number],
+): GeneratedLaplacePfdProblem {
+	if (
+		![...numerator, ...poles].every(Number.isFinite) ||
+		poles.some((p) => p >= 0) ||
+		poles[0] === poles[1]
+	)
+		throw new Error("PFD drills require distinct negative finite poles");
+	const [b1, b0] = numerator,
+		[p1, p2] = poles;
+	const pfd = evaluatePfdResidues(numerator, poles);
+	const [a1, a2] = [-p1, -p2];
+	const rational = String.raw`\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`;
+	const expansion = pfd.residues
+		.map(
+			(residue, index) =>
+				String.raw`\frac{${toFractionLatex(residue)}}{s + ${-(poles[index] ?? 0)}}`,
+		)
+		.join(" + ");
+	return {
+		id: `laplace-inverse_pfd-${Date.now()}`,
+		problemType: "inverse_pfd",
+		pfd: {
+			numerator: [...numerator],
+			poles: [...poles],
+			residues: pfd.residues,
+			rocDirection: "right-sided",
+		},
+		promptLatex: String.raw`\text{For the causal (right-sided) signal, find } x(t) \text{ from } X(s)=${rational}`,
+		referenceAnswerLatex: pfd.inverseLatex,
+		solutionSteps: [
+			{
+				title: "Step 1: Set Up Partial Fraction Expansion",
+				latex: String.raw`X(s)=${rational}=\frac{A}{s + ${a1}}+\frac{B}{s + ${a2}}`,
+			},
+			{
+				title: `Step 2: Solve Residue A at s = ${p1}`,
+				latex: String.raw`A=\left.(s+${a1})X(s)\right|_{s=${p1}}=\frac{${b1}(${p1})+${b0}}{${p1}+${a2}}=${toFractionLatex(pfd.residues[0] ?? 0)}`,
+			},
+			{
+				title: `Step 3: Solve Residue B at s = ${p2}`,
+				latex: String.raw`B=\left.(s+${a2})X(s)\right|_{s=${p2}}=\frac{${b1}(${p2})+${b0}}{${p2}+${a1}}=${toFractionLatex(pfd.residues[1] ?? 0)}`,
+			},
+			{
+				title: "Step 4: Perform Term-by-Term Inverse Transform",
+				latex: String.raw`x(t)=\mathcal{L}^{-1}\left\{${expansion}\right\}=${pfd.inverseLatex}`,
+			},
+		],
+	};
+}
+
+/**
+ * Grades a causal inverse transform using structured residues and support.
+ * @param answer - Time-domain student input.
+ * @param problem - Active inverse PFD drill.
+ * @returns Strict grading outcome.
+ */
+export function validateLaplacePfdAnswer(
+	answer: string,
+	problem: GeneratedLaplacePfdProblem,
+): TransformValidationResult {
+	const scale = 1 / Math.max(...problem.pfd.poles.map(Math.abs));
+	return validateTransformAnswer(answer, {
+		variable: "t",
+		samples: [
+			-2, -0.17, 0.09, 0.23, 0.51, 0.87, 1.37, 2.11, 3.73, 5.19,
+		].map((x) => x * scale),
+		/**
+		 * Evaluates the independently generated residue sum.
+		 * @param t - Time sample.
+		 * @returns Causal time-domain reference value.
+		 */
+		evaluate: (t) =>
+			new Complex(
+				t < 0
+					? 0
+					: problem.pfd.residues.reduce(
+							(sum, residue, index) =>
+								sum +
+								residue *
+									Math.exp(
+										(problem.pfd.poles[index] ?? 0) * t,
+									),
+							0,
+						),
+			),
+	});
 }

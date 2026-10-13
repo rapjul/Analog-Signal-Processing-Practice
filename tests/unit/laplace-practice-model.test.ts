@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+import {
+	createLaplacePfdProblem,
+	determineStability,
+	validateLaplacePfdAnswer,
+} from "$lib/math-engine/laplace";
+
+describe("Laplace practice model", () => {
+	/** PFD grading must preserve support and every coefficient, including cancellations. */
+	it("grades positive, negative, fractional, and zero residues", () => {
+		for (const numerator of [
+			[2, 3],
+			[1, 1],
+			[1, 2],
+			[3, 8],
+		] as [number, number][]) {
+			const problem = createLaplacePfdProblem(numerator, [-1, -4]);
+			expect(
+				validateLaplacePfdAnswer(problem.referenceAnswerLatex, problem)
+					.status,
+			).toBe("correct");
+			expect(
+				validateLaplacePfdAnswer("nonsense", problem).status,
+			).not.toBe("correct");
+			expect(validateLaplacePfdAnswer("123", problem).status).toBe(
+				"incorrect",
+			);
+			expect(
+				validateLaplacePfdAnswer(
+					problem.referenceAnswerLatex.replaceAll("u(t)", ""),
+					problem,
+				).status,
+			).toBe("incorrect");
+		}
+	});
+	/** Factored input, pole display data, and rational inverse step must describe one transform. */
+	it("uses actual poles and keeps time-domain terms outside the inverse operator", () => {
+		const problem = createLaplacePfdProblem([1, 2], [-1, -4]);
+		expect(problem.pfd.poles).toEqual([-1, -4]);
+		expect(problem.promptLatex).toContain("(s + 1)(s + 4)");
+		expect(
+			determineStability(problem.pfd.poles, problem.pfd.rocDirection)
+				.rocLatex,
+		).toContain("-1");
+		const last = problem.solutionSteps.at(-1)?.latex ?? "";
+		expect(last.slice(0, last.indexOf(String.raw`\right\}`))).not.toContain(
+			"u(t)",
+		);
+		expect(last).toContain(String.raw`\frac{1}{3}`);
+	});
+});
