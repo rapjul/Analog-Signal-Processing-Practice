@@ -65,23 +65,15 @@ test.describe("CTFT Practice Module", () => {
 		page,
 	}) => {
 		const input = page.locator("#ctft-input");
-		if (await input.isVisible()) {
-			await input.fill("\\frac{1}{a + j\\omega}");
-
-			const checkBtn = page.locator("button.btn-primary");
-			if (await checkBtn.isVisible()) {
-				await checkBtn.click();
-				await page.waitForTimeout(300);
-
-				// Verification feedback should appear
-				const feedback = page.locator(
-					".feedback-alert, .result-msg, .alert",
-				);
-				if ((await feedback.count()) > 0) {
-					await expect(feedback.first()).toBeVisible();
-				}
-			}
-		}
+		await expect(input).toBeVisible();
+		await input.fill("arbitrary text");
+		await page.getByRole("button", { name: "Check Answer" }).click();
+		await expect(page.locator(".feedback-box")).toBeVisible();
+		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
+			"data-validation",
+			"correct",
+		);
+		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	});
 
 	/**

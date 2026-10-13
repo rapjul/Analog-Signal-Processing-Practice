@@ -4,6 +4,32 @@
  * calculations, operational properties, and CTFT problem generation for UIUC ECE 210.
  */
 
+import { Complex } from "$lib/math-engine/complex";
+import {
+	type TransformValidationResult,
+	validateTransformAnswer,
+} from "$lib/math-engine/transform-validation";
+
+/** Reproducible parameters for the currently generated forward transform drills. */
+export interface CtftParameters {
+	/** Exponential/Gaussian decay parameter. */
+	a: number;
+	/** Rectangular pulse width. */
+	T: number;
+	/** Cosine carrier frequency. */
+	w0: number;
+	/** Time translation, zero for an unshifted signal. */
+	t0: number;
+}
+
+/** Generated forward drill with a parameter-based grading reference. */
+export interface GeneratedCtftProblem extends CtftProblem {
+	/** Base signal family. */
+	signalType: CtftSignalType;
+	/** Complete reproducible signal parameters. */
+	params: CtftParameters;
+}
+
 /** Available CTFT transform signal types */
 export type CtftSignalType =
 	| "rect" // Rectangular pulse rect(t/T)
@@ -81,7 +107,7 @@ export function getCtftPairLatex(
 			const a = params.a ?? 1;
 			return {
 				timeLatex: `e^{-${a} t^2}`,
-				freqLatex: `\\sqrt{\\frac{\\pi}{${a}}} e^{-\\frac{\\omega^2}{4 ${a}}}`,
+				freqLatex: String.raw`\sqrt{\frac{\pi}{${a}}} e^{-\frac{\omega^2}{${4 * a}}}`,
 			};
 		}
 		case "delta": {
@@ -197,7 +223,7 @@ export function evaluateEnergySpectrum(
  */
 export function generateCtftProblem(
 	type: CtftSignalType = "exponential",
-): CtftProblem {
+): GeneratedCtftProblem {
 	const aValues = [1, 2, 3, 4, 5];
 	const tValues = [1, 2, 4, 6];
 	const w0Values = [2, 3, 4, 5, 10];
@@ -208,25 +234,52 @@ export function generateCtftProblem(
 	const w0 = w0Values[Math.floor(Math.random() * w0Values.length)] ?? 2;
 	const t0 = shiftValues[Math.floor(Math.random() * shiftValues.length)] ?? 1;
 
+	return createCtftProblem(type, {
+		a,
+		T,
+		w0,
+		t0: Math.random() < 0.4 && type !== "delta" ? t0 : 0,
+	});
+}
+
+/**
+ * Builds a deterministic forward transform drill.
+ * @param type - Base signal family.
+ * @param params - Signal parameters and translation.
+ * @returns Problem whose display and grading share the same parameters.
+ */
+export function createCtftProblem(
+	type: CtftSignalType,
+	params: CtftParameters,
+): GeneratedCtftProblem {
+	const { a, T, w0, t0 } = params;
+	if (![a, T, w0, t0].every(Number.isFinite) || a <= 0 || T <= 0 || w0 <= 0)
+		throw new Error("Invalid CTFT parameters");
 	const pair = getCtftPairLatex(type, { a, T, w0 });
 	const id = `ctft-${type}-${Date.now()}`;
 
-	// With 40% probability, add a time-shift operational property
-	const hasShift = Math.random() < 0.4 && type !== "delta";
+	// The random wrapper selects shifts; this builder reproduces the supplied translation.
+	const hasShift = t0 !== 0;
 
 	if (hasShift) {
 		const shiftedTimeLatex =
 			type === "rect"
-				? `\\operatorname{rect}\\left(\\frac{t - ${t0}}{${T}}\\right)`
+				? String.raw`\operatorname{rect}\left(\frac{t - ${t0}}{${T}}\right)`
 				: type === "exponential"
 					? `e^{-${a}(t - ${t0})} u(t - ${t0})`
-					: `${pair.timeLatex.replace("t", `(t - ${t0})`)}`;
+					: type === "gaussian"
+						? String.raw`e^{-${a}(t - ${t0})^2}`
+						: type === "cos"
+							? String.raw`\cos(${w0}(t - ${t0}))`
+							: String.raw`\delta(t - ${t0})`;
 
-		const shiftedFreqLatex = `${pair.freqLatex} e^{-j ${t0} \\omega}`;
+		const shiftedFreqLatex = String.raw`\left(${pair.freqLatex}\right) e^{-j ${t0} \omega}`;
 
 		return {
 			id,
-			promptLatex: `\\text{Find the CTFT } X(\\omega) \\text{ of time-shifted signal } x(t) = ${shiftedTimeLatex}`,
+			signalType: type,
+			params: { ...params },
+			promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of time-shifted signal } x(t) = ${shiftedTimeLatex}`,
 			referenceAnswerLatex: shiftedFreqLatex,
 			solutionSteps: [
 				{
@@ -247,7 +300,9 @@ export function generateCtftProblem(
 
 	return {
 		id,
-		promptLatex: `\\text{Find the CTFT } X(\\omega) \\text{ of } x(t) = ${pair.timeLatex}`,
+		signalType: type,
+		params: { ...params },
+		promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of } x(t) = ${pair.timeLatex}`,
 		referenceAnswerLatex: pair.freqLatex,
 		solutionSteps: [
 			{
@@ -260,4 +315,51 @@ export function generateCtftProblem(
 			},
 		],
 	};
+}
+
+/**
+ * Validates a forward transform using the generated signal rather than answer text.
+ *
+ * @param answer - Student input.
+ * @param problem - Active generated forward drill.
+ * @returns Mathematical verification and diagnostic feedback.
+ */
+export function validateCtftAnswer(
+	answer: string,
+	problem: GeneratedCtftProblem,
+): TransformValidationResult {
+	const { signalType: type, params } = problem;
+	const { a, T, w0, t0 } = params;
+	const scale =
+		type === "rect"
+			? 2 / T
+			: type === "gaussian"
+				? Math.sqrt(a)
+				: type === "cos"
+					? w0
+					: a;
+	const samples = [-3.17, -1.43, -0.71, -0.19, 0, 0.23, 0.83, 1.67, 3.41].map(
+		(x) => x * scale,
+	);
+	return validateTransformAnswer(answer, {
+		variable: "omega",
+		samples,
+		/**
+		 * Evaluates the regular spectrum including time-shift phase.
+		 * @param omega - Frequency in radians per second.
+		 * @returns Complex value of the ordinary spectrum, excluding impulses.
+		 */
+		evaluate: (omega) => {
+			if (type === "cos") return new Complex(0);
+			const point = evaluateCtftSpectrum(type, params, omega);
+			return Complex.fromPolar(point.magnitude, point.phase - omega * t0);
+		},
+		impulses:
+			type === "cos"
+				? [-w0, w0].map((location) => ({
+						location,
+						weight: Complex.fromPolar(Math.PI, -location * t0),
+					}))
+				: [],
+	});
 }
