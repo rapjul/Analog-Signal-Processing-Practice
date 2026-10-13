@@ -20,12 +20,13 @@ test.describe("Circuit Analysis Module", () => {
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
-			/Circuit Analysis & Transfer Functions — SignalLab/i,
+			/Circuit Analysis & Transfer Functions H\(s\) — SignalLab/i,
 		);
 		await expect(page.locator("h1.page-title")).toHaveText(
 			/Circuit Analysis & Transfer Functions H\(s\)/i,
 		);
 
+		await page.locator(".drill-summary").click();
 		const topologySelect = page.locator("#topology-select");
 		await expect(topologySelect).toBeVisible();
 
@@ -43,23 +44,22 @@ test.describe("Circuit Analysis Module", () => {
 	test("updates transfer function when switching between circuit topologies", async ({
 		page,
 	}) => {
+		await page.locator(".drill-summary").click();
 		const topologySelect = page.locator("#topology-select");
 
-		// Select Parallel RLC
-		await topologySelect.selectOption("parallel-rlc");
-		await page.waitForTimeout(300);
 		const prompt = page.locator(".problem-prompt");
 		await expect(prompt).toBeVisible();
-
-		// Select RC Low-Pass Filter
-		await topologySelect.selectOption("rc-lpf");
-		await page.waitForTimeout(300);
-		await expect(prompt).toBeVisible();
-
-		// Select Active Sallen-Key
-		await topologySelect.selectOption("active-sallen-key");
-		await page.waitForTimeout(300);
-		await expect(prompt).toBeVisible();
+		for (const value of ["parallel-rlc", "rc-lpf", "active-sallen-key"]) {
+			const previous = await prompt
+				.locator("annotation")
+				.first()
+				.textContent();
+			await topologySelect.selectOption(value);
+			await expect(topologySelect).toHaveValue(value);
+			await expect(prompt.locator("annotation").first()).not.toHaveText(
+				previous ?? "",
+			);
+		}
 	});
 
 	/**

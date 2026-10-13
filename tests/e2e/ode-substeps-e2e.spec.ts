@@ -46,6 +46,57 @@ test.describe("ODE Multi-Part Sub-Steps & Full Solution View", () => {
 		expect(cardWidth).toBeLessThanOrEqual(320);
 	});
 
+	test("keeps completed sub-step headings clear of status badges at 320px @dev-harness", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			"/odes?order=2&rootType=complex_conjugate&forcing=sinusoid&leading=monic&resonance=none&seed=212",
+		);
+		await expect
+			.poll(() =>
+				page.evaluate(
+					() => typeof window.__signalLabDev?.goToVisualState,
+				),
+			)
+			.toBe("function");
+		const navigated = await page.evaluate(() =>
+			window.__signalLabDev?.goToVisualState("ode.step-05.system-setup"),
+		);
+		expect(navigated).toBe(true);
+		const headers = page.locator(
+			".step-card.active .subpart-done .subpart-header",
+		);
+		await expect.poll(() => headers.count()).toBeGreaterThanOrEqual(2);
+		await expect
+			.poll(() =>
+				headers.evaluateAll((elements) =>
+					elements.flatMap((element) => {
+						const title =
+							element.querySelector<HTMLElement>(
+								".subpart-title",
+							);
+						const badge = element.querySelector<HTMLElement>(
+							".substep-check-badge",
+						);
+						if (!title || !badge)
+							return ["Missing heading or status badge"];
+						const a = title.getBoundingClientRect();
+						const b = badge.getBoundingClientRect();
+						const overlap =
+							a.left < b.right &&
+							b.left < a.right &&
+							a.top < b.bottom &&
+							b.top < a.bottom;
+						return title.scrollWidth > title.clientWidth || overlap
+							? [title.textContent]
+							: [];
+					}),
+				),
+			)
+			.toEqual([]);
+	});
+
 	test("collapsible filter drawer works properly on mobile 320px viewport", async ({
 		page,
 	}) => {

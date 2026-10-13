@@ -19,11 +19,14 @@ test.describe("CTFT Practice Module", () => {
 	test("renders header, signal category dropdown, and CTFT practice card", async ({
 		page,
 	}) => {
-		await expect(page).toHaveTitle(/CTFT Practice — SignalLab/i);
+		await expect(page).toHaveTitle(
+			/Continuous-Time Fourier Transform \(CTFT\) — SignalLab/i,
+		);
 		await expect(page.locator("h1.page-title")).toHaveText(
 			/Continuous-Time Fourier Transform \(CTFT\)/i,
 		);
 
+		await page.locator(".drill-summary").click();
 		const signalSelect = page.locator("#signal-type-select");
 		await expect(signalSelect).toBeVisible();
 
@@ -37,23 +40,22 @@ test.describe("CTFT Practice Module", () => {
 	test("updates CTFT problem when switching signal types", async ({
 		page,
 	}) => {
+		await page.locator(".drill-summary").click();
 		const signalSelect = page.locator("#signal-type-select");
 
-		// Select Exponential Decay
-		await signalSelect.selectOption("exponential");
-		await page.waitForTimeout(300);
 		const prompt = page.locator(".problem-prompt");
 		await expect(prompt).toBeVisible();
-
-		// Select Cosines
-		await signalSelect.selectOption("cos");
-		await page.waitForTimeout(300);
-		await expect(prompt).toBeVisible();
-
-		// Select Gaussian
-		await signalSelect.selectOption("gaussian");
-		await page.waitForTimeout(300);
-		await expect(prompt).toBeVisible();
+		for (const value of ["exponential", "cos", "gaussian"]) {
+			const previous = await prompt
+				.locator("annotation")
+				.first()
+				.textContent();
+			await signalSelect.selectOption(value);
+			await expect(signalSelect).toHaveValue(value);
+			await expect(prompt.locator("annotation").first()).not.toHaveText(
+				previous ?? "",
+			);
+		}
 	});
 
 	/**

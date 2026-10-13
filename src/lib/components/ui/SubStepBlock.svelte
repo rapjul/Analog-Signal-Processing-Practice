@@ -126,7 +126,7 @@
 		font-weight: 700;
 		color: var(--text-primary);
 		margin: 0;
-		flex: 1;
+		flex: 1 1 12rem;
 		min-width: 0;
 	}
 
@@ -158,6 +158,8 @@
 
 		.subpart-title {
 			font-size: var(--text-xs);
+			flex-basis: 100%;
+			order: 1;
 		}
 
 		.substep-check-badge {

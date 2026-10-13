@@ -215,7 +215,8 @@ test.describe("Navigation and Layout Shell", () => {
 		const odeLink = page.locator('.nav-links a[href="/odes"]');
 		await odeLink.click();
 		await page.waitForLoadState("networkidle");
-		await expect(page).toHaveURL(/\/odes$/);
+		await expect(page).toHaveURL((url) => url.pathname === "/odes");
+		await expect(navLinks).not.toHaveClass(/open/);
 	});
 
 	/**

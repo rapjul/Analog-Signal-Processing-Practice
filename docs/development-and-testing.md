@@ -125,6 +125,8 @@ npm run test:e2e:production:solvers
 
 Production runs require port `33210` to be free and never reuse a running development server. Functional tests tagged `@dev-harness` are excluded because their state-selection helpers are available only in development builds; the development suite still runs them. The production solver visual command compares initial problem pages across all configured viewports and both themes, using existing local baselines without updating them. Later solver states still require `npm run test:e2e:solvers`.
 
+Development visual runs disable hot reload and verify the requested active step before capturing its image. Reproducible Fourier visual fixtures include explicit URL seeds, so development and production compare the same problems against shared baselines. Full-page captures reset scrolling and keep the sticky harmonic toolbar in normal flow to avoid compositor pixel jitter; the live site's sticky behavior is unchanged.
+
 The E2E suite tests:
 
 - **Module Workflows**: Full step-by-step problem completion across all 6 practice modules.

@@ -1,47 +1,48 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * End-to-End Test Suite: Mathematical Interactions, LaTeX Copy Badges, and Zero-Unicode Audit.
+ * End-to-End Test Suite: Mathematical Interactions, LaTeX Copy Feedback, and Zero-Unicode Audit.
  *
- * Verifies click-to-copy tooltip badge visibility on hover/click, clipboard interaction lifecycle,
+ * Verifies formula copy-button visibility, clipboard interaction lifecycle,
  * and performs an automated DOM crawl across all 7 routes to enforce Universal Rule 1 (Zero Unicode Math).
  */
 
 test.describe("Math Interactions & Zero-Unicode Audit", () => {
 	/**
-	 * Verifies hover and click-to-copy pop-up badge lifecycle on MathInline and MathBlock components.
+	 * Verifies the rendered MathBlock copy control and its success feedback.
 	 */
-	test("displays copy badge on hover and confirms copy state on click", async ({
+	test("copies the displayed formula and confirms copy state on click", async ({
 		page,
 		context,
+		browserName,
 	}) => {
 		// Grant clipboard permissions for Chromium-based engines
-		await context
-			.grantPermissions(["clipboard-read", "clipboard-write"])
-			.catch(() => {});
+		if (browserName === "chromium") {
+			await context.grantPermissions([
+				"clipboard-read",
+				"clipboard-write",
+			]);
+		}
 
 		await page.goto("/odes");
 		await page.waitForLoadState("networkidle");
 
-		// Locate the first MathInline button
-		const mathInlineBtn = page.locator("button.math-inline").first();
-		await expect(mathInlineBtn).toBeVisible();
-
-		// Hover over math element to trigger copy badge
-		await mathInlineBtn.hover();
-		await page.waitForTimeout(250);
-
-		const copyBadge = mathInlineBtn.locator(".copy-badge");
-		await expect(copyBadge).toBeVisible();
-		await expect(copyBadge).toHaveText(/Copy LaTeX/i);
-
-		// Click the math component to copy
-		await mathInlineBtn.click();
-		await page.waitForTimeout(250);
-
-		// Badge should switch to "Copied!" state
-		await expect(copyBadge).toHaveClass(/copied-state/);
-		await expect(copyBadge).toHaveText(/Copied!/i);
+		const formula = page
+			.getByRole("region", { name: "Mathematical formula block" })
+			.first();
+		const copyButton = formula.getByRole("button", {
+			name: "Copy LaTeX string to clipboard",
+		});
+		const latex = await formula.locator("annotation").first().textContent();
+		await formula.hover();
+		await expect(copyButton).toBeVisible();
+		await copyButton.click();
+		await expect(copyButton).toHaveText("Copied!");
+		if (browserName === "chromium") {
+			await expect
+				.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+				.toBe(latex);
+		}
 	});
 
 	/**
@@ -51,6 +52,8 @@ test.describe("Math Interactions & Zero-Unicode Audit", () => {
 	test("audits rendered DOM across all routes for zero raw unicode math characters", async ({
 		page,
 	}) => {
+		// This check visits seven pages, unlike the single-page interaction tests.
+		test.setTimeout(60_000);
 		const routes = [
 			"/",
 			"/odes",

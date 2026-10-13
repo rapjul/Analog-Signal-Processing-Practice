@@ -53,6 +53,8 @@ export default defineConfig(({ command }) => {
 	return {
 		server: {
 			headers: securityHeaders,
+			// Visual state captures must not reset when generated files change.
+			hmr: process.env.SIGNALLAB_VISUAL_REGRESSION !== "1",
 		},
 		preview: {
 			headers: securityHeaders,

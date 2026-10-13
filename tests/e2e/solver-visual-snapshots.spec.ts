@@ -53,7 +53,9 @@ const CURRENT_TIMINGS = path.join(CURRENT_RUN_DIR, "timings.json");
 const VISUAL_CAPTURE_HIDDEN_SELECTORS = [".navbar", ".update-toast"] as const;
 const VISUAL_CAPTURE_HIDDEN_CSS = `${VISUAL_CAPTURE_HIDDEN_SELECTORS.join(
 	", ",
-)} { display: none !important; }`;
+)} { display: none !important; }
+/* Keep sticky controls in normal flow for static full-page captures. */
+.fourier-canvas-wrapper .controls-bar { position: static !important; }`;
 
 type Theme = "dark" | "light";
 type CaptureKind = "state" | "milestone";
@@ -181,7 +183,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		module: "fourier-series",
 		slug: "fourier-series-square-wave",
 		title: "Fourier Series Square Wave",
-		path: "/fourier-series?waveform=square",
+		path: "/fourier-series?waveform=square&seed=2101",
 		seed: 2101,
 		isItsStepper: true,
 	},
@@ -189,7 +191,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		module: "fourier-series",
 		slug: "fourier-series-triangle-wave",
 		title: "Fourier Series Triangle Wave",
-		path: "/fourier-series?waveform=triangle",
+		path: "/fourier-series?waveform=triangle&seed=2102",
 		seed: 2102,
 		isItsStepper: true,
 	},
@@ -197,7 +199,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		module: "fourier-series",
 		slug: "fourier-series-sawtooth-wave",
 		title: "Fourier Series Sawtooth Wave",
-		path: "/fourier-series?waveform=sawtooth",
+		path: "/fourier-series?waveform=sawtooth&seed=2103",
 		seed: 2103,
 		isItsStepper: true,
 	},
@@ -628,6 +630,17 @@ async function assertAndRecordPageMilestone(args: {
 	theme: Theme;
 	viewport: ViewportDefinition;
 }): Promise<void> {
+	// Solver focus updates can scroll after completion; reset sticky controls too.
+	await args.page.evaluate(() =>
+		window.scrollTo({ top: 0, left: 0, behavior: "instant" }),
+	);
+	await waitForStableLayout(args.page, {
+		module: args.archetype.module,
+		archetype: args.archetype.slug,
+		stateId: args.stateId,
+		theme: args.theme,
+		viewport: args.viewport.name,
+	});
 	const segments = snapshotName(
 		args.archetype,
 		args.stateId,
@@ -673,6 +686,14 @@ async function assertAndRecordActiveState(args: {
 	viewport: ViewportDefinition;
 }): Promise<void> {
 	const activeCard = args.page.locator(".step-card.active");
+	await expect(activeCard.locator(".step-badge")).toHaveText(
+		new RegExp(`^Step\\s+${args.step}(?:\\D|$)`, "i"),
+	);
+	if (args.stateKind === "hint") {
+		await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
+			"All Hints Revealed",
+		);
+	}
 	const segments = snapshotName(
 		args.archetype,
 		args.stateId,

@@ -7,9 +7,18 @@ import { expect, test } from "@playwright/test";
  * problem resets, and deferred post-completion graphical verifier.
  */
 test.describe("Continuous-Time Convolution Module", () => {
-	test.beforeEach(async ({ page }) => {
-		await page.goto("/convolution");
+	test.beforeEach(async ({ page }, testInfo) => {
+		await page.goto(
+			"/convolution?share=1&v=2&seed=3101&xType=rect&xParameter=default&xAmplitude=default&xAmplitude1=default&xAmplitude2=default&xShift=unshifted&xShiftValue=random_signed&hType=rect&hParameter=default&hAmplitude=default&hAmplitude1=default&hAmplitude2=default&hShift=unshifted&hShiftValue=random_signed",
+		);
 		await page.waitForLoadState("networkidle");
+		if (testInfo.title.includes("@dev-harness")) {
+			await expect
+				.poll(() =>
+					page.evaluate(() => typeof window.__signalLabDev?.solveAll),
+				)
+				.toBe("function");
+		}
 	});
 
 	test("renders a seven-step tutor with an anti-spoiler problem statement", async ({

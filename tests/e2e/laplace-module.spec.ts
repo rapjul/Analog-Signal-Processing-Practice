@@ -20,7 +20,7 @@ test.describe("Laplace Transform & S-Domain Module", () => {
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
-			/Laplace Transform & S-Domain Practice — SignalLab/i,
+			/Laplace Transform & s-Domain Analysis — SignalLab/i,
 		);
 		await expect(page.locator("h1.page-title")).toHaveText(
 			/Laplace Transform & S-Domain Analysis/i,
