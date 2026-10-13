@@ -16,26 +16,38 @@
 	let isDark = $state(true);
 	let isMenuOpen = $state(false);
 
-	onMount(() => {
-		const currentTheme =
-			document.documentElement.getAttribute("data-theme") ||
-			localStorage.getItem("theme") ||
-			"dark";
+	/** Initializes the theme even when browser storage is unavailable. */
+	function initializeTheme(): void {
+		let currentTheme = document.documentElement.getAttribute("data-theme");
+		if (!currentTheme) {
+			try {
+				currentTheme = localStorage.getItem("theme");
+			} catch {
+				// Storage restrictions must not prevent the practice UI from mounting.
+			}
+		}
+		currentTheme ||= "dark";
 		isDark = currentTheme === "dark";
 		document.documentElement.setAttribute(
 			"data-theme",
 			isDark ? "dark" : "light",
 		);
-	});
+	}
+
+	onMount(initializeTheme);
 
 	/**
 	 * Toggles light and dark UI themes, synchronizes meta theme-color, and dispatches event for canvas redraws.
 	 */
-	function toggleTheme() {
+	function toggleTheme(): void {
 		isDark = !isDark;
 		const nextTheme = isDark ? "dark" : "light";
 		document.documentElement.setAttribute("data-theme", nextTheme);
-		localStorage.setItem("theme", nextTheme);
+		try {
+			localStorage.setItem("theme", nextTheme);
+		} catch {
+			// Keep the selected theme usable when persistence is blocked or full.
+		}
 
 		const themeColorMeta = document.querySelector(
 			'meta[name="theme-color"]',
