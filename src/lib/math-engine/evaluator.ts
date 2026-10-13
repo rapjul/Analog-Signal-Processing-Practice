@@ -190,8 +190,18 @@ function evaluateMathJsonStrict(
 			const value = evaluateMathJsonStrict(args[0], vars);
 			return value === null ? null : Math.abs(value);
 		}
-		case "Delimiter":
+		case "Heaviside": {
+			if (args.length !== 1) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			return value === null ? null : value >= 0 ? 1 : 0;
+		}
 		case "Sequence": {
+			// A list is not a scalar answer, even when its first entry matches.
+			return args.length === 1
+				? evaluateMathJsonStrict(args[0], vars)
+				: null;
+		}
+		case "Delimiter": {
 			if (args.length === 0 || args[0] === undefined) return null;
 			return evaluateMathJsonStrict(args[0], vars);
 		}
@@ -214,7 +224,15 @@ function evaluateMathJsonStrict(
 export function tryEvaluateLatexAt(latex: string, t: number): number | null {
 	if (!latex.trim()) return null;
 	try {
-		const expression = latex.trim().replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "");
+		// Preserve unit-step support before legacy normalization assumes positive time.
+		const expression = latex
+			.trim()
+			.replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "")
+			.replace(/\\left|\\right/g, "")
+			.replace(
+				/(^|[^a-zA-Z\\])u\s*(?=\()/g,
+				"$1\\operatorname{Heaviside}",
+			);
 		const mathJson = parse(normalizeMathLatex(expression));
 		const result = evaluateMathJsonStrict(mathJson, { t, s: t });
 		return result !== null && Number.isFinite(result) ? result : null;

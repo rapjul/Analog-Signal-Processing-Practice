@@ -26,7 +26,13 @@ export function convolutionScalarMatches(
 	return Object.is(value, expected) || Math.abs(value - expected) < 1e-9;
 }
 
-/** Compares one-variable expressions at deterministic output-time values. */
+/**
+ * Compares one-variable expressions at deterministic output-time values.
+ * @param student - Student expression or infinity boundary sentinel.
+ * @param expected - Verified expression or infinity boundary sentinel.
+ * @param sampleTimes - Output-time values within the relevant interval.
+ * @returns Whether both expressions agree at every sample.
+ */
 export function convolutionExpressionsMatch(
 	student: string,
 	expected: string,
@@ -34,7 +40,12 @@ export function convolutionExpressionsMatch(
 ): boolean {
 	const studentInfinity = parseConvolutionScalarInput(student);
 	const expectedInfinity = parseConvolutionScalarInput(expected);
-	if (!Number.isNaN(studentInfinity) || !Number.isNaN(expectedInfinity))
+	if (
+		studentInfinity === Number.POSITIVE_INFINITY ||
+		studentInfinity === Number.NEGATIVE_INFINITY ||
+		expectedInfinity === Number.POSITIVE_INFINITY ||
+		expectedInfinity === Number.NEGATIVE_INFINITY
+	)
 		return Object.is(studentInfinity, expectedInfinity);
 	for (const time of sampleTimes) {
 		const actual = tryEvaluateLatexAt(student, time);

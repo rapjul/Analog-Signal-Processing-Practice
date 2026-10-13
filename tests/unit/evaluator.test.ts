@@ -10,6 +10,24 @@ import {
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
 	describe("tryEvaluateLatexAt", () => {
+		/** Strict single-expression evaluation must reject multi-value answers. */
+		it("rejects sequences while retaining nested scalar delimiters", () => {
+			expect(tryEvaluateLatexAt("(t,99)", 2)).toBeNull();
+			expect(tryEvaluateLatexAt("0,invalid", 2)).toBeNull();
+			expect(tryEvaluateLatexAt("((2t+4))", 3)).toBe(10);
+		});
+
+		/** Unit-step support must be evaluated at the supplied sample time. */
+		it("evaluates causal and shifted unit steps on both sides of their onset", () => {
+			expect(tryEvaluateLatexAt("3u(t)", -1)).toBe(0);
+			expect(tryEvaluateLatexAt("3u(t)", 1)).toBe(3);
+			expect(tryEvaluateLatexAt("3u(t-2)", 1)).toBe(0);
+			expect(tryEvaluateLatexAt("3u(t-2)", 3)).toBe(3);
+			expect(tryEvaluateLatexAt(String.raw`3u\left(t+2\right)`, -1)).toBe(
+				3,
+			);
+			expect(tryEvaluateLatexAt("u(z)", 1)).toBeNull();
+		});
 		it("evaluates exact polynomial, exponential, and equation-form answers", () => {
 			expect(tryEvaluateLatexAt("(t+1)^2", 2)).toBe(9);
 			expect(tryEvaluateLatexAt("e^{-t}", 0)).toBe(1);
