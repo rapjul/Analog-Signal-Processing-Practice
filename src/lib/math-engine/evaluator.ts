@@ -325,20 +325,25 @@ export function validateLatexAnswer(
 
 	const samplePoints = [0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
 	let maxDiff = 0;
-	let validCount = 0;
 
 	for (const t of samplePoints) {
-		const studentVal = evaluateLatexAt(studentLatex, t);
+		const studentVal = tryEvaluateLatexAt(studentLatex, t);
 		const refVal = refEval(t);
+		// Unevaluable input must not inherit the legacy plotting fallback of zero.
+		if (studentVal === null || !Number.isFinite(refVal)) {
+			return {
+				isCorrect: false,
+				score: 0,
+				message:
+					"The answer could not be evaluated at every sample point.",
+			};
+		}
 
 		const diff = Math.abs(studentVal - refVal);
-		if (!Number.isNaN(diff)) {
-			maxDiff = Math.max(maxDiff, diff);
-			validCount++;
-		}
+		maxDiff = Math.max(maxDiff, diff);
 	}
 
-	if (validCount === 0 || maxDiff > tolerance * 10) {
+	if (maxDiff > tolerance * 10) {
 		return {
 			isCorrect: false,
 			score: 0,

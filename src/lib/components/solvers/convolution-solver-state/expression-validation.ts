@@ -47,6 +47,7 @@ export function convolutionExpressionsMatch(
 		expectedInfinity === Number.NEGATIVE_INFINITY
 	)
 		return Object.is(studentInfinity, expectedInfinity);
+	if (sampleTimes.length === 0) return false;
 	for (const time of sampleTimes) {
 		const actual = tryEvaluateLatexAt(student, time);
 		const target = tryEvaluateLatexAt(expected, time);

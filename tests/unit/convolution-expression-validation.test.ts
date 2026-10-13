@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 describe("convolution expression equivalence", () => {
+	/** Empty sampling must not establish equivalence between finite expressions. */
+	it("requires samples for finite expressions but not infinity sentinels", () => {
+		expect(convolutionExpressionsMatch("4", "5", [])).toBe(false);
+		expect(convolutionExpressionsMatch("t", "t", [])).toBe(false);
+		expect(convolutionExpressionsMatch("inf", "\\infty", [])).toBe(true);
+	});
 	/** Equivalent finite constants must use the same expression evaluator. */
 	it.each(["2+2", "(4)", "8/2", "4+t-t"])(
 		"accepts %s as an equivalent constant",

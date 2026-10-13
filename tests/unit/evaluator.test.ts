@@ -237,6 +237,22 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 	});
 
 	describe("validateLatexAnswer", () => {
+		/** Rejected syntax must not be interpreted as a valid zero-valued answer. */
+		it("rejects unevaluable answers against zero while accepting genuine zero", () => {
+			/** Supplies a valid zero-valued reference response. */
+			const zero = (): number => 0;
+			for (const answer of ["(3,7)", "invalid", "1/0"]) {
+				expect(validateLatexAnswer(answer, zero).isCorrect).toBe(false);
+			}
+			expect(validateLatexAnswer("0", zero).isCorrect).toBe(true);
+			expect(validateLatexAnswer("t-t", zero).isCorrect).toBe(true);
+			/** @param t - Sample time; one undefined reference value must fail grading. */
+			const invalidReference = (t: number): number =>
+				t === 0.3 ? Number.NaN : 0;
+			expect(validateLatexAnswer("0", invalidReference).isCorrect).toBe(
+				false,
+			);
+		});
 		it("validates a matching LaTeX answer against reference function", () => {
 			const refEval = (t: number): number =>
 				2 * Math.exp(-t) + Math.sin(t);
