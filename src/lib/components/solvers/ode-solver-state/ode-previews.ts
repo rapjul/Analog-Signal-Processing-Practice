@@ -9,10 +9,7 @@ import { sanitizeLatexMath } from "$lib/math-engine/formatting";
 import { parseNumericInput, toFractionLatex } from "$lib/math-engine/fraction";
 import { formatHomogeneousResponse } from "$lib/math-engine/odes/formatting";
 import type { OdeOrder, OdeParams } from "$lib/math-engine/odes/types";
-import type {
-	OdeStep1State,
-	OdeStep7State,
-} from "./ode-step-types";
+import type { OdeStep1State, OdeStep7State } from "./ode-step-types";
 
 /**
  * Live rendered preview equation for Step 1 Characteristic Equation.

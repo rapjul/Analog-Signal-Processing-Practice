@@ -372,7 +372,9 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 				solver.step5.b = String(expA);
 				solver.checkStep5Coeffs();
 				expect(solver.currentStep).toBe(5);
-				expect(solver.currentFeedback).toContain("Swapped Coefficients");
+				expect(solver.currentFeedback).toContain(
+					"Swapped Coefficients",
+				);
 			}
 
 			solver.step5.a = String(expA);

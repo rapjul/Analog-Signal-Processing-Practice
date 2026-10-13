@@ -27,7 +27,9 @@ describe("FormulaDrawer Modular Reference Panels", () => {
 		it("renders representations, symmetry shortcuts, and Dirichlet conditions", () => {
 			const { container } = render(FourierFormulaReference);
 			expect(container.querySelectorAll(".ref-section").length).toBe(5);
-			expect(container.querySelectorAll(".ref-list").length).toBeGreaterThan(0);
+			expect(
+				container.querySelectorAll(".ref-list").length,
+			).toBeGreaterThan(0);
 		});
 	});
 
@@ -35,7 +37,9 @@ describe("FormulaDrawer Modular Reference Panels", () => {
 		it("renders definition, timing equations, and pulse definitions", () => {
 			const { container } = render(ConvolutionFormulaReference);
 			expect(container.querySelectorAll(".ref-section").length).toBe(4);
-			expect(container.querySelectorAll(".ref-text").length).toBeGreaterThan(0);
+			expect(
+				container.querySelectorAll(".ref-text").length,
+			).toBeGreaterThan(0);
 		});
 	});
 

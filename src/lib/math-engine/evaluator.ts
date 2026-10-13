@@ -190,8 +190,18 @@ function evaluateMathJsonStrict(
 			const value = evaluateMathJsonStrict(args[0], vars);
 			return value === null ? null : Math.abs(value);
 		}
-		case "Delimiter":
+		case "Heaviside": {
+			if (args.length !== 1) return null;
+			const value = evaluateMathJsonStrict(args[0], vars);
+			return value === null ? null : value >= 0 ? 1 : 0;
+		}
 		case "Sequence": {
+			// A list is not a scalar answer, even when its first entry matches.
+			return args.length === 1
+				? evaluateMathJsonStrict(args[0], vars)
+				: null;
+		}
+		case "Delimiter": {
 			if (args.length === 0 || args[0] === undefined) return null;
 			return evaluateMathJsonStrict(args[0], vars);
 		}
@@ -214,8 +224,24 @@ function evaluateMathJsonStrict(
 export function tryEvaluateLatexAt(latex: string, t: number): number | null {
 	if (!latex.trim()) return null;
 	try {
-		const expression = latex.trim().replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "");
-		const mathJson = parse(normalizeMathLatex(expression));
+		// Preserve unit-step support before legacy normalization assumes positive time.
+		const expression = latex
+			.trim()
+			.replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "")
+			.replace(/\\left|\\right/g, "")
+			.replace(
+				/\\(?:operatorname|text|mathrm)\s*\{[^{}]*\}|\\[a-zA-Z]+|(?<![a-zA-Z])[ts]?u\s*(?=\()/g,
+				/**
+				 * Rewrites time-variable step shorthand while preserving named/text commands.
+				 * @param token - Command or bare unit-step token.
+				 * @returns Original command or explicit Heaviside operator.
+				 */
+				(token: string): string =>
+					token.startsWith("\\")
+						? token
+						: token.replace(/u\s*$/, "\\operatorname{Heaviside}"),
+			);
+		const mathJson = parse(normalizeMathLatex(expression, false));
 		const result = evaluateMathJsonStrict(mathJson, { t, s: t });
 		return result !== null && Number.isFinite(result) ? result : null;
 	} catch {
@@ -228,19 +254,27 @@ export function tryEvaluateLatexAt(latex: string, t: number): number | null {
  * Converts bare function names (cos, sin, exp) to LaTeX syntax (\cos, \sin, \exp)
  * and resolves common constant tokenizations such as 'pi' and 'pit' -> '\pi t'.
  * @param {string} latex Raw input LaTeX or mathematical string
+ * @param {boolean} assumePositiveUnitSteps Whether to retain legacy positive-time step flattening; strict grading disables it.
  * @returns {string} Normalized LaTeX string
  */
-export function normalizeMathLatex(latex: string): string {
+export function normalizeMathLatex(
+	latex: string,
+	assumePositiveUnitSteps = true,
+): string {
 	if (!latex) return "";
+	let normalized = latex
+		.replace(/\\left/g, "")
+		.replace(/\\right/g, "")
+		.replace(/\\cdot/g, " * ")
+		.replace(/\\times/g, " * ");
+	if (assumePositiveUnitSteps) {
+		normalized = normalized
+			.replace(/u\(t\)/g, "1")
+			.replace(/u\(t-[^)]+\)/g, "1");
+	}
 
 	return (
-		latex
-			.replace(/\\left/g, "")
-			.replace(/\\right/g, "")
-			.replace(/\\cdot/g, " * ")
-			.replace(/\\times/g, " * ")
-			.replace(/u\(t\)/g, "1") // step function assumed positive t > 0
-			.replace(/u\(t-[^)]+\)/g, "1")
+		normalized
 			// Convert bare 'pi' followed by a variable (e.g. 100pit -> 100\pi t, pit -> \pi t)
 			.replace(/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g, "$1\\pi $2")
 			// Convert standalone bare 'pi' (e.g. 100pi t -> 100\pi t, 2*pi -> 2*\pi)
@@ -307,20 +341,25 @@ export function validateLatexAnswer(
 
 	const samplePoints = [0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
 	let maxDiff = 0;
-	let validCount = 0;
 
 	for (const t of samplePoints) {
-		const studentVal = evaluateLatexAt(studentLatex, t);
+		const studentVal = tryEvaluateLatexAt(studentLatex, t);
 		const refVal = refEval(t);
+		// Unevaluable input must not inherit the legacy plotting fallback of zero.
+		if (studentVal === null || !Number.isFinite(refVal)) {
+			return {
+				isCorrect: false,
+				score: 0,
+				message:
+					"The answer could not be evaluated at every sample point.",
+			};
+		}
 
 		const diff = Math.abs(studentVal - refVal);
-		if (!Number.isNaN(diff)) {
-			maxDiff = Math.max(maxDiff, diff);
-			validCount++;
-		}
+		maxDiff = Math.max(maxDiff, diff);
 	}
 
-	if (validCount === 0 || maxDiff > tolerance * 10) {
+	if (maxDiff > tolerance * 10) {
 		return {
 			isCorrect: false,
 			score: 0,

@@ -3,12 +3,66 @@
  */
 
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Navigation from "$lib/components/ui/Navigation.svelte";
 
 describe("Navigation.svelte Component", () => {
 	afterEach(() => {
 		cleanup();
+		vi.restoreAllMocks();
+		document.documentElement.removeAttribute("data-theme");
+	});
+
+	/** Storage privacy restrictions must not prevent navigation from mounting. */
+	it("mounts and switches themes when local storage cannot be read", async () => {
+		document.documentElement.removeAttribute("data-theme");
+		vi.spyOn(Storage.prototype, "getItem").mockImplementation(
+			/** Reject reads as a browser with blocked storage would. */
+			() => {
+				throw new DOMException("Storage blocked", "SecurityError");
+			},
+		);
+		const view = render(Navigation);
+		expect(document.documentElement.getAttribute("data-theme")).toBe(
+			"dark",
+		);
+		await fireEvent.click(
+			view.getByRole("button", { name: /toggle theme/i }),
+		);
+		expect(document.documentElement.getAttribute("data-theme")).toBe(
+			"light",
+		);
+	});
+
+	/** A failed persistence write must not interrupt theme-color or canvas updates. */
+	it("finishes theme updates when local storage cannot be written", async () => {
+		document.documentElement.setAttribute("data-theme", "dark");
+		const meta = document.createElement("meta");
+		meta.name = "theme-color";
+		meta.content = "#0f172a";
+		document.head.append(meta);
+		const changed = vi.fn();
+		window.addEventListener("themechange", changed);
+		vi.spyOn(Storage.prototype, "setItem").mockImplementation(
+			/** Reject persistence without preventing in-memory theme changes. */
+			() => {
+				throw new DOMException("Storage full", "QuotaExceededError");
+			},
+		);
+		try {
+			const view = render(Navigation);
+			await fireEvent.click(
+				view.getByRole("button", { name: /toggle theme/i }),
+			);
+			expect(document.documentElement.getAttribute("data-theme")).toBe(
+				"light",
+			);
+			expect(meta.content).toBe("#f8fafc");
+			expect(changed).toHaveBeenCalledOnce();
+		} finally {
+			window.removeEventListener("themechange", changed);
+			meta.remove();
+		}
 	});
 
 	it("renders brand title, navigation links, and highlights active route", () => {

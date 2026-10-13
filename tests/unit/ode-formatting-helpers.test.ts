@@ -18,8 +18,12 @@ describe("ODE Response Formatting & Root Matching Helpers", () => {
 				rootType: "single_real",
 				roots: { r1: -3 },
 			};
-			expect(formatHomogeneousResponse("C", "", params)).toBe("C e^{-3t}");
-			expect(formatHomogeneousResponse("4", "", params)).toBe("4 e^{-3t}");
+			expect(formatHomogeneousResponse("C", "", params)).toBe(
+				"C e^{-3t}",
+			);
+			expect(formatHomogeneousResponse("4", "", params)).toBe(
+				"4 e^{-3t}",
+			);
 		});
 
 		it("formats 2nd-order distinct real roots response", () => {
