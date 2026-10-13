@@ -122,7 +122,7 @@ test.describe("LCC ODEs Practice Module", () => {
 	/**
 	 * Verifies Step 2 requires explicit strategy selection before revealing factoring or quadratic formula inputs.
 	 */
-	test("requires explicit strategy selection in Step 2 without spoiling answers", async ({
+	test("requires explicit strategy selection in Step 2 without spoiling answers @dev-harness", async ({
 		page,
 	}) => {
 		// Seeded fixture + developer harness avoids scraping rendered KaTeX.
@@ -168,7 +168,7 @@ test.describe("LCC ODEs Practice Module", () => {
 		await expect(step2.locator(".disc-remediation-required")).toBeVisible();
 	});
 
-	test("restores safe URL filters and gives first-order problems a direct root flow", async ({
+	test("restores safe URL filters and gives first-order problems a direct root flow @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto(

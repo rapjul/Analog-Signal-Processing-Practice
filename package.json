@@ -19,6 +19,8 @@
     "test": "npm run test:unit -- --run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:production": "playwright test --config playwright.production.config.ts",
+    "test:e2e:production:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_INITIAL_ONLY=1 playwright test --config playwright.production.config.ts --project Solver-Visual-Snapshots --update-snapshots none",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
     "test:e2e:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts",
     "capture:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
@@ -40,7 +42,7 @@
     "@testing-library/svelte": "^5.4.2",
     "@types/katex": "^0.16.8",
     "@types/node": "^26.2.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.3.0",
@@ -51,12 +53,17 @@
     "typescript": "^6.0.3",
     "vite": "^8.2.1",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "@cortex-js/compute-engine": "^0.100.2",
     "idb": "^8.0.3",
     "katex": "^0.18.2"
+  },
+  "overrides": {
+    "@sveltejs/kit": {
+      "cookie": "0.7.2"
+    }
   },
   "lint-staged": {
     "*.{js,ts,svelte}": [

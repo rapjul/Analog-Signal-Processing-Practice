@@ -153,7 +153,7 @@ test.describe("Fourier Series Module", () => {
 		).toHaveCount(0);
 	});
 
-	test("presents symmetry as two sequential parts with separate hints", async ({
+	test("presents symmetry as two sequential parts with separate hints @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto("/fourier-series?waveform=square_even&seed=10");
@@ -253,7 +253,7 @@ test.describe("Fourier Series Module", () => {
 		}
 	});
 
-	test("left-aligns an example formula in every representation choice", async ({
+	test("left-aligns an example formula in every representation choice @dev-harness", async ({
 		page,
 	}) => {
 		const prepared = await page.evaluate(
@@ -280,7 +280,7 @@ test.describe("Fourier Series Module", () => {
 		}
 	});
 
-	test("advances even-wave coefficient work as separate setup parts", async ({
+	test("advances even-wave coefficient work as separate setup parts @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto("/fourier-series?waveform=square_even&seed=10");
@@ -308,7 +308,7 @@ test.describe("Fourier Series Module", () => {
 		await expect(page.locator(".step-card").nth(5)).toHaveClass(/active/);
 	});
 
-	test("shows the complete solved derivation in one native disclosure", async ({
+	test("shows the complete solved derivation in one native disclosure @dev-harness", async ({
 		page,
 	}) => {
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
@@ -331,7 +331,7 @@ test.describe("Fourier Series Module", () => {
 		await expect(breakdown.locator(".katex-error")).toHaveCount(0);
 	});
 
-	test("offers conversion as an optional post-completion challenge", async ({
+	test("offers conversion as an optional post-completion challenge @dev-harness", async ({
 		page,
 	}) => {
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
@@ -369,7 +369,7 @@ test.describe("Fourier Series Module", () => {
 		);
 	});
 
-	test("keeps plots and harmonic controls usable across responsive widths", async ({
+	test("keeps plots and harmonic controls usable across responsive widths @dev-harness", async ({
 		page,
 	}) => {
 		await page.setViewportSize({ width: 1280, height: 800 });
@@ -434,7 +434,7 @@ test.describe("Fourier Series Module", () => {
 		expect(isOverflowing).toBe(false);
 	});
 
-	test("does not round a sub-threshold square-wave ratio up to 99 percent", async ({
+	test("does not round a sub-threshold square-wave ratio up to 99 percent @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto("/fourier-series?waveform=square&seed=39");

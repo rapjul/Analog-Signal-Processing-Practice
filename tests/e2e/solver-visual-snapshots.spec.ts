@@ -21,6 +21,8 @@ import {
  */
 
 const VISUAL_RUN_ENABLED = process.env.SIGNALLAB_VISUAL_REGRESSION === "1";
+// Production builds omit the developer harness used to select later solver states.
+const CAPTURE_INITIAL_ONLY = process.env.SIGNALLAB_VISUAL_INITIAL_ONLY === "1";
 const WRITE_INSPECTION_ARTIFACTS =
 	process.env.SIGNALLAB_VISUAL_ARTIFACTS === "1";
 const COPY_ACCEPTED_SNAPSHOTS =
@@ -959,14 +961,15 @@ async function captureReusedArchetype(
 		...baseContext,
 		stateId: "milestone.initial",
 	});
-	if (archetype.isItsStepper) await requireHarness(page, baseContext);
+	if (archetype.isItsStepper && !CAPTURE_INITIAL_ONLY)
+		await requireHarness(page, baseContext);
 	await captureReusedMilestoneMatrix(
 		page,
 		archetype,
 		"milestone.initial",
 		"Initial Problem Setup",
 	);
-	if (!archetype.isItsStepper) {
+	if (CAPTURE_INITIAL_ONLY || !archetype.isItsStepper) {
 		expect.soft(pageErrors, "uncaught browser errors").toEqual([]);
 		return;
 	}
@@ -1057,7 +1060,9 @@ test.skip(
 );
 
 test.describe("Deterministic solver visual states", () => {
-	test.describe.configure({ mode: "serial" });
+	test.describe.configure({
+		mode: CAPTURE_INITIAL_ONLY ? "default" : "serial",
+	});
 	test.setTimeout(VISUAL_PAGE_MODE === "reused" ? 300_000 : 120_000);
 
 	test.beforeAll(async () => {
@@ -1131,7 +1136,7 @@ test.describe("Deterministic solver visual states", () => {
 							stateId: "milestone.initial",
 						});
 
-						if (archetype.isItsStepper) {
+						if (archetype.isItsStepper && !CAPTURE_INITIAL_ONLY) {
 							await requireHarness(page, timingContext);
 						}
 
@@ -1144,7 +1149,7 @@ test.describe("Deterministic solver visual states", () => {
 							viewport,
 						});
 
-						if (archetype.isItsStepper) {
+						if (archetype.isItsStepper && !CAPTURE_INITIAL_ONLY) {
 							const states = await getVisualStates(page, {
 								...timingContext,
 								detail: "visual-state-catalog",

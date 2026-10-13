@@ -115,6 +115,16 @@ npm run test:e2e
 npx playwright test --ui
 ```
 
+To test the production output, build first and then use the preview-server configuration:
+
+```bash
+npm run build
+npm run test:e2e:production
+npm run test:e2e:production:solvers
+```
+
+Production runs require port `33210` to be free and never reuse a running development server. Functional tests tagged `@dev-harness` are excluded because their state-selection helpers are available only in development builds; the development suite still runs them. The production solver visual command compares initial problem pages across all configured viewports and both themes, using existing local baselines without updating them. Later solver states still require `npm run test:e2e:solvers`.
+
 The E2E suite tests:
 
 - **Module Workflows**: Full step-by-step problem completion across all 6 practice modules.

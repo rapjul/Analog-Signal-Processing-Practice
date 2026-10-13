@@ -65,7 +65,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator("#h-shift-state")).toHaveValue("unshifted");
 	});
 
-	test("shows progressive hints and targeted misconception feedback", async ({
+	test("shows progressive hints and targeted misconception feedback @dev-harness", async ({
 		page,
 	}) => {
 		await page.locator("#hint-toggle-btn").click();
@@ -82,7 +82,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		);
 	});
 
-	test("submits typed timing with Enter and checks choices immediately", async ({
+	test("submits typed timing with Enter and checks choices immediately @dev-harness", async ({
 		page,
 	}) => {
 		await page.locator(".drill-summary").click();
@@ -125,7 +125,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		}
 	});
 
-	test("configures each signal independently and resets tutor progression", async ({
+	test("configures each signal independently and resets tutor progression @dev-harness", async ({
 		page,
 	}) => {
 		await page.locator(".drill-summary").click();
@@ -184,7 +184,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(page.locator("#h-shift-value")).toHaveValue("3");
 	});
 
-	test("reveals worked derivation and animator only after solver completion", async ({
+	test("reveals worked derivation and animator only after solver completion @dev-harness", async ({
 		page,
 	}) => {
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
@@ -204,7 +204,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		await expect(canvas).toBeVisible();
 	});
 
-	test("exposes every dynamic interval through the visual-state harness", async ({
+	test("exposes every dynamic interval through the visual-state harness @dev-harness", async ({
 		page,
 	}) => {
 		const states = await page.evaluate(
@@ -231,7 +231,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		);
 	});
 
-	test("uses responsive summary grids and one interval per Step 5 row", async ({
+	test("uses responsive summary grids and one interval per Step 5 row @dev-harness", async ({
 		page,
 	}) => {
 		await page.setViewportSize({ width: 1280, height: 900 });
@@ -267,7 +267,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		}
 	});
 
-	test("renders normalized convolution math without leaked macro text", async ({
+	test("renders normalized convolution math without leaked macro text @dev-harness", async ({
 		page,
 	}) => {
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
@@ -276,7 +276,7 @@ test.describe("Continuous-Time Convolution Module", () => {
 		expect(text).not.toMatch(/--|\+-/);
 	});
 
-	test("remains horizontally fluid through completion at 320 pixels", async ({
+	test("remains horizontally fluid through completion at 320 pixels @dev-harness", async ({
 		page,
 	}) => {
 		await page.setViewportSize({ width: 320, height: 900 });
