@@ -232,60 +232,110 @@ function evaluate(node: unknown, variable: string, value: number): Complex {
  */
 function affine(node: unknown, variable: string): [number, number] {
 	if (node === variable) return [1, 0];
-	if (!Array.isArray(node)) {
-		const z = evaluate(node, variable, 0);
-		if (z.im !== 0)
-			throw new AnswerError(
-				"unsupported",
-				"Impulse locations must be real.",
-			);
-		return [0, z.re];
-	}
+	if (!Array.isArray(node)) return affineConstant(node, variable);
 	const [op, ...args] = node;
-	if (op === "Delimiter" && args.length === 1)
-		return affine(args[0], variable);
-	if (op === "Negate") {
-		const [a, b] = affine(args[0], variable);
-		return [-a, -b];
+	switch (op) {
+		case "Delimiter": {
+			if (args.length === 1) return affine(args[0], variable);
+			throw affineError();
+		}
+		case "Negate": {
+			const [a, b] = affine(args[0], variable);
+			return [-a, -b];
+		}
+		case "Add": {
+			return affineSum(args, variable, false);
+		}
+		case "Subtract": {
+			return affineSum(args, variable, true);
+		}
+		case "Multiply":
+		case "InvisibleOperator": {
+			return affineProduct(args, variable);
+		}
+		case "Divide":
+		case "Rational": {
+			return affineQuotient(args, variable);
+		}
+		default: {
+			throw affineError();
+		}
 	}
-	if (op === "Add" || op === "Subtract") {
-		return args.reduce<[number, number]>(
-			(sum, arg, index) => {
-				const [a, b] = affine(arg, variable);
-				const sign = op === "Subtract" && index > 0 ? -1 : 1;
-				return [sum[0] + sign * a, sum[1] + sign * b];
-			},
-			[0, 0],
-		);
-	}
-	if (op === "Multiply" || op === "InvisibleOperator") {
-		return args.reduce<[number, number]>(
-			(product, arg) => {
-				const [a, b] = affine(arg, variable);
-				if (product[0] !== 0 && a !== 0)
-					throw new AnswerError(
-						"unsupported",
-						"Use affine arguments for Dirac impulses.",
-					);
-				return [product[0] * b + product[1] * a, product[1] * b];
-			},
-			[0, 1],
-		);
-	}
-	if (op === "Divide" || op === "Rational") {
-		const [a, b] = affine(args[0], variable),
-			[c, d] = affine(args[1], variable);
-		if (c !== 0 || d === 0)
-			throw new AnswerError(
-				"unsupported",
-				"Use affine arguments for Dirac impulses.",
-			);
-		return [a / d, b / d];
-	}
-	throw new AnswerError(
+}
+
+/** @returns Diagnostic for a nonlinear or undefined impulse argument. */
+function affineError(): AnswerError {
+	return new AnswerError(
 		"unsupported",
 		"Use affine arguments for Dirac impulses.",
 	);
+}
+
+/**
+ * Resolves a real scalar coefficient of an affine argument.
+ * @param node - Scalar AST node.
+ * @param variable - Allowed independent variable.
+ * @returns Zero slope and the scalar intercept.
+ */
+function affineConstant(node: unknown, variable: string): [number, number] {
+	const z = evaluate(node, variable, 0);
+	if (z.im !== 0)
+		throw new AnswerError("unsupported", "Impulse locations must be real.");
+	return [0, z.re];
+}
+
+/**
+ * Adds affine terms without concealing nonlinear arguments.
+ * @param args - Argument terms.
+ * @param variable - Independent variable.
+ * @param subtract - Whether terms after the first are subtracted.
+ * @returns Combined slope and intercept.
+ */
+function affineSum(
+	args: unknown[],
+	variable: string,
+	subtract: boolean,
+): [number, number] {
+	let slope = 0,
+		intercept = 0;
+	for (const [index, arg] of args.entries()) {
+		const [a, b] = affine(arg, variable);
+		const sign = subtract && index > 0 ? -1 : 1;
+		slope += sign * a;
+		intercept += sign * b;
+	}
+	return [slope, intercept];
+}
+
+/**
+ * Multiplies affine factors only when at most one factor has nonzero slope.
+ * @param args - Product factors.
+ * @param variable - Independent variable.
+ * @returns Product slope and intercept.
+ */
+function affineProduct(args: unknown[], variable: string): [number, number] {
+	let slope = 0,
+		intercept = 1;
+	for (const arg of args) {
+		const [a, b] = affine(arg, variable);
+		if (slope !== 0 && a !== 0) throw affineError();
+		slope = slope * b + intercept * a;
+		intercept *= b;
+	}
+	return [slope, intercept];
+}
+
+/**
+ * Divides an affine expression by a nonzero scalar.
+ * @param args - Numerator and denominator.
+ * @param variable - Independent variable.
+ * @returns Quotient slope and intercept.
+ */
+function affineQuotient(args: unknown[], variable: string): [number, number] {
+	const [a, b] = affine(args[0], variable),
+		[c, d] = affine(args[1], variable);
+	if (c !== 0 || d === 0) throw affineError();
+	return [a / d, b / d];
 }
 
 /**
@@ -322,89 +372,149 @@ function multiply(left: Spectrum, right: Spectrum): Spectrum {
  * @returns Ordinary spectrum and impulse terms.
  */
 function spectrum(node: unknown, variable: string): Spectrum {
-	if (Array.isArray(node)) {
-		const [op, ...args] = node;
-		if (op === "InvisibleOperator" || op === "Multiply") {
-			const factors: Spectrum[] = [];
-			for (let index = 0; index < args.length; index++) {
-				if (args[index] === "DiracDelta") {
-					const next = args[++index];
-					if (
-						!Array.isArray(next) ||
-						next[0] !== "Delimiter" ||
-						next.length !== 2
-					)
-						throw new AnswerError(
-							"invalid",
-							"Supply one argument to each Dirac impulse.",
-						);
-					const [a, b] = affine(next[1], variable);
-					if (a === 0)
-						throw new AnswerError(
-							"unsupported",
-							"An impulse argument must depend on frequency.",
-						);
-					factors.push({
-						evaluate: () => new Complex(0),
-						impulses: [
-							{
-								location: -b / a,
-								weight: new Complex(1 / Math.abs(a)),
-							},
-						],
-					});
-				} else factors.push(spectrum(args[index], variable));
-			}
-			return factors.reduce(multiply, {
-				evaluate: () => new Complex(1),
-				impulses: [],
-			});
+	if (!Array.isArray(node)) return regularSpectrum(node, variable);
+	const [op, ...args] = node;
+	switch (op) {
+		case "InvisibleOperator":
+		case "Multiply": {
+			return productSpectrum(args, variable);
 		}
-		if (op === "Add" || op === "Subtract" || op === "Negate") {
-			const terms = args.map((arg, index) => {
-				const term = spectrum(arg, variable),
-					sign =
-						op === "Negate" || (op === "Subtract" && index > 0)
-							? -1
-							: 1;
-				return multiply(term, {
-					evaluate: () => new Complex(sign),
-					impulses: [],
-				});
-			});
-			return {
-				evaluate: (x) =>
-					terms.reduce(
-						(sum, term) => sum.add(term.evaluate(x)),
-						new Complex(0),
-					),
-				impulses: terms.flatMap((term) => term.impulses),
-			};
+		case "Add":
+		case "Subtract":
+		case "Negate": {
+			return sumSpectrum(args, variable, op);
 		}
-		if (op === "Delimiter" && args.length === 1)
-			return spectrum(args[0], variable);
-		if (op === "Divide" || op === "Rational") {
-			const denominator = spectrum(args[1], variable);
-			if (denominator.impulses.length)
-				throw new AnswerError(
-					"unsupported",
-					"Division by a Dirac impulse is undefined.",
-				);
-			return multiply(spectrum(args[0], variable), {
-				evaluate: (x) => {
-					const z = denominator.evaluate(x);
-					if (z.abs() === 0)
-						throw new AnswerError(
-							"invalid",
-							"The answer divides by zero.",
-						);
-					return finite(new Complex(1).div(z));
-				},
-				impulses: [],
-			});
+		case "Delimiter": {
+			return args.length === 1
+				? spectrum(args[0], variable)
+				: regularSpectrum(node, variable);
+		}
+		case "Divide":
+		case "Rational": {
+			return quotientSpectrum(args, variable);
+		}
+		default: {
+			return regularSpectrum(node, variable);
 		}
 	}
-	return { evaluate: (x) => evaluate(node, variable, x), impulses: [] };
+}
+
+/**
+ * Wraps an ordinary expression without inventing impulse terms.
+ * @param node - AST expression.
+ * @param variable - Independent variable.
+ * @returns Ordinary spectrum evaluator.
+ */
+function regularSpectrum(node: unknown, variable: string): Spectrum {
+	return {
+		/** @param x - Sample point. @returns Ordinary expression value. */
+		evaluate: (x) => evaluate(node, variable, x),
+		impulses: [],
+	};
+}
+
+/**
+ * Creates the Dirac distribution of a validated affine argument.
+ * @param node - Delimited impulse argument.
+ * @param variable - Independent variable.
+ * @returns A structurally weighted impulse with no ordinary peak value.
+ */
+function impulseSpectrum(node: unknown, variable: string): Spectrum {
+	if (!Array.isArray(node) || node[0] !== "Delimiter" || node.length !== 2)
+		throw new AnswerError(
+			"invalid",
+			"Supply one argument to each Dirac impulse.",
+		);
+	const [a, b] = affine(node[1], variable);
+	if (a === 0)
+		throw new AnswerError(
+			"unsupported",
+			"An impulse argument must depend on frequency.",
+		);
+	return {
+		/** @returns Zero regular component of the distribution. */
+		evaluate: () => new Complex(0),
+		impulses: [{ location: -b / a, weight: new Complex(1 / Math.abs(a)) }],
+	};
+}
+
+/**
+ * Collects ordinary factors and paired Dirac symbols/arguments before multiplication.
+ * @param args - Product factors.
+ * @param variable - Independent variable.
+ * @returns Decomposed product spectrum.
+ */
+function productSpectrum(args: unknown[], variable: string): Spectrum {
+	let result = regularSpectrum(1, variable);
+	for (let index = 0; index < args.length; index++) {
+		const factor =
+			args[index] === "DiracDelta"
+				? impulseSpectrum(args[++index], variable)
+				: spectrum(args[index], variable);
+		result = multiply(result, factor);
+	}
+	return result;
+}
+
+/**
+ * Accumulates signed ordinary values and impulse terms.
+ * @param args - Sum or difference arguments.
+ * @param variable - Independent variable.
+ * @param op - Addition, subtraction, or unary negation.
+ * @returns Decomposed signed sum.
+ */
+function sumSpectrum(args: unknown[], variable: string, op: string): Spectrum {
+	const terms = args.map(
+		/** @param arg - Term AST. @param index - Term position. @returns Signed spectrum. */
+		(arg, index) =>
+			multiply(
+				spectrum(arg, variable),
+				regularSpectrum(
+					op === "Negate" || (op === "Subtract" && index > 0)
+						? -1
+						: 1,
+					variable,
+				),
+			),
+	);
+	return {
+		/** @param x - Sample point. @returns Sum of ordinary term values. */
+		evaluate: (x) =>
+			terms.reduce(
+				/** @param sum - Accumulated value. @param term - Next spectrum. @returns Updated sum. */
+				(sum, term) => sum.add(term.evaluate(x)),
+				new Complex(0),
+			),
+		impulses: terms.flatMap(
+			/** @param term - Signed spectrum. @returns Its impulse terms. */
+			(term) => term.impulses,
+		),
+	};
+}
+
+/**
+ * Divides only by an ordinary, nonzero expression.
+ * @param args - Numerator and denominator.
+ * @param variable - Independent variable.
+ * @returns Quotient spectrum with correctly scaled impulses.
+ */
+function quotientSpectrum(args: unknown[], variable: string): Spectrum {
+	const denominator = spectrum(args[1], variable);
+	if (denominator.impulses.length)
+		throw new AnswerError(
+			"unsupported",
+			"Division by a Dirac impulse is undefined.",
+		);
+	return multiply(spectrum(args[0], variable), {
+		/** @param x - Sample point. @returns Reciprocal ordinary denominator. */
+		evaluate: (x) => {
+			const z = denominator.evaluate(x);
+			if (z.abs() === 0)
+				throw new AnswerError("invalid", "The answer divides by zero.");
+			return finite(new Complex(1).div(z));
+		},
+		impulses: [],
+	});
 }
 
 /**

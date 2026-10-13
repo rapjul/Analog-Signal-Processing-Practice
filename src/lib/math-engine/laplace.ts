@@ -228,173 +228,16 @@ export function generateLaplaceProblem(
 
 	switch (problemType) {
 		case "inverse_pfd": {
-			const polesList = [-1, -2, -3, -4, -5];
-			const p1 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
-			let p2 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
-			while (p2 === p1) {
-				p2 =
-					polesList[Math.floor(Math.random() * polesList.length)] ??
-					-2;
-			}
-
-			const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-			const b0 = Math.floor(Math.random() * 8) + 1; // 1 to 8
-			return createLaplacePfdProblem([b1, b0], [p1, p2]);
+			return generateInversePfd();
 		}
 		case "inverse_direct": {
-			const directTypes = ["trig", "delay", "impulse"];
-			const chosen =
-				directTypes[Math.floor(Math.random() * directTypes.length)] ??
-				"trig";
-
-			if (chosen === "trig") {
-				const A = Math.floor(Math.random() * 4) + 1;
-				const B = Math.floor(Math.random() * 3) + 1;
-				const omega = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
-				const wSq = omega * omega;
-				const bOmega = B * omega;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\\right\\}`,
-					referenceAnswerLatex: `(${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
-					solutionSteps: [
-						{
-							title: "Step 1: Separate into Cosine and Sine Terms",
-							latex: `X(s) = ${A} \\cdot \\frac{s}{s^2 + ${omega}^2} + ${B} \\cdot \\frac{${omega}}{s^2 + ${omega}^2}`,
-						},
-						{
-							title: "Step 2: Recall Standard Trigonometric Pairs",
-							latex: `\\mathcal{L}^{-1}\\left\\{\\frac{s}{s^2 + ${omega}^2}\\right\\} = \\cos(${omega}t) u(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{${omega}}{s^2 + ${omega}^2}\\right\\} = \\sin(${omega}t) u(t)`,
-						},
-						{
-							title: "Step 3: Combine Terms by Linearity",
-							latex: `x(t) = (${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
-						},
-					],
-				};
-			} else if (chosen === "delay") {
-				const A = Math.floor(Math.random() * 4) + 1;
-				const a = Math.floor(Math.random() * 4) + 1;
-				const t0 = Math.floor(Math.random() * 3) + 1;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A} e^{-${t0}s}}{s + ${a}}\\right\\}`,
-					referenceAnswerLatex: `${A} e^{-${a}(t-${t0})} u(t-${t0})`,
-					solutionSteps: [
-						{
-							title: "Step 1: Identify Time-Shift Property",
-							latex: `\\mathcal{L}^{-1}\\{e^{-${t0}s} F(s)\\} = f(t - ${t0}) u(t - ${t0})`,
-						},
-						{
-							title: "Step 2: Inverse Transform of Unshifted Term",
-							latex: `\\mathcal{L}^{-1}\\left\\{\\frac{${A}}{s + ${a}}\\right\\} = ${A} e^{-${a}t} u(t)`,
-						},
-						{
-							title: "Step 3: Apply Time Shift",
-							latex: `x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
-						},
-					],
-				};
-			} else {
-				const A = Math.floor(Math.random() * 5) + 1;
-				const B = Math.floor(Math.random() * 5) + 1;
-				const a = Math.floor(Math.random() * 4) + 1;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{${A} + \\frac{${B}}{s + ${a}}\\right\\}`,
-					referenceAnswerLatex: `${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
-					solutionSteps: [
-						{
-							title: "Step 1: Identify Impulse & Exponential Pairs",
-							latex: `\\mathcal{L}^{-1}\\{1\\} = \\delta(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{1}{s + ${a}}\\right\\} = e^{-${a}t} u(t)`,
-						},
-						{
-							title: "Step 2: Combine Terms",
-							latex: `x(t) = ${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
-						},
-					],
-				};
-			}
+			return generateDirectInverse(id);
 		}
 		case "forward": {
-			const c1 = Math.floor(Math.random() * 4) + 1;
-			const c2 = Math.floor(Math.random() * 4) + 1;
-			const a1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-			let a2 = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
-			while (a2 === a1) a2 = a2 + 1;
-
-			const b1 = c1 + c2;
-			const b0 = c1 * a2 + c2 * a1;
-			const d1 = a1 + a2;
-			const d0 = a1 * a2;
-
-			return {
-				id,
-				problemType: "forward",
-				promptLatex: `\\text{Find } X(s) = \\mathcal{L}\\{x(t)\\} \\text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
-				referenceAnswerLatex: `\\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
-				solutionSteps: [
-					{
-						title: "Step 1: Apply Exponential Transform Pair",
-						latex: `\\mathcal{L}\\{e^{-at} u(t)\\} = \\frac{1}{s + a} \\implies X(s) = \\frac{${c1}}{s+${a1}} + \\frac{${c2}}{s+${a2}}`,
-					},
-					{
-						title: "Step 2: Combine Terms Over Common Denominator",
-						latex: `X(s) = \\frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
-					},
-				],
-			};
+			return generateForwardTransform(id);
 		}
 		case "roc_stability": {
-			const polesList = [-3, -2, -1, 1, 2, 3];
-			const p1 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
-			let p2 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
-			while (p2 === p1) {
-				p2 =
-					polesList[Math.floor(Math.random() * polesList.length)] ??
-					2;
-			}
-
-			const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
-				"right-sided",
-				"left-sided",
-				"two-sided",
-			];
-			const direction =
-				directions[Math.floor(Math.random() * directions.length)] ??
-				"right-sided";
-			const stability = determineStability([p1, p2], direction);
-
-			return {
-				id,
-				problemType: "roc_stability",
-				promptLatex: `\\text{Determine ROC and BIBO stability for } ${direction} \\text{ system } X(s) = \\frac{1}{(s - (${p1}))(s - (${p2}))}`,
-				referenceAnswerLatex: `${stability.rocLatex}, \\quad \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
-				solutionSteps: [
-					{
-						title: "Step 1: Identify System Poles",
-						latex: `D(s) = 0 \\implies p_1 = ${p1}, \\quad p_2 = ${p2}`,
-					},
-					{
-						title: "Step 2: Determine ROC Region",
-						latex: `\\text{ROC for } ${direction} \\text{ system is } ${stability.rocLatex}`,
-					},
-					{
-						title: "Step 3: Check Stability Criteria",
-						latex: `\\operatorname{Re}(s) = 0 \\text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \\implies \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
-					},
-				],
-			};
+			return generateRocProblem(id);
 		}
 		default: {
 			const _exhaustiveCheck: never = problemType;
@@ -403,6 +246,220 @@ export function generateLaplaceProblem(
 			);
 		}
 	}
+}
+
+/** Generates distinct-pole inverse drills. @returns Structured causal PFD problem. */
+function generateInversePfd(): GeneratedLaplacePfdProblem {
+	const polesList = [-1, -2, -3, -4, -5];
+	const p1 = polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+	let p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
+	while (p2 === p1) {
+		p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
+	}
+
+	const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+	const b0 = Math.floor(Math.random() * 8) + 1; // 1 to 8
+	return createLaplacePfdProblem([b1, b0], [p1, p2]);
+}
+
+/**
+ * Selects one direct inverse transform family.
+ * @param id - Problem identifier.
+ * @returns Trigonometric, delayed, or impulse inverse problem.
+ */
+function generateDirectInverse(id: string): LaplaceProblem {
+	const directTypes = ["trig", "delay", "impulse"];
+	const chosen =
+		directTypes[Math.floor(Math.random() * directTypes.length)] ?? "trig";
+
+	switch (chosen) {
+		case "trig": {
+			return createTrigonometricInverse(id);
+		}
+		case "delay": {
+			return createDelayedInverse(id);
+		}
+		case "impulse": {
+			return createImpulseInverse(id);
+		}
+		default: {
+			throw new Error(`Unsupported direct inverse type: ${chosen}`);
+		}
+	}
+}
+
+/**
+ * Generates a sine/cosine transform-pair drill.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with its worked transform pairs.
+ */
+function createTrigonometricInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 4) + 1;
+	const B = Math.floor(Math.random() * 3) + 1;
+	const omega = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
+	const wSq = omega * omega;
+	const bOmega = B * omega;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\\right\\}`,
+		referenceAnswerLatex: `(${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+		solutionSteps: [
+			{
+				title: "Step 1: Separate into Cosine and Sine Terms",
+				latex: `X(s) = ${A} \\cdot \\frac{s}{s^2 + ${omega}^2} + ${B} \\cdot \\frac{${omega}}{s^2 + ${omega}^2}`,
+			},
+			{
+				title: "Step 2: Recall Standard Trigonometric Pairs",
+				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{s}{s^2 + ${omega}^2}\\right\\} = \\cos(${omega}t) u(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{${omega}}{s^2 + ${omega}^2}\\right\\} = \\sin(${omega}t) u(t)`,
+			},
+			{
+				title: "Step 3: Combine Terms by Linearity",
+				latex: `x(t) = (${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a delayed exponential inverse transform.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with the delay property.
+ */
+function createDelayedInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 4) + 1;
+	const a = Math.floor(Math.random() * 4) + 1;
+	const t0 = Math.floor(Math.random() * 3) + 1;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A} e^{-${t0}s}}{s + ${a}}\\right\\}`,
+		referenceAnswerLatex: `${A} e^{-${a}(t-${t0})} u(t-${t0})`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify Time-Shift Property",
+				latex: `\\mathcal{L}^{-1}\\{e^{-${t0}s} F(s)\\} = f(t - ${t0}) u(t - ${t0})`,
+			},
+			{
+				title: "Step 2: Inverse Transform of Unshifted Term",
+				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{${A}}{s + ${a}}\\right\\} = ${A} e^{-${a}t} u(t)`,
+			},
+			{
+				title: "Step 3: Apply Time Shift",
+				latex: `x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates an impulse-plus-exponential inverse transform.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with its linear combination.
+ */
+function createImpulseInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 5) + 1;
+	const B = Math.floor(Math.random() * 5) + 1;
+	const a = Math.floor(Math.random() * 4) + 1;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{${A} + \\frac{${B}}{s + ${a}}\\right\\}`,
+		referenceAnswerLatex: `${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify Impulse & Exponential Pairs",
+				latex: `\\mathcal{L}^{-1}\\{1\\} = \\delta(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{1}{s + ${a}}\\right\\} = e^{-${a}t} u(t)`,
+			},
+			{
+				title: "Step 2: Combine Terms",
+				latex: `x(t) = ${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a forward transform of two causal exponentials.
+ * @param id - Problem identifier.
+ * @returns Forward problem and common-denominator derivation.
+ */
+function generateForwardTransform(id: string): LaplaceProblem {
+	const c1 = Math.floor(Math.random() * 4) + 1;
+	const c2 = Math.floor(Math.random() * 4) + 1;
+	const a1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+	let a2 = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
+	while (a2 === a1) a2 = a2 + 1;
+
+	const b1 = c1 + c2;
+	const b0 = c1 * a2 + c2 * a1;
+	const d1 = a1 + a2;
+	const d0 = a1 * a2;
+
+	return {
+		id,
+		problemType: "forward",
+		promptLatex: `\\text{Find } X(s) = \\mathcal{L}\\{x(t)\\} \\text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
+		referenceAnswerLatex: `\\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+		solutionSteps: [
+			{
+				title: "Step 1: Apply Exponential Transform Pair",
+				latex: `\\mathcal{L}\\{e^{-at} u(t)\\} = \\frac{1}{s + a} \\implies X(s) = \\frac{${c1}}{s+${a1}} + \\frac{${c2}}{s+${a2}}`,
+			},
+			{
+				title: "Step 2: Combine Terms Over Common Denominator",
+				latex: `X(s) = \\frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a pole/ROC stability classification problem.
+ * @param id - Problem identifier.
+ * @returns Region and stability drill.
+ */
+function generateRocProblem(id: string): LaplaceProblem {
+	const polesList = [-3, -2, -1, 1, 2, 3];
+	const p1 = polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+	let p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
+	while (p2 === p1) {
+		p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
+	}
+
+	const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
+		"right-sided",
+		"left-sided",
+		"two-sided",
+	];
+	const direction =
+		directions[Math.floor(Math.random() * directions.length)] ??
+		"right-sided";
+	const stability = determineStability([p1, p2], direction);
+
+	return {
+		id,
+		problemType: "roc_stability",
+		promptLatex: `\\text{Determine ROC and BIBO stability for } ${direction} \\text{ system } X(s) = \\frac{1}{(s - (${p1}))(s - (${p2}))}`,
+		referenceAnswerLatex: `${stability.rocLatex}, \\quad \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify System Poles",
+				latex: `D(s) = 0 \\implies p_1 = ${p1}, \\quad p_2 = ${p2}`,
+			},
+			{
+				title: "Step 2: Determine ROC Region",
+				latex: `\\text{ROC for } ${direction} \\text{ system is } ${stability.rocLatex}`,
+			},
+			{
+				title: "Step 3: Check Stability Criteria",
+				latex: `\\operatorname{Re}(s) = 0 \\text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \\implies \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+			},
+		],
+	};
 }
 
 /**
