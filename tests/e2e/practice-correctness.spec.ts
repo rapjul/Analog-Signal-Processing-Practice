@@ -136,6 +136,14 @@ test("Circuits rebuilds one component model and resets revealed answers", async 
 	await page.locator("#topology-select").selectOption("rc-lpf");
 	await expect(page.locator("#l-slider")).toHaveCount(0);
 	await expect(prompt).not.toContainText("L =");
+	await page.locator("#r-slider").fill("1");
+	await page.locator("#c-slider").fill("0.003");
+	await reveal(page);
+	await expect(page.locator(".tf-output annotation")).toContainText(
+		String.raw`\frac{1000}{3}`,
+	);
+	await expect(page.locator(".solution-breakdown")).not.toContainText("Z_L");
+	await expect(page.locator(".katex-error")).toHaveCount(0);
 });
 
 for (const route of ["laplace", "fourier-transform", "circuits"]) {

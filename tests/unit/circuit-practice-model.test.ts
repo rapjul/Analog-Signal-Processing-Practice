@@ -9,6 +9,36 @@ import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
 import { CIRCUITS_EXAM_BANK } from "$lib/problems/bank/circuits-bank";
 
 describe("circuit practice model", () => {
+	/** Analytical coefficients must come from exact decimal arithmetic while plots retain numbers. */
+	it("renders exact fractions for decimal slider values", () => {
+		const tf = evaluateTransferFunction("series-rlc", {
+			R: 10,
+			L: 1,
+			C: 0.003,
+		});
+		expect(tf.hLatex).toContain(String.raw`\frac{1000}{3}`);
+		expect(tf.hLatex).not.toContain("333.333");
+		expect(tf.denCoeffs[2]).toBeCloseTo(1000 / 3, 12);
+		const active = evaluateTransferFunction("active-sallen-key", {
+			R: 199,
+			L: 0,
+			C: 0.099,
+		});
+		expect(active.hLatex).toContain(String.raw`\frac{1000000}{388129401}`);
+	});
+	/** Unused inputs must not participate in validation or analytical display. */
+	it("ignores unused components and omits them from worked steps", () => {
+		const rc = createCircuitProblem("rc-lpf", { R: 10, L: 0, C: 0.003 });
+		expect(rc.solutionSteps[0]?.latex).not.toContain("Z_L");
+		expect(rc.promptLatex).not.toContain("L =");
+		const rl = createCircuitProblem("rl-lpf", {
+			R: 10,
+			L: 1,
+			C: Number.NaN,
+		});
+		expect(rl.solutionSteps[0]?.latex).not.toContain("Z_C");
+		expect(rl.promptLatex).not.toContain("C =");
+	});
 	/** Regeneration and sliders must build equivalent transfer functions for their component model. */
 	it("builds all currently exposed circuit families from one component set", () => {
 		for (const topology of [

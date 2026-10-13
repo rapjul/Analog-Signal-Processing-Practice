@@ -4,6 +4,8 @@
  * and Bode magnitude/phase plots for UIUC ECE 210.
  */
 
+import { formatCircuitTransferFunction } from "$lib/math-engine/circuit-formatting";
+
 /**
  * Supported circuit topologies for transfer function H(s) derivation and Bode analysis.
  *
@@ -133,8 +135,38 @@ export function evaluateTransferFunction(
 	const R = params.R ?? 10;
 	const L = params.L ?? 1;
 	const C = params.C ?? 0.01;
-	if (![R, L, C].every((value) => Number.isFinite(value) && value > 0))
+	const required = [R];
+	if (circuitUsesInductor(topology)) required.push(L);
+	if (circuitUsesCapacitor(topology)) required.push(C);
+	if (!required.every((value) => Number.isFinite(value) && value > 0))
 		throw new Error("Circuit components must be positive and finite");
+	const components = {
+		R,
+		L: circuitUsesInductor(topology) ? L : 1,
+		C: circuitUsesCapacitor(topology) ? C : 1,
+	};
+	const result = calculateTransferFunction(topology, components);
+	return {
+		...result,
+		hLatex: formatCircuitTransferFunction(
+			result.numCoeffs,
+			result.denCoeffs,
+			components,
+		),
+	};
+}
+
+/**
+ * Calculates numerical polynomial coefficients for one circuit topology.
+ * @param topology - Circuit topology.
+ * @param components - Validated component values.
+ * @returns Numerical coefficients for Bode evaluation.
+ */
+function calculateTransferFunction(
+	topology: CircuitTopology,
+	components: CircuitComponents,
+): TransferFunctionResult {
+	const { R, L, C } = components;
 
 	switch (topology) {
 		case "series-rlc": {
@@ -412,6 +444,11 @@ export function createCircuitProblem(
 	};
 
 	const name = topologyNames[topology] ?? topology;
+	const impedances = [String.raw`Z_R(s) = ${R}`];
+	if (circuitUsesInductor(topology))
+		impedances.push(String.raw`Z_L(s) = ${L}s`);
+	if (circuitUsesCapacitor(topology))
+		impedances.push(String.raw`Z_C(s) = \frac{1}{${C}s}`);
 
 	// Construct granular zero-guesswork solution breakdown steps
 	return {
@@ -423,7 +460,7 @@ export function createCircuitProblem(
 		solutionSteps: [
 			{
 				title: "Step 1: Replace Components with s-Domain Impedances",
-				latex: `Z_R(s) = ${R}, \\quad Z_L(s) = ${L}s, \\quad Z_C(s) = \\frac{1}{${C}s}`,
+				latex: impedances.join(String.raw`, \quad `),
 			},
 			{
 				title: "Step 2: Apply Voltage Divider / Node Voltage Equations",
