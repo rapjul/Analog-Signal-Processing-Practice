@@ -534,6 +534,7 @@ export function validateLaplacePfdAnswer(
 	const scale = 1 / Math.max(...problem.pfd.poles.map(Math.abs));
 	return validateTransformAnswer(answer, {
 		variable: "t",
+		sampleScale: scale,
 		samples: [
 			-2, -0.17, 0.09, 0.23, 0.51, 0.87, 1.37, 2.11, 3.73, 5.19,
 		].map((x) => x * scale),

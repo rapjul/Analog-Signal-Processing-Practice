@@ -27,6 +27,8 @@ export interface TransformReference {
 	variable: "t" | "omega";
 	/** Deterministic, problem-scaled samples of the regular part. */
 	samples: number[];
+	/** Characteristic domain scale for off-grid probes and removable limits. */
+	sampleScale?: number;
 	/** Finite regular component, excluding impulses. */
 	evaluate: (value: number) => Complex;
 	/** Exact locations and weights of all expected impulses. */
@@ -53,6 +55,14 @@ class AnswerError extends Error {
 		message: string,
 	) {
 		super(message);
+	}
+}
+
+/** Identifies a sample singularity separately from unsupported or malformed syntax. */
+class ZeroDivisionError extends AnswerError {
+	/** Creates a zero-denominator diagnostic eligible for two-sided limit checking. */
+	constructor() {
+		super("invalid", "The answer divides by zero.");
 	}
 }
 
@@ -139,8 +149,7 @@ function evaluate(node: unknown, variable: string, value: number): Complex {
 		case "Divide":
 		case "Rational": {
 			const divisor = child(1);
-			if (divisor.abs() === 0)
-				throw new AnswerError("invalid", "The answer divides by zero.");
+			if (divisor.abs() === 0) throw new ZeroDivisionError();
 			result = child(0).div(divisor);
 			break;
 		}
@@ -407,7 +416,10 @@ function spectrum(node: unknown, variable: string): Spectrum {
  */
 function regularSpectrum(node: unknown, variable: string): Spectrum {
 	return {
-		/** @param x - Sample point. @returns Ordinary expression value. */
+		/**
+		 * @param x - Sample point.
+		 * @returns Ordinary expression value.
+		 */
 		evaluate: (x) => evaluate(node, variable, x),
 		impulses: [],
 	};
@@ -465,7 +477,11 @@ function productSpectrum(args: unknown[], variable: string): Spectrum {
  */
 function sumSpectrum(args: unknown[], variable: string, op: string): Spectrum {
 	const terms = args.map(
-		/** @param arg - Term AST. @param index - Term position. @returns Signed spectrum. */
+		/**
+		 * @param arg - Term AST.
+		 * @param index - Term position.
+		 * @returns Signed spectrum.
+		 */
 		(arg, index) =>
 			multiply(
 				spectrum(arg, variable),
@@ -478,15 +494,25 @@ function sumSpectrum(args: unknown[], variable: string, op: string): Spectrum {
 			),
 	);
 	return {
-		/** @param x - Sample point. @returns Sum of ordinary term values. */
+		/**
+		 * @param x - Sample point.
+		 * @returns Sum of ordinary term values.
+		 */
 		evaluate: (x) =>
 			terms.reduce(
-				/** @param sum - Accumulated value. @param term - Next spectrum. @returns Updated sum. */
+				/**
+				 * @param sum - Accumulated value.
+				 * @param term - Next spectrum.
+				 * @returns Updated sum.
+				 */
 				(sum, term) => sum.add(term.evaluate(x)),
 				new Complex(0),
 			),
 		impulses: terms.flatMap(
-			/** @param term - Signed spectrum. @returns Its impulse terms. */
+			/**
+			 * @param term - Signed spectrum.
+			 * @returns Its impulse terms.
+			 */
 			(term) => term.impulses,
 		),
 	};
@@ -506,11 +532,13 @@ function quotientSpectrum(args: unknown[], variable: string): Spectrum {
 			"Division by a Dirac impulse is undefined.",
 		);
 	return multiply(spectrum(args[0], variable), {
-		/** @param x - Sample point. @returns Reciprocal ordinary denominator. */
+		/**
+		 * @param x - Sample point.
+		 * @returns Reciprocal ordinary denominator.
+		 */
 		evaluate: (x) => {
 			const z = denominator.evaluate(x);
-			if (z.abs() === 0)
-				throw new AnswerError("invalid", "The answer divides by zero.");
+			if (z.abs() === 0) throw new ZeroDivisionError();
 			return finite(new Complex(1).div(z));
 		},
 		impulses: [],
@@ -547,6 +575,156 @@ function close(actual: Complex, expected: Complex): boolean {
 }
 
 /**
+ * Normalizes standard equation prefixes, tight imaginary-unit notation, and grouping.
+ * @param answer - Submitted mathematical expression.
+ * @param variable - Expected independent variable.
+ * @returns Equivalent parser-ready expression.
+ */
+function normalizeTransformAnswer(answer: string, variable: string): string {
+	const prefix =
+		variable === "t"
+			? /^x\s*\(\s*t\s*\)\s*=\s*/
+			: /^X\s*\(\s*(?:[ij]\s*)?(?:\\omega|omega|w)\s*\)\s*=\s*/;
+	return answer
+		.trim()
+		.replace(/\\left\[/g, "(")
+		.replace(/\\right\]/g, ")")
+		.replace(/(?<!\\)\[/g, "(")
+		.replace(/(?<!\\)\]/g, ")")
+		.replace(prefix, "")
+		.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
+		.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
+		.replace(/(^|[^a-zA-Z\\])([ij])(?:omega|w)\b/g, "$1$2\\omega")
+		.replace(/(^|[^a-zA-Z\\])omega\b/g, "$1\\omega")
+		.replace(/(^|[^a-zA-Z\\])w\b/g, "$1\\omega");
+}
+
+/**
+ * Adds irrational and varying probes so decimal-grid zeros cannot bypass grading.
+ * @param reference - Domain samples and characteristic scale.
+ * @returns Mandatory points followed by off-grid probes.
+ */
+function validationSamples(reference: TransformReference): number[] {
+	const scale = reference.sampleScale ?? 1;
+	const probes = [Math.SQRT2 / 3, -Math.sqrt(3) / 5, Math.PI / 7];
+	for (let index = 0; index < 8; index++)
+		probes.push((index % 2 === 0 ? -1 : 1) * (0.01 + 2 * Math.random()));
+	return [
+		...reference.samples,
+		...probes.map(
+			/**
+			 * @param point - Dimensionless probe.
+			 * @returns Scaled domain point.
+			 */
+			(point) => point * scale,
+		),
+	];
+}
+
+/**
+ * Checks a finite two-sided limit with progressively smaller offsets.
+ * @param submitted - Ordinary submitted spectrum.
+ * @param x - Singular sample point.
+ * @param scale - Characteristic domain scale.
+ * @returns Verified finite limit or null when convergence cannot be established.
+ */
+function removableLimit(
+	submitted: Spectrum,
+	x: number,
+	scale: number,
+): Complex | null {
+	let previous: Complex | null = null;
+	try {
+		for (const factor of [1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]) {
+			const h = scale * factor;
+			const left = finite(submitted.evaluate(x - h)),
+				right = finite(submitted.evaluate(x + h));
+			const midpoint = left.add(right).mul(0.5);
+			if (previous && close(left, right) && close(midpoint, previous))
+				return midpoint;
+			previous = midpoint;
+		}
+	} catch {
+		return null;
+	}
+	return null;
+}
+
+/**
+ * Evaluates every required sample, retaining singular points through limit checks.
+ * @param submitted - Decomposed submitted expression.
+ * @param x - Required sample point.
+ * @param scale - Characteristic domain scale.
+ * @returns Finite sample/limit or null if the sample remains unverifiable.
+ */
+function submittedSample(
+	submitted: Spectrum,
+	x: number,
+	scale: number,
+): Complex | null {
+	try {
+		return finite(submitted.evaluate(x));
+	} catch (error) {
+		if (error instanceof ZeroDivisionError)
+			return removableLimit(submitted, x, scale);
+		throw error;
+	}
+}
+
+/**
+ * Compares ordinary spectrum values at mandatory and off-grid points.
+ * @param submitted - Decomposed submitted spectrum.
+ * @param reference - Parameter-based reference.
+ * @returns Whether every required comparison is verified.
+ */
+function regularMatches(
+	submitted: Spectrum,
+	reference: TransformReference,
+): boolean {
+	let matches = true;
+	for (const x of validationSamples(reference)) {
+		const actual = submittedSample(
+			submitted,
+			x,
+			reference.sampleScale ?? 1,
+		);
+		const expected = finite(reference.evaluate(x));
+		if (actual === null || !close(actual, expected)) matches = false;
+	}
+	return matches;
+}
+
+/**
+ * Compares canonical impulse locations and complex weights independently of samples.
+ * @param submitted - Submitted distribution terms.
+ * @param expected - Expected distribution terms.
+ * @returns Whether all impulses agree.
+ */
+function impulsesMatch(
+	submitted: SpectrumImpulse[],
+	expected: SpectrumImpulse[],
+): boolean {
+	const actualTerms = combine(submitted),
+		expectedTerms = combine(expected);
+	if (actualTerms.length !== expectedTerms.length) return false;
+	return expectedTerms.every(
+		/**
+		 * @param term - Expected impulse.
+		 * @param index - Sorted position.
+		 * @returns Matching location and weight.
+		 */
+		(term, index) => {
+			const actual = actualTerms[index];
+			return Boolean(
+				actual &&
+				Math.abs(actual.location - term.location) <= 1e-8 &&
+				close(actual.weight, term.weight),
+			);
+		},
+	);
+}
+
+/**
  * Grades a supported transform against an independent parameter-based reference.
  * @param answer - Student expression.
  * @param reference - Expected regular and distribution components.
@@ -562,17 +740,7 @@ export function validateTransformAnswer(
 			message: "Please enter an answer before submitting.",
 		};
 	try {
-		const prefix =
-			reference.variable === "t"
-				? /^x\s*\(\s*t\s*\)\s*=\s*/
-				: /^X\s*\(\s*(?:\\omega|omega|w)\s*\)\s*=\s*/;
-		const expression = answer
-			.trim()
-			.replace(prefix, "")
-			.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
-			.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
-			.replace(/(^|[^a-zA-Z\\])omega\b/g, "$1\\omega")
-			.replace(/(^|[^a-zA-Z\\])w\b/g, "$1\\omega");
+		const expression = normalizeTransformAnswer(answer, reference.variable);
 		const submitted = spectrum(
 			parseStrictLatex(expression),
 			reference.variable,
@@ -582,29 +750,10 @@ export function validateTransformAnswer(
 				"invalid",
 				"This problem has no validation samples.",
 			);
-		let matches = true;
-		for (const x of reference.samples)
-			if (
-				!close(
-					finite(submitted.evaluate(x)),
-					finite(reference.evaluate(x)),
-				)
-			)
-				matches = false;
-		const actual = combine(submitted.impulses),
-			expected = combine(reference.impulses ?? []);
-		if (actual.length !== expected.length) matches = false;
-		for (let index = 0; index < expected.length; index++) {
-			const a = actual[index],
-				b = expected[index];
-			if (
-				!a ||
-				!b ||
-				Math.abs(a.location - b.location) > 1e-8 ||
-				!close(a.weight, b.weight)
-			)
-				matches = false;
-		}
+		const ordinaryMatches = regularMatches(submitted, reference);
+		const matches =
+			impulsesMatch(submitted.impulses, reference.impulses ?? []) &&
+			ordinaryMatches;
 		return matches
 			? {
 					status: "correct",
@@ -613,7 +762,7 @@ export function validateTransformAnswer(
 			: {
 					status: "incorrect",
 					message:
-						"Not yet correct. Check coefficients, signs, shifts, and signal support.",
+						"Not yet verified. Check coefficients, signs, shifts, signal support, and any undefined sample points.",
 				};
 	} catch (error) {
 		return error instanceof AnswerError

@@ -6,6 +6,16 @@ import {
 } from "$lib/math-engine/laplace";
 
 describe("Laplace practice model", () => {
+	/** A high-frequency causal sine must not disappear on the former decimal grid. */
+	it("rejects a causal sine term aliased by the original sampling grid", () => {
+		const problem = createLaplacePfdProblem([1, 2], [-1, -4]);
+		expect(
+			validateLaplacePfdAnswer(
+				String.raw`(${problem.referenceAnswerLatex})+\sin(400\pi t)u(t)`,
+				problem,
+			).status,
+		).toBe("incorrect");
+	});
 	/** PFD grading must preserve support and every coefficient, including cancellations. */
 	it("grades positive, negative, fractional, and zero residues", () => {
 		for (const numerator of [

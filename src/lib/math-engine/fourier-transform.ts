@@ -344,6 +344,7 @@ export function validateCtftAnswer(
 	return validateTransformAnswer(answer, {
 		variable: "omega",
 		samples,
+		sampleScale: scale,
 		/**
 		 * Evaluates the regular spectrum including time-shift phase.
 		 * @param omega - Frequency in radians per second.
