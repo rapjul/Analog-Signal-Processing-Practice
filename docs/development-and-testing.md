@@ -6,7 +6,7 @@ This guide provides technical instructions for developing, testing, and maintain
 
 ## 🛠️ Prerequisites & Setup
 
-- **Node.js**: `v20.0.0` or higher
+- **Node.js**: `v24.0.0` or higher (recommended for the current Vite and JSDOM dependencies).
 - **Package Manager**: `npm` (v10+)
 
 ### Initial Setup
@@ -61,7 +61,7 @@ SignalLab is an offline-first, client-side Intelligent Tutoring System (ITS) bui
 - **Framework**: SvelteKit 2 with Svelte 5 Runes (`$state`, `$derived`, `$props`, `$effect`).
 - **Mathematical Engine**: `@cortex-js/compute-engine` for symbolic algebra and AST normalization.
 - **Formula Typesetting**: `KaTeX` with custom `<MathInline>` and `<MathBlock>` wrappers.
-- **Client-Side Persistence**: `IndexedDB` (via `idb`) for offline practice history and settings.
+- **Client-Side State**: Theme preferences use `localStorage` when available. Solver sessions reset on reload; the practice-history utility is currently an in-memory API and is not connected to the solver UI.
 - **PWA Capabilities**: `vite-plugin-pwa` with service worker asset caching.
 
 ---
@@ -74,10 +74,10 @@ SignalLab uses a multi-layered testing architecture to ensure mathematical preci
 
 The project leverages a dual-environment configuration in `vitest.config.ts` to optimize speed and DOM fidelity:
 
-- **Pure Node Environment (`src/lib/math-engine/**/*.test.ts`)**:
+- **Pure Node Environment (`tests/unit/*.test.ts` and source tests)**:
     - Tests mathematical algorithms, polynomial solvers, differential equation models, and Fourier coefficient computations.
     - Runs in pure Node.js for maximum execution speed without DOM overhead.
-- **JSDOM Environment (`src/lib/components/**/*.test.ts`)**:
+- **JSDOM Environment (`tests/unit/components/**/*.test.ts` and source Svelte tests)**:
     - Tests Svelte 5 UI components using `@testing-library/svelte`.
     - Validates user input handling, hint expansion, feedback alerts, and button focus states.
 
@@ -122,6 +122,10 @@ npm run build
 npm run test:e2e:production
 npm run test:e2e:production:solvers
 ```
+
+To verify service worker precaching and offline navigation through the three implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
+
+The production worker explicitly precaches the served root app shell because static HTML is emitted after worker generation. A new shell revision on every build keeps the document and bundled assets in sync; navigation fallback serves that shell when visiting solver routes offline.
 
 Production runs require port `33210` to be free and never reuse a running development server. Functional tests tagged `@dev-harness` are excluded because their state-selection helpers are available only in development builds; the development suite still runs them. The production solver visual command compares initial problem pages across all configured viewports and both themes, using existing local baselines without updating them. Later solver states still require `npm run test:e2e:solvers`.
 

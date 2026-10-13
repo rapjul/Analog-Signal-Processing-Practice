@@ -16,7 +16,7 @@ An interactive, offline-first Intelligent Tutoring System (ITS) and practice lab
 - 📐 **Symbolic Math Normalization**: Powered by `@cortex-js/compute-engine` with AST normalization tolerant of student shorthand, equivalent algebraic groupings, and fractional forms.
 - 💡 **Adaptive Diagnostic Feedback**: Real-time syntax checking, multi-tiered hints, and step-specific error classification.
 - 📊 **Interactive Canvas Visualizers**: Dynamic canvas plots for Fourier harmonic series synthesis and continuous-time signal analysis.
-- 🔒 **100% Client-Side & Private**: PWA with IndexedDB persistence—runs entirely in the browser with zero external telemetry, tracking, or network dependencies.
+- 🔒 **100% Client-Side & Private**: Practice runs entirely in the browser with zero external telemetry or tracking, with PWA asset caching for offline use and theme preferences saved in `localStorage` when available. Solver sessions and practice history are not persisted across reloads.
 - 📱 **Fluid & Accessible**: Fully accessible via keyboard (`:focus-visible`), with responsive layouts verified down to $320\text{px}$ viewports (WCAG 2.1 Reflow).
 
 ---
@@ -46,7 +46,7 @@ An interactive, offline-first Intelligent Tutoring System (ITS) and practice lab
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) `v20.0.0` or higher
+- [Node.js](https://nodejs.org/) `v24.0.0` or higher (recommended for the current Vite and JSDOM dependencies).
 - `npm` `v10.0.0` or higher
 
 ### Local Setup

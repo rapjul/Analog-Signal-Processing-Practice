@@ -11,11 +11,11 @@ SignalLab is an interactive, client-side web application for practicing Analog S
 - **PWA**: `vite-plugin-pwa` with offline caching
 - **Math Engine**: `@cortex-js/compute-engine` for symbolic parsing, evaluation, and simplification
 - **Typography & Rendering**: KaTeX (`katex`) via custom `<MathInline>` and `<MathBlock>` wrappers
-- **Storage**: IndexedDB (`idb`) for offline progress tracking and user preferences
+- **Storage**: `localStorage` for theme preferences when available; solver sessions reset on reload. The in-memory attempt utility is not connected to the practice UI.
 
 ## Directory Structure
 
-```
+```text
 src/
 ├── app.css                 # Global theme variables & responsive base styles
 ├── app.html                # HTML entry document
@@ -24,7 +24,7 @@ src/
 │   │   ├── math/           # KaTeX wrappers & structured math input builders
 │   │   └── ui/             # Reusable UI controls, cards, navigation
 │   ├── math-engine/        # Core ASP solvers, symbolic evaluators, ODE engine
-│   └── stores/             # Local state & persistent storage helpers
+│   └── db/                 # In-memory attempt and progress utilities
 ├── routes/                 # SvelteKit page routes (pre-rendered static routes)
 ```
 
