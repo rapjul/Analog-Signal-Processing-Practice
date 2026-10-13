@@ -10,26 +10,47 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
+	import WorkedSolution from "$lib/components/ui/WorkedSolution.svelte";
 	import {
 		type CircuitTopology,
+		circuitUsesCapacitor,
+		circuitUsesInductor,
+		createCircuitProblem,
 		evaluateBodePoint,
 		evaluateTransferFunction,
 		generateCircuitProblem,
 	} from "$lib/math-engine/circuits";
 
 	let selectedTopology = $state<CircuitTopology>("series-rlc");
-	let R = $state(10);
-	let L = $state(1);
-	let C = $state(0.01);
+	const initialProblem = generateCircuitProblem("series-rlc");
+	let R = $state(initialProblem.components.R);
+	let L = $state(initialProblem.components.L);
+	let C = $state(initialProblem.components.C);
+	let generation = $state(0);
 
-	let currentProblem = $state(generateCircuitProblem("series-rlc"));
-	let tf = $derived(evaluateTransferFunction(selectedTopology, { R, L, C }));
+	let currentProblem = $derived({
+		...createCircuitProblem(selectedTopology, { R, L, C }),
+		id: `circuit-${generation}-${selectedTopology}-${R}-${L}-${C}`,
+	});
+	let tf = $derived(
+		evaluateTransferFunction(
+			currentProblem.topology,
+			currentProblem.components,
+		),
+	);
 	let cornerBode = $derived(
-		evaluateBodePoint(selectedTopology, { R, L, C }, 10),
+		evaluateBodePoint(
+			currentProblem.topology,
+			currentProblem.components,
+			10,
+		),
 	);
 
+	/** Regenerates the component model used by both sliders and calculations. */
 	function handleGenerateNext() {
-		currentProblem = generateCircuitProblem(selectedTopology);
+		const next = generateCircuitProblem(selectedTopology);
+		({ R, L, C } = next.components);
+		generation += 1;
 	}
 </script>
 
@@ -81,13 +102,6 @@
 	<div class="practice-card">
 		<div class="card-header">
 			<h2 class="card-title">Transfer Function H(s) Derivation</h2>
-			<div class="bode-pill">
-				<MathText
-					text={String.raw`Frequency Sample $\omega = 10\text{ rad/s}$:`}
-				/>
-				<strong>{cornerBode.magnitudeDb.toFixed(2)} dB</strong>,
-				<strong>{cornerBode.phaseDeg.toFixed(2)}°</strong>
-			</div>
 		</div>
 
 		<div class="problem-prompt">
@@ -105,59 +119,94 @@
 					id="r-slider"
 					type="range"
 					min="1"
-					max="100"
+					max="200"
 					bind:value={R}
 				/>
 			</div>
-			<div class="slider-row">
-				<label for="l-slider">
-					<MathText text={String.raw`$L$: ${L} $\text{H}$`} />
-				</label>
-				<input
-					id="l-slider"
-					type="range"
-					min="0.1"
-					max="10"
-					step="0.1"
-					bind:value={L}
-				/>
-			</div>
-			<div class="slider-row">
-				<label for="c-slider">
-					<MathText text={String.raw`$C$: ${C} $\text{F}$`} />
-				</label>
-				<input
-					id="c-slider"
-					type="range"
-					min="0.001"
-					max="0.1"
-					step="0.001"
-					bind:value={C}
-				/>
-			</div>
-		</div>
-
-		<div class="tf-output">
-			<h3 class="panel-title">Derived H(s)</h3>
-			<MathBlock math={`H(s) = ${tf.hLatex}`} />
-		</div>
-
-		<div class="solution-breakdown">
-			<h3 class="solution-title">Solution Breakdown</h3>
-			{#each currentProblem.solutionSteps as step}
-				<div class="step-card">
-					<h4 class="step-heading">{step.title}</h4>
-					<MathBlock
-						math={step.latex}
-						compact={true}
+			{#if circuitUsesInductor(selectedTopology)}
+				<div class="slider-row">
+					<label for="l-slider">
+						<MathText text={String.raw`$L$: ${L} $\text{H}$`} />
+					</label>
+					<input
+						id="l-slider"
+						type="range"
+						min="0.1"
+						max="10"
+						step="0.1"
+						bind:value={L}
 					/>
 				</div>
-			{/each}
+			{/if}
+			{#if circuitUsesCapacitor(selectedTopology)}
+				<div class="slider-row">
+					<label for="c-slider">
+						<MathText text={String.raw`$C$: ${C} $\text{F}$`} />
+					</label>
+					<input
+						id="c-slider"
+						type="range"
+						min="0.001"
+						max="0.1"
+						step="0.001"
+						bind:value={C}
+					/>
+				</div>
+			{/if}
 		</div>
+
+		<button
+			type="button"
+			class="btn btn-secondary"
+			onclick={handleGenerateNext}>Next Problem</button
+		>
+		{#key currentProblem}
+			<WorkedSolution>
+				<div class="bode-pill">
+					<MathText
+						text={String.raw`Frequency Sample $\omega = 10\text{ rad/s}$:`}
+					/>
+					<strong>{cornerBode.magnitudeDb.toFixed(2)} dB</strong>,
+					<strong>{cornerBode.phaseDeg.toFixed(2)}°</strong>
+				</div>
+				<div class="tf-output">
+					<h3 class="panel-title">Derived H(s)</h3>
+					<MathBlock math={`H(s) = ${tf.hLatex}`} />
+				</div>
+
+				<div class="solution-breakdown">
+					<h3 class="solution-title">Solution Breakdown</h3>
+					{#each currentProblem.solutionSteps as step}
+						<div class="step-card">
+							<h4 class="step-heading">{step.title}</h4>
+							<MathBlock
+								math={step.latex}
+								compact={true}
+							/>
+						</div>
+					{/each}
+				</div>
+			</WorkedSolution>
+		{/key}
 	</div>
 </PageLayout>
 
 <style>
+	/* ── Practice regeneration control ────────────────────── */
+	.btn-secondary {
+		align-self: flex-start;
+		max-width: 100%;
+		padding: 0.5rem 1rem;
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+	.btn-secondary:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 2px;
+	}
 	/* ── Practice card ─────────────────────────────────────── */
 
 	.practice-card {

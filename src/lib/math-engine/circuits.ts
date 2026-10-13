@@ -77,12 +77,46 @@ export interface CircuitProblem {
 	id: string;
 	/** Selected circuit topology category */
 	topology: CircuitTopology;
+	/** Component values used by every displayed calculation. */
+	components: CircuitComponents;
 	/** Formatted LaTeX prompt text describing the circuit and component values */
 	promptLatex: string;
 	/** Reference correct answer LaTeX string for H(s) */
 	referenceAnswerLatex: string;
 	/** Granular step-by-step solution derivation breakdown */
 	solutionSteps: CircuitSolutionStep[];
+}
+
+/** Positive component values in SI units. */
+export interface CircuitComponents {
+	/** Resistance in ohms. */
+	R: number;
+	/** Inductance in henries; ignored for topologies without an inductor. */
+	L: number;
+	/** Capacitance in farads; ignored for topologies without a capacitor. */
+	C: number;
+}
+
+/**
+ * Identifies whether the topology uses an inductor.
+ * @param topology - Circuit topology.
+ * @returns Whether to show inductance controls.
+ */
+export function circuitUsesInductor(topology: CircuitTopology): boolean {
+	return (
+		!topology.startsWith("rc-") &&
+		!topology.startsWith("active-") &&
+		topology !== "twin-t-notch"
+	);
+}
+
+/**
+ * Identifies whether the topology uses a capacitor.
+ * @param topology - Circuit topology.
+ * @returns Whether to show capacitance controls.
+ */
+export function circuitUsesCapacitor(topology: CircuitTopology): boolean {
+	return !topology.startsWith("rl-");
 }
 
 /**
@@ -99,6 +133,8 @@ export function evaluateTransferFunction(
 	const R = params.R ?? 10;
 	const L = params.L ?? 1;
 	const C = params.C ?? 0.01;
+	if (![R, L, C].every((value) => Number.isFinite(value) && value > 0))
+		throw new Error("Circuit components must be positive and finite");
 
 	switch (topology) {
 		case "series-rlc": {
@@ -337,6 +373,20 @@ export function generateCircuitProblem(
 	const R = rValues[Math.floor(Math.random() * rValues.length)] ?? 1000;
 	const L = lValues[Math.floor(Math.random() * lValues.length)] ?? 0.01;
 	const C = cValues[Math.floor(Math.random() * cValues.length)] ?? 0.000001;
+	return createCircuitProblem(topology, { R, L, C });
+}
+
+/**
+ * Builds a reproducible circuit problem from one component model.
+ * @param topology - Circuit topology.
+ * @param components - Positive SI component values.
+ * @returns Consistent prompt, transfer function, and derivation.
+ */
+export function createCircuitProblem(
+	topology: CircuitTopology,
+	components: CircuitComponents,
+): CircuitProblem {
+	const { R, L, C } = components;
 
 	// Calculate symbolic transfer function polynomial coefficients via evaluateTransferFunction
 	const tf = evaluateTransferFunction(topology, { R, L, C });
@@ -367,7 +417,8 @@ export function generateCircuitProblem(
 	return {
 		id: `circuit-${topology}-${Date.now()}`,
 		topology,
-		promptLatex: `\\text{Derive the transfer function } H(s) = \\frac{V_{out}(s)}{V_{in}(s)} \\text{ for the } ${name} \\text{ with } R = ${R}\\Omega, L = ${L}\\text{H}, C = ${C}\\text{F}.`,
+		components: { ...components },
+		promptLatex: `\\text{Derive the transfer function } H(s) \\text{ for the } \\text{${name}} \\text{ with } R = ${R}\\Omega${circuitUsesInductor(topology) ? `, L = ${L}\\text{H}` : ""}${circuitUsesCapacitor(topology) ? `, C = ${C}\\text{F}` : ""}.`,
 		referenceAnswerLatex: tf.hLatex,
 		solutionSteps: [
 			{
