@@ -13,6 +13,30 @@ const zero: TransformReference = {
 };
 
 describe("strict transform grading", () => {
+	/** Absolute-value hinges must not imitate a constant spectrum inside all probes. */
+	it("rejects variable absolute values but preserves constant absolute values", () => {
+		const one: TransformReference = {
+			...zero,
+			/** @returns Constant spectrum value. */
+			evaluate: () => new Complex(1),
+		};
+		for (const answer of [
+			String.raw`1+|\omega-100|+\omega-100`,
+			String.raw`1+(|\omega-100|+\omega-100)^2`,
+			String.raw`1+\operatorname{Abs}(\omega-100)+\omega-100`,
+		]) {
+			expect(validateTransformAnswer(answer, one).status).toBe(
+				"unsupported",
+			);
+		}
+		for (const answer of [
+			String.raw`|-1|`,
+			String.raw`|2-3|`,
+			String.raw`|\pi|-\pi+1`,
+		]) {
+			expect(validateTransformAnswer(answer, one).status).toBe("correct");
+		}
+	});
 	/** These spectrum families have no piecewise frequency-domain support. */
 	it("rejects frequency steps hidden beyond the validation interval", () => {
 		const one = { ...zero, evaluate: () => new Complex(1) };

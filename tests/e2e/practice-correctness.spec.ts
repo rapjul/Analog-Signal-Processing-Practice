@@ -31,7 +31,13 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 	await page.locator("#signal-type-select").selectOption("delta");
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	const input = page.locator("#ctft-input");
-	for (const answer of ["garbage", "0", "(1,99)", String.raw`\frac{1}{`]) {
+	for (const answer of [
+		"garbage",
+		"0",
+		"(1,99)",
+		String.raw`\frac{1}{`,
+		String.raw`1+|\omega-100|+\omega-100`,
+	]) {
 		await input.fill(answer);
 		await page.getByRole("button", { name: "Check Answer" }).click();
 		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
@@ -95,6 +101,15 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	const a = (b1 * p1 + b0) / (p1 - p2),
 		b = (b1 * p2 + b0) / (p2 - p1);
+	await page
+		.locator("#laplace-input")
+		.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)+|t-100|+t-100`);
+	await page.getByRole("button", { name: "Check Answer" }).click();
+	await expect(page.locator(".feedback-box")).toHaveAttribute(
+		"data-validation",
+		"unsupported",
+	);
+	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	await page
 		.locator("#laplace-input")
 		.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)`);

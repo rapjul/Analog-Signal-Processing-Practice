@@ -6,6 +6,24 @@ import {
 } from "$lib/math-engine/laplace";
 
 describe("Laplace practice model", () => {
+	/** A late absolute-value hinge must not pass as the causal inverse response. */
+	it("rejects hidden absolute-value tails in Laplace answers", () => {
+		const problem = createLaplacePfdProblem([1, 1], [-1, -4]);
+		for (const term of ["|t-100|+t-100", "(|t-100|+t-100)u(t)"]) {
+			expect(
+				validateLaplacePfdAnswer(
+					`(${problem.referenceAnswerLatex})+${term}`,
+					problem,
+				).status,
+			).toBe("unsupported");
+		}
+		expect(
+			validateLaplacePfdAnswer(
+				`|-1|(${problem.referenceAnswerLatex})`,
+				problem,
+			).status,
+		).toBe("correct");
+	});
 	/** Delayed terms outside every probe must be rejected before sampling. */
 	it("rejects extra support boundaries while accepting equivalent causal factors", () => {
 		const problem = createLaplacePfdProblem([1, 1], [-1, -4]);

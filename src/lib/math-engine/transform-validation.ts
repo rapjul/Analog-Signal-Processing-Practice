@@ -758,23 +758,41 @@ function validateStepArgument(
 }
 
 /**
- * Traverses ordinary and boxed MathJSON without overlooking nested unit steps.
+ * Rejects absolute values whose transitions cannot be verified by bounded probes.
+ * @param args - Absolute-value arguments.
+ * @returns Nothing for a finite constant argument; otherwise throws a diagnostic.
+ */
+function validateAbsoluteArgument(args: unknown[]): void {
+	const constant =
+		args.length === 1 ? evaluateMathJsonStrict(args[0], {}) : null;
+	// Unbound variables stay unsupported, even when their hinges lie outside every probe.
+	if (constant === null || !Number.isFinite(constant)) {
+		throw new AnswerError(
+			"unsupported",
+			"Variable-dependent absolute values are not supported. Use the standard transform form.",
+		);
+	}
+}
+
+/**
+ * Traverses ordinary and boxed MathJSON to check nested piecewise operations.
  * @param node - Parsed expression or child node.
  * @param reference - Structured support restrictions.
- * @returns Nothing after all supported step arguments have been checked.
+ * @returns Nothing after all supported piecewise arguments have been checked.
  */
-function validateStepStructure(
+function validatePiecewiseStructure(
 	node: unknown,
 	reference: TransformReference,
 ): void {
 	if (node && typeof node === "object" && "fn" in node) {
-		validateStepStructure(node.fn, reference);
+		validatePiecewiseStructure(node.fn, reference);
 		return;
 	}
 	if (!Array.isArray(node)) return;
 	const [op, ...args] = node;
 	if (op === "Heaviside") validateStepArgument(args, reference);
-	for (const child of args) validateStepStructure(child, reference);
+	if (op === "Abs") validateAbsoluteArgument(args);
+	for (const child of args) validatePiecewiseStructure(child, reference);
 }
 
 /**
@@ -795,7 +813,7 @@ export function validateTransformAnswer(
 	try {
 		const expression = normalizeTransformAnswer(answer, reference.variable);
 		const ast = parseStrictLatex(expression);
-		validateStepStructure(ast, reference);
+		validatePiecewiseStructure(ast, reference);
 		const submitted = spectrum(ast, reference.variable);
 		if (reference.samples.length === 0)
 			throw new AnswerError(
