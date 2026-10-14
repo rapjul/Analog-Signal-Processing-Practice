@@ -585,5 +585,6 @@ export function validateLaplacePfdAnswer(
 							0,
 						),
 			),
+		stepTransitions: [0],
 	});
 }

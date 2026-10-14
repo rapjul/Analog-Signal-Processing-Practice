@@ -13,6 +13,18 @@ const zero: TransformReference = {
 };
 
 describe("strict transform grading", () => {
+	/** These spectrum families have no piecewise frequency-domain support. */
+	it("rejects frequency steps hidden beyond the validation interval", () => {
+		const one = { ...zero, evaluate: () => new Complex(1) };
+		for (const answer of [
+			String.raw`1+u(\omega-100)`,
+			String.raw`1+\operatorname{Heaviside}(\omega+100)`,
+		]) {
+			expect(validateTransformAnswer(answer, one).status).toBe(
+				"unsupported",
+			);
+		}
+	});
 	/** Invalid expressions must never inherit a plotting fallback of zero. */
 	it("rejects malformed, unknown, multi-value, and undefined answers", () => {
 		for (const input of [

@@ -6,6 +6,26 @@ import {
 } from "$lib/math-engine/laplace";
 
 describe("Laplace practice model", () => {
+	/** Delayed terms outside every probe must be rejected before sampling. */
+	it("rejects extra support boundaries while accepting equivalent causal factors", () => {
+		const problem = createLaplacePfdProblem([1, 1], [-1, -4]);
+		for (const term of ["u(t-100)", "u(t+100)", "u(t^2-10000)"]) {
+			expect(
+				validateLaplacePfdAnswer(
+					`(${problem.referenceAnswerLatex})+${term}`,
+					problem,
+				).status,
+			).toBe("unsupported");
+		}
+		for (const step of ["u(t)", "u(2t)", "u(t-0)"]) {
+			expect(
+				validateLaplacePfdAnswer(`e^{-4t}${step}`, problem).status,
+			).toBe("correct");
+		}
+		expect(validateLaplacePfdAnswer("e^{-4t}u(-t)", problem).status).toBe(
+			"incorrect",
+		);
+	});
 	/** Canceled roots must not constrain the ROC or corrupt residue indexing. */
 	it("excludes cancellations at either denominator root from pole metadata", () => {
 		for (const [constant, pole] of [

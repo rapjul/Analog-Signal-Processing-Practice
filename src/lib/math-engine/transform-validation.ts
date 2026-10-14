@@ -29,6 +29,8 @@ export interface TransformReference {
 	samples: number[];
 	/** Characteristic domain scale for off-grid probes and removable limits. */
 	sampleScale?: number;
+	/** Permitted time-domain unit-step boundaries; omitted means steps are unsupported. */
+	stepTransitions?: number[];
 	/** Finite regular component, excluding impulses. */
 	evaluate: (value: number) => Complex;
 	/** Exact locations and weights of all expected impulses. */
@@ -725,6 +727,57 @@ function impulsesMatch(
 }
 
 /**
+ * Checks each step boundary structurally before bounded numeric probing.
+ * @param args - Unit-step arguments.
+ * @param reference - Allowed domain and transitions for this problem.
+ * @returns Nothing when the step is supported; otherwise throws a diagnostic.
+ */
+function validateStepArgument(
+	args: unknown[],
+	reference: TransformReference,
+): void {
+	if (
+		reference.variable !== "t" ||
+		!reference.stepTransitions ||
+		args.length !== 1
+	) {
+		throw new AnswerError(
+			"unsupported",
+			"Unit steps are supported only at the specified time-domain boundaries.",
+		);
+	}
+	const [slope, intercept] = affine(args[0], reference.variable);
+	const boundary = -intercept / slope;
+	// Sampling cannot establish equivalence beyond an arbitrary delayed transition.
+	if (slope === 0 || !reference.stepTransitions.includes(boundary)) {
+		throw new AnswerError(
+			"unsupported",
+			"Use unit steps only at the problem's specified support boundaries.",
+		);
+	}
+}
+
+/**
+ * Traverses ordinary and boxed MathJSON without overlooking nested unit steps.
+ * @param node - Parsed expression or child node.
+ * @param reference - Structured support restrictions.
+ * @returns Nothing after all supported step arguments have been checked.
+ */
+function validateStepStructure(
+	node: unknown,
+	reference: TransformReference,
+): void {
+	if (node && typeof node === "object" && "fn" in node) {
+		validateStepStructure(node.fn, reference);
+		return;
+	}
+	if (!Array.isArray(node)) return;
+	const [op, ...args] = node;
+	if (op === "Heaviside") validateStepArgument(args, reference);
+	for (const child of args) validateStepStructure(child, reference);
+}
+
+/**
  * Grades a supported transform against an independent parameter-based reference.
  * @param answer - Student expression.
  * @param reference - Expected regular and distribution components.
@@ -741,10 +794,9 @@ export function validateTransformAnswer(
 		};
 	try {
 		const expression = normalizeTransformAnswer(answer, reference.variable);
-		const submitted = spectrum(
-			parseStrictLatex(expression),
-			reference.variable,
-		);
+		const ast = parseStrictLatex(expression);
+		validateStepStructure(ast, reference);
+		const submitted = spectrum(ast, reference.variable);
 		if (reference.samples.length === 0)
 			throw new AnswerError(
 				"invalid",
