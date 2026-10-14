@@ -4,6 +4,7 @@
  * calculations, operational properties, and CTFT problem generation for UIUC ECE 210.
  */
 
+import { createCtftCanonicalTarget } from "$lib/math-engine/canonical-targets";
 import { Complex } from "$lib/math-engine/complex";
 import {
 	type TransformValidationResult,
@@ -343,6 +344,7 @@ export function validateCtftAnswer(
 	);
 	return validateTransformAnswer(answer, {
 		variable: "omega",
+		canonicalTarget: createCtftCanonicalTarget(type, params),
 		samples,
 		sampleScale: scale,
 		/**

@@ -4,6 +4,7 @@
  * Region of Convergence (ROC) analysis, and BIBO/Asymptotic stability determination for UIUC ECE 210.
  */
 
+import { createLaplaceCanonicalTarget } from "$lib/math-engine/canonical-targets";
 import { Complex } from "$lib/math-engine/complex";
 import { toFractionLatex } from "$lib/math-engine/fraction";
 import {
@@ -562,6 +563,10 @@ export function validateLaplacePfdAnswer(
 	const scale = 1 / Math.max(...problem.pfd.denominatorRoots.map(Math.abs));
 	return validateTransformAnswer(answer, {
 		variable: "t",
+		canonicalTarget: createLaplaceCanonicalTarget(
+			problem.pfd.numerator,
+			problem.pfd.denominatorRoots,
+		),
 		sampleScale: scale,
 		samples: [
 			-2, -0.17, 0.09, 0.23, 0.51, 0.87, 1.37, 2.11, 3.73, 5.19,

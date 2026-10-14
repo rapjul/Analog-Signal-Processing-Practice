@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { transformAdversaries } from "../fixtures/transform-adversaries";
 
 /** Reproduces generated page parameters without exposing grading shortcuts. */
 test.beforeEach(async ({ page }) => {
@@ -40,6 +41,13 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		String.raw`1+\sqrt{(\omega-100)^2}+\omega-100`,
 		String.raw`1+\sqrt[4]{(\omega-100)^4}+\omega-100`,
 		String.raw`1+((\omega-100)^2)^{1/2}+\omega-100`,
+		...transformAdversaries("omega").map(
+			/**
+			 * @param attack - Shared attack spelling.
+			 * @returns Submitted delta-spectrum candidate.
+			 */
+			(attack) => `1+(${attack.expression})`,
+		),
 	]) {
 		await input.fill(answer);
 		await page.getByRole("button", { name: "Check Answer" }).click();
@@ -104,19 +112,14 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	const a = (b1 * p1 + b0) / (p1 - p2),
 		b = (b1 * p2 + b0) / (p2 - p1);
-	for (const tail of [
-		"|t-100|+t-100",
-		String.raw`\sqrt{(t-100)^2}+t-100`,
-		String.raw`\sqrt[4]{(t-100)^4}+t-100`,
-		String.raw`((t-100)^2)^{1/2}+t-100`,
-	]) {
+	for (const attack of transformAdversaries("t")) {
 		await page
 			.locator("#laplace-input")
-			.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)+${tail}`);
+			.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)+(${attack.expression})`);
 		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).toHaveAttribute(
+		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
 			"data-validation",
-			"unsupported",
+			"correct",
 		);
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}

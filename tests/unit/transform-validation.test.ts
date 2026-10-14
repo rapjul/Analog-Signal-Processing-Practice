@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { normalizeCanonicalTransform } from "$lib/math-engine/canonical-transform";
 import { Complex } from "$lib/math-engine/complex";
 import * as evaluator from "$lib/math-engine/evaluator";
 import {
@@ -9,11 +10,32 @@ import {
 /** Constant reference for strict parsing and zero fallback regressions. */
 const zero: TransformReference = {
 	variable: "omega",
+	canonicalTarget: normalizeCanonicalTransform(0, "omega"),
 	samples: [-1, 0, 1],
 	evaluate: () => new Complex(0),
 };
 
 describe("strict transform grading", () => {
+	/** Matching sample values alone must never provide a completion route. */
+	it("requires a canonical target and treats samples as diagnostics only", () => {
+		const { canonicalTarget: _target, ...sampleOnly } = zero;
+		expect(
+			validateTransformAnswer("0", sampleOnly as TransformReference)
+				.status,
+		).toBe("unsupported");
+		expect(
+			validateTransformAnswer("1", {
+				...zero,
+				evaluate: () => new Complex(1),
+			}).status,
+		).toBe("incorrect");
+		expect(
+			validateTransformAnswer("0", {
+				...zero,
+				evaluate: () => new Complex(1),
+			}),
+		).toMatchObject({ status: "correct", numericCheck: "mismatch" });
+	});
 	/** Boxed AST operands must receive the same guards as ordinary parser arrays. */
 	it("rejects variable roots and powers nested in boxed MathJSON", () => {
 		const parse = vi.spyOn(evaluator, "parseStrictLatex");
@@ -68,6 +90,7 @@ describe("strict transform grading", () => {
 	it("rejects variable absolute values but preserves constant absolute values", () => {
 		const one: TransformReference = {
 			...zero,
+			canonicalTarget: normalizeCanonicalTransform(1, "omega"),
 			/** @returns Constant spectrum value. */
 			evaluate: () => new Complex(1),
 		};
@@ -90,7 +113,11 @@ describe("strict transform grading", () => {
 	});
 	/** These spectrum families have no piecewise frequency-domain support. */
 	it("rejects frequency steps hidden beyond the validation interval", () => {
-		const one = { ...zero, evaluate: () => new Complex(1) };
+		const one = {
+			...zero,
+			canonicalTarget: normalizeCanonicalTransform(1, "omega"),
+			evaluate: () => new Complex(1),
+		};
 		for (const answer of [
 			String.raw`1+u(\omega-100)`,
 			String.raw`1+\operatorname{Heaviside}(\omega+100)`,
@@ -122,6 +149,15 @@ describe("strict transform grading", () => {
 	it("normalizes impulse scaling, cancellation, and smooth multipliers", () => {
 		const reference = {
 			...zero,
+			canonicalTarget: normalizeCanonicalTransform(
+				[
+					"Multiply",
+					3,
+					"DiracDelta",
+					["Delimiter", ["Subtract", "omega", 2]],
+				],
+				"omega",
+			),
 			impulses: [{ location: 2, weight: new Complex(3) }],
 		};
 		for (const answer of [
