@@ -1,0 +1,931 @@
+/**
+ * Bounded canonical transform algebra; numerical samples cannot certify
+ * identity.
+ */
+import {
+	CanonicalError,
+	coefficientMatches,
+	constantFactor,
+	type Factor,
+	factorAt,
+	factorMatches,
+	limitError,
+	literalScalar,
+	type Polynomial,
+	polynomial,
+	polynomialAdd,
+	polynomialEqual,
+	polynomialScale,
+	RationalFunction,
+	type Scalar,
+	scalar,
+	scalarAbs,
+	scalarConstantPower,
+	scalarExp,
+	scalarField,
+	scalarLog,
+	scalarNumeric,
+	scalarRoot,
+	symbolicE,
+	symbolicPi,
+} from "$lib/math-engine/canonical-algebra";
+import { Complex } from "$lib/math-engine/complex";
+
+/** Rational coefficient multiplying an exponential of a polynomial. */
+export interface CanonicalTerm {
+	/** Reduced rational factor. */ factor: Factor;
+	/** Polynomial exponent, with its constant extracted into the factor. */ exponent: Polynomial<Scalar>;
+}
+
+/** Exact impulse location and symbolic complex weight. */
+export interface CanonicalImpulse {
+	/** Exact frequency coordinate. */ location: Scalar;
+	/** Distribution coefficient. */ weight: Scalar;
+}
+
+/** Canonical regular terms and independently represented distributions. */
+export interface CanonicalSpectrum {
+	/** Rational-exponential basis terms. */ terms: CanonicalTerm[];
+	/** Weighted impulses; no sampled peaks. */ impulses: CanonicalImpulse[];
+}
+
+/** Required independent target and submitted expression representation. */
+export interface CanonicalTransform {
+	/** Allowed independent symbol. */ variable: "t" | "omega";
+	/** Expression on the negative half-line. */ left: CanonicalSpectrum;
+	/** Expression on the positive half-line. */ right: CanonicalSpectrum;
+}
+
+/** Explicit variable and half-line for support normalization. */
+interface Context {
+	/** Allowed variable. */ variable: "t" | "omega";
+	/** Negative or positive open half-line. */ side: -1 | 1;
+}
+
+/** @returns Empty regular/distribution sum. */
+function empty(): CanonicalSpectrum {
+	return { terms: [], impulses: [] };
+}
+
+/** @returns Accessible failure for operations outside the verification language. */
+function unsupported(): CanonicalError {
+	return new CanonicalError(
+		"unsupported",
+		"This expression is outside the supported answer forms. Use the standard transform form.",
+	);
+}
+
+/**
+ * @param value - Exact coefficient.
+ * @returns Constant spectrum, retaining exact nonzero values.
+ */
+function constant(value: Scalar): CanonicalSpectrum {
+	return scalarField.isZero(value)
+		? empty()
+		: {
+				terms: [{ factor: constantFactor(value), exponent: [] }],
+				impulses: [],
+			};
+}
+
+/**
+ * @param left - First spectrum.
+ * @param right - Second spectrum.
+ * @returns Exactly collected sum.
+ */
+function add(
+	left: CanonicalSpectrum,
+	right: CanonicalSpectrum,
+): CanonicalSpectrum {
+	if (
+		left.terms.length + right.terms.length > 64 ||
+		left.impulses.length + right.impulses.length > 64
+	)
+		throw limitError();
+	const terms: CanonicalTerm[] = [];
+	for (const term of [...left.terms, ...right.terms]) {
+		const previous = terms.find(
+			/**
+			 * @param candidate - Previously collected basis term.
+			 * @returns Exact exponent identity.
+			 */
+			(candidate) =>
+				polynomialEqual(candidate.exponent, term.exponent, scalarField),
+		);
+		if (previous) previous.factor = previous.factor.add(term.factor);
+		else terms.push({ ...term });
+	}
+	const impulses: CanonicalImpulse[] = [];
+	for (const term of [...left.impulses, ...right.impulses]) {
+		const previous = impulses.find(
+			/**
+			 * @param candidate - Previously collected impulse.
+			 * @returns Exact coordinate identity.
+			 */
+			(candidate) => candidate.location.equals(term.location),
+		);
+		if (previous) previous.weight = previous.weight.add(term.weight);
+		else impulses.push({ ...term });
+	}
+	return {
+		terms: terms.filter(
+			/**
+			 * @param term - Collected basis term.
+			 * @returns Exact nonzero test.
+			 */
+			(term) => term.factor.numerator.length !== 0,
+		),
+		impulses: impulses.filter(
+			/**
+			 * @param term - Collected impulse.
+			 * @returns Exact nonzero test.
+			 */
+			(term) => !scalarField.isZero(term.weight),
+		),
+	};
+}
+
+/**
+ * @param exponent - Polynomial with a possible constant.
+ * @param factor - Rational prefactor.
+ * @returns Normalized term.
+ */
+function term(exponent: Polynomial<Scalar>, factor: Factor): CanonicalTerm {
+	const value = exponent[0] ?? scalar(0);
+	if (!scalarField.isZero(value)) {
+		factor = factor.multiply(constantFactor(constantExponential(value)));
+	}
+	const result = [...exponent];
+	if (result.length) result[0] = scalar(0);
+	return { factor, exponent: polynomial(result, scalarField) };
+}
+
+/**
+ * Recognizes exact quarter-turn phases without introducing floating-point residue.
+ * @param value - Symbolic exponential argument.
+ * @returns Exact unit rotation or null for other constant arguments.
+ */
+function exactRotation(value: Scalar): Scalar | null {
+	const single = value.singleAtom("pi");
+	if (!single) return null;
+	const coefficient = single[1];
+	if (coefficient.re.numerator !== 0n) return null;
+	const n = coefficient.im.numerator * 2n,
+		d = coefficient.im.denominator;
+	if (n % d !== 0n) return null;
+	const index = Number((((n / d) % 4n) + 4n) % 4n);
+	return [scalar(1), scalar(0, 1), scalar(-1), scalar(0, -1)][index]!;
+}
+
+/**
+ * Extracts finite constant exponential coefficients without erasing underflowed terms.
+ * @param value - Constant exponent.
+ * @returns Exact quarter turn or finite computed coefficient.
+ */
+function constantExponential(value: Scalar): Scalar {
+	const rotation = exactRotation(value);
+	if (rotation) return rotation;
+	return scalarExp(value);
+}
+
+/**
+ * @param coefficients - Variable polynomial.
+ * @param point - Exact assignment.
+ * @returns Exact polynomial value.
+ */
+function polynomialAt(coefficients: Polynomial<Scalar>, point: Scalar): Scalar {
+	let result = scalar(0);
+	for (let index = coefficients.length - 1; index >= 0; index--)
+		result = result.multiply(point).add(coefficients[index]!);
+	return result;
+}
+
+/**
+ * @param spectrum - Smooth expression.
+ * @param point - Impulse coordinate.
+ * @returns Distribution multiplier at that coordinate.
+ */
+function at(spectrum: CanonicalSpectrum, point: Scalar): Scalar {
+	if (spectrum.impulses.length) throw unsupported();
+	let result = scalar(0);
+	for (const item of spectrum.terms) {
+		let coefficient = factorAt(item.factor, point);
+		const phase = polynomialAt(item.exponent, point);
+		if (!scalarField.isZero(phase)) {
+			coefficient = coefficient.multiply(constantExponential(phase));
+		}
+		result = result.add(coefficient);
+	}
+	return result;
+}
+
+/**
+ * @param left - First spectrum.
+ * @param right - Second spectrum.
+ * @returns Expanded exact product.
+ */
+function multiply(
+	left: CanonicalSpectrum,
+	right: CanonicalSpectrum,
+): CanonicalSpectrum {
+	if (left.impulses.length && right.impulses.length) throw unsupported();
+	if (left.terms.length * right.terms.length > 64) throw limitError();
+	let result = empty();
+	for (const a of left.terms)
+		for (const b of right.terms)
+			result = add(result, {
+				terms: [
+					term(
+						polynomialAdd(a.exponent, b.exponent, scalarField),
+						a.factor.multiply(b.factor),
+					),
+				],
+				impulses: [],
+			});
+	for (const impulse of left.impulses)
+		result = add(result, {
+			terms: [],
+			impulses: [
+				{
+					...impulse,
+					weight: impulse.weight.multiply(
+						at(right, impulse.location),
+					),
+				},
+			],
+		});
+	for (const impulse of right.impulses)
+		result = add(result, {
+			terms: [],
+			impulses: [
+				{
+					...impulse,
+					weight: impulse.weight.multiply(at(left, impulse.location)),
+				},
+			],
+		});
+	return result;
+}
+
+/**
+ * @param value - Denominator.
+ * @returns Reciprocal of a single rational-exponential term.
+ */
+function reciprocal(value: CanonicalSpectrum): CanonicalSpectrum {
+	if (value.impulses.length || value.terms.length > 1) throw unsupported();
+	const item = value.terms[0];
+	if (!item)
+		throw new CanonicalError("invalid", "The answer divides by zero.");
+	return {
+		terms: [
+			term(
+				polynomialScale(item.exponent, scalar(-1), scalarField),
+				constantFactor(scalar(1)).divide(item.factor),
+			),
+		],
+		impulses: [],
+	};
+}
+
+/**
+ * @param value - Canonical value.
+ * @returns Variable-independent scalar or unsupported diagnostic.
+ */
+function asConstant(value: CanonicalSpectrum): Scalar {
+	if (!value.terms.length && !value.impulses.length) return scalar(0);
+	if (value.impulses.length || value.terms.length !== 1) throw unsupported();
+	const item = value.terms[0]!;
+	if (
+		item.exponent.length ||
+		item.factor.numerator.length > 1 ||
+		item.factor.denominator.length !== 1
+	)
+		throw unsupported();
+	return item.factor.numerator[0] ?? scalar(0);
+}
+
+/**
+ * @param value - Canonical expression.
+ * @param maximumDegree - Permitted polynomial degree.
+ * @returns Exact variable polynomial.
+ */
+function asPolynomial(
+	value: CanonicalSpectrum,
+	maximumDegree: number,
+): Polynomial<Scalar> {
+	if (!value.terms.length && !value.impulses.length) return [];
+	if (value.impulses.length || value.terms.length !== 1) throw unsupported();
+	const item = value.terms[0]!;
+	if (
+		item.exponent.length ||
+		item.factor.denominator.length !== 1 ||
+		item.factor.numerator.length > maximumDegree + 1
+	)
+		throw unsupported();
+	return item.factor.numerator;
+}
+
+/**
+ * @param node - Scalar AST operand.
+ * @param context - Explicit domain.
+ * @returns Constant scalar after full operand validation.
+ */
+function constantNode(node: unknown, context: Context): Scalar {
+	return asConstant(normalize(node, context));
+}
+
+/**
+ * @param exponent - Constant exponent.
+ * @returns Bounded exact integer, or null for noninteger forms.
+ */
+function integer(exponent: Scalar): number | null {
+	const value = exponent.rational();
+	if (!value) return null;
+	if (value.im.numerator !== 0n || value.re.denominator !== 1n) return null;
+	if (value.re.numerator > 4096n || value.re.numerator < -4096n)
+		throw limitError();
+	return Number(value.re.numerator);
+}
+
+/**
+ * @param base - Fully validated base.
+ * @param exponent - Bounded integer.
+ * @returns Expanded exact power.
+ */
+function integerPower(
+	base: CanonicalSpectrum,
+	exponent: number,
+): CanonicalSpectrum {
+	if (Math.abs(exponent) > 16) throw limitError();
+	if (base.impulses.length) throw unsupported();
+	if (exponent === 0 && !base.terms.length)
+		throw new CanonicalError(
+			"invalid",
+			"An undefined power appears in the answer.",
+		);
+	let result = constant(scalar(1)),
+		factor = exponent < 0 ? reciprocal(base) : base;
+	for (let count = 0; count < Math.abs(exponent); count++)
+		result = multiply(result, factor);
+	return result;
+}
+
+/**
+ * @param exponent - Polynomial exponent.
+ * @returns Bounded exponential basis term.
+ */
+function exponential(exponent: Polynomial<Scalar>): CanonicalSpectrum {
+	return { terms: [term(exponent, constantFactor(scalar(1)))], impulses: [] };
+}
+
+/**
+ * @param args - Base and exponent.
+ * @param context - Explicit domain.
+ * @returns Supported exact power or exponential form.
+ */
+function power(args: unknown[], context: Context): CanonicalSpectrum {
+	const base = normalize(args[0], context),
+		exponent = normalize(args[1], context);
+	const baseSymbol = unbox(args[0]);
+	if (baseSymbol === "ExponentialE" || baseSymbol === "e")
+		return exponential(asPolynomial(exponent, 2));
+	let exponentConstant: Scalar | null = null;
+	try {
+		exponentConstant = asConstant(exponent);
+	} catch (error) {
+		if (
+			!(error instanceof CanonicalError) ||
+			error.status !== "unsupported"
+		)
+			throw error;
+	}
+	if (exponentConstant) return constantExponentPower(base, exponentConstant);
+	const a = scalarNumeric(asConstant(base));
+	if (a.im !== 0 || a.re <= 0) throw unsupported();
+	return exponential(
+		polynomialScale(
+			asPolynomial(exponent, 2),
+			scalarLog(asConstant(base)),
+			scalarField,
+		),
+	);
+}
+
+/**
+ * Evaluates constant-exponent powers without expanding unbounded variable powers.
+ * @param base - Fully validated base.
+ * @param exponent - Exact constant exponent.
+ * @returns Supported integer expansion or finite constant result.
+ */
+function constantExponentPower(
+	base: CanonicalSpectrum,
+	exponent: Scalar,
+): CanonicalSpectrum {
+	const count = integer(exponent);
+	if (count !== null && Math.abs(count) <= 16)
+		return integerPower(base, count);
+	return constant(scalarConstantPower(asConstant(base), exponent));
+}
+
+/**
+ * @param args - Function arguments.
+ * @param op - Trigonometric operation.
+ * @param context - Domain.
+ * @returns Euler-normalized affine sine or cosine.
+ */
+function trigonometric(
+	args: unknown[],
+	op: "Sin" | "Cos",
+	context: Context,
+): CanonicalSpectrum {
+	const argument = asPolynomial(normalize(args[0], context), 1);
+	const positive = exponential(
+		polynomialScale(argument, scalar(0, 1), scalarField),
+	);
+	const negative = exponential(
+		polynomialScale(argument, scalar(0, -1), scalarField),
+	);
+	return multiply(
+		constant(op === "Cos" ? scalar(0.5) : scalar(0, -0.5)),
+		add(
+			positive,
+			multiply(constant(op === "Cos" ? scalar(1) : scalar(-1)), negative),
+		),
+	);
+}
+
+/**
+ * @param args - Normalized-sinc argument.
+ * @param context - Domain.
+ * @returns Euler/rational sinc identity with its removable origin.
+ */
+function sinc(args: unknown[], context: Context): CanonicalSpectrum {
+	const argument = normalize(args[0], context);
+	const p = asPolynomial(argument, 1);
+	if (!p.length) return constant(scalar(1));
+	const scaled = polynomialScale(p, symbolicPi, scalarField);
+	const denominator: CanonicalSpectrum = {
+		terms: [
+			{
+				factor: new RationalFunction(scaled, [scalar(1)], scalarField),
+				exponent: [],
+			},
+		],
+		impulses: [],
+	};
+	const positive = exponential(
+		polynomialScale(scaled, scalar(0, 1), scalarField),
+	);
+	const negative = exponential(
+		polynomialScale(scaled, scalar(0, -1), scalarField),
+	);
+	return multiply(
+		multiply(
+			constant(scalar(0, -0.5)),
+			add(positive, multiply(constant(scalar(-1)), negative)),
+		),
+		reciprocal(denominator),
+	);
+}
+
+/**
+ * @param args - Unit-step argument.
+ * @param context - Domain and half-line.
+ * @returns Exact support indicator.
+ */
+function step(args: unknown[], context: Context): CanonicalSpectrum {
+	if (context.variable !== "t") throw unsupported();
+	const p = asPolynomial(normalize(args[0], context), 1),
+		slope = p[1];
+	if (!slope || !scalarField.isZero(p[0] ?? scalar(0))) throw unsupported();
+	const value = scalarNumeric(slope);
+	if (!slope.isReal() || value.im !== 0 || value.re === 0)
+		throw unsupported();
+	return constant(scalar(value.re * context.side > 0 ? 1 : 0));
+}
+
+/**
+ * @param args - Delimited argument paired with a Dirac symbol.
+ * @param context - Domain.
+ * @returns Exact affine impulse.
+ */
+function impulse(args: unknown, context: Context): CanonicalSpectrum {
+	const node = unbox(args);
+	if (
+		context.variable !== "omega" ||
+		!Array.isArray(node) ||
+		node[0] !== "Delimiter" ||
+		node.length !== 2
+	)
+		throw unsupported();
+	const p = asPolynomial(normalize(node[1], context), 1),
+		slope = p[1];
+	if (!slope || scalarField.isZero(slope)) throw unsupported();
+	const numeric = scalarNumeric(slope);
+	if (!slope.isReal() || !(p[0] ?? scalar(0)).isReal() || numeric.im !== 0)
+		throw unsupported();
+	return {
+		terms: [],
+		impulses: [
+			{
+				location: (p[0] ?? scalar(0)).negate().divide(slope),
+				weight: scalar(numeric.re < 0 ? -1 : 1).divide(slope),
+			},
+		],
+	};
+}
+
+/**
+ * @param args - Factors.
+ * @param context - Domain.
+ * @returns Validated product with paired distribution arguments.
+ */
+function product(args: unknown[], context: Context): CanonicalSpectrum {
+	let result = constant(scalar(1));
+	for (let index = 0; index < args.length; index++) {
+		const item = unbox(args[index]);
+		const next =
+			item === "DiracDelta"
+				? impulse(args[++index], context)
+				: normalize(args[index], context);
+		result = multiply(result, next);
+	}
+	return result;
+}
+
+/**
+ * @param op - Sum operator.
+ * @param args - Operands.
+ * @param context - Domain.
+ * @returns Exact signed sum.
+ */
+function sum(op: string, args: unknown[], context: Context): CanonicalSpectrum {
+	let result = empty();
+	for (let index = 0; index < args.length; index++) {
+		const negative =
+			op === "Negate" ||
+			(op === "Subtract" && (index > 0 || args.length === 1));
+		const value = normalize(args[index], context);
+		result = add(
+			result,
+			negative ? multiply(constant(scalar(-1)), value) : value,
+		);
+	}
+	return result;
+}
+
+/**
+ * @param op - Constant-only operation.
+ * @param args - Operands.
+ * @param context - Domain.
+ * @returns Validated finite constant value.
+ */
+function constantOperation(
+	op: string,
+	args: unknown[],
+	context: Context,
+): CanonicalSpectrum {
+	const value = constantNode(args[0], context);
+	switch (op) {
+		case "Abs": {
+			return constant(scalarAbs(value));
+		}
+		case "Ln":
+		case "Log": {
+			return constant(scalarLog(value));
+		}
+		case "Sqrt":
+		case "Root": {
+			return constant(
+				scalarRoot(
+					value,
+					op === "Root" ? constantNode(args[1], context) : scalar(2),
+				),
+			);
+		}
+		default: {
+			throw unsupported();
+		}
+	}
+}
+
+/**
+ * @param node - Boxed or ordinary node.
+ * @returns Unwrapped MathJSON without changing semantics.
+ */
+function unbox(node: unknown): unknown {
+	if (!node || typeof node !== "object" || Array.isArray(node)) return node;
+	if ("fn" in node) return node.fn;
+	if ("sym" in node) return node.sym;
+	if ("num" in node) return node.num;
+	throw unsupported();
+}
+
+/**
+ * @param node - Primitive scalar/symbol.
+ * @param context - Allowed domain.
+ * @returns Exact primitive value.
+ */
+function primitive(node: unknown, context: Context): CanonicalSpectrum {
+	if (node === context.variable)
+		return {
+			terms: [
+				{
+					factor: new RationalFunction(
+						[scalar(0), scalar(1)],
+						[scalar(1)],
+						scalarField,
+					),
+					exponent: [],
+				},
+			],
+			impulses: [],
+		};
+	if (typeof node === "string" && Object.hasOwn(namedConstants, node))
+		return constant(namedConstants[node]!);
+	if (typeof node === "number") return constant(scalar(node));
+	if (
+		typeof node === "string" &&
+		/^[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?$/i.test(node)
+	) {
+		return constant(literalScalar(node));
+	}
+	throw unsupported();
+}
+
+/** Explicit constant names, separate from unknown symbols and inherited object keys. */
+const namedConstants: Record<string, Scalar> = {
+	Pi: symbolicPi,
+	pi: symbolicPi,
+	i: scalar(0, 1),
+	j: scalar(0, 1),
+	ImaginaryUnit: scalar(0, 1),
+	ExponentialE: symbolicE,
+	e: symbolicE,
+};
+
+/**
+ * @param op - Operation name.
+ * @param args - Operands.
+ * @returns Nothing for valid arity, otherwise a syntax diagnostic.
+ */
+function arity(op: unknown, args: unknown[]): void {
+	if (op === "Error")
+		throw new CanonicalError(
+			"invalid",
+			"Check the answer's syntax and matching brackets.",
+		);
+	const binary = ["Divide", "Rational", "Power", "Root"];
+	const variadic = ["Add", "Multiply", "InvisibleOperator", "Subtract"];
+	if (
+		binary.includes(String(op))
+			? args.length !== 2
+			: variadic.includes(String(op))
+				? args.length === 0
+				: args.length !== 1
+	)
+		throw new CanonicalError(
+			"invalid",
+			"A mathematical argument is missing or an answer contains multiple values.",
+		);
+}
+
+/**
+ * @param node - Fully budgeted AST node.
+ * @param context - Explicit domain.
+ * @returns Supported canonical expression.
+ */
+function normalize(node: unknown, context: Context): CanonicalSpectrum {
+	const value = unbox(node);
+	if (!Array.isArray(value)) return primitive(value, context);
+	const [op, ...args] = value;
+	arity(op, args);
+	const operation =
+		typeof op === "string" && Object.hasOwn(operations, op)
+			? operations[op]
+			: undefined;
+	if (!operation) throw unsupported();
+	return operation(args, context, String(op));
+}
+
+/** A bounded operation with explicit operands, context, and parsed name. */
+type Operation = (
+	args: unknown[],
+	context: Context,
+	op: string,
+) => CanonicalSpectrum;
+
+/**
+ * Unwraps a singleton delimiter or sequence.
+ * @param args - Singleton operand.
+ * @param context - Domain.
+ * @returns Normalized operand.
+ */
+const grouped: Operation = (args, context) => normalize(args[0], context);
+
+/**
+ * Collects an explicitly signed sum.
+ * @param args - Sum operands.
+ * @param context - Domain.
+ * @param op - Sum operation.
+ * @returns Collected expression.
+ */
+const signed: Operation = (args, context, op) => sum(op, args, context);
+
+/**
+ * Forms an exact quotient after validating both operands.
+ * @param args - Numerator and denominator.
+ * @param context - Domain.
+ * @returns Canonical quotient.
+ */
+const quotient: Operation = (args, context) =>
+	multiply(
+		normalize(args[0], context),
+		reciprocal(normalize(args[1], context)),
+	);
+
+/**
+ * Forms a polynomial exponential.
+ * @param args - Exponent operand.
+ * @param context - Domain.
+ * @returns Exponential basis.
+ */
+const expOperation: Operation = (args, context) =>
+	exponential(asPolynomial(normalize(args[0], context), 2));
+
+/**
+ * Selects an affine Euler identity.
+ * @param args - Trigonometric argument.
+ * @param context - Domain.
+ * @param op - Sin or Cos.
+ * @returns Euler-normalized expression.
+ */
+const trigOperation: Operation = (args, context, op) =>
+	trigonometric(args, op as "Sin" | "Cos", context);
+
+/**
+ * Evaluates an explicitly allowed constant function.
+ * @param args - Constant operands.
+ * @param context - Domain.
+ * @param op - Constant operation.
+ * @returns Constant expression.
+ */
+const constantHandler: Operation = (args, context, op) =>
+	constantOperation(op, args, context);
+
+/** Explicit verification language; there is no plotting-evaluator fallback. */
+const operations: Record<string, Operation> = {
+	Delimiter: grouped,
+	Sequence: grouped,
+	Add: signed,
+	Subtract: signed,
+	Negate: signed,
+	Multiply: product,
+	InvisibleOperator: product,
+	Divide: quotient,
+	Rational: quotient,
+	Power: power,
+	Exp: expOperation,
+	Sin: trigOperation,
+	Cos: trigOperation,
+	Sinc: sinc,
+	Heaviside: step,
+	Abs: constantHandler,
+	Sqrt: constantHandler,
+	Root: constantHandler,
+	Ln: constantHandler,
+	Log: constantHandler,
+};
+
+/**
+ * @param node - Raw AST.
+ * @param depth - Current depth.
+ * @param budget - Shared node count.
+ * @returns Nothing after bounded traversal.
+ */
+function checkBudget(
+	node: unknown,
+	depth: number,
+	budget: { nodes: number },
+): void {
+	if (++budget.nodes > 512 || depth > 32) throw limitError();
+	const value = unbox(node);
+	if (Array.isArray(value))
+		for (const child of value.slice(1))
+			checkBudget(child, depth + 1, budget);
+}
+
+/**
+ * @param ast - Submitted or independently constructed AST.
+ * @param variable - Problem symbol.
+ * @returns Canonical transform on both half-lines.
+ */
+export function normalizeCanonicalTransform(
+	ast: unknown,
+	variable: "t" | "omega",
+): CanonicalTransform {
+	checkBudget(ast, 0, { nodes: 0 });
+	const right = normalize(ast, { variable, side: 1 });
+	const result: CanonicalTransform = {
+		variable,
+		right,
+		left: variable === "t" ? normalize(ast, { variable, side: -1 }) : right,
+	};
+	checkConstantDomains(result);
+	return result;
+}
+
+/**
+ * Rejects unresolved constant zeros without using approximation to certify structure.
+ * @param value - Already normalized transform.
+ * @returns Nothing after validating formal coefficient ranges.
+ */
+function checkConstantDomains(value: CanonicalTransform): void {
+	for (const branch of [value.left, value.right]) {
+		for (const term of branch.terms) {
+			for (const coefficient of [
+				...term.factor.numerator,
+				...term.factor.denominator,
+				...term.exponent,
+			])
+				if (coefficient.hasComputedAtoms()) scalarNumeric(coefficient);
+		}
+		for (const impulse of branch.impulses) {
+			if (impulse.location.hasComputedAtoms())
+				scalarNumeric(impulse.location);
+			if (impulse.weight.hasComputedAtoms())
+				scalarNumeric(impulse.weight);
+		}
+	}
+}
+
+/**
+ * @param actual - Submitted canonical spectrum.
+ * @param expected - Independent target spectrum.
+ * @returns Structural and matched-coefficient agreement.
+ */
+function spectrumMatches(
+	actual: CanonicalSpectrum,
+	expected: CanonicalSpectrum,
+): boolean {
+	if (
+		actual.terms.length !== expected.terms.length ||
+		actual.impulses.length !== expected.impulses.length
+	)
+		return false;
+	for (const target of expected.terms) {
+		const candidate = actual.terms.find(
+			/**
+			 * @param item - Submitted basis term.
+			 * @returns Exact exponent match.
+			 */
+			(item) =>
+				polynomialEqual(item.exponent, target.exponent, scalarField),
+		);
+		if (!candidate || !factorMatches(candidate.factor, target.factor))
+			return false;
+	}
+	for (const target of expected.impulses) {
+		const candidate = actual.impulses.find(
+			/**
+			 * @param item - Submitted impulse.
+			 * @returns Exact coordinate match.
+			 */
+			(item) => item.location.equals(target.location),
+		);
+		if (!candidate || !coefficientMatches(candidate.weight, target.weight))
+			return false;
+	}
+	return true;
+}
+
+/**
+ * @param actual - Submitted canonical transform.
+ * @param expected - Parameter-derived target.
+ * @returns Verified supported global equivalence with controlled coefficient tolerance.
+ */
+export function canonicalTransformsMatch(
+	actual: CanonicalTransform,
+	expected: CanonicalTransform,
+): boolean {
+	return (
+		actual.variable === expected.variable &&
+		spectrumMatches(actual.left, expected.left) &&
+		spectrumMatches(actual.right, expected.right)
+	);
+}
+
+/**
+ * Evaluates an already verified regular expression for secondary diagnostics only.
+ * @param value - Canonical transform.
+ * @param point - Numeric domain sample.
+ * @returns Finite sampled regular value; singular samples may be inconclusive.
+ */
+export function evaluateCanonicalRegular(
+	value: CanonicalTransform,
+	point: number,
+): Complex {
+	const branch =
+		value.variable === "t" && point < 0 ? value.left : value.right;
+	return scalarNumeric(at({ ...branch, impulses: [] }, scalar(point)));
+}

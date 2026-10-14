@@ -2,6 +2,7 @@
 
 /**
  * Finds the greatest common divisor of two integer magnitudes.
+ *
  * @param left - First integer.
  * @param right - Second integer.
  * @returns Nonnegative common divisor.
@@ -13,7 +14,10 @@ function gcd(left: bigint, right: bigint): bigint {
 	return a;
 }
 
-/** Rational arithmetic retaining the exact decimal component values supplied by the UI. */
+/**
+ * Rational arithmetic retaining the exact decimal component values supplied by
+ * the UI.
+ */
 export class ExactFraction {
 	/** Reduced signed numerator. */
 	readonly numerator: bigint;
@@ -22,6 +26,7 @@ export class ExactFraction {
 
 	/**
 	 * Normalizes a rational value.
+	 *
 	 * @param numerator - Signed numerator.
 	 * @param denominator - Nonzero denominator.
 	 */
@@ -35,7 +40,9 @@ export class ExactFraction {
 	}
 
 	/**
-	 * Converts the supplied finite decimal, including scientific notation, exactly.
+	 * Converts the supplied finite decimal, including scientific notation,
+	 * exactly.
+	 *
 	 * @param value - Decimal component or constant.
 	 * @returns Rational representation of that decimal value.
 	 */
@@ -55,7 +62,33 @@ export class ExactFraction {
 	}
 
 	/**
+	 * Preserves all digits of a boxed decimal literal before numeric conversion.
+	 * @param value - Decimal or scientific-notation literal.
+	 * @returns Reduced exact fraction with bounded literal expansion.
+	 */
+	static fromLiteral(value: string): ExactFraction {
+		if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value))
+			throw new Error("Invalid decimal literal");
+		if (value.length > 4096)
+			throw new RangeError("Decimal literal exceeds verification limits");
+		const [mantissa = "0", exponentText = "0"] = value
+			.toLowerCase()
+			.split("e");
+		const shift =
+			Number(exponentText) - (mantissa.split(".")[1]?.length ?? 0);
+		if (!Number.isFinite(shift) || Math.abs(shift) > 4096)
+			throw new RangeError(
+				"Decimal exponent exceeds verification limits",
+			);
+		const digits = BigInt(mantissa.replace(".", ""));
+		return shift >= 0
+			? new ExactFraction(digits * 10n ** BigInt(shift))
+			: new ExactFraction(digits, 10n ** BigInt(-shift));
+	}
+
+	/**
 	 * Multiplies two exact values.
+	 *
 	 * @param other - Second factor.
 	 * @returns Reduced product.
 	 */
@@ -67,7 +100,30 @@ export class ExactFraction {
 	}
 
 	/**
+	 * @param other - Addend.
+	 * @returns Exact reduced sum.
+	 */
+	add(other: ExactFraction): ExactFraction {
+		return new ExactFraction(
+			this.numerator * other.denominator +
+				other.numerator * this.denominator,
+			this.denominator * other.denominator,
+		);
+	}
+
+	/** @returns Exact additive inverse. */
+	negate(): ExactFraction {
+		return new ExactFraction(-this.numerator, this.denominator);
+	}
+
+	/** @returns Numeric approximation for coefficient tolerance only. */
+	toNumber(): number {
+		return Number(this.numerator) / Number(this.denominator);
+	}
+
+	/**
 	 * Divides by an exact nonzero value.
+	 *
 	 * @param other - Divisor.
 	 * @returns Reduced quotient.
 	 */
@@ -78,7 +134,10 @@ export class ExactFraction {
 		);
 	}
 
-	/** @returns Exact reduced LaTeX, with an integer when the denominator is one. */
+	/**
+	 * @returns Exact reduced LaTeX, with an integer when the denominator is
+	 *   one.
+	 */
 	toLatex(): string {
 		if (this.denominator === 1n) return String(this.numerator);
 		const sign = this.numerator < 0n ? "-" : "";
