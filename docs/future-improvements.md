@@ -152,6 +152,7 @@ implement these new tutoring workflows.
 ### 17. Laplace Transform Tutor
 
 - Start with causal inverse transforms using distinct-real-pole PFD: factor the denominator, identify poles, select the expansion, solve each residue, reconstruct the rational expression, apply transform pairs, and assemble the supported time response.
+- Before identifying poles, add a conditional "simplify and check cancellations" sub-step. Ask students to identify and cancel common numerator/denominator factors, then distinguish original denominator roots from genuine poles. For example, `(s+1)/((s+1)(s+4)) = 1/(s+4)` has only the pole `-4`, with causal ROC `Re(s) > -4`; the canceled root `-1` has a zero residue. Validate the simplified expression and surviving poles separately, diagnose retaining canceled roots, and skip this sub-step when there is no common factor. Implement this teaching workflow when the Laplace tutor is developed; current practice metadata must already exclude canceled poles.
 - Require separately validated algebraic substeps and exact fractions; diagnose sign errors, missing numerator terms, incorrect residues, and omitted causal support.
 - Follow with repeated and complex poles, direct inverse transforms, forward transforms, and ROC/stability drills.
 - Keep unilateral initial-condition rules separate from bilateral sidedness; give students enough ROC information to make each inverse transform unique.

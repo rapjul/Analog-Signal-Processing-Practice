@@ -80,7 +80,11 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 		.locator(".stability-pill annotation")
 		.first()
 		.textContent();
-	expect(poles).toContain(`${p1}, ${p2}`);
+	const genuinePoles = [p1, p2].filter((pole) => b1 * pole + b0 !== 0);
+	expect(poles).toContain(genuinePoles.join(", "));
+	await expect(page.locator(".stability-pill annotation").last()).toHaveText(
+		String.raw`\operatorname{Re}(s) > ${Math.max(...genuinePoles)}`,
+	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	await page.locator("#laplace-input").fill("123");
 	await page.getByRole("button", { name: "Check Answer" }).click();

@@ -6,6 +6,34 @@ import {
 } from "$lib/math-engine/laplace";
 
 describe("Laplace practice model", () => {
+	/** Canceled roots must not constrain the ROC or corrupt residue indexing. */
+	it("excludes cancellations at either denominator root from pole metadata", () => {
+		for (const [constant, pole] of [
+			[1, -4],
+			[4, -1],
+		] as const) {
+			const problem = createLaplacePfdProblem([1, constant], [-1, -4]);
+			expect(problem.pfd.denominatorRoots).toEqual([-1, -4]);
+			expect(problem.pfd.poles).toEqual([pole]);
+			expect(problem.pfd.residues).toEqual([1]);
+			expect(
+				determineStability(problem.pfd.poles, "right-sided").rocLatex,
+			).toBe(String.raw`\operatorname{Re}(s) > ${pole}`);
+			expect(
+				validateLaplacePfdAnswer(`e^{${pole}t}u(t)`, problem).status,
+			).toBe("correct");
+		}
+	});
+	/** The zero transform has no poles and an unrestricted ROC. */
+	it("handles cancellation of all poles without an infinite ROC boundary", () => {
+		const problem = createLaplacePfdProblem([0, 0], [-1, -4]);
+		expect(problem.pfd.poles).toEqual([]);
+		expect(problem.pfd.residues).toEqual([]);
+		expect(determineStability([], "right-sided").rocLatex).toBe(
+			String.raw`s \in \mathbb{C}`,
+		);
+		expect(validateLaplacePfdAnswer("0", problem).status).toBe("correct");
+	});
 	/** A high-frequency causal sine must not disappear on the former decimal grid. */
 	it("rejects a causal sine term aliased by the original sampling grid", () => {
 		const problem = createLaplacePfdProblem([1, 2], [-1, -4]);

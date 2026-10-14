@@ -15,8 +15,10 @@ import {
 export interface LaplacePfdData {
 	/** Numerator coefficients in descending order. */
 	numerator: [number, number];
-	/** Distinct poles of the denominator. */
-	poles: [number, number];
+	/** Original denominator roots, including removable factors. */
+	denominatorRoots: [number, number];
+	/** Genuine poles after canceling factors with zero residues. */
+	poles: number[];
 	/** Residues corresponding to those poles. */
 	residues: number[];
 	/** Given sidedness of the signal. */
@@ -150,6 +152,10 @@ export function determineStability(
 	poles: number[],
 	direction: RocDirection,
 ): StabilityAnalysis {
+	// A transform with no surviving poles converges throughout the finite s-plane.
+	if (poles.length === 0) {
+		return { isBiboStable: true, rocLatex: String.raw`s \in \mathbb{C}` };
+	}
 	const maxPole = Math.max(...poles);
 	const minPole = Math.min(...poles);
 
@@ -481,6 +487,15 @@ export function createLaplacePfdProblem(
 	const [b1, b0] = numerator,
 		[p1, p2] = poles;
 	const pfd = evaluatePfdResidues(numerator, poles);
+	// Keep genuine poles and their residues paired; zero residues remove poles.
+	const activeIndices = pfd.residues.flatMap(
+		/**
+		 * @param residue - Coefficient at an original denominator root.
+		 * @param index - Matching denominator-root position.
+		 * @returns Positions of nonzero residues only.
+		 */
+		(residue, index) => (residue === 0 ? [] : [index]),
+	);
 	const [a1, a2] = [-p1, -p2];
 	const rational = String.raw`\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`;
 	const expansion = pfd.residues
@@ -494,8 +509,21 @@ export function createLaplacePfdProblem(
 		problemType: "inverse_pfd",
 		pfd: {
 			numerator: [...numerator],
-			poles: [...poles],
-			residues: pfd.residues,
+			denominatorRoots: [...poles],
+			poles: activeIndices.map(
+				/**
+				 * @param index - Surviving root position.
+				 * @returns Genuine pole.
+				 */
+				(index) => poles[index]!,
+			),
+			residues: activeIndices.map(
+				/**
+				 * @param index - Surviving root position.
+				 * @returns Paired nonzero residue.
+				 */
+				(index) => pfd.residues[index]!,
+			),
 			rocDirection: "right-sided",
 		},
 		promptLatex: String.raw`\text{For the causal (right-sided) signal, find } x(t) \text{ from } X(s)=${rational}`,
@@ -531,7 +559,7 @@ export function validateLaplacePfdAnswer(
 	answer: string,
 	problem: GeneratedLaplacePfdProblem,
 ): TransformValidationResult {
-	const scale = 1 / Math.max(...problem.pfd.poles.map(Math.abs));
+	const scale = 1 / Math.max(...problem.pfd.denominatorRoots.map(Math.abs));
 	return validateTransformAnswer(answer, {
 		variable: "t",
 		sampleScale: scale,

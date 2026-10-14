@@ -63,7 +63,9 @@
 			<div class="stability-pill">
 				<span
 					><MathText
-						text={`Poles: $s = ${currentProblem.pfd.poles.join(", ")}$`}
+						text={currentProblem.pfd.poles.length
+							? `Poles: $s = ${currentProblem.pfd.poles.join(", ")}$`
+							: "No finite poles"}
 					/></span
 				>
 				|
