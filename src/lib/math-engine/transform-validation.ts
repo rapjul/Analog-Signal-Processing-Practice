@@ -591,8 +591,16 @@ function normalizeTransformAnswer(answer: string, variable: string): string {
 		.trim()
 		.replace(/\\left\[/g, "(")
 		.replace(/\\right\]/g, ")")
-		.replace(/(?<!\\)\[/g, "(")
-		.replace(/(?<!\\)\]/g, ")")
+		.replace(
+			/\\sqrt\s*\[[^\[\]]*\]|(?<!\\)[\[\]]/g,
+			/**
+			 * Preserves root indices while normalizing ordinary bracket grouping.
+			 * @param token - Indexed root prefix or grouping bracket.
+			 * @returns Unchanged root notation or matching parenthesis.
+			 */
+			(token) =>
+				token.startsWith("\\sqrt") ? token : token === "[" ? "(" : ")",
+		)
 		.replace(prefix, "")
 		.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
 		.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
@@ -775,6 +783,53 @@ function validateAbsoluteArgument(args: unknown[]): void {
 }
 
 /**
+ * Finds the problem variable in ordinary and boxed MathJSON without sampling.
+ * @param node - Expression or child node.
+ * @param variable - Allowed independent symbol.
+ * @returns Whether any operand depends on that symbol.
+ */
+function dependsOnVariable(node: unknown, variable: string): boolean {
+	if (typeof node === "string") return node === variable;
+	if (Array.isArray(node)) {
+		return node.slice(1).some(
+			/**
+			 * @param child - Operation operand.
+			 * @returns Whether the operand contains the independent symbol.
+			 */
+			(child) => dependsOnVariable(child, variable),
+		);
+	}
+	if (!node || typeof node !== "object") return false;
+	if ("sym" in node) return node.sym === variable;
+	return "fn" in node && dependsOnVariable(node.fn, variable);
+}
+
+/**
+ * Prevents roots and fractional powers from hiding unprobed branch transitions.
+ * @param op - MathJSON operation name.
+ * @param args - Root or power operands.
+ * @param variable - Problem variable whose dependence must be checked.
+ * @returns Nothing for supported forms; otherwise throws a diagnostic.
+ */
+function validateRootStructure(
+	op: unknown,
+	args: unknown[],
+	variable: string,
+): void {
+	if (op === "Sqrt" || op === "Root") {
+		if (!dependsOnVariable([op, ...args], variable)) return;
+	} else if (op === "Power") {
+		if (!dependsOnVariable(args[0], variable)) return;
+		const exponent = evaluateMathJsonStrict(args[1], {});
+		if (exponent !== null && Number.isInteger(exponent)) return;
+	} else return;
+	throw new AnswerError(
+		"unsupported",
+		"Variable-dependent roots and noninteger powers are not supported. Use the standard transform form.",
+	);
+}
+
+/**
  * Traverses ordinary and boxed MathJSON to check nested piecewise operations.
  * @param node - Parsed expression or child node.
  * @param reference - Structured support restrictions.
@@ -792,6 +847,7 @@ function validatePiecewiseStructure(
 	const [op, ...args] = node;
 	if (op === "Heaviside") validateStepArgument(args, reference);
 	if (op === "Abs") validateAbsoluteArgument(args);
+	validateRootStructure(op, args, reference.variable);
 	for (const child of args) validatePiecewiseStructure(child, reference);
 }
 

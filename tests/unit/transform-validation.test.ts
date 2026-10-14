@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Complex } from "$lib/math-engine/complex";
+import * as evaluator from "$lib/math-engine/evaluator";
 import {
 	type TransformReference,
 	validateTransformAnswer,
@@ -13,6 +14,56 @@ const zero: TransformReference = {
 };
 
 describe("strict transform grading", () => {
+	/** Boxed AST operands must receive the same guards as ordinary parser arrays. */
+	it("rejects variable roots and powers nested in boxed MathJSON", () => {
+		const parse = vi.spyOn(evaluator, "parseStrictLatex");
+		try {
+			for (const ast of [
+				{ fn: ["Sqrt", { fn: ["Power", { sym: "omega" }, 2] }] },
+				{ fn: ["Root", 2, { sym: "omega" }] },
+				{ fn: ["Power", { fn: ["Add", 100, { sym: "omega" }] }, 0.5] },
+			]) {
+				parse.mockReturnValueOnce(ast);
+				expect(validateTransformAnswer("boxed", zero).status).toBe(
+					"unsupported",
+				);
+			}
+		} finally {
+			parse.mockRestore();
+		}
+	});
+	/** Equivalent root spellings must not hide a hinge outside the sample interval. */
+	it("rejects variable roots and fractional powers before sampling", () => {
+		for (const term of [
+			String.raw`\sqrt{(\omega-100)^2}+\omega-100`,
+			String.raw`\sqrt[4]{(\omega-100)^4}+\omega-100`,
+			String.raw`((\omega-100)^2)^{1/2}+\omega-100`,
+			String.raw`((\omega-100)^4)^{0.25}+\omega-100`,
+			String.raw`(\sqrt{(\omega-100)^2}+\omega-100)^2`,
+			String.raw`2^{\sqrt{(\omega-100)^2}+\omega-100}-1`,
+			String.raw`\sqrt[\omega]{2}`,
+			String.raw`\omega^{\omega}`,
+		]) {
+			expect(validateTransformAnswer(term, zero).status).toBe(
+				"unsupported",
+			);
+		}
+	});
+	/** Constants, integer powers, and exponential bases remain supported. */
+	it("preserves constant roots and ordinary power equivalences", () => {
+		for (const answer of [
+			String.raw`\sqrt{4}-2`,
+			String.raw`\sqrt[4]{16}-2`,
+			String.raw`\sqrt{2}-2^{1/2}`,
+			String.raw`\omega^2-\omega\omega`,
+			String.raw`(2+j\omega)^{-1}-\frac{1}{2+j\omega}`,
+			String.raw`e^{j\omega}-\cos(\omega)-j\sin(\omega)`,
+		]) {
+			expect(validateTransformAnswer(answer, zero).status, answer).toBe(
+				"correct",
+			);
+		}
+	});
 	/** Absolute-value hinges must not imitate a constant spectrum inside all probes. */
 	it("rejects variable absolute values but preserves constant absolute values", () => {
 		const one: TransformReference = {

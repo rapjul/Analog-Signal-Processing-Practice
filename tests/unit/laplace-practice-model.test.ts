@@ -6,6 +6,35 @@ import {
 } from "$lib/math-engine/laplace";
 
 describe("Laplace practice model", () => {
+	/** Roots and fractional powers must not disguise delayed time-domain tails. */
+	it("rejects root-based tails while retaining constant-root coefficients", () => {
+		const problem = createLaplacePfdProblem([1, 1], [-1, -4]);
+		for (const term of [
+			String.raw`\sqrt{(t-100)^2}+t-100`,
+			String.raw`\sqrt[4]{(t-100)^4}+t-100`,
+			String.raw`((t-100)^2)^{1/2}+t-100`,
+			String.raw`(\sqrt{(t-100)^2}+t-100)^2`,
+		]) {
+			expect(
+				validateLaplacePfdAnswer(
+					`(${problem.referenceAnswerLatex})+${term}`,
+					problem,
+				).status,
+			).toBe("unsupported");
+		}
+		for (const coefficient of [
+			String.raw`\sqrt{4}/2`,
+			String.raw`\sqrt[4]{16}/2`,
+		]) {
+			expect(
+				validateLaplacePfdAnswer(
+					`(${coefficient})(${problem.referenceAnswerLatex})`,
+					problem,
+				).status,
+				coefficient,
+			).toBe("correct");
+		}
+	});
 	/** A late absolute-value hinge must not pass as the causal inverse response. */
 	it("rejects hidden absolute-value tails in Laplace answers", () => {
 		const problem = createLaplacePfdProblem([1, 1], [-1, -4]);
