@@ -496,9 +496,10 @@ function reduceMonomial(
 	key: string,
 	atoms: Map<string, ConstantAtom>,
 ): [string, RationalComplex] {
-	const powers = new Map<string, number>(JSON.parse(key) as Powers);
+	const originalPowers = JSON.parse(key) as Powers;
+	const powers = new Map<string, number>(originalPowers);
 	let coefficient = complexField.one;
-	for (const [name, power] of [...powers]) {
+	for (const [name, power] of originalPowers) {
 		const atom = atoms.get(name);
 		if (
 			!atom?.index ||
