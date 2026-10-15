@@ -10,6 +10,7 @@ const config = JSON.parse(
 const files = [
 	"docs/transform-answer-verification.md",
 	"docs/future-improvements.md",
+	"docs/adrs/0036-verify-transform-answers-with-bounded-canonical-forms.md",
 ];
 const results = await lint({ config, files });
 let failures = 0;

@@ -125,7 +125,10 @@ describe("constant proof boundaries", () => {
 		fc.assert(
 			fc.property(
 				fc.integer({ min: 1, max: 1000 }).chain(
-					/** @param n - Nonzero magnitude. @returns Both exact signs. */
+					/**
+					 * @param n - Nonzero magnitude.
+					 * @returns Both exact signs.
+					 */
 					(n) => fc.constantFrom(n, -n),
 				),
 				fc.integer({ min: 1, max: 1000 }),

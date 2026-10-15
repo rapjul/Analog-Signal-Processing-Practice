@@ -148,11 +148,17 @@ export function evaluateTransferFunction(
 	const result = calculateTransferFunction(topology, components);
 	return {
 		numCoeffs: result.numerator.map(
-			/** @param coefficient - Paired numerator value. @returns Numerical plot coefficient. */
+			/**
+			 * @param coefficient - Paired numerator value.
+			 * @returns Numerical plot coefficient.
+			 */
 			(coefficient) => coefficient.numeric,
 		),
 		denCoeffs: result.denominator.map(
-			/** @param coefficient - Paired denominator value. @returns Numerical plot coefficient. */
+			/**
+			 * @param coefficient - Paired denominator value.
+			 * @returns Numerical plot coefficient.
+			 */
 			(coefficient) => coefficient.numeric,
 		),
 		hLatex: formatCircuitTransferFunction(result),

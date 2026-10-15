@@ -21,6 +21,16 @@ and sampled values cannot establish correctness.
   roots, logarithms, absolute values, tangent, and unknown operations are
   unsupported. Every operand is validated, including operands multiplied by zero.
 
+Logarithms preserve the parser's definitions: `ln` is natural, `log` defaults to
+base ten, and explicit constant bases (including binary logarithms) are supported.
+Arguments and bases must be positive, and a base cannot be one. Both operands
+are validated even when the expression is multiplied by zero.
+
+Multipliers of impulses must have a directly established finite value at each
+impulse location. A smooth product that requires a removable limit across
+separately singular normalized terms remains `unsupported`; it is not diagnosed
+as malformed input. General symbolic limits are outside the current contract.
+
 The scalar algebra retains rational coefficients and formal `pi`, roots,
 logarithms, and exponentials during polynomial manipulation. Known quarter-turn
 phases and elementary monomial root/log identities are exact. Numerical values of
@@ -120,7 +130,7 @@ bounds supply the sign oracle; production approximations are not their own oracl
 Named regressions cover reported findings and counterexamples discovered by the
 generators, including negative CTFT shifts.
 
-`npm run test:grading:properties` runs eight properties with 500 cases each and seed
+`npm run test:grading:properties` runs ten properties with 500 cases each and seed
 `73`, plus explicit regression tables. These tests also run in the full coverage
 suite. `npm run test:grading:properties:extended` runs 5,000 cases per property with
 each of seeds `73` and `20261015`. Normal runs have a 60-second budget per property;
@@ -132,6 +142,11 @@ To replay a reported failure, set `SIGNALLAB_PROPERTY_SEED` and
 `SIGNALLAB_PROPERTY_RUNS` to select a run count from `1` through `5000`. Always
 filter to the matching property when supplying a replay path.
 
+The properties include large-ratio rounding and decimal Laplace cancellation.
+Laplace pole metadata and worked fractions use exact decimal arithmetic before
+conversion to numerical diagnostic residues. Their cancellation oracle operates
+on independently scaled integers rather than floating-point products.
+
 The `Practice verification` GitHub Actions workflow runs on pull requests, pushes
 to `main`, and manual dispatch. It installs locked dependencies, checks types,
 imports, formatting, and verification documentation, runs coverage including
@@ -140,3 +155,7 @@ workflows across all four device profiles. Stages run sequentially with two test
 workers. Coverage and browser diagnostics are retained for seven days; superseded
 workflow runs are canceled. No repository secrets or privileged PR execution are
 used. This workflow does not change branch-protection settings.
+
+Coverage percentages are reported, but there is currently no configured numerical
+coverage threshold or ratchet. The architectural trade-offs are recorded in
+[`ADR-0036`](./adrs/0036-verify-transform-answers-with-bounded-canonical-forms.md).

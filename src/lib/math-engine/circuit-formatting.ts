@@ -54,11 +54,17 @@ export function formatCircuitTransferFunction(
 	const { numerator, denominator } = polynomials;
 	const negative =
 		numerator.every(
-			/** @param value - Numerator coefficient. @returns Whether it is nonpositive exactly. */
+			/**
+			 * @param value - Numerator coefficient.
+			 * @returns Whether it is nonpositive exactly.
+			 */
 			(value) => value.exact.numerator <= 0n,
 		) &&
 		numerator.some(
-			/** @param value - Numerator coefficient. @returns Whether it is negative exactly. */
+			/**
+			 * @param value - Numerator coefficient.
+			 * @returns Whether it is negative exactly.
+			 */
 			(value) => value.exact.numerator < 0n,
 		);
 	const num = polynomialLatex(numerator, negative),
