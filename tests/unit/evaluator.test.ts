@@ -189,8 +189,8 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			const lnVal = evaluateLatexAt(String.raw`\ln(t)`, Math.E);
 			expect(lnVal).toBeCloseTo(1, 4);
 
-			// log(t) (natural log in MathJSON) at t = e^2
-			const logVal = evaluateLatexAt(String.raw`\log(t)`, Math.E ** 2);
+			// A common logarithm and a natural logarithm have distinct parsed semantics.
+			const logVal = evaluateLatexAt(String.raw`\log(t)`, 100);
 			expect(logVal).toBeCloseTo(2, 4);
 		});
 

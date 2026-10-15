@@ -209,7 +209,7 @@ function at(spectrum: CanonicalSpectrum, point: Scalar): Scalar {
 	if (spectrum.impulses.length) throw unsupported();
 	let result = scalar(0);
 	for (const item of spectrum.terms) {
-		let coefficient = factorAt(item.factor, point);
+		let coefficient = finiteFactorAt(item.factor, point);
 		const phase = polynomialAt(item.exponent, point);
 		if (!scalarField.isZero(phase)) {
 			coefficient = coefficient.multiply(constantExponential(phase));
@@ -217,6 +217,22 @@ function at(spectrum: CanonicalSpectrum, point: Scalar): Scalar {
 		result = result.add(coefficient);
 	}
 	return result;
+}
+
+/**
+ * Refuses point assignments requiring a limit across distinct exponential terms.
+ * @param factor - Reduced rational multiplier.
+ * @param point - Exact assignment, including an impulse location.
+ * @returns Finite symbolic value or an honest unsupported-limit diagnostic.
+ */
+function finiteFactorAt(factor: Factor, point: Scalar): Scalar {
+	try {
+		return factorAt(factor, point);
+	} catch (error) {
+		if (error instanceof CanonicalError && error.status === "invalid")
+			throw unsupported();
+		throw error;
+	}
 }
 
 /**
@@ -332,6 +348,27 @@ function asPolynomial(
  */
 function constantNode(node: unknown, context: Context): Scalar {
 	return asConstant(normalize(node, context));
+}
+
+/**
+ * Preserves the parser's distinction between natural, common, and based logarithms.
+ * @param args - Constant argument and optional explicit base.
+ * @param context - Allowed variable and half-line.
+ * @param op - Parsed logarithm name.
+ * @returns Constant logarithm with every domain checked before cancellation.
+ */
+function logarithm(
+	args: unknown[],
+	context: Context,
+	op: string,
+): CanonicalSpectrum {
+	const value = constantNode(args[0], context);
+	if (op === "Ln") return constant(scalarLog(value));
+	const base =
+		op === "Log" && args.length === 2
+			? constantNode(args[1], context)
+			: scalar(op === "Lb" ? 2 : 10);
+	return constant(scalarLog(value).divide(scalarLog(base)));
 }
 
 /**
@@ -539,12 +576,16 @@ function impulse(args: unknown, context: Context): CanonicalSpectrum {
  */
 function product(args: unknown[], context: Context): CanonicalSpectrum {
 	let result = constant(scalar(1));
+	let hasImpulseFactor = false;
 	for (let index = 0; index < args.length; index++) {
 		const item = unbox(args[index]);
 		const next =
 			item === "DiracDelta"
 				? impulse(args[++index], context)
 				: normalize(args[index], context);
+		// An earlier zero must not erase participation in an unsupported distribution product.
+		if (hasImpulseFactor && next.impulses.length) throw unsupported();
+		hasImpulseFactor ||= next.impulses.length > 0;
 		result = multiply(result, next);
 	}
 	return result;
@@ -586,10 +627,6 @@ function constantOperation(
 	switch (op) {
 		case "Abs": {
 			return constant(scalarAbs(value));
-		}
-		case "Ln":
-		case "Log": {
-			return constant(scalarLog(value));
 		}
 		case "Sqrt":
 		case "Root": {
@@ -672,6 +709,7 @@ function arity(op: unknown, args: unknown[]): void {
 			"invalid",
 			"Check the answer's syntax and matching brackets.",
 		);
+	if (op === "Log" && (args.length === 1 || args.length === 2)) return;
 	const binary = ["Divide", "Rational", "Power", "Root"];
 	const variadic = ["Add", "Multiply", "InvisibleOperator", "Subtract"];
 	if (
@@ -790,8 +828,10 @@ const operations: Record<string, Operation> = {
 	Abs: constantHandler,
 	Sqrt: constantHandler,
 	Root: constantHandler,
-	Ln: constantHandler,
-	Log: constantHandler,
+	Ln: logarithm,
+	Log: logarithm,
+	Lb: logarithm,
+	Lg: logarithm,
 };
 
 /**

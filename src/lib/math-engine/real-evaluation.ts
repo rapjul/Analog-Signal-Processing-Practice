@@ -150,6 +150,27 @@ function finiteReal(value: number): number | null {
 	return Number.isFinite(value) ? value : null;
 }
 
+/**
+ * Evaluates common or explicitly based logarithms without discarding the base.
+ * @param args - Argument and optional base, using ten when absent.
+ * @param vars - Explicit numerical assignments.
+ * @returns Finite real logarithm or null for invalid arity or domain.
+ */
+function logarithm(args: unknown[], vars: Bindings): number | null {
+	if (args.length < 1 || args.length > 2) return null;
+	const value = firstOperand(args, vars);
+	const base = args.length === 1 ? 10 : evaluateRealExpression(args[1], vars);
+	if (
+		value === null ||
+		base === null ||
+		value <= 0 ||
+		base <= 0 ||
+		base === 1
+	)
+		return null;
+	return finiteReal(Math.log(value) / Math.log(base));
+}
+
 /** Supported operations; dispatch keeps each domain rule independently readable. */
 const operations: Record<string, Operation> = {
 	/**
@@ -218,11 +239,17 @@ const operations: Record<string, Operation> = {
 	 * @returns Real logarithm or null.
 	 */
 	Ln: unary((value) => (value <= 0 ? null : Math.log(value))),
+	Log: logarithm,
 	/**
-	 * @param value - Logarithm argument.
-	 * @returns Real logarithm or null.
+	 * @param value - Positive argument.
+	 * @returns Binary logarithm or null.
 	 */
-	Log: unary((value) => (value <= 0 ? null : Math.log(value))),
+	Lb: unary((value) => (value <= 0 ? null : Math.log2(value))),
+	/**
+	 * @param value - Positive argument.
+	 * @returns Common logarithm or null.
+	 */
+	Lg: unary((value) => (value <= 0 ? null : Math.log10(value))),
 	Abs: unary(Math.abs),
 	/**
 	 * @param args - Unit-step argument.

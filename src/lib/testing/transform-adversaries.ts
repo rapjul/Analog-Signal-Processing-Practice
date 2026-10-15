@@ -15,6 +15,14 @@ export function transformAdversaries(
 	const v = variable === "omega" ? String.raw`\omega` : "t";
 	return [
 		{
+			name: "zero-masked-impulse-product",
+			expression: String.raw`0\delta(${v}-2)\delta(${v}-2)`,
+		},
+		{
+			name: "mismatched-log-base",
+			expression: String.raw`\log(e)-1`,
+		},
+		{
 			name: "malformed-sized-command",
 			expression: String.raw`\leftpi/pi-1`,
 		},

@@ -7,6 +7,37 @@ import {
 } from "$lib/math-engine/fourier-transform";
 
 describe("CTFT answer validation", () => {
+	/** An earlier zero cannot hide an unsupported product of two impulse factors. */
+	it("rejects impulse products independently of zero-factor order", () => {
+		const problem = createCtftProblem("delta", {
+			a: 1,
+			T: 2,
+			w0: 3,
+			t0: 0,
+		});
+		const impulse = String.raw`\delta(\omega-2)`;
+		for (const factors of [
+			["0", impulse, impulse],
+			[impulse, "0", impulse],
+			[impulse, impulse, "0"],
+		])
+			expect(
+				validateCtftAnswer(`1+${factors.join(" ")}`, problem).status,
+			).toBe("unsupported");
+	});
+	/** A smooth multiplier with a removable point needs a limit, not an undefined-answer diagnosis. */
+	it("reports unresolved impulse-multiplier limits as unsupported", () => {
+		const problem = createCtftProblem("cos", { a: 1, T: 4, w0: 2, t0: 0 });
+		const impulses = String.raw`\pi(\delta(\omega-2)+\delta(\omega+2))`;
+		const smooth = String.raw`\operatorname{sinc}((\omega-2)/4)+\operatorname{sinc}((\omega+2)/4)`;
+		expect(
+			validateCtftAnswer(`(${smooth})(${impulses})`, problem).status,
+		).toBe("unsupported");
+		expect(
+			validateCtftAnswer(String.raw`(\omega^2/4)(${impulses})`, problem)
+				.status,
+		).toBe("correct");
+	});
 	/** Runtime data outside the typed family union must fail without escaping the grader. */
 	it("reports an unsupported target for an unknown runtime signal family", () => {
 		const problem = createCtftProblem("delta", {
