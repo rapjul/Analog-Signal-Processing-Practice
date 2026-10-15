@@ -240,8 +240,13 @@ describe("transform notation properties", () => {
 		);
 	}, 310000);
 	/** Explicit fixtures protect every accepted surface even if random generation misses one. */
-	it("accepts sized equation prefixes and preserves absolute values and roots", () => {
-		for (const family of families)
+	it.each(families)(
+		"accepts sized prefixes for %s and preserves absolute values and roots",
+		/**
+		 * @param family - Independently reported signal family, avoiding a combined timing budget.
+		 * @returns Nothing after every delimiter and spacing variant is verified.
+		 */
+		(family) => {
 			for (const sized of [true, false])
 				for (const square of [true, false])
 					for (const space of spaces)
@@ -253,13 +258,17 @@ describe("transform notation properties", () => {
 							String.raw`\omega`,
 							0,
 						);
-		for (const family of families)
 			ctftProperty(family, false, false, "", "omega", -1);
-		laplaceProperty(true, false, " ", 2);
-		expect(
-			normalizeTransformNotation(String.raw`\left|\pi\right|`, "omega"),
-		).toBe(String.raw`|\pi|`);
-	});
+			laplaceProperty(true, false, " ", 2);
+			expect(
+				normalizeTransformNotation(
+					String.raw`\left|\pi\right|`,
+					"omega",
+				),
+			).toBe(String.raw`|\pi|`);
+		},
+		30000,
+	);
 	/** Current generator parameter sets and both shift signs retain their reference answers. */
 	it("preserves every current generator value across causal and negative shifts", () => {
 		for (const family of families) {
