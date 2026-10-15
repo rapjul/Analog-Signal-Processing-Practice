@@ -4,7 +4,17 @@
  * and Bode magnitude/phase plots for UIUC ECE 210.
  */
 
+import {
+	circuitCoefficients,
+	negateCircuitCoefficient,
+} from "$lib/math-engine/circuit-coefficients";
 import { formatCircuitTransferFunction } from "$lib/math-engine/circuit-formatting";
+import type {
+	CircuitComponents,
+	CircuitPolynomials,
+} from "$lib/math-engine/circuit-types";
+
+export type { CircuitComponents } from "$lib/math-engine/circuit-types";
 
 /**
  * Supported circuit topologies for transfer function H(s) derivation and Bode analysis.
@@ -89,16 +99,6 @@ export interface CircuitProblem {
 	solutionSteps: CircuitSolutionStep[];
 }
 
-/** Positive component values in SI units. */
-export interface CircuitComponents {
-	/** Resistance in ohms. */
-	R: number;
-	/** Inductance in henries; ignored for topologies without an inductor. */
-	L: number;
-	/** Capacitance in farads; ignored for topologies without a capacitor. */
-	C: number;
-}
-
 /**
  * Identifies whether the topology uses an inductor.
  * @param topology - Circuit topology.
@@ -147,167 +147,126 @@ export function evaluateTransferFunction(
 	};
 	const result = calculateTransferFunction(topology, components);
 	return {
-		...result,
-		hLatex: formatCircuitTransferFunction(
-			result.numCoeffs,
-			result.denCoeffs,
-			components,
+		numCoeffs: result.numerator.map(
+			/** @param coefficient - Paired numerator value. @returns Numerical plot coefficient. */
+			(coefficient) => coefficient.numeric,
 		),
+		denCoeffs: result.denominator.map(
+			/** @param coefficient - Paired denominator value. @returns Numerical plot coefficient. */
+			(coefficient) => coefficient.numeric,
+		),
+		hLatex: formatCircuitTransferFunction(result),
 	};
 }
 
 /**
- * Calculates numerical polynomial coefficients for one circuit topology.
+ * Calculates paired exact and numerical polynomial coefficients for one topology.
  * @param topology - Circuit topology.
  * @param components - Validated component values.
- * @returns Numerical coefficients for Bode evaluation.
+ * @returns Positional coefficients for Bode evaluation and analytical display.
  */
 function calculateTransferFunction(
 	topology: CircuitTopology,
 	components: CircuitComponents,
-): TransferFunctionResult {
-	const { R, L, C } = components;
+): CircuitPolynomials {
+	const { zero, one, rl, lc, wc, twiceWc, fourWc, wcSquared, rc } =
+		circuitCoefficients(components);
 
 	switch (topology) {
 		case "series-rlc": {
-			// Series RLC Bandpass (Output across R): H(s) = (R/L * s) / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [rOverL, 0],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{${rOverL} s}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [rl, zero],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "series-rlc-lpf": {
-			// Series RLC Lowpass (Output across C): H(s) = (1/(LC)) / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [w0Sq],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{${w0Sq}}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [lc],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "series-rlc-hpf": {
-			// Series RLC Highpass (Output across L): H(s) = s^2 / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [1, 0, 0],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{s^2}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [one, zero, zero],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "rc-lpf": {
-			// 1st-order RC LPF: H(s) = (1 / (RC)) / (s + 1 / (RC))
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [wc],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{${wc}}{s + ${wc}}`,
+				numerator: [wc],
+				denominator: [one, wc],
 			};
 		}
 		case "rc-hpf": {
-			// 1st-order RC HPF: H(s) = s / (s + 1 / (RC))
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{s}{s + ${wc}}`,
+				numerator: [one, zero],
+				denominator: [one, wc],
 			};
 		}
 		case "rl-lpf": {
-			// 1st-order RL LPF: H(s) = (R / L) / (s + R / L)
-			const wc = R / L;
 			return {
-				numCoeffs: [wc],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{${wc}}{s + ${wc}}`,
+				numerator: [rl],
+				denominator: [one, rl],
 			};
 		}
 		case "rl-hpf": {
-			// 1st-order RL HPF: H(s) = s / (s + R / L)
-			const wc = R / L;
 			return {
-				numCoeffs: [1, 0],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{s}{s + ${wc}}`,
+				numerator: [one, zero],
+				denominator: [one, rl],
 			};
 		}
 		case "parallel-rlc": {
-			const oneOverRC = 1 / (R * C);
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [oneOverRC, 0],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{${oneOverRC} s}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [wc, zero],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "parallel-lc-series-r": {
-			const w0Sq = 1 / (L * C);
-			const oneOverRC = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, w0Sq],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{s^2 + ${w0Sq}}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [one, zero, lc],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "parallel-rc-series-l": {
-			const w0Sq = 1 / (L * C);
-			const oneOverRC = 1 / (R * C);
 			return {
-				numCoeffs: [1, oneOverRC, 0],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{s^2 + ${oneOverRC} s}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [one, wc, zero],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "active-sallen-key": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [wc * wc],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{${wc * wc}}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [wcSquared],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "active-sallen-key-hpf": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, 0],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{s^2}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [one, zero, zero],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "active-bpf": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-2 * wc, 0],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{-${2 * wc} s}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [negateCircuitCoefficient(twiceWc), zero],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "twin-t-notch": {
-			const w0 = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, w0 * w0],
-				denCoeffs: [1, 4 * w0, w0 * w0],
-				hLatex: `\\frac{s^2 + ${w0 * w0}}{s^2 + ${4 * w0} s + ${w0 * w0}}`,
+				numerator: [one, zero, wcSquared],
+				denominator: [one, fourWc, wcSquared],
 			};
 		}
 		case "active-integrator": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-wc],
-				denCoeffs: [1, 0],
-				hLatex: `-\\frac{${wc}}{s}`,
+				numerator: [negateCircuitCoefficient(wc)],
+				denominator: [one, zero],
 			};
 		}
 		case "active-differentiator": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-1 / wc, 0],
-				denCoeffs: [1],
-				hLatex: `-\\frac{s}{${wc}}`,
+				numerator: [negateCircuitCoefficient(rc), zero],
+				denominator: [one],
 			};
 		}
 		default: {

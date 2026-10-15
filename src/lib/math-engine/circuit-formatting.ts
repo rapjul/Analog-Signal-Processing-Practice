@@ -1,77 +1,41 @@
-/** Exact analytical transfer functions alongside unchanged numerical polynomial coefficients. */
-import { ExactFraction } from "$lib/math-engine/exact-fraction";
-
-/** Parameters required to reconstruct every supported analytical coefficient. */
-interface Components {
-	/** Positive resistance. */
-	R: number;
-	/** Positive inductance or a harmless placeholder for unused inductance. */
-	L: number;
-	/** Positive capacitance or a harmless placeholder for unused capacitance. */
-	C: number;
-}
+/** Exact analytical displays retain coefficient identity independently of rounded numerical values. */
+import type {
+	CircuitCoefficient,
+	CircuitPolynomials,
+} from "$lib/math-engine/circuit-types";
 
 /**
- * Associates numerical engine coefficients with exact arithmetic from decimal components.
- * @param components - Component values, sanitized only for unused parameters.
- * @returns Exact representations of every coefficient used by the current topologies.
- */
-function coefficientFractions(
-	components: Components,
-): Map<number, ExactFraction> {
-	const { R, L, C } = components;
-	const r = ExactFraction.fromDecimal(R),
-		l = ExactFraction.fromDecimal(L),
-		c = ExactFraction.fromDecimal(C);
-	const one = new ExactFraction(1n),
-		two = new ExactFraction(2n),
-		four = new ExactFraction(4n);
-	const rc = r.multiply(c),
-		wc = one.divide(rc),
-		lc = one.divide(l.multiply(c));
-	const numericWc = 1 / (R * C);
-	return new Map([
-		[0, new ExactFraction(0n)],
-		[1, one],
-		[R / L, r.divide(l)],
-		[1 / (L * C), lc],
-		[numericWc, wc],
-		[2 * numericWc, two.multiply(wc)],
-		[4 * numericWc, four.multiply(wc)],
-		[numericWc * numericWc, wc.multiply(wc)],
-		[1 / numericWc, rc],
-	]);
-}
-
-/**
- * Formats a polynomial without rounded derived coefficients.
- * @param coefficients - Numerical coefficients in descending order.
- * @param fractions - Exact magnitude representations.
+ * Formats a polynomial using the exact value attached to each position.
+ * @param coefficients - Paired coefficients in descending powers.
+ * @param reverseSign - Whether to display the additive inverse.
  * @returns Reduced-fraction polynomial in the s variable.
  */
 function polynomialLatex(
-	coefficients: number[],
-	fractions: Map<number, ExactFraction>,
+	coefficients: CircuitCoefficient[],
+	reverseSign = false,
 ): string {
 	const terms: string[] = [];
 	for (const [index, coefficient] of coefficients.entries()) {
-		if (coefficient === 0) continue;
+		const exact = reverseSign
+			? coefficient.exact.negate()
+			: coefficient.exact;
+		if (exact.numerator === 0n) continue;
 		const degree = coefficients.length - index - 1;
-		const magnitude = Math.abs(coefficient);
-		const exact = fractions.get(magnitude);
-		if (!exact) throw new Error("Missing exact circuit coefficient");
+		const negative = exact.numerator < 0n;
+		const magnitude = negative ? exact.negate() : exact;
 		const coefficientText =
-			degree > 0 && magnitude === 1 ? "" : exact.toLatex();
+			degree > 0 && magnitude.numerator === magnitude.denominator
+				? ""
+				: magnitude.toLatex();
 		const powerText =
 			degree === 0 ? "" : degree === 1 ? "s" : `s^${degree}`;
-		const sign =
-			coefficient < 0
-				? terms.length
-					? " - "
-					: "-"
-				: terms.length
-					? " + "
-					: "";
+		const sign = negative
+			? terms.length
+				? " - "
+				: "-"
+			: terms.length
+				? " + "
+				: "";
 		terms.push(
 			`${sign}${coefficientText}${coefficientText && powerText ? " " : ""}${powerText}`,
 		);
@@ -80,24 +44,25 @@ function polynomialLatex(
 }
 
 /**
- * Builds exact display text from the same coefficient formulas as the numerical engine.
- * @param numerator - Numerical numerator coefficients.
- * @param denominator - Numerical denominator coefficients.
- * @param components - Decimal component values.
+ * Builds analytical text without looking up coefficients by floating-point value.
+ * @param polynomials - Numeric/exact coefficient pairs from the topology calculation.
  * @returns Analytical rational function with exact fractions.
  */
 export function formatCircuitTransferFunction(
-	numerator: number[],
-	denominator: number[],
-	components: Components,
+	polynomials: CircuitPolynomials,
 ): string {
-	const fractions = coefficientFractions(components);
+	const { numerator, denominator } = polynomials;
 	const negative =
-		numerator.every((value) => value <= 0) &&
-		numerator.some((value) => value < 0);
-	const signedNumerator = negative ? numerator.map(Math.abs) : numerator;
-	const num = polynomialLatex(signedNumerator, fractions),
-		den = polynomialLatex(denominator, fractions);
+		numerator.every(
+			/** @param value - Numerator coefficient. @returns Whether it is nonpositive exactly. */
+			(value) => value.exact.numerator <= 0n,
+		) &&
+		numerator.some(
+			/** @param value - Numerator coefficient. @returns Whether it is negative exactly. */
+			(value) => value.exact.numerator < 0n,
+		);
+	const num = polynomialLatex(numerator, negative),
+		den = polynomialLatex(denominator);
 	const sign = negative ? "-" : "";
 	return den === "1"
 		? `${sign}${num}`
