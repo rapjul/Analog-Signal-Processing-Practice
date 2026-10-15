@@ -31,6 +31,12 @@ impulse location. A smooth product that requires a removable limit across
 separately singular normalized terms remains `unsupported`; it is not diagnosed
 as malformed input. General symbolic limits are outside the current contract.
 
+Distribution participation is checked recursively before simplification. A product
+with multiple distribution-bearing factors, or a distribution-bearing power,
+remains unsupported even when a factor is nested, zero-masked, or canceled. This
+conservative syntax boundary can reject equivalent ways of writing zero; a
+standalone cancellation or a single impulse multiplied by zero is still allowed.
+
 The scalar algebra retains rational coefficients and formal `pi`, roots,
 logarithms, and exponentials during polynomial manipulation. Known quarter-turn
 phases and elementary monomial root/log identities are exact. Numerical values of

@@ -15,6 +15,10 @@ export function transformAdversaries(
 	const v = variable === "omega" ? String.raw`\omega` : "t";
 	return [
 		{
+			name: "nested-zero-masked-impulse-product",
+			expression: String.raw`\delta(${v}-2)(0\delta(${v}-2))`,
+		},
+		{
 			name: "zero-masked-impulse-product",
 			expression: String.raw`0\delta(${v}-2)\delta(${v}-2)`,
 		},

@@ -576,16 +576,12 @@ function impulse(args: unknown, context: Context): CanonicalSpectrum {
  */
 function product(args: unknown[], context: Context): CanonicalSpectrum {
 	let result = constant(scalar(1));
-	let hasImpulseFactor = false;
 	for (let index = 0; index < args.length; index++) {
 		const item = unbox(args[index]);
 		const next =
 			item === "DiracDelta"
 				? impulse(args[++index], context)
 				: normalize(args[index], context);
-		// An earlier zero must not erase participation in an unsupported distribution product.
-		if (hasImpulseFactor && next.impulses.length) throw unsupported();
-		hasImpulseFactor ||= next.impulses.length > 0;
 		result = multiply(result, next);
 	}
 	return result;
@@ -835,21 +831,42 @@ const operations: Record<string, Operation> = {
 };
 
 /**
+ * Checks resources and distribution participation before algebra can discard operands.
  * @param node - Raw AST.
  * @param depth - Current depth.
  * @param budget - Shared node count.
- * @returns Nothing after bounded traversal.
+ * @returns Whether this syntax contains a distribution, including nested zero masks.
  */
-function checkBudget(
+function checkStructure(
 	node: unknown,
 	depth: number,
 	budget: { nodes: number },
-): void {
+): boolean {
 	if (++budget.nodes > 512 || depth > 32) throw limitError();
 	const value = unbox(node);
-	if (Array.isArray(value))
-		for (const child of value.slice(1))
-			checkBudget(child, depth + 1, budget);
+	if (!Array.isArray(value)) return value === "DiracDelta";
+	const participation = value.slice(1).map(
+		/**
+		 * @param child - Nested operand with its own resource and domain checks.
+		 * @returns Distribution participation before any simplification.
+		 */
+		(child) => checkStructure(child, depth + 1, budget),
+	);
+	return distributionSyntax(value[0], participation);
+}
+
+/**
+ * Enforces the distribution operation contract independently of normalized weights.
+ * @param op - Parsed operation.
+ * @param participation - Recursive operand distribution flags.
+ * @returns Whether distribution syntax must remain visible to parent operations.
+ */
+function distributionSyntax(op: unknown, participation: boolean[]): boolean {
+	const count = participation.filter(Boolean).length;
+	if ((op === "Multiply" || op === "InvisibleOperator") && count > 1)
+		throw unsupported();
+	if (op === "Power" && count > 0) throw unsupported();
+	return op === "DiracDelta" || count > 0;
 }
 
 /**
@@ -861,7 +878,7 @@ export function normalizeCanonicalTransform(
 	ast: unknown,
 	variable: "t" | "omega",
 ): CanonicalTransform {
-	checkBudget(ast, 0, { nodes: 0 });
+	checkStructure(ast, 0, { nodes: 0 });
 	const right = normalize(ast, { variable, side: 1 });
 	const result: CanonicalTransform = {
 		variable,

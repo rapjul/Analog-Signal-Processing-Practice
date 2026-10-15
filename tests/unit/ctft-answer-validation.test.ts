@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { CanonicalError } from "$lib/math-engine/canonical-algebra";
 import { createCtftCanonicalTarget } from "$lib/math-engine/canonical-targets";
+import { normalizeCanonicalTransform } from "$lib/math-engine/canonical-transform";
 import {
 	type CtftSignalType,
 	createCtftProblem,
@@ -24,6 +26,58 @@ describe("CTFT answer validation", () => {
 			expect(
 				validateCtftAnswer(`1+${factors.join(" ")}`, problem).status,
 			).toBe("unsupported");
+	});
+	/** Recursive syntax checks must precede folding of masked or canceled distributions. */
+	it("rejects nested, factored, and powered distribution products before simplification", () => {
+		const problem = createCtftProblem("delta", {
+			a: 1,
+			T: 2,
+			w0: 3,
+			t0: 0,
+		});
+		const d = String.raw`\delta(\omega-2)`;
+		for (const product of [
+			`${d}(0${d})`,
+			`(0${d})${d}`,
+			`(0${d})(0${d})`,
+			`0(${d}${d})`,
+			`(${d}-${d})${d}`,
+			`(0${d})^2`,
+			`${d}((0${d})/1)`,
+			`${d}(e^{0${d}}-1)`,
+		])
+			expect(
+				validateCtftAnswer(`1+${product}`, problem).status,
+				product,
+			).toBe("unsupported");
+		for (const term of [`0${d}`, `${d}-${d}`, `0${d}\\omega`])
+			expect(
+				validateCtftAnswer(`1+(${term})`, problem).status,
+				term,
+			).toBe("correct");
+		const impulse = [
+			"Multiply",
+			"DiracDelta",
+			["Delimiter", ["Subtract", "omega", 2]],
+		];
+		for (const ast of [
+			["Multiply", impulse, ["Multiply", 0, impulse]],
+			{
+				fn: [
+					"Multiply",
+					{ fn: impulse },
+					{ fn: ["Multiply", 0, { fn: impulse }] },
+				],
+			},
+			["Power", ["Multiply", 0, impulse], 2],
+		]) {
+			expect(() => normalizeCanonicalTransform(ast, "omega")).toThrow(
+				CanonicalError,
+			);
+			expect(() => normalizeCanonicalTransform(ast, "omega")).toThrow(
+				"outside the supported answer forms",
+			);
+		}
 	});
 	/** A smooth multiplier with a removable point needs a limit, not an undefined-answer diagnosis. */
 	it("reports unresolved impulse-multiplier limits as unsupported", () => {

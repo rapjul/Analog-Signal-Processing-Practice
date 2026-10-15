@@ -52,6 +52,12 @@ Constant arguments and bases must satisfy their domains before cancellation or
 multiplication by zero can discard them. Both presentation normalization and
 boxed AST contracts need direct regression tests.
 
+Check distribution participation recursively on the bounded raw AST before
+algebraic simplification. Nested zero masks and cancellations cannot erase a
+distribution-bearing factor before an outer product or power is checked. This
+syntax restriction deliberately favors an unsupported result over expanding
+general distribution algebra.
+
 Keep Laplace residue construction, pole cancellation, and worked coefficients
 exact as well. Convert to numerical residues only for diagnostic evaluation;
 floating products cannot decide whether a pole exists. The canonical target
