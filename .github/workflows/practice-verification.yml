@@ -1,0 +1,69 @@
+name: Practice verification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: practice-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Tests, properties, and production workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SIGNALLAB_TEST_OFFLINE: "1"
+      PLAYWRIGHT_HTML_OPEN: never
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check types
+        run: npm run check
+      - name: Check imports
+        run: npm run lint:imports
+      - name: Check formatting
+        run: npm run format:check
+      - name: Check verification documentation
+        run: npm run lint:verification-docs
+      - name: Run unit, component, and property tests with coverage
+        run: npm run test:coverage -- --maxWorkers=2
+      - name: Build production site
+        run: npm run build
+      - name: Install production test browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify production practice workflows
+        run: >-
+          npm run test:e2e:production --
+          tests/e2e/practice-correctness.spec.ts
+          tests/e2e/ctft-module.spec.ts
+          tests/e2e/laplace-module.spec.ts
+          tests/e2e/solver-audit-regressions.spec.ts
+          --workers 2 --reporter=line,html
+      - name: Retain coverage and browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: practice-verification-${{ github.run_attempt }}
+          path: |
+            coverage/
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
