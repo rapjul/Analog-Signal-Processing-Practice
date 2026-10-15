@@ -263,18 +263,19 @@ export function createCtftProblem(
 	const hasShift = t0 !== 0;
 
 	if (hasShift) {
+		const translatedTime = t0 < 0 ? `t + ${-t0}` : `t - ${t0}`;
 		const shiftedTimeLatex =
 			type === "rect"
-				? String.raw`\operatorname{rect}\left(\frac{t - ${t0}}{${T}}\right)`
+				? String.raw`\operatorname{rect}\left(\frac{${translatedTime}}{${T}}\right)`
 				: type === "exponential"
-					? `e^{-${a}(t - ${t0})} u(t - ${t0})`
+					? `e^{-${a}(${translatedTime})} u(${translatedTime})`
 					: type === "gaussian"
-						? String.raw`e^{-${a}(t - ${t0})^2}`
+						? String.raw`e^{-${a}(${translatedTime})^2}`
 						: type === "cos"
-							? String.raw`\cos(${w0}(t - ${t0}))`
-							: String.raw`\delta(t - ${t0})`;
+							? String.raw`\cos(${w0}(${translatedTime}))`
+							: String.raw`\delta(${translatedTime})`;
 
-		const shiftedFreqLatex = String.raw`\left(${pair.freqLatex}\right) e^{-j ${t0} \omega}`;
+		const shiftedFreqLatex = String.raw`\left(${pair.freqLatex}\right) e^{${-t0} j \omega}`;
 
 		return {
 			id,

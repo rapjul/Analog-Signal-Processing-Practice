@@ -57,12 +57,24 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		);
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}
-	await input.fill("X(omega)=2/2");
+	await input.fill("3.14");
 	await page.getByRole("button", { name: "Check Answer" }).click();
-	await expect(page.locator(".feedback-box")).toHaveAttribute(
-		"data-validation",
-		"correct",
+	await expect(page.locator(".feedback-box")).toContainText(
+		"If you intended π",
 	);
+	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+	for (const answer of [
+		"X(omega)=2/2",
+		String.raw`X\left(\omega\right)=2/2`,
+		String.raw`X\,\left[jw\right]=2/2`,
+	]) {
+		await input.fill(answer);
+		await page.getByRole("button", { name: "Check Answer" }).click();
+		await expect(page.locator(".feedback-box")).toHaveAttribute(
+			"data-validation",
+			"correct",
+		);
+	}
 	await reveal(page);
 	await expect(page.locator(".assistance-status")).toHaveCount(0);
 	await input.fill("0");
@@ -125,12 +137,29 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	}
 	await page
 		.locator("#laplace-input")
-		.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)`);
+		.fill(
+			`(${a}e^{${p1}t}+${b}e^{${p2}t})u((3.14159265358979323843-\\pi)t)`,
+		);
 	await page.getByRole("button", { name: "Check Answer" }).click();
 	await expect(page.locator(".feedback-box")).toHaveAttribute(
 		"data-validation",
-		"correct",
+		"unsupported",
 	);
+	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+	for (const prefix of [
+		"",
+		String.raw`x\left(t\right)=`,
+		String.raw`x\quad\left[t\right]=`,
+	]) {
+		await page
+			.locator("#laplace-input")
+			.fill(`${prefix}(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)`);
+		await page.getByRole("button", { name: "Check Answer" }).click();
+		await expect(page.locator(".feedback-box")).toHaveAttribute(
+			"data-validation",
+			"correct",
+		);
+	}
 	await page.getByRole("button", { name: "Next Problem" }).click();
 	await reveal(page);
 	await expect(page.locator(".assistance-status")).toContainText(

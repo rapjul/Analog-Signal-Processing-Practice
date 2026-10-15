@@ -33,11 +33,12 @@ function setting(
  */
 export function propertyOptions() {
 	const path = process.env.SIGNALLAB_PROPERTY_PATH;
+	const numRuns = setting("SIGNALLAB_PROPERTY_RUNS", 500, 1, 5000);
 	return {
 		seed: setting("SIGNALLAB_PROPERTY_SEED", 73, -2147483648, 2147483647),
-		numRuns: setting("SIGNALLAB_PROPERTY_RUNS", 500, 1, 5000),
+		numRuns,
 		...(path === undefined ? {} : { path }),
-		interruptAfterTimeLimit: 60000,
+		interruptAfterTimeLimit: numRuns > 500 ? 300000 : 60000,
 		markInterruptAsFailure: true,
 		verbose: true,
 	};

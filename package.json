@@ -18,6 +18,8 @@
     "test:unit": "vitest",
     "test": "npm run test:unit -- --run",
     "test:coverage": "vitest run --coverage",
+    "test:grading:properties": "vitest run tests/unit/constant-proofs.test.ts tests/unit/transform-notation.test.ts --maxWorkers=2",
+    "test:grading:properties:extended": "SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=73 npm run test:grading:properties && SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=20261015 npm run test:grading:properties",
     "test:e2e": "playwright test",
     "test:e2e:production": "playwright test --config playwright.production.config.ts",
     "test:e2e:production:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_INITIAL_ONLY=1 playwright test --config playwright.production.config.ts --project Solver-Visual-Snapshots --update-snapshots none",

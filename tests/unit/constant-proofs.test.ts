@@ -134,7 +134,7 @@ describe("constant proof boundaries", () => {
 			),
 			propertyOptions(),
 		);
-	}, 70000);
+	}, 310000);
 	/** Constant functions carry symbolic facts rather than inferred floating signs. */
 	it("proves positive symbolic compositions", () => {
 		fc.assert(
@@ -145,7 +145,7 @@ describe("constant proof boundaries", () => {
 			),
 			propertyOptions(),
 		);
-	}, 70000);
+	}, 310000);
 	/** Near-pi values are mathematically ordered by a separate integer-bound oracle. */
 	it("keeps mixed symbolic cancellation uncertain in every domain", () => {
 		fc.assert(
@@ -156,7 +156,7 @@ describe("constant proof boundaries", () => {
 			),
 			propertyOptions(),
 		);
-	}, 70000);
+	}, 310000);
 	/** Domain failures survive rewrites and boxed AST wrappers. */
 	it("refuses canceled or masked uncertain divisors and invalid domains", () => {
 		for (const [decimal, multiple] of roundedPi) {
@@ -218,6 +218,12 @@ describe("constant proof boundaries", () => {
 		);
 		expect(scalar(0, 1).realSign()).toBe("unknown");
 		expect(scalar(0, 1).nonzeroProof()).toBe("nonzero");
+		for (const sign of [1, -1]) {
+			const nearCut = scalar(-1).add(
+				literalScalar("1e-400").multiply(scalar(0, sign)),
+			);
+			expect(() => nearCut.numeric()).toThrow(/finite coefficient range/);
+		}
 	});
 	/** A decimal below pi must never turn an anticausal response into a causal one. */
 	it("rejects all reproduced rounded-pi support reversals", () => {

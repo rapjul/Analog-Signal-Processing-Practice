@@ -8,6 +8,7 @@ import {
 } from "$lib/math-engine/canonical-transform";
 import type { Complex } from "$lib/math-engine/complex";
 import { parseStrictLatex } from "$lib/math-engine/evaluator";
+import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 
 /** Outcome of checking a supported transform expression. */
 export interface TransformValidationResult {
@@ -39,37 +40,20 @@ export interface TransformReference {
 }
 
 /**
- * Preserves root indices while normalizing ordinary bracket grouping.
- * @param token - Indexed root prefix or grouping bracket.
- * @returns Original root notation or matching parenthesis.
+ * @param answer - Bounded original input, never rewritten into a symbolic value.
+ * @param result - Failed verification result.
+ * @returns The same status with a conditional notation hint for a pi-like decimal.
  */
-function normalizeBracket(token: string): string {
-	if (token.startsWith("\\sqrt")) return token;
-	return token === "[" ? "(" : ")";
-}
-
-/**
- * Normalizes electrical-engineering notation without changing the supported algebra.
- * @param answer - Student expression.
- * @param variable - Expected independent symbol.
- * @returns Parser-ready expression.
- */
-function normalizeTransformAnswer(answer: string, variable: string): string {
-	const prefix =
-		variable === "t"
-			? /^x\s*\(\s*t\s*\)\s*=\s*/
-			: /^X\s*\(\s*(?:[ij]\s*)?(?:\\omega|omega|w)\s*\)\s*=\s*/;
-	return answer
-		.trim()
-		.replace(/\\left\[/g, "(")
-		.replace(/\\right\]/g, ")")
-		.replace(/\\sqrt\s*\[[^\[\]]*\]|(?<!\\)[\[\]]/g, normalizeBracket)
-		.replace(prefix, "")
-		.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
-		.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
-		.replace(/(^|[^a-zA-Z\\])([ij])(?:omega|w)\b/g, "$1$2\\omega")
-		.replace(/(^|[^a-zA-Z\\])omega\b/g, "$1\\omega")
-		.replace(/(^|[^a-zA-Z\\])w\b/g, "$1\\omega");
+function failureFeedback(
+	answer: string,
+	result: TransformValidationResult,
+): TransformValidationResult {
+	if (/(?<![\w.])3\.14\d*(?:…|\.{3})?(?![\d.eE])/.test(answer))
+		return {
+			...result,
+			message: `${result.message} If you intended π, enter pi or \\pi.`,
+		};
+	return result;
 }
 
 /**
@@ -109,6 +93,12 @@ export function validateTransformAnswer(
 	answer: string,
 	reference: TransformReference,
 ): TransformValidationResult {
+	if (answer.length > 16384)
+		return {
+			status: "unsupported",
+			message:
+				"Please shorten the answer to 16,384 characters or fewer and use the standard transform form.",
+		};
 	if (!answer.trim())
 		return {
 			status: "invalid",
@@ -123,29 +113,35 @@ export function validateTransformAnswer(
 			message: "This problem has no canonical verification target.",
 		};
 	try {
-		const expression = normalizeTransformAnswer(answer, reference.variable);
+		const expression = normalizeTransformNotation(
+			answer,
+			reference.variable,
+		);
 		const submitted = normalizeCanonicalTransform(
 			parseStrictLatex(expression),
 			reference.variable,
 		);
 		if (!canonicalTransformsMatch(submitted, reference.canonicalTarget))
-			return {
+			return failureFeedback(answer, {
 				status: "incorrect",
 				message:
 					"Not yet correct. Check coefficients, signs, shifts, poles, and signal support.",
-			};
+			});
 		return {
 			status: "correct",
 			message: "Correct! Your supported answer form matches the problem.",
 			numericCheck: numericDiagnostic(submitted, reference),
 		};
 	} catch (error) {
-		return error instanceof CanonicalError
-			? { status: error.status, message: error.message }
-			: {
-					status: "invalid",
-					message:
-						"Check the answer's syntax, matching brackets, and finite constants.",
-				};
+		return failureFeedback(
+			answer,
+			error instanceof CanonicalError
+				? { status: error.status, message: error.message }
+				: {
+						status: "invalid",
+						message:
+							"Check the answer's syntax, matching brackets, and finite constants.",
+					},
+		);
 	}
 }
