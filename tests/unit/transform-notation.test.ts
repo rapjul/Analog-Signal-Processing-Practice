@@ -319,6 +319,7 @@ describe("transform notation properties", () => {
 			const result = validateTransformAnswer(answer, reference);
 			expect(result.status).not.toBe("correct");
 			expect(result.message).toContain("If you intended the constant pi");
+			expect(result.message).toContain("type 'pi' (lowercase)");
 			expect(result.message).not.toContain("π");
 		}
 		for (const answer of ["pi", "π", String.raw`\pi`, "3.141592653589793"])

@@ -57,7 +57,7 @@ roots, absolute-value bars, and malformed-input rejection. `pi`, `π`, and `\pi`
 refer to the exact same symbol. Decimal numbers remain their exact entered values;
 there is no second grading pass that rewrites approximations into constants.
 Failed answers containing a pi-like decimal receive a conditional suggestion to
-use `pi` or `\pi` if that was intended.
+use lowercase `pi` if that was intended.
 
 ## Correctness and Tolerance
 
