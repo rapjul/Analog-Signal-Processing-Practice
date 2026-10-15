@@ -166,8 +166,16 @@
 					<MathText
 						text={String.raw`Frequency Sample $\omega = 10\text{ rad/s}$:`}
 					/>
-					<strong>{cornerBode.magnitudeDb.toFixed(2)} dB</strong>,
-					<strong>{cornerBode.phaseDeg.toFixed(2)}°</strong>
+					<strong
+						><MathText
+							text={String.raw`$${cornerBode.magnitudeDb.toFixed(2)}\,\mathrm{dB}$`}
+						/></strong
+					>,
+					<strong
+						><MathText
+							text={String.raw`$${cornerBode.phaseDeg.toFixed(2)}^\circ$`}
+						/></strong
+					>
 				</div>
 				<div class="tf-output">
 					<h3 class="panel-title">Derived H(s)</h3>
