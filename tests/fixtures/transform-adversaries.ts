@@ -15,6 +15,14 @@ export function transformAdversaries(
 	const v = variable === "omega" ? String.raw`\omega` : "t";
 	return [
 		{
+			name: "rounded-pi-step",
+			expression: String.raw`u((3.14159265358979323843-\pi)${v})-u(${v})`,
+		},
+		{
+			name: "rounded-pi-divisor",
+			expression: String.raw`\frac{0}{3.14159265358979323843-\pi}`,
+		},
+		{
 			name: "rounded-root-index",
 			expression: String.raw`e^{(\sqrt[\sqrt{2}/1.4142135623730951]{2}-2)${v}}-1`,
 		},

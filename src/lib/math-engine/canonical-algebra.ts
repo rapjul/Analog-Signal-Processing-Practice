@@ -113,7 +113,17 @@ export class RationalComplex {
 	}
 	/** @returns Numeric approximation for matched coefficient slots. */
 	numeric(): Complex {
-		return new Complex(this.re.toNumber(), this.im.toNumber());
+		const re = this.re.toNumber(),
+			im = this.im.toNumber();
+		if (
+			(re === 0 && this.re.numerator !== 0n) ||
+			(im === 0 && this.im.numerator !== 0n)
+		)
+			throw new CanonicalError(
+				"unsupported",
+				"This nonzero constant is outside the finite coefficient range.",
+			);
+		return new Complex(re, im);
 	}
 }
 
@@ -396,9 +406,12 @@ export const complexField: Field<RationalComplex> = {
 /** Formal constant atom with a numerical value used only for coefficient diagnostics. */
 interface ConstantAtom {
 	/** Stable expression identity. */ key: string;
-	/** Constant family. */ kind: "pi" | "root" | "log" | "exp" | "power";
+	/** Constant family. */ kind:
+		"pi" | "root" | "log" | "exp" | "power" | "abs";
 	/** Finite diagnostic approximation. */ value: Complex;
 	/** Whether the defining constant function establishes a real value. */ real?: boolean;
+	/** Proven real sign, independent of the diagnostic approximation. */ sign?: RealSign;
+	/** Whether the defining function proves that this atom cannot vanish. */ nonzero?: boolean;
 	/** Radicand or logarithm argument for exact identities. */ argument?: Scalar;
 	/** Positive integer root order for bounded monomial reduction. */ index?:
 		number | undefined;
@@ -408,6 +421,110 @@ interface ConstantAtom {
 type Powers = Array<[string, number]>;
 /** Sparse exact complex polynomial in formal constants. */
 type ConstantPolynomial = Map<string, RationalComplex>;
+
+/** Proven real sign; unknown never authorizes a structural branch. */
+export type RealSign = -1 | 0 | 1 | "unknown";
+/** Exact zero knowledge, including nonreal constants. */
+export type NonzeroProof = "zero" | "nonzero" | "unknown";
+
+/** @returns A diagnostic for a required constant fact that cannot be proved. */
+function uncertainConstant(): CanonicalError {
+	return new CanonicalError(
+		"unsupported",
+		"This constant's sign or domain cannot be established exactly. Use the standard transform form.",
+	);
+}
+
+/**
+ * @param value - Exact integer numerator.
+ * @returns Its exact sign, without conversion to a floating-point number.
+ */
+function bigintSign(value: bigint): -1 | 0 | 1 {
+	return value === 0n ? 0 : value < 0n ? -1 : 1;
+}
+
+/**
+ * @param atom - Validated formal constant.
+ * @param power - Integer monomial exponent.
+ * @returns Proven real sign of this factor.
+ */
+function atomPowerSign(
+	atom: ConstantAtom | undefined,
+	power: number,
+): RealSign {
+	if (!atom?.real) return "unknown";
+	if (power % 2 === 0 && atom.nonzero) return 1;
+	return atom.sign ?? "unknown";
+}
+
+/**
+ * @param key - Monomial powers.
+ * @param coefficient - Exact complex prefactor.
+ * @param atoms - Known constant facts.
+ * @returns Proven real sign of one monomial.
+ */
+function constantTermSign(
+	key: string,
+	coefficient: RationalComplex,
+	atoms: Map<string, ConstantAtom>,
+): RealSign {
+	if (coefficient.im.numerator !== 0n) return "unknown";
+	let sign: RealSign = bigintSign(coefficient.re.numerator);
+	for (const [name, power] of JSON.parse(key) as Powers) {
+		const next = atomPowerSign(atoms.get(name), power);
+		if (next === "unknown") return "unknown";
+		sign = (sign * next) as -1 | 0 | 1;
+	}
+	return sign;
+}
+
+/**
+ * @param polynomial - Collected formal polynomial.
+ * @param atoms - Known constant facts.
+ * @returns Sign of a same-sign sum, or unknown for unresolved cancellation.
+ */
+function constantPolynomialSign(
+	polynomial: ConstantPolynomial,
+	atoms: Map<string, ConstantAtom>,
+): RealSign {
+	let result: RealSign = 0;
+	for (const [key, coefficient] of polynomial) {
+		const sign = constantTermSign(key, coefficient, atoms);
+		if (sign === "unknown" || (result !== 0 && sign !== result))
+			return "unknown";
+		result = sign;
+	}
+	return result;
+}
+
+/**
+ * @param polynomial - Collected constant expression.
+ * @param atoms - Established atom facts.
+ * @returns Zero knowledge without treating formal independence as a proof.
+ */
+function constantNonzero(
+	polynomial: ConstantPolynomial,
+	atoms: Map<string, ConstantAtom>,
+): NonzeroProof {
+	if (!polynomial.size) return "zero";
+	const sign = constantPolynomialSign(polynomial, atoms);
+	if (sign !== "unknown" && sign !== 0) return "nonzero";
+	if (polynomial.size !== 1) return "unknown";
+	const [key] = polynomial.keys();
+	for (const [name] of JSON.parse(key!) as Powers)
+		if (!atoms.get(name)?.nonzero) return "unknown";
+	return "nonzero";
+}
+
+/**
+ * @param proof - Established zero knowledge.
+ * @returns Nothing when division is known to be defined.
+ */
+function requireNonzeroProof(proof: NonzeroProof): void {
+	if (proof === "zero")
+		throw new CanonicalError("invalid", "The answer divides by zero.");
+	if (proof === "unknown") throw uncertainConstant();
+}
 
 /**
  * @param powers - Atom powers.
@@ -599,8 +716,7 @@ export class Scalar {
 		denominator: ConstantPolynomial,
 		public readonly atoms = new Map<string, ConstantAtom>(),
 	) {
-		if (!denominator.size)
-			throw new CanonicalError("invalid", "The answer divides by zero.");
+		requireNonzeroProof(constantNonzero(denominator, atoms));
 		if (!numerator.size) {
 			this.numerator = new Map();
 			this.denominator = new Map([["[]", complexField.one]]);
@@ -658,7 +774,7 @@ export class Scalar {
 	 * @returns Exact formal quotient, refusing unresolved constant zeros.
 	 */
 	divide(other: Scalar): Scalar {
-		if (other.hasComputedAtoms()) other.numeric();
+		other.requireNonzero();
 		const atoms = new Map([...this.atoms, ...other.atoms]);
 		return new Scalar(
 			constantMultiply(this.numerator, other.denominator, atoms),
@@ -676,6 +792,29 @@ export class Scalar {
 	/** @returns Whether the numerator vanishes exactly. */
 	isZero(): boolean {
 		return this.numerator.size === 0;
+	}
+	/** @returns Exact real sign or an explicit unknown result. */
+	realSign(): RealSign {
+		if (!this.isReal()) return "unknown";
+		const n = constantPolynomialSign(this.numerator, this.atoms);
+		const d = constantPolynomialSign(this.denominator, this.atoms);
+		return n === "unknown" || d === "unknown"
+			? "unknown"
+			: ((n * d) as -1 | 0 | 1);
+	}
+	/** @returns Proven numerator zero knowledge; the denominator was validated before reduction. */
+	nonzeroProof(): NonzeroProof {
+		return constantNonzero(this.numerator, this.atoms);
+	}
+	/** @returns Nothing after proving that this constant is a valid divisor. */
+	requireNonzero(): void {
+		requireNonzeroProof(this.nonzeroProof());
+	}
+	/** @returns A proven real sign, refusing uncertain or nonreal decisions. */
+	requireRealSign(): -1 | 0 | 1 {
+		const sign = this.realSign();
+		if (sign === "unknown") throw uncertainConstant();
+		return sign;
 	}
 	/** @returns Stable diagnostic signature, not a substitute for exact equality. */
 	key(): string {
@@ -750,8 +889,15 @@ export class Scalar {
 	/** @returns Finite diagnostic value, refusing unresolved near-zero constant expressions. */
 	numeric(): Complex {
 		const [n, magnitude] = evaluateConstants(this.numerator, this.atoms),
-			[d] = evaluateConstants(this.denominator, this.atoms);
-		if (this.hasComputedAtoms() && n.abs() <= 1e-10 * magnitude)
+			[d, denominatorMagnitude] = evaluateConstants(
+				this.denominator,
+				this.atoms,
+			);
+		if (
+			!this.rational() &&
+			((n.abs() <= 1e-10 * magnitude && !this.isZero()) ||
+				d.abs() <= 1e-10 * denominatorMagnitude)
+		)
 			throw new CanonicalError(
 				"unsupported",
 				"This constant identity cannot be established exactly. Use the standard transform form.",
@@ -878,6 +1024,8 @@ export const symbolicPi: Scalar = atomScalar({
 	kind: "pi",
 	value: new Complex(Math.PI),
 	real: true,
+	sign: 1,
+	nonzero: true,
 });
 
 /** Symbolic coefficient field for polynomials in the problem variable. */
@@ -934,6 +1082,11 @@ export function scalarNumeric(value: Scalar): Complex {
  */
 function scalarPower(value: Scalar, count: number): Scalar {
 	if (Math.abs(count) > 4096) throw limitError();
+	if (count === 0 && value.isZero())
+		throw new CanonicalError(
+			"invalid",
+			"An undefined power appears in the answer.",
+		);
 	let factor = count < 0 ? scalar(1).divide(value) : value,
 		remaining = Math.abs(count),
 		result = scalar(1);
@@ -951,11 +1104,21 @@ function scalarPower(value: Scalar, count: number): Scalar {
  * @returns Formal principal root with exact elementary identities.
  */
 export function scalarRoot(argument: Scalar, index: Scalar): Scalar {
-	const a = scalarNumeric(argument),
-		b = rootIndexValue(index);
+	const indexSign = index.requireRealSign();
+	const b = rootIndexValue(index);
 	if (index.equals(scalar(1))) return argument;
-	if (argument.isZero() && b.re > 0) return scalar(0);
-	const value = principalRoot(a, b.re),
+	if (argument.isZero()) {
+		if (indexSign > 0) return scalar(0);
+		throw new CanonicalError(
+			"invalid",
+			"A negative root of zero is undefined.",
+		);
+	}
+	argument.requireNonzero();
+	if (!argument.isReal() && !argument.rational()) throw uncertainConstant();
+	const sign = argument.isReal() ? argument.requireRealSign() : "unknown";
+	const a = scalarNumeric(argument);
+	const value = principalRoot(a, b.re, sign, index.equals(scalar(2))),
 		count = exactRootOrder(index);
 	const candidate = rootCandidate(value, count, argument);
 	if (candidate) return candidate;
@@ -964,7 +1127,9 @@ export function scalarRoot(argument: Scalar, index: Scalar): Scalar {
 		kind: "root",
 		value,
 		argument,
-		real: argument.isReal() && a.re > 0,
+		real: sign === 1,
+		sign: sign === 1 ? 1 : "unknown",
+		nonzero: true,
 		index: count,
 	});
 }
@@ -981,7 +1146,7 @@ function rootIndexValue(index: Scalar): Complex {
 			"Use a real constant root index.",
 		);
 	const value = scalarNumeric(index);
-	if (value.im !== 0 || value.re === 0)
+	if (index.requireRealSign() === 0)
 		throw new CanonicalError(
 			"invalid",
 			"The root index must be a nonzero real constant.",
@@ -992,12 +1157,19 @@ function rootIndexValue(index: Scalar): Complex {
 /**
  * Evaluates a principal constant root without a spurious imaginary-unit residual.
  * @param value - Finite radicand.
- * @param index - Validated real index.
+ * @param index - Validated real index approximation.
+ * @param sign - Proven real radicand sign, or unknown for a nonreal radicand.
+ * @param square - Whether the index is exactly positive two.
  * @returns Constant root approximation for coefficient diagnostics.
  */
-function principalRoot(value: Complex, index: number): Complex {
-	if (value.im === 0 && value.re < 0 && Math.abs(index) === 2)
-		return new Complex(0, Math.sign(index) * value.abs() ** (1 / index));
+function principalRoot(
+	value: Complex,
+	index: number,
+	sign: RealSign,
+	square: boolean,
+): Complex {
+	if (sign === -1 && square)
+		return new Complex(0, value.abs() ** (1 / index));
 	return Complex.fromPolar(value.abs() ** (1 / index), value.arg() / index);
 }
 
@@ -1032,7 +1204,26 @@ function rootCandidate(
 ): Scalar | null {
 	if (!count) return null;
 	const candidate = scalar(value.re, value.im);
+	// A rounded candidate must also satisfy the principal branch, not just its power identity.
+	if (!principalCandidate(candidate, argument, count)) return null;
 	return scalarPower(candidate, count).equals(argument) ? candidate : null;
+}
+
+/**
+ * @param candidate - Exact rational root candidate.
+ * @param argument - Validated radicand.
+ * @param count - Exact positive root order.
+ * @returns Whether elementary principal-branch facts establish this candidate.
+ */
+function principalCandidate(
+	candidate: Scalar,
+	argument: Scalar,
+	count: number,
+): boolean {
+	const value = candidate.rational()!;
+	if (!argument.isReal()) return count === 2 && value.re.numerator > 0n;
+	if (argument.requireRealSign() === 1) return candidate.realSign() === 1;
+	return count === 2 && value.re.numerator === 0n && value.im.numerator > 0n;
 }
 
 /**
@@ -1054,7 +1245,7 @@ export function scalarLog(argument: Scalar): Scalar {
 	)
 		return exponential[0].argument;
 	const value = scalarNumeric(argument);
-	if (value.im !== 0 || value.re <= 0)
+	if (argument.requireRealSign() <= 0)
 		throw new CanonicalError(
 			"invalid",
 			"The logarithm requires a positive real constant.",
@@ -1065,6 +1256,8 @@ export function scalarLog(argument: Scalar): Scalar {
 		value: new Complex(Math.log(value.re)),
 		argument,
 		real: true,
+		sign: argument.add(scalar(-1)).realSign(),
+		nonzero: argument.add(scalar(-1)).nonzeroProof() === "nonzero",
 	});
 }
 
@@ -1091,6 +1284,8 @@ export function scalarExp(argument: Scalar): Scalar {
 		value: Complex.fromPolar(Math.exp(value.re), value.im),
 		argument,
 		real: argument.isReal(),
+		sign: argument.isReal() ? 1 : "unknown",
+		nonzero: true,
 	});
 }
 
@@ -1116,13 +1311,18 @@ export function scalarConstantPower(
 		);
 	const a = scalarNumeric(argument),
 		b = scalarNumeric(exponent);
+	argument.requireNonzero();
+	if (!argument.isReal() && !argument.rational()) throw uncertainConstant();
+	const positive = argument.isReal() && argument.requireRealSign() === 1;
 	const z = new Complex(Math.log(a.abs()), a.arg()).mul(b);
 	return atomScalar({
 		key: `Power(${argument.key()},${exponent.key()})`,
 		kind: "power",
 		value: Complex.fromPolar(Math.exp(z.re), z.im),
 		argument,
-		real: argument.isReal() && a.re > 0 && exponent.isReal(),
+		real: positive && exponent.isReal(),
+		sign: positive && exponent.isReal() ? 1 : "unknown",
+		nonzero: true,
 	});
 }
 
@@ -1168,8 +1368,9 @@ export function scalarAbs(value: Scalar): Scalar {
 			),
 			scalar(2),
 		);
+	if (value.isReal())
+		return value.requireRealSign() < 0 ? value.negate() : value;
 	const numeric = scalarNumeric(value);
-	if (value.isReal()) return numeric.re < 0 ? value.negate() : value;
 	const root = value.singleAtom("root");
 	if (root?.[0].index)
 		return scalarRoot(
@@ -1181,10 +1382,12 @@ export function scalarAbs(value: Scalar): Scalar {
 		return scalarAbs(rationalScalar(exponential[1]));
 	return atomScalar({
 		key: `Abs(${value.key()})`,
-		kind: "power",
+		kind: "abs",
 		value: new Complex(numeric.abs()),
 		argument: value,
 		real: true,
+		sign: value.nonzeroProof() === "nonzero" ? 1 : "unknown",
+		nonzero: value.nonzeroProof() === "nonzero",
 	});
 }
 

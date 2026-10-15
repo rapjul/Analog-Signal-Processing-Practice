@@ -400,8 +400,7 @@ function power(args: unknown[], context: Context): CanonicalSpectrum {
 			throw error;
 	}
 	if (exponentConstant) return constantExponentPower(base, exponentConstant);
-	const a = scalarNumeric(asConstant(base));
-	if (a.im !== 0 || a.re <= 0) throw unsupported();
+	if (asConstant(base).requireRealSign() !== 1) throw unsupported();
 	return exponential(
 		polynomialScale(
 			asPolynomial(exponent, 2),
@@ -498,10 +497,9 @@ function step(args: unknown[], context: Context): CanonicalSpectrum {
 	const p = asPolynomial(normalize(args[0], context), 1),
 		slope = p[1];
 	if (!slope || !scalarField.isZero(p[0] ?? scalar(0))) throw unsupported();
-	const value = scalarNumeric(slope);
-	if (!slope.isReal() || value.im !== 0 || value.re === 0)
-		throw unsupported();
-	return constant(scalar(value.re * context.side > 0 ? 1 : 0));
+	const sign = slope.requireRealSign();
+	if (sign === 0) throw unsupported();
+	return constant(scalar(sign * context.side > 0 ? 1 : 0));
 }
 
 /**
@@ -521,15 +519,14 @@ function impulse(args: unknown, context: Context): CanonicalSpectrum {
 	const p = asPolynomial(normalize(node[1], context), 1),
 		slope = p[1];
 	if (!slope || scalarField.isZero(slope)) throw unsupported();
-	const numeric = scalarNumeric(slope);
-	if (!slope.isReal() || !(p[0] ?? scalar(0)).isReal() || numeric.im !== 0)
-		throw unsupported();
+	const sign = slope.requireRealSign();
+	if (sign === 0 || !(p[0] ?? scalar(0)).isReal()) throw unsupported();
 	return {
 		terms: [],
 		impulses: [
 			{
 				location: (p[0] ?? scalar(0)).negate().divide(slope),
-				weight: scalar(numeric.re < 0 ? -1 : 1).divide(slope),
+				weight: scalar(sign).divide(slope),
 			},
 		],
 	};

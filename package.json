@@ -43,6 +43,7 @@
     "@types/katex": "^0.16.8",
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^4.1.11",
+    "fast-check": "^4.10.2",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.3.0",
