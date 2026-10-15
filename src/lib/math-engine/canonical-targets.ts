@@ -95,7 +95,7 @@ export function createLaplaceCanonicalTarget(
 		const residue = [
 			"Divide",
 			["Add", ["Multiply", numerator[0], pole], numerator[1]],
-			pole - other,
+			["Subtract", pole, other],
 		];
 		terms.push(["Multiply", residue, ["Exp", ["Multiply", pole, "t"]]]);
 	}

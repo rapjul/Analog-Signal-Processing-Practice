@@ -6,7 +6,7 @@
 
 import { createLaplaceCanonicalTarget } from "$lib/math-engine/canonical-targets";
 import { Complex } from "$lib/math-engine/complex";
-import { toFractionLatex } from "$lib/math-engine/fraction";
+import { ExactFraction } from "$lib/math-engine/exact-fraction";
 import {
 	type TransformValidationResult,
 	validateTransformAnswer,
@@ -104,40 +104,76 @@ export function evaluatePfdResidues(
 	numCoeffs: number[],
 	poles: number[],
 ): PfdResult {
-	const residues: number[] = [];
+	return pfdResult(exactPfdResidues(numCoeffs, poles), poles);
+}
+
+/**
+ * Evaluates cover-up coefficients with exact decimal-derived arithmetic.
+ * @param numCoeffs - Linear numerator coefficients in descending order.
+ * @param poles - Distinct finite denominator roots.
+ * @returns Exact residues; no rounded zero can cancel a genuine pole.
+ */
+function exactPfdResidues(
+	numCoeffs: number[],
+	poles: number[],
+): ExactFraction[] {
+	if (
+		![...numCoeffs, ...poles].every(Number.isFinite) ||
+		new Set(poles).size !== poles.length
+	)
+		throw new Error(
+			"PFD requires finite coefficients and distinct finite poles",
+		);
+	const linear = ExactFraction.fromDecimal(numCoeffs[0] ?? 0);
+	const constant = ExactFraction.fromDecimal(numCoeffs[1] ?? 0);
+	const roots = poles.map(ExactFraction.fromDecimal);
+	const residues: ExactFraction[] = [];
 
 	for (let i = 0; i < poles.length; i++) {
-		const p_i = poles[i] ?? 0;
-		// Evaluate N(p_i)
-		const num0 = numCoeffs[0] ?? 0;
-		const num1 = numCoeffs[1] ?? 0;
-		const numVal = num0 * p_i + num1;
-		// Evaluate product (p_i - p_j) for j != i
-		let denVal = 1;
+		const root = roots[i]!;
+		const numerator = linear.multiply(root).add(constant);
+		let denominator = new ExactFraction(1n);
 		for (let j = 0; j < poles.length; j++) {
 			if (i !== j) {
-				denVal *= p_i - (poles[j] ?? 0);
+				denominator = denominator.multiply(
+					root.add(roots[j]!.negate()),
+				);
 			}
 		}
-		residues.push(numVal / denVal);
+		residues.push(numerator.divide(denominator));
 	}
+	return residues;
+}
 
-	// Format inverse transform LaTeX: sum_i (A_i * e^{p_i t} u(t))
-	const terms = residues.flatMap((res, idx) => {
-		if (res === 0) return [];
-		const p = poles[idx] ?? 0;
-		const hasPrior = residues.slice(0, idx).some((value) => value !== 0);
-		const sign = res >= 0 ? (hasPrior ? "+ " : "") : "- ";
-		const absRes = Math.abs(res);
-		const expTerm = p === 0 ? "" : `e^{${p}t}`;
-		return [
-			`${sign}${absRes === 1 ? "" : toFractionLatex(absRes)}${expTerm} u(t)`,
-		];
-	});
-
+/**
+ * Formats the same exact residues used by pole cancellation, retaining numeric diagnostics.
+ * @param exact - Exact cover-up coefficients in root order.
+ * @param poles - Matching denominator roots.
+ * @returns Numerical residues and exact time-domain LaTeX.
+ */
+function pfdResult(exact: ExactFraction[], poles: number[]): PfdResult {
+	const terms: string[] = [];
+	for (const [index, residue] of exact.entries()) {
+		if (residue.numerator === 0n) continue;
+		const negative = residue.numerator < 0n;
+		const magnitude = negative ? residue.negate() : residue;
+		const sign = negative ? "- " : terms.length ? "+ " : "";
+		const coefficient =
+			magnitude.numerator === magnitude.denominator
+				? ""
+				: magnitude.toLatex();
+		const exponential = poles[index] === 0 ? "" : `e^{${poles[index]}t}`;
+		terms.push(`${sign}${coefficient}${exponential} u(t)`);
+	}
 	return {
 		poles,
-		residues,
+		residues: exact.map(
+			/**
+			 * @param residue - Exact coefficient.
+			 * @returns Numerical plotting approximation.
+			 */
+			(residue) => residue.toNumber(),
+		),
 		inverseLatex: terms.join(" ") || "0",
 	};
 }
@@ -487,22 +523,28 @@ export function createLaplacePfdProblem(
 		throw new Error("PFD drills require distinct negative finite poles");
 	const [b1, b0] = numerator,
 		[p1, p2] = poles;
-	const pfd = evaluatePfdResidues(numerator, poles);
+	const exact = exactPfdResidues(numerator, poles);
+	const pfd = pfdResult(exact, poles);
 	// Keep genuine poles and their residues paired; zero residues remove poles.
-	const activeIndices = pfd.residues.flatMap(
+	const activeIndices = exact.flatMap(
 		/**
 		 * @param residue - Coefficient at an original denominator root.
 		 * @param index - Matching denominator-root position.
 		 * @returns Positions of nonzero residues only.
 		 */
-		(residue, index) => (residue === 0 ? [] : [index]),
+		(residue, index) => (residue.numerator === 0n ? [] : [index]),
 	);
 	const [a1, a2] = [-p1, -p2];
 	const rational = String.raw`\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`;
-	const expansion = pfd.residues
+	const expansion = exact
 		.map(
+			/**
+			 * @param residue - Exact cover-up coefficient.
+			 * @param index - Root position.
+			 * @returns Exact partial fraction.
+			 */
 			(residue, index) =>
-				String.raw`\frac{${toFractionLatex(residue)}}{s + ${-(poles[index] ?? 0)}}`,
+				String.raw`\frac{${residue.toLatex()}}{s + ${-(poles[index] ?? 0)}}`,
 		)
 		.join(" + ");
 	return {
@@ -536,11 +578,11 @@ export function createLaplacePfdProblem(
 			},
 			{
 				title: `Step 2: Solve Residue A at s = ${p1}`,
-				latex: String.raw`A=\left.(s+${a1})X(s)\right|_{s=${p1}}=\frac{${b1}(${p1})+${b0}}{${p1}+${a2}}=${toFractionLatex(pfd.residues[0] ?? 0)}`,
+				latex: String.raw`A=\left.(s+${a1})X(s)\right|_{s=${p1}}=\frac{${b1}(${p1})+${b0}}{${p1}+${a2}}=${exact[0]!.toLatex()}`,
 			},
 			{
 				title: `Step 3: Solve Residue B at s = ${p2}`,
-				latex: String.raw`B=\left.(s+${a2})X(s)\right|_{s=${p2}}=\frac{${b1}(${p2})+${b0}}{${p2}+${a1}}=${toFractionLatex(pfd.residues[1] ?? 0)}`,
+				latex: String.raw`B=\left.(s+${a2})X(s)\right|_{s=${p2}}=\frac{${b1}(${p2})+${b0}}{${p2}+${a1}}=${exact[1]!.toLatex()}`,
 			},
 			{
 				title: "Step 4: Perform Term-by-Term Inverse Transform",
