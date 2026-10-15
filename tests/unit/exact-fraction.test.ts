@@ -51,6 +51,7 @@ describe("decimal-derived exact fractions", () => {
 		);
 		expect(new ExactFraction(-1n, unit).toNumber()).toBe(-Number.MIN_VALUE);
 		expect(new ExactFraction(1n, 10n ** 400n).toNumber()).toBe(0);
+		expect(new ExactFraction(-1n, 10n ** 400n).toNumber()).toBe(-0);
 		expect(new ExactFraction(2n ** 53n + 1n, 2n ** 53n).toNumber()).toBe(1);
 		expect(new ExactFraction(2n ** 53n + 3n, 2n ** 53n).toNumber()).toBe(
 			1 + 2 ** -51,

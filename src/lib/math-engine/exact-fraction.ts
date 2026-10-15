@@ -130,7 +130,7 @@ export class ExactFraction {
 				: magnitude << BigInt(-exponent) < this.denominator;
 		if (belowPower) exponent--;
 		if (exponent > 1023) return sign * Infinity;
-		if (exponent < -1075) return sign * 0;
+		if (exponent < -1075) return sign < 0 ? -0 : 0;
 
 		// Round the ratio itself to a binary significand, including subnormals.
 		// Converting the two integers first can lose a finite ratio as Infinity/Infinity.
