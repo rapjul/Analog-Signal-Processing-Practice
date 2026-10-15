@@ -103,6 +103,18 @@ describe("canonical transform contract", () => {
 	});
 	/** Coefficient tolerance cannot change the recognized basis or denominator. */
 	it("applies decimal tolerance only to matched nonzero coefficients", () => {
+		expect(canonicalTransformsMatch(form("1+10^{-400}"), form("1"))).toBe(
+			true,
+		);
+		expect(
+			canonicalTransformsMatch(form("1+10^{-400}\\omega"), form("1")),
+		).toBe(false);
+		expect(
+			canonicalTransformsMatch(
+				form(String.raw`1+\frac{10^{-400}}{\omega-100}`),
+				form("1"),
+			),
+		).toBe(false);
 		expect(canonicalTransformsMatch(form("1.00000001"), form("1"))).toBe(
 			true,
 		);

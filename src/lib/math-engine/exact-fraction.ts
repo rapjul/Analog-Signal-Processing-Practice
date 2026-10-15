@@ -118,7 +118,34 @@ export class ExactFraction {
 
 	/** @returns Numeric approximation for coefficient tolerance only. */
 	toNumber(): number {
-		return Number(this.numerator) / Number(this.denominator);
+		if (this.numerator === 0n) return 0;
+		const sign = this.numerator < 0n ? -1 : 1;
+		const magnitude =
+			this.numerator < 0n ? -this.numerator : this.numerator;
+		let exponent =
+			magnitude.toString(2).length - this.denominator.toString(2).length;
+		const belowPower =
+			exponent >= 0
+				? magnitude < this.denominator << BigInt(exponent)
+				: magnitude << BigInt(-exponent) < this.denominator;
+		if (belowPower) exponent--;
+		if (exponent > 1023) return sign * Infinity;
+		if (exponent < -1075) return sign * 0;
+
+		// Round the ratio itself to a binary significand, including subnormals.
+		// Converting the two integers first can lose a finite ratio as Infinity/Infinity.
+		const shift = Math.max(-1022, exponent) - 52;
+		const numerator = shift < 0 ? magnitude << BigInt(-shift) : magnitude;
+		const denominator =
+			shift > 0 ? this.denominator << BigInt(shift) : this.denominator;
+		let significand = numerator / denominator;
+		const twiceRemainder = 2n * (numerator % denominator);
+		if (
+			twiceRemainder > denominator ||
+			(twiceRemainder === denominator && significand % 2n !== 0n)
+		)
+			significand++;
+		return sign * Number(significand) * 2 ** shift;
 	}
 
 	/**
