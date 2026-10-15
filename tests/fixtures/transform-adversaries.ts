@@ -15,6 +15,10 @@ export function transformAdversaries(
 	const v = variable === "omega" ? String.raw`\omega` : "t";
 	return [
 		{
+			name: "malformed-sized-command",
+			expression: String.raw`\leftpi/pi-1`,
+		},
+		{
 			name: "rounded-pi-step",
 			expression: String.raw`u((3.14159265358979323843-\pi)${v})-u(${v})`,
 		},

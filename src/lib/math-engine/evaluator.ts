@@ -63,7 +63,7 @@ export function parseStrictLatex(latex: string): unknown {
 	const expression = latex
 		.trim()
 		.replace(/^y\s*\(\s*t\s*\)\s*=\s*/, "")
-		.replace(/\\left|\\right/g, "")
+		.replace(/\\(?:left|right)\b/g, "")
 		.replace(
 			/\\(?:operatorname|text|mathrm)\s*\{[^{}]*\}|\\[a-zA-Z]+|(?<![a-zA-Z])[ts]?u\s*(?=\()/g,
 			/**
@@ -93,10 +93,8 @@ export function normalizeMathLatex(
 ): string {
 	if (!latex) return "";
 	let normalized = latex
-		.replace(/\\left/g, "")
-		.replace(/\\right/g, "")
-		.replace(/\\cdot/g, " * ")
-		.replace(/\\times/g, " * ");
+		.replace(/\\(?:left|right)\b/g, "")
+		.replace(/\\(?:cdot|times)\b/g, " * ");
 	if (assumePositiveUnitSteps) {
 		normalized = normalized
 			.replace(/u\(t\)/g, "1")

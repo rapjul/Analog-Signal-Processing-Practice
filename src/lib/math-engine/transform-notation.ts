@@ -118,8 +118,13 @@ export function normalizeTransformNotation(
 			? /^x\s*\(\s*t\s*\)\s*=\s*/
 			: /^X\s*\(\s*(?:[ij]\s*)?(?:\\omega|omega|w)\s*\)\s*=\s*/;
 	const spaced = answer.trim().replace(/\\(?:[,;:!]| |quad\b|qquad\b)/g, " ");
-	return normalizeGroups(spaced)
-		.replace(prefix, "")
+	const expression = normalizeGroups(spaced).replace(prefix, "");
+	if (expression.includes("="))
+		throw new CanonicalError(
+			"invalid",
+			"Enter one expression or use the problem's supported equation prefix.",
+		);
+	return expression
 		.replace(/π/g, "\\pi ")
 		.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
 		.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
