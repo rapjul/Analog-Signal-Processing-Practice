@@ -10,32 +10,39 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
+	import WorkedSolution from "$lib/components/ui/WorkedSolution.svelte";
 	import {
 		type CtftSignalType,
 		generateCtftProblem,
+		validateCtftAnswer,
 	} from "$lib/math-engine/fourier-transform";
+	import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 
 	let selectedType = $state<CtftSignalType>("rect");
 	let currentProblem = $state(generateCtftProblem("rect"));
 	let userAttempt = $state("");
 	let isSubmitted = $state(false);
-	let isCorrect = $state(false);
+	let result = $state<TransformValidationResult | null>(null);
+	let isCorrect = $derived(result?.status === "correct");
 
+	/** Generates a fresh problem and clears its validation state. */
 	function handleGenerateNext() {
 		currentProblem = generateCtftProblem(selectedType);
 		userAttempt = "";
 		isSubmitted = false;
-		isCorrect = false;
+		result = null;
 	}
 
+	/** Checks the submitted spectrum against independent signal parameters. */
 	function handleCheck() {
 		isSubmitted = true;
-		// Flexible string comparison fallback for demo
-		const cleanAttempt = userAttempt.trim().replace(/\s+/g, "");
-		const cleanRef = currentProblem.referenceAnswerLatex
-			.trim()
-			.replace(/\s+/g, "");
-		isCorrect = cleanAttempt === cleanRef || cleanAttempt.length > 0;
+		result = validateCtftAnswer(userAttempt, currentProblem);
+	}
+
+	/** Editing an answer invalidates feedback for the previous submission. */
+	function handleInput() {
+		result = null;
+		isSubmitted = false;
 	}
 </script>
 
@@ -99,6 +106,7 @@
 				type="text"
 				class="math-text-input"
 				bind:value={userAttempt}
+				oninput={handleInput}
 				placeholder="Enter LaTeX answer..."
 			/>
 
@@ -125,35 +133,37 @@
 				class="feedback-box"
 				class:correct={isCorrect}
 				class:incorrect={!isCorrect}
+				role="status"
+				data-validation={result?.status}
 			>
 				<p class="feedback-status">
-					{isCorrect
-						? "✅ Correct!"
-						: "❌ Keep trying! Check reference solution below."}
+					{result?.message}
 				</p>
-				<div class="ref-solution">
-					<strong>Reference Answer:</strong>
-					<MathBlock
-						math={currentProblem.referenceAnswerLatex}
-						compact={true}
-					/>
-				</div>
 			</div>
 		{/if}
 
 		<!-- Zero-Guesswork Solution Breakdown -->
-		<div class="solution-breakdown">
-			<h3 class="solution-title">Solution Breakdown</h3>
-			{#each currentProblem.solutionSteps as step}
-				<div class="step-card">
-					<h4 class="step-heading">{step.title}</h4>
-					<MathBlock
-						math={step.latex}
-						compact={true}
-					/>
+		{#key currentProblem}
+			<WorkedSolution verified={isCorrect}>
+				<strong>Reference Answer:</strong>
+				<MathBlock
+					math={currentProblem.referenceAnswerLatex}
+					compact={true}
+				/>
+				<div class="solution-breakdown">
+					<h3 class="solution-title">Solution Breakdown</h3>
+					{#each currentProblem.solutionSteps as step}
+						<div class="step-card">
+							<h4 class="step-heading">{step.title}</h4>
+							<MathBlock
+								math={step.latex}
+								compact={true}
+							/>
+						</div>
+					{/each}
 				</div>
-			{/each}
-		</div>
+			</WorkedSolution>
+		{/key}
 	</div>
 </PageLayout>
 
@@ -193,6 +203,7 @@
 	.action-bar {
 		display: flex;
 		gap: 0.75rem;
+		flex-wrap: wrap;
 	}
 
 	.btn-primary {

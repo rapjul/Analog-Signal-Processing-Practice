@@ -72,8 +72,12 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 - **Context:** If a student refreshes mid-problem, all interactive progress is lost.
 - **Improvement Idea:**
-    - Save active ITS solver state, entered inputs, and revealed steps to `sessionStorage` or IndexedDB.
-    - Restore in-progress problem states seamlessly upon browser reload or accidental navigation.
+    - Add IndexedDB-backed attempt history, then connect actual practice interactions to it; the current history utility only stores attempts in memory.
+    - Store versioned unfinished-problem snapshots containing reproducible problem parameters or seeds, entered answers, verified steps, hint tiers, and assisted-solution status.
+    - Restore unfinished work after reload or navigation without treating a revealed solution as independent success.
+    - Reject incompatible snapshots safely and keep practice usable when storage is denied, unavailable, or full. Preserve the blocked-storage behavior covered by the existing browser regressions.
+    - Add automated tests for reload recovery, schema migration, assisted attempts, and storage failures before releasing persistence.
+    - **Status:** Deferred; implement independently of the current grading and solution-disclosure fixes.
 
 ### 9. Adaptive Difficulty & Spaced Repetition Progression
 
@@ -93,7 +97,9 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 - **Context:** Dashboard cards all display static "▶ Practice Now" labels without indication of user progress.
 - **Improvement Idea:**
-    - Connect the local database / persistence layer to display per-module mastery percentages, completion rates, and problem attempt counts directly on the dashboard cards.
+    - After persisted history is connected, show attempt counts, accuracy, completion, and recent activity on dashboard cards.
+    - Keep assisted practice distinct from independent success; do not label raw correctness percentage as mastery.
+    - Add a resume action for a compatible unfinished-problem snapshot and automated dashboard/history integration coverage.
 
 ### 12. Automated Solved-Problem Screenshot Tool
 
@@ -135,3 +141,45 @@ A running backlog of prospective UX, visual, and architectural improvements to c
     - If discrete-time convolution is added, distinguish its Kronecker unit sample from the continuous-time Dirac distribution instead of treating them as interchangeable notation.
     - Draw impulses with labeled arrows and finite weights in the animator, since a Dirac delta cannot be plotted as an ordinary finite-height function.
     - Test every main signal family in both operand orders and verify the resulting shift, scale, support, tutor steps, and plot labels.
+
+## Deferred Guided Tutors
+
+The following tutors require detailed planning in a separate future chat. The
+current correctness work provides strict transform grading, structured generated
+problem parameters, and explicit assisted-solution disclosures; it does not
+implement these new tutoring workflows.
+
+### 17. Laplace Transform Tutor
+
+- Start with causal inverse transforms using distinct-real-pole PFD: factor the denominator, identify poles, select the expansion, solve each residue, reconstruct the rational expression, apply transform pairs, and assemble the supported time response.
+- Before identifying poles, add a conditional "simplify and check cancellations" sub-step. Ask students to identify and cancel common numerator/denominator factors, then distinguish original denominator roots from genuine poles. For example, `(s+1)/((s+1)(s+4)) = 1/(s+4)` has only the pole `-4`, with causal ROC `Re(s) > -4`; the canceled root `-1` has a zero residue. Validate the simplified expression and surviving poles separately, diagnose retaining canceled roots, and skip this sub-step when there is no common factor. Implement this teaching workflow when the Laplace tutor is developed. Current genuine-pole and ROC metadata exclude canceled roots: `pfd.poles` and its paired `pfd.residues` contain surviving terms, while `pfd.denominatorRoots` retains the original denominator roots for cancellation diagnosis.
+- Require separately validated algebraic substeps and exact fractions; diagnose sign errors, missing numerator terms, incorrect residues, and omitted causal support.
+- Follow with repeated and complex poles, direct inverse transforms, forward transforms, and ROC/stability drills.
+- Keep unilateral initial-condition rules separate from bilateral sidedness; give students enough ROC information to make each inverse transform unique.
+- Audit bank answers and engine formulas before translating them into tutor steps; test every derivation path, remediation, reset, and completed solution.
+
+### 18. Continuous-Time Fourier Transform Tutor
+
+- Start with base-pair identification, parameter extraction, base-transform derivation, operational-property selection, application, and final assembly for the currently generated forward families.
+- Provide dedicated impulse-location and complex-weight inputs for distribution spectra; never grade Dirac impulses by point sampling or represent their weights as finite peak heights.
+- Diagnose normalized-sinc scaling, time-shift phase signs, missing paired impulses, and omitted amplitude factors.
+- Follow with inverse transforms, time scaling, modulation, differentiation, duality, energy spectra, and bandwidth drills.
+- Distinguish energy signals from power signals before requesting energy calculations; explicitly state the normalized-sinc and angular-frequency conventions.
+- Test ordinary and distribution answers independently, including phase, equivalent forms, zero-frequency limits, and every operational-property combination taught.
+
+### 19. Circuit Analysis Tutor
+
+- First define a schematic, excitation, measured output, and component assumptions for each taught topology. Resolve current simplified active-filter assumptions before presenting them as general circuit identities.
+- Teach component impedances/admittances, appropriate voltage or current division or nodal equations, substitutions, intermediate algebra, transfer-function assembly, and frequency-response interpretation.
+- Use topology-specific derivations for active circuits; do not apply a generic voltage-divider explanation to every circuit.
+- Diagnose reversed divider ratios, impedance/admittance confusion, missing powers of the frequency variable, coefficient units, and inappropriate output definitions.
+- Keep prompts, controls, schematics, calculations, and completion plots attached to one component model.
+- Test independent reference equations, all supported topology paths, parameter changes, diagnostic feedback, and completed plots.
+
+### Shared Tutor Architecture and Release Requirements
+
+- Reuse `BaseStepSolverState`, `StepCard`, `SubStepBlock`, progress, diagnostic feedback, tiered hints, and completion components instead of copying solver markup.
+- Validate each substep independently; show verified summaries, explicit assisted-solution access, and reproducible reset behavior.
+- Provide keyboard access, visible focus, accessible feedback, reduced-motion behavior, and reflow at `320px`.
+- Use deterministic fixtures and co-located mathematical, lifecycle, component, and browser tests; preserve the existing production exclusion of developer harnesses.
+- Treat persistence as a separate follow-on capability, with versioned snapshots and clear assisted-versus-independent attempt semantics.

@@ -4,6 +4,36 @@
  * Region of Convergence (ROC) analysis, and BIBO/Asymptotic stability determination for UIUC ECE 210.
  */
 
+import { createLaplaceCanonicalTarget } from "$lib/math-engine/canonical-targets";
+import { Complex } from "$lib/math-engine/complex";
+import { ExactFraction } from "$lib/math-engine/exact-fraction";
+import {
+	type TransformValidationResult,
+	validateTransformAnswer,
+} from "$lib/math-engine/transform-validation";
+
+/** Structured parameters for a distinct-real-pole inverse PFD drill. */
+export interface LaplacePfdData {
+	/** Numerator coefficients in descending order. */
+	numerator: [number, number];
+	/** Original denominator roots, including removable factors. */
+	denominatorRoots: [number, number];
+	/** Genuine poles after canceling factors with zero residues. */
+	poles: number[];
+	/** Residues corresponding to those poles. */
+	residues: number[];
+	/** Given sidedness of the signal. */
+	rocDirection: "right-sided";
+}
+
+/** Generated inverse PFD problem with mandatory structured grading data. */
+export interface GeneratedLaplacePfdProblem extends LaplaceProblem {
+	/** Distinguishes this drill from other Laplace topics. */
+	problemType: "inverse_pfd";
+	/** Reproducible transform data. */
+	pfd: LaplacePfdData;
+}
+
 /**
  * Region of Convergence (ROC) direction classification in the s-domain.
  * Determines system causality and stability properties.
@@ -74,37 +104,77 @@ export function evaluatePfdResidues(
 	numCoeffs: number[],
 	poles: number[],
 ): PfdResult {
-	const residues: number[] = [];
+	return pfdResult(exactPfdResidues(numCoeffs, poles), poles);
+}
+
+/**
+ * Evaluates cover-up coefficients with exact decimal-derived arithmetic.
+ * @param numCoeffs - Linear numerator coefficients in descending order.
+ * @param poles - Distinct finite denominator roots.
+ * @returns Exact residues; no rounded zero can cancel a genuine pole.
+ */
+function exactPfdResidues(
+	numCoeffs: number[],
+	poles: number[],
+): ExactFraction[] {
+	if (
+		![...numCoeffs, ...poles].every(Number.isFinite) ||
+		new Set(poles).size !== poles.length
+	)
+		throw new Error(
+			"PFD requires finite coefficients and distinct finite poles",
+		);
+	const linear = ExactFraction.fromDecimal(numCoeffs[0] ?? 0);
+	const constant = ExactFraction.fromDecimal(numCoeffs[1] ?? 0);
+	const roots = poles.map(ExactFraction.fromDecimal);
+	const residues: ExactFraction[] = [];
 
 	for (let i = 0; i < poles.length; i++) {
-		const p_i = poles[i] ?? 0;
-		// Evaluate N(p_i)
-		const num0 = numCoeffs[0] ?? 0;
-		const num1 = numCoeffs[1] ?? 0;
-		const numVal = num0 * p_i + num1;
-		// Evaluate product (p_i - p_j) for j != i
-		let denVal = 1;
+		const root = roots[i]!;
+		const numerator = linear.multiply(root).add(constant);
+		let denominator = new ExactFraction(1n);
 		for (let j = 0; j < poles.length; j++) {
 			if (i !== j) {
-				denVal *= p_i - (poles[j] ?? 0);
+				denominator = denominator.multiply(
+					root.add(roots[j]!.negate()),
+				);
 			}
 		}
-		residues.push(numVal / denVal);
+		residues.push(numerator.divide(denominator));
 	}
+	return residues;
+}
 
-	// Format inverse transform LaTeX: sum_i (A_i * e^{p_i t} u(t))
-	const terms = residues.map((res, idx) => {
-		const p = poles[idx] ?? 0;
-		const sign = res >= 0 ? (idx > 0 ? "+ " : "") : "- ";
-		const absRes = Math.abs(res);
-		const expTerm = p === 0 ? "" : `e^{${p}t}`;
-		return `${sign}${absRes}${expTerm} u(t)`;
-	});
-
+/**
+ * Formats the same exact residues used by pole cancellation, retaining numeric diagnostics.
+ * @param exact - Exact cover-up coefficients in root order.
+ * @param poles - Matching denominator roots.
+ * @returns Numerical residues and exact time-domain LaTeX.
+ */
+function pfdResult(exact: ExactFraction[], poles: number[]): PfdResult {
+	const terms: string[] = [];
+	for (const [index, residue] of exact.entries()) {
+		if (residue.numerator === 0n) continue;
+		const negative = residue.numerator < 0n;
+		const magnitude = negative ? residue.negate() : residue;
+		const sign = negative ? "- " : terms.length ? "+ " : "";
+		const coefficient =
+			magnitude.numerator === magnitude.denominator
+				? ""
+				: magnitude.toLatex();
+		const exponential = poles[index] === 0 ? "" : `e^{${poles[index]}t}`;
+		terms.push(`${sign}${coefficient}${exponential} u(t)`);
+	}
 	return {
 		poles,
-		residues,
-		inverseLatex: terms.join(" "),
+		residues: exact.map(
+			/**
+			 * @param residue - Exact coefficient.
+			 * @returns Numerical plotting approximation.
+			 */
+			(residue) => residue.toNumber(),
+		),
+		inverseLatex: terms.join(" ") || "0",
 	};
 }
 
@@ -119,6 +189,10 @@ export function determineStability(
 	poles: number[],
 	direction: RocDirection,
 ): StabilityAnalysis {
+	// A transform with no surviving poles converges throughout the finite s-plane.
+	if (poles.length === 0) {
+		return { isBiboStable: true, rocLatex: String.raw`s \in \mathbb{C}` };
+	}
 	const maxPole = Math.max(...poles);
 	const minPole = Math.min(...poles);
 
@@ -185,207 +259,28 @@ export function getLaplacePairLatex(type: string): {
  * @returns {LaplaceProblem} LaplaceProblem object
  */
 export function generateLaplaceProblem(
+	problemType?: "inverse_pfd",
+): GeneratedLaplacePfdProblem;
+export function generateLaplaceProblem(
+	problemType: LaplaceProblemType,
+): LaplaceProblem;
+export function generateLaplaceProblem(
 	problemType: LaplaceProblemType = "inverse_pfd",
 ): LaplaceProblem {
 	const id = `laplace-${problemType}-${Date.now()}`;
 
 	switch (problemType) {
 		case "inverse_pfd": {
-			const polesList = [-1, -2, -3, -4, -5];
-			const p1 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
-			let p2 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
-			while (p2 === p1) {
-				p2 =
-					polesList[Math.floor(Math.random() * polesList.length)] ??
-					-2;
-			}
-
-			const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-			const b0 = Math.floor(Math.random() * 8) + 1; // 1 to 8
-
-			const pfd = evaluatePfdResidues([b1, b0], [p1, p2]);
-			const a1 = Math.abs(p1);
-			const a2 = Math.abs(p2);
-
-			return {
-				id,
-				problemType: "inverse_pfd",
-				promptLatex: `\\text{Find the inverse Laplace transform } x(t) \\text{ of } X(s) = \\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`,
-				referenceAnswerLatex: pfd.inverseLatex,
-				solutionSteps: [
-					{
-						title: "Step 1: Set Up Partial Fraction Expansion",
-						latex: `X(s) = \\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})} = \\frac{A}{s + ${a1}} + \\frac{B}{s + ${a2}}`,
-					},
-					{
-						title: `Step 2: Solve Residue A at s = ${p1}`,
-						latex: `A = \\left. (s + ${a1}) X(s) \\right|_{s = ${p1}} = \\frac{${b1}(${p1}) + ${b0}}{${p1} + ${a2}} = ${pfd.residues[0] ?? 0}`,
-					},
-					{
-						title: `Step 3: Solve Residue B at s = ${p2}`,
-						latex: `B = \\left. (s + ${a2}) X(s) \\right|_{s = ${p2}} = \\frac{${b1}(${p2}) + ${b0}}{${p2} + ${a1}} = ${pfd.residues[1] ?? 0}`,
-					},
-					{
-						title: "Step 4: Perform Term-by-Term Inverse Transform",
-						latex: `x(t) = \\mathcal{L}^{-1}\\left\\{${pfd.inverseLatex}\\right\\}`,
-					},
-				],
-			};
+			return generateInversePfd();
 		}
 		case "inverse_direct": {
-			const directTypes = ["trig", "delay", "impulse"];
-			const chosen =
-				directTypes[Math.floor(Math.random() * directTypes.length)] ??
-				"trig";
-
-			if (chosen === "trig") {
-				const A = Math.floor(Math.random() * 4) + 1;
-				const B = Math.floor(Math.random() * 3) + 1;
-				const omega = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
-				const wSq = omega * omega;
-				const bOmega = B * omega;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\\right\\}`,
-					referenceAnswerLatex: `(${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
-					solutionSteps: [
-						{
-							title: "Step 1: Separate into Cosine and Sine Terms",
-							latex: `X(s) = ${A} \\cdot \\frac{s}{s^2 + ${omega}^2} + ${B} \\cdot \\frac{${omega}}{s^2 + ${omega}^2}`,
-						},
-						{
-							title: "Step 2: Recall Standard Trigonometric Pairs",
-							latex: `\\mathcal{L}^{-1}\\left\\{\\frac{s}{s^2 + ${omega}^2}\\right\\} = \\cos(${omega}t) u(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{${omega}}{s^2 + ${omega}^2}\\right\\} = \\sin(${omega}t) u(t)`,
-						},
-						{
-							title: "Step 3: Combine Terms by Linearity",
-							latex: `x(t) = (${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
-						},
-					],
-				};
-			} else if (chosen === "delay") {
-				const A = Math.floor(Math.random() * 4) + 1;
-				const a = Math.floor(Math.random() * 4) + 1;
-				const t0 = Math.floor(Math.random() * 3) + 1;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A} e^{-${t0}s}}{s + ${a}}\\right\\}`,
-					referenceAnswerLatex: `${A} e^{-${a}(t-${t0})} u(t-${t0})`,
-					solutionSteps: [
-						{
-							title: "Step 1: Identify Time-Shift Property",
-							latex: `\\mathcal{L}^{-1}\\{e^{-${t0}s} F(s)\\} = f(t - ${t0}) u(t - ${t0})`,
-						},
-						{
-							title: "Step 2: Inverse Transform of Unshifted Term",
-							latex: `\\mathcal{L}^{-1}\\left\\{\\frac{${A}}{s + ${a}}\\right\\} = ${A} e^{-${a}t} u(t)`,
-						},
-						{
-							title: "Step 3: Apply Time Shift",
-							latex: `x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
-						},
-					],
-				};
-			} else {
-				const A = Math.floor(Math.random() * 5) + 1;
-				const B = Math.floor(Math.random() * 5) + 1;
-				const a = Math.floor(Math.random() * 4) + 1;
-
-				return {
-					id,
-					problemType: "inverse_direct",
-					promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{${A} + \\frac{${B}}{s + ${a}}\\right\\}`,
-					referenceAnswerLatex: `${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
-					solutionSteps: [
-						{
-							title: "Step 1: Identify Impulse & Exponential Pairs",
-							latex: `\\mathcal{L}^{-1}\\{1\\} = \\delta(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{1}{s + ${a}}\\right\\} = e^{-${a}t} u(t)`,
-						},
-						{
-							title: "Step 2: Combine Terms",
-							latex: `x(t) = ${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
-						},
-					],
-				};
-			}
+			return generateDirectInverse(id);
 		}
 		case "forward": {
-			const c1 = Math.floor(Math.random() * 4) + 1;
-			const c2 = Math.floor(Math.random() * 4) + 1;
-			const a1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-			let a2 = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
-			while (a2 === a1) a2 = a2 + 1;
-
-			const b1 = c1 + c2;
-			const b0 = c1 * a2 + c2 * a1;
-			const d1 = a1 + a2;
-			const d0 = a1 * a2;
-
-			return {
-				id,
-				problemType: "forward",
-				promptLatex: `\\text{Find } X(s) = \\mathcal{L}\\{x(t)\\} \\text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
-				referenceAnswerLatex: `\\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
-				solutionSteps: [
-					{
-						title: "Step 1: Apply Exponential Transform Pair",
-						latex: `\\mathcal{L}\\{e^{-at} u(t)\\} = \\frac{1}{s + a} \\implies X(s) = \\frac{${c1}}{s+${a1}} + \\frac{${c2}}{s+${a2}}`,
-					},
-					{
-						title: "Step 2: Combine Terms Over Common Denominator",
-						latex: `X(s) = \\frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
-					},
-				],
-			};
+			return generateForwardTransform(id);
 		}
 		case "roc_stability": {
-			const polesList = [-3, -2, -1, 1, 2, 3];
-			const p1 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
-			let p2 =
-				polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
-			while (p2 === p1) {
-				p2 =
-					polesList[Math.floor(Math.random() * polesList.length)] ??
-					2;
-			}
-
-			const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
-				"right-sided",
-				"left-sided",
-				"two-sided",
-			];
-			const direction =
-				directions[Math.floor(Math.random() * directions.length)] ??
-				"right-sided";
-			const stability = determineStability([p1, p2], direction);
-
-			return {
-				id,
-				problemType: "roc_stability",
-				promptLatex: `\\text{Determine ROC and BIBO stability for } ${direction} \\text{ system } X(s) = \\frac{1}{(s - (${p1}))(s - (${p2}))}`,
-				referenceAnswerLatex: `${stability.rocLatex}, \\quad \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
-				solutionSteps: [
-					{
-						title: "Step 1: Identify System Poles",
-						latex: `D(s) = 0 \\implies p_1 = ${p1}, \\quad p_2 = ${p2}`,
-					},
-					{
-						title: "Step 2: Determine ROC Region",
-						latex: `\\text{ROC for } ${direction} \\text{ system is } ${stability.rocLatex}`,
-					},
-					{
-						title: "Step 3: Check Stability Criteria",
-						latex: `\\operatorname{Re}(s) = 0 \\text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \\implies \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
-					},
-				],
-			};
+			return generateRocProblem(id);
 		}
 		default: {
 			const _exhaustiveCheck: never = problemType;
@@ -394,4 +289,349 @@ export function generateLaplaceProblem(
 			);
 		}
 	}
+}
+
+/** Generates distinct-pole inverse drills. @returns Structured causal PFD problem. */
+function generateInversePfd(): GeneratedLaplacePfdProblem {
+	const polesList = [-1, -2, -3, -4, -5];
+	const p1 = polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+	let p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
+	while (p2 === p1) {
+		p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? -2;
+	}
+
+	const b1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+	const b0 = Math.floor(Math.random() * 8) + 1; // 1 to 8
+	return createLaplacePfdProblem([b1, b0], [p1, p2]);
+}
+
+/**
+ * Selects one direct inverse transform family.
+ * @param id - Problem identifier.
+ * @returns Trigonometric, delayed, or impulse inverse problem.
+ */
+function generateDirectInverse(id: string): LaplaceProblem {
+	const directTypes = ["trig", "delay", "impulse"];
+	const chosen =
+		directTypes[Math.floor(Math.random() * directTypes.length)] ?? "trig";
+
+	switch (chosen) {
+		case "trig": {
+			return createTrigonometricInverse(id);
+		}
+		case "delay": {
+			return createDelayedInverse(id);
+		}
+		case "impulse": {
+			return createImpulseInverse(id);
+		}
+		default: {
+			throw new Error(`Unsupported direct inverse type: ${chosen}`);
+		}
+	}
+}
+
+/**
+ * Generates a sine/cosine transform-pair drill.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with its worked transform pairs.
+ */
+function createTrigonometricInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 4) + 1;
+	const B = Math.floor(Math.random() * 3) + 1;
+	const omega = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
+	const wSq = omega * omega;
+	const bOmega = B * omega;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\\right\\}`,
+		referenceAnswerLatex: `(${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+		solutionSteps: [
+			{
+				title: "Step 1: Separate into Cosine and Sine Terms",
+				latex: `X(s) = ${A} \\cdot \\frac{s}{s^2 + ${omega}^2} + ${B} \\cdot \\frac{${omega}}{s^2 + ${omega}^2}`,
+			},
+			{
+				title: "Step 2: Recall Standard Trigonometric Pairs",
+				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{s}{s^2 + ${omega}^2}\\right\\} = \\cos(${omega}t) u(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{${omega}}{s^2 + ${omega}^2}\\right\\} = \\sin(${omega}t) u(t)`,
+			},
+			{
+				title: "Step 3: Combine Terms by Linearity",
+				latex: `x(t) = (${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a delayed exponential inverse transform.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with the delay property.
+ */
+function createDelayedInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 4) + 1;
+	const a = Math.floor(Math.random() * 4) + 1;
+	const t0 = Math.floor(Math.random() * 3) + 1;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A} e^{-${t0}s}}{s + ${a}}\\right\\}`,
+		referenceAnswerLatex: `${A} e^{-${a}(t-${t0})} u(t-${t0})`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify Time-Shift Property",
+				latex: `\\mathcal{L}^{-1}\\{e^{-${t0}s} F(s)\\} = f(t - ${t0}) u(t - ${t0})`,
+			},
+			{
+				title: "Step 2: Inverse Transform of Unshifted Term",
+				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{${A}}{s + ${a}}\\right\\} = ${A} e^{-${a}t} u(t)`,
+			},
+			{
+				title: "Step 3: Apply Time Shift",
+				latex: `x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates an impulse-plus-exponential inverse transform.
+ * @param id - Problem identifier.
+ * @returns Direct inverse problem with its linear combination.
+ */
+function createImpulseInverse(id: string): LaplaceProblem {
+	const A = Math.floor(Math.random() * 5) + 1;
+	const B = Math.floor(Math.random() * 5) + 1;
+	const a = Math.floor(Math.random() * 4) + 1;
+
+	return {
+		id,
+		problemType: "inverse_direct",
+		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{${A} + \\frac{${B}}{s + ${a}}\\right\\}`,
+		referenceAnswerLatex: `${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify Impulse & Exponential Pairs",
+				latex: `\\mathcal{L}^{-1}\\{1\\} = \\delta(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{1}{s + ${a}}\\right\\} = e^{-${a}t} u(t)`,
+			},
+			{
+				title: "Step 2: Combine Terms",
+				latex: `x(t) = ${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a forward transform of two causal exponentials.
+ * @param id - Problem identifier.
+ * @returns Forward problem and common-denominator derivation.
+ */
+function generateForwardTransform(id: string): LaplaceProblem {
+	const c1 = Math.floor(Math.random() * 4) + 1;
+	const c2 = Math.floor(Math.random() * 4) + 1;
+	const a1 = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+	let a2 = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
+	while (a2 === a1) a2 = a2 + 1;
+
+	const b1 = c1 + c2;
+	const b0 = c1 * a2 + c2 * a1;
+	const d1 = a1 + a2;
+	const d0 = a1 * a2;
+
+	return {
+		id,
+		problemType: "forward",
+		promptLatex: `\\text{Find } X(s) = \\mathcal{L}\\{x(t)\\} \\text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
+		referenceAnswerLatex: `\\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+		solutionSteps: [
+			{
+				title: "Step 1: Apply Exponential Transform Pair",
+				latex: `\\mathcal{L}\\{e^{-at} u(t)\\} = \\frac{1}{s + a} \\implies X(s) = \\frac{${c1}}{s+${a1}} + \\frac{${c2}}{s+${a2}}`,
+			},
+			{
+				title: "Step 2: Combine Terms Over Common Denominator",
+				latex: `X(s) = \\frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+			},
+		],
+	};
+}
+
+/**
+ * Generates a pole/ROC stability classification problem.
+ * @param id - Problem identifier.
+ * @returns Region and stability drill.
+ */
+function generateRocProblem(id: string): LaplaceProblem {
+	const polesList = [-3, -2, -1, 1, 2, 3];
+	const p1 = polesList[Math.floor(Math.random() * polesList.length)] ?? -1;
+	let p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
+	while (p2 === p1) {
+		p2 = polesList[Math.floor(Math.random() * polesList.length)] ?? 2;
+	}
+
+	const directions: ("right-sided" | "left-sided" | "two-sided")[] = [
+		"right-sided",
+		"left-sided",
+		"two-sided",
+	];
+	const direction =
+		directions[Math.floor(Math.random() * directions.length)] ??
+		"right-sided";
+	const stability = determineStability([p1, p2], direction);
+
+	return {
+		id,
+		problemType: "roc_stability",
+		promptLatex: `\\text{Determine ROC and BIBO stability for } ${direction} \\text{ system } X(s) = \\frac{1}{(s - (${p1}))(s - (${p2}))}`,
+		referenceAnswerLatex: `${stability.rocLatex}, \\quad \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+		solutionSteps: [
+			{
+				title: "Step 1: Identify System Poles",
+				latex: `D(s) = 0 \\implies p_1 = ${p1}, \\quad p_2 = ${p2}`,
+			},
+			{
+				title: "Step 2: Determine ROC Region",
+				latex: `\\text{ROC for } ${direction} \\text{ system is } ${stability.rocLatex}`,
+			},
+			{
+				title: "Step 3: Check Stability Criteria",
+				latex: `\\operatorname{Re}(s) = 0 \\text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \\implies \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+			},
+		],
+	};
+}
+
+/**
+ * Builds a causal inverse PFD problem from reproducible rational parameters.
+ * @param numerator - Linear numerator coefficients.
+ * @param poles - Distinct negative real poles.
+ * @returns Display and grading data for the same transform.
+ */
+export function createLaplacePfdProblem(
+	numerator: [number, number],
+	poles: [number, number],
+): GeneratedLaplacePfdProblem {
+	if (
+		![...numerator, ...poles].every(Number.isFinite) ||
+		poles.some((p) => p >= 0) ||
+		poles[0] === poles[1]
+	)
+		throw new Error("PFD drills require distinct negative finite poles");
+	const [b1, b0] = numerator,
+		[p1, p2] = poles;
+	const exact = exactPfdResidues(numerator, poles);
+	const pfd = pfdResult(exact, poles);
+	// Keep genuine poles and their residues paired; zero residues remove poles.
+	const activeIndices = exact.flatMap(
+		/**
+		 * @param residue - Coefficient at an original denominator root.
+		 * @param index - Matching denominator-root position.
+		 * @returns Positions of nonzero residues only.
+		 */
+		(residue, index) => (residue.numerator === 0n ? [] : [index]),
+	);
+	const [a1, a2] = [-p1, -p2];
+	const rational = String.raw`\frac{${b1}s + ${b0}}{(s + ${a1})(s + ${a2})}`;
+	const expansion = exact
+		.map(
+			/**
+			 * @param residue - Exact cover-up coefficient.
+			 * @param index - Root position.
+			 * @returns Exact partial fraction.
+			 */
+			(residue, index) =>
+				String.raw`\frac{${residue.toLatex()}}{s + ${-(poles[index] ?? 0)}}`,
+		)
+		.join(" + ");
+	return {
+		id: `laplace-inverse_pfd-${Date.now()}`,
+		problemType: "inverse_pfd",
+		pfd: {
+			numerator: [...numerator],
+			denominatorRoots: [...poles],
+			poles: activeIndices.map(
+				/**
+				 * @param index - Surviving root position.
+				 * @returns Genuine pole.
+				 */
+				(index) => poles[index]!,
+			),
+			residues: activeIndices.map(
+				/**
+				 * @param index - Surviving root position.
+				 * @returns Paired nonzero residue.
+				 */
+				(index) => pfd.residues[index]!,
+			),
+			rocDirection: "right-sided",
+		},
+		promptLatex: String.raw`\text{For the causal (right-sided) signal, find } x(t) \text{ from } X(s)=${rational}`,
+		referenceAnswerLatex: pfd.inverseLatex,
+		solutionSteps: [
+			{
+				title: "Step 1: Set Up Partial Fraction Expansion",
+				latex: String.raw`X(s)=${rational}=\frac{A}{s + ${a1}}+\frac{B}{s + ${a2}}`,
+			},
+			{
+				title: `Step 2: Solve Residue A at s = ${p1}`,
+				latex: String.raw`A=\left.(s+${a1})X(s)\right|_{s=${p1}}=\frac{${b1}(${p1})+${b0}}{${p1}+${a2}}=${exact[0]!.toLatex()}`,
+			},
+			{
+				title: `Step 3: Solve Residue B at s = ${p2}`,
+				latex: String.raw`B=\left.(s+${a2})X(s)\right|_{s=${p2}}=\frac{${b1}(${p2})+${b0}}{${p2}+${a1}}=${exact[1]!.toLatex()}`,
+			},
+			{
+				title: "Step 4: Perform Term-by-Term Inverse Transform",
+				latex: String.raw`x(t)=\mathcal{L}^{-1}\left\{${expansion}\right\}=${pfd.inverseLatex}`,
+			},
+		],
+	};
+}
+
+/**
+ * Grades a causal inverse transform using structured residues and support.
+ * @param answer - Time-domain student input.
+ * @param problem - Active inverse PFD drill.
+ * @returns Strict grading outcome.
+ */
+export function validateLaplacePfdAnswer(
+	answer: string,
+	problem: GeneratedLaplacePfdProblem,
+): TransformValidationResult {
+	const scale = 1 / Math.max(...problem.pfd.denominatorRoots.map(Math.abs));
+	return validateTransformAnswer(answer, {
+		variable: "t",
+		canonicalTarget: createLaplaceCanonicalTarget(
+			problem.pfd.numerator,
+			problem.pfd.denominatorRoots,
+		),
+		sampleScale: scale,
+		samples: [
+			-2, -0.17, 0.09, 0.23, 0.51, 0.87, 1.37, 2.11, 3.73, 5.19,
+		].map((x) => x * scale),
+		/**
+		 * Evaluates the independently generated residue sum.
+		 * @param t - Time sample.
+		 * @returns Causal time-domain reference value.
+		 */
+		evaluate: (t) =>
+			new Complex(
+				t < 0
+					? 0
+					: problem.pfd.residues.reduce(
+							(sum, residue, index) =>
+								sum +
+								residue *
+									Math.exp(
+										(problem.pfd.poles[index] ?? 0) * t,
+									),
+							0,
+						),
+			),
+		stepTransitions: [0],
+	});
 }

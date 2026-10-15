@@ -153,6 +153,7 @@ describe("solver visual timing serialization", () => {
 		]);
 	});
 
+	/** File I/O latency is environmental; atomic contents and cleanup are the behavior under test. */
 	it("atomically replaces the latest report without leaving temporary files", () => {
 		const temporaryDirectory = fs.mkdtempSync(
 			path.join(os.tmpdir(), "solver-visual-timing-"),
@@ -182,5 +183,5 @@ describe("solver visual timing serialization", () => {
 		} finally {
 			fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 		}
-	});
+	}, 30000);
 });

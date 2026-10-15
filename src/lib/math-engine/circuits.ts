@@ -4,6 +4,18 @@
  * and Bode magnitude/phase plots for UIUC ECE 210.
  */
 
+import {
+	circuitCoefficients,
+	negateCircuitCoefficient,
+} from "$lib/math-engine/circuit-coefficients";
+import { formatCircuitTransferFunction } from "$lib/math-engine/circuit-formatting";
+import type {
+	CircuitComponents,
+	CircuitPolynomials,
+} from "$lib/math-engine/circuit-types";
+
+export type { CircuitComponents } from "$lib/math-engine/circuit-types";
+
 /**
  * Supported circuit topologies for transfer function H(s) derivation and Bode analysis.
  *
@@ -77,12 +89,36 @@ export interface CircuitProblem {
 	id: string;
 	/** Selected circuit topology category */
 	topology: CircuitTopology;
+	/** Component values used by every displayed calculation. */
+	components: CircuitComponents;
 	/** Formatted LaTeX prompt text describing the circuit and component values */
 	promptLatex: string;
 	/** Reference correct answer LaTeX string for H(s) */
 	referenceAnswerLatex: string;
 	/** Granular step-by-step solution derivation breakdown */
 	solutionSteps: CircuitSolutionStep[];
+}
+
+/**
+ * Identifies whether the topology uses an inductor.
+ * @param topology - Circuit topology.
+ * @returns Whether to show inductance controls.
+ */
+export function circuitUsesInductor(topology: CircuitTopology): boolean {
+	return (
+		!topology.startsWith("rc-") &&
+		!topology.startsWith("active-") &&
+		topology !== "twin-t-notch"
+	);
+}
+
+/**
+ * Identifies whether the topology uses a capacitor.
+ * @param topology - Circuit topology.
+ * @returns Whether to show capacitance controls.
+ */
+export function circuitUsesCapacitor(topology: CircuitTopology): boolean {
+	return !topology.startsWith("rl-");
 }
 
 /**
@@ -99,147 +135,144 @@ export function evaluateTransferFunction(
 	const R = params.R ?? 10;
 	const L = params.L ?? 1;
 	const C = params.C ?? 0.01;
+	const required = [R];
+	if (circuitUsesInductor(topology)) required.push(L);
+	if (circuitUsesCapacitor(topology)) required.push(C);
+	if (!required.every((value) => Number.isFinite(value) && value > 0))
+		throw new Error("Circuit components must be positive and finite");
+	const components = {
+		R,
+		L: circuitUsesInductor(topology) ? L : 1,
+		C: circuitUsesCapacitor(topology) ? C : 1,
+	};
+	const result = calculateTransferFunction(topology, components);
+	return {
+		numCoeffs: result.numerator.map(
+			/**
+			 * @param coefficient - Paired numerator value.
+			 * @returns Numerical plot coefficient.
+			 */
+			(coefficient) => coefficient.numeric,
+		),
+		denCoeffs: result.denominator.map(
+			/**
+			 * @param coefficient - Paired denominator value.
+			 * @returns Numerical plot coefficient.
+			 */
+			(coefficient) => coefficient.numeric,
+		),
+		hLatex: formatCircuitTransferFunction(result),
+	};
+}
+
+/**
+ * Calculates paired exact and numerical polynomial coefficients for one topology.
+ * @param topology - Circuit topology.
+ * @param components - Validated component values.
+ * @returns Positional coefficients for Bode evaluation and analytical display.
+ */
+function calculateTransferFunction(
+	topology: CircuitTopology,
+	components: CircuitComponents,
+): CircuitPolynomials {
+	const { zero, one, rl, lc, wc, twiceWc, fourWc, wcSquared, rc } =
+		circuitCoefficients(components);
 
 	switch (topology) {
 		case "series-rlc": {
-			// Series RLC Bandpass (Output across R): H(s) = (R/L * s) / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [rOverL, 0],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{${rOverL} s}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [rl, zero],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "series-rlc-lpf": {
-			// Series RLC Lowpass (Output across C): H(s) = (1/(LC)) / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [w0Sq],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{${w0Sq}}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [lc],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "series-rlc-hpf": {
-			// Series RLC Highpass (Output across L): H(s) = s^2 / (s^2 + (R/L)s + 1/(LC))
-			const rOverL = R / L;
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [1, 0, 0],
-				denCoeffs: [1, rOverL, w0Sq],
-				hLatex: `\\frac{s^2}{s^2 + ${rOverL} s + ${w0Sq}}`,
+				numerator: [one, zero, zero],
+				denominator: [one, rl, lc],
 			};
 		}
 		case "rc-lpf": {
-			// 1st-order RC LPF: H(s) = (1 / (RC)) / (s + 1 / (RC))
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [wc],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{${wc}}{s + ${wc}}`,
+				numerator: [wc],
+				denominator: [one, wc],
 			};
 		}
 		case "rc-hpf": {
-			// 1st-order RC HPF: H(s) = s / (s + 1 / (RC))
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{s}{s + ${wc}}`,
+				numerator: [one, zero],
+				denominator: [one, wc],
 			};
 		}
 		case "rl-lpf": {
-			// 1st-order RL LPF: H(s) = (R / L) / (s + R / L)
-			const wc = R / L;
 			return {
-				numCoeffs: [wc],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{${wc}}{s + ${wc}}`,
+				numerator: [rl],
+				denominator: [one, rl],
 			};
 		}
 		case "rl-hpf": {
-			// 1st-order RL HPF: H(s) = s / (s + R / L)
-			const wc = R / L;
 			return {
-				numCoeffs: [1, 0],
-				denCoeffs: [1, wc],
-				hLatex: `\\frac{s}{s + ${wc}}`,
+				numerator: [one, zero],
+				denominator: [one, rl],
 			};
 		}
 		case "parallel-rlc": {
-			const oneOverRC = 1 / (R * C);
-			const w0Sq = 1 / (L * C);
 			return {
-				numCoeffs: [oneOverRC, 0],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{${oneOverRC} s}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [wc, zero],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "parallel-lc-series-r": {
-			const w0Sq = 1 / (L * C);
-			const oneOverRC = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, w0Sq],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{s^2 + ${w0Sq}}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [one, zero, lc],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "parallel-rc-series-l": {
-			const w0Sq = 1 / (L * C);
-			const oneOverRC = 1 / (R * C);
 			return {
-				numCoeffs: [1, oneOverRC, 0],
-				denCoeffs: [1, oneOverRC, w0Sq],
-				hLatex: `\\frac{s^2 + ${oneOverRC} s}{s^2 + ${oneOverRC} s + ${w0Sq}}`,
+				numerator: [one, wc, zero],
+				denominator: [one, wc, lc],
 			};
 		}
 		case "active-sallen-key": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [wc * wc],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{${wc * wc}}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [wcSquared],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "active-sallen-key-hpf": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, 0],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{s^2}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [one, zero, zero],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "active-bpf": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-2 * wc, 0],
-				denCoeffs: [1, 2 * wc, wc * wc],
-				hLatex: `\\frac{-${2 * wc} s}{s^2 + ${2 * wc} s + ${wc * wc}}`,
+				numerator: [negateCircuitCoefficient(twiceWc), zero],
+				denominator: [one, twiceWc, wcSquared],
 			};
 		}
 		case "twin-t-notch": {
-			const w0 = 1 / (R * C);
 			return {
-				numCoeffs: [1, 0, w0 * w0],
-				denCoeffs: [1, 4 * w0, w0 * w0],
-				hLatex: `\\frac{s^2 + ${w0 * w0}}{s^2 + ${4 * w0} s + ${w0 * w0}}`,
+				numerator: [one, zero, wcSquared],
+				denominator: [one, fourWc, wcSquared],
 			};
 		}
 		case "active-integrator": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-wc],
-				denCoeffs: [1, 0],
-				hLatex: `-\\frac{${wc}}{s}`,
+				numerator: [negateCircuitCoefficient(wc)],
+				denominator: [one, zero],
 			};
 		}
 		case "active-differentiator": {
-			const wc = 1 / (R * C);
 			return {
-				numCoeffs: [-1 / wc, 0],
-				denCoeffs: [1],
-				hLatex: `-\\frac{s}{${wc}}`,
+				numerator: [negateCircuitCoefficient(rc), zero],
+				denominator: [one],
 			};
 		}
 		default: {
@@ -337,6 +370,20 @@ export function generateCircuitProblem(
 	const R = rValues[Math.floor(Math.random() * rValues.length)] ?? 1000;
 	const L = lValues[Math.floor(Math.random() * lValues.length)] ?? 0.01;
 	const C = cValues[Math.floor(Math.random() * cValues.length)] ?? 0.000001;
+	return createCircuitProblem(topology, { R, L, C });
+}
+
+/**
+ * Builds a reproducible circuit problem from one component model.
+ * @param topology - Circuit topology.
+ * @param components - Positive SI component values.
+ * @returns Consistent prompt, transfer function, and derivation.
+ */
+export function createCircuitProblem(
+	topology: CircuitTopology,
+	components: CircuitComponents,
+): CircuitProblem {
+	const { R, L, C } = components;
 
 	// Calculate symbolic transfer function polynomial coefficients via evaluateTransferFunction
 	const tf = evaluateTransferFunction(topology, { R, L, C });
@@ -362,17 +409,23 @@ export function generateCircuitProblem(
 	};
 
 	const name = topologyNames[topology] ?? topology;
+	const impedances = [String.raw`Z_R(s) = ${R}`];
+	if (circuitUsesInductor(topology))
+		impedances.push(String.raw`Z_L(s) = ${L}s`);
+	if (circuitUsesCapacitor(topology))
+		impedances.push(String.raw`Z_C(s) = \frac{1}{${C}s}`);
 
 	// Construct granular zero-guesswork solution breakdown steps
 	return {
 		id: `circuit-${topology}-${Date.now()}`,
 		topology,
-		promptLatex: `\\text{Derive the transfer function } H(s) = \\frac{V_{out}(s)}{V_{in}(s)} \\text{ for the } ${name} \\text{ with } R = ${R}\\Omega, L = ${L}\\text{H}, C = ${C}\\text{F}.`,
+		components: { ...components },
+		promptLatex: `\\text{Derive the transfer function } H(s) \\text{ for the } \\text{${name}} \\text{ with } R = ${R}\\Omega${circuitUsesInductor(topology) ? `, L = ${L}\\text{H}` : ""}${circuitUsesCapacitor(topology) ? `, C = ${C}\\text{F}` : ""}.`,
 		referenceAnswerLatex: tf.hLatex,
 		solutionSteps: [
 			{
 				title: "Step 1: Replace Components with s-Domain Impedances",
-				latex: `Z_R(s) = ${R}, \\quad Z_L(s) = ${L}s, \\quad Z_C(s) = \\frac{1}{${C}s}`,
+				latex: impedances.join(String.raw`, \quad `),
 			},
 			{
 				title: "Step 2: Apply Voltage Divider / Node Voltage Equations",

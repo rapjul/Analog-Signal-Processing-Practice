@@ -7,6 +7,15 @@ import {
 
 describe("Laplace Transform Math Engine (laplace.ts)", () => {
 	describe("Partial Fraction Decomposition (PFD) Residue Solver", () => {
+		/** Distinct finite roots are required for cover-up division. */
+		it("rejects duplicate and nonfinite cover-up inputs", () => {
+			for (const poles of [
+				[-1, -1],
+				[-1, Infinity],
+			])
+				expect(() => evaluatePfdResidues([1, 1], poles)).toThrow();
+			expect(() => evaluatePfdResidues([NaN, 1], [-1, -2])).toThrow();
+		});
 		it("should solve residues for distinct real poles: (s + 7) / ((s + 2)(s + 3))", () => {
 			// X(s) = (s + 7) / ((s + 2)(s + 3)) = A / (s + 2) + B / (s + 3)
 			// A = (-2 + 7)/(-2 + 3) = 5

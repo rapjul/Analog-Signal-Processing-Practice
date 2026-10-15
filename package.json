@@ -12,12 +12,15 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint:imports": "biome check --only=organizeImports .",
+    "lint:verification-docs": "node scripts/lint-verification-docs.mjs",
     "format:imports": "biome check --write --only=organizeImports .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:unit": "vitest",
     "test": "npm run test:unit -- --run",
     "test:coverage": "vitest run --coverage",
+    "test:grading:properties": "vitest run tests/unit/constant-proofs.test.ts tests/unit/transform-notation.test.ts tests/unit/exact-fraction.test.ts tests/unit/laplace-practice-model.test.ts --maxWorkers=2",
+    "test:grading:properties:extended": "SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=73 npm run test:grading:properties && SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=20261015 npm run test:grading:properties",
     "test:e2e": "playwright test",
     "test:e2e:production": "playwright test --config playwright.production.config.ts",
     "test:e2e:production:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_INITIAL_ONLY=1 playwright test --config playwright.production.config.ts --project Solver-Visual-Snapshots --update-snapshots none",
@@ -43,9 +46,11 @@
     "@types/katex": "^0.16.8",
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^4.1.11",
+    "fast-check": "^4.10.2",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.3.0",
+    "markdownlint": "^0.41.1",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte": "^5.56.1",
@@ -61,6 +66,9 @@
     "katex": "^0.18.2"
   },
   "overrides": {
+    "micromark-extension-math": {
+      "katex": "$katex"
+    },
     "@sveltejs/kit": {
       "cookie": "0.7.2"
     }
