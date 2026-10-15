@@ -51,7 +51,7 @@ function failureFeedback(
 	if (/(?<![\w.])3\.14\d*(?:…|\.{3})?(?![\d.eE])/.test(answer))
 		return {
 			...result,
-			message: `${result.message} If you intended π, enter pi or \\pi.`,
+			message: `${result.message} If you intended the constant pi, enter its name in the answer field.`,
 		};
 	return result;
 }

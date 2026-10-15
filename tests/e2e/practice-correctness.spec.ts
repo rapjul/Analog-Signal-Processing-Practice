@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { transformAdversaries } from "../fixtures/transform-adversaries";
+import { transformAdversaries } from "$lib/testing/transform-adversaries";
 
 /** Reproduces generated page parameters without exposing grading shortcuts. */
 test.beforeEach(async ({ page }) => {
@@ -60,7 +60,7 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 	await input.fill("3.14");
 	await page.getByRole("button", { name: "Check Answer" }).click();
 	await expect(page.locator(".feedback-box")).toContainText(
-		"If you intended π",
+		"If you intended the constant pi",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	for (const answer of [

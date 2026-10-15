@@ -1,5 +1,5 @@
 /**
- * Reads a bounded integer configuration for reproducible property tests.
+ * Reads a bounded integer configuration exclusively for reproducible property tests.
  * @param name - Environment variable.
  * @param fallback - Default value.
  * @param min - Inclusive minimum.

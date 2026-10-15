@@ -1,4 +1,5 @@
 /** Independent canonical targets constructed exclusively from problem parameters. */
+import { CanonicalError } from "$lib/math-engine/canonical-algebra";
 import {
 	type CanonicalTransform,
 	normalizeCanonicalTransform,
@@ -68,6 +69,11 @@ export function createCtftCanonicalTarget(
 				],
 			];
 			break;
+		default:
+			throw new CanonicalError(
+				"unsupported",
+				"This signal family has no supported verification target.",
+			);
 	}
 	return normalizeCanonicalTransform(["Multiply", base, phase], "omega");
 }

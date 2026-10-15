@@ -15,7 +15,7 @@ import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
 } from "$lib/math-engine/laplace";
-import { propertyOptions } from "../fixtures/property-options";
+import { propertyOptions } from "$lib/testing/property-options";
 
 /** Exact decimal fixtures below their corresponding multiples of pi. */
 const roundedPi = [

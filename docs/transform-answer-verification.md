@@ -103,7 +103,7 @@ Exceeding a bound produces a diagnostic, never a partially verified answer.
 
 ## Regression Contract
 
-The shared adversarial matrix in `../tests/fixtures/transform-adversaries.ts` covers
+The shared adversarial matrix in `../src/lib/testing/transform-adversaries.ts` covers
 equivalent spellings of hidden transitions, logarithm/exponential compositions,
 distant Gaussian bumps, tiny extra poles and basis terms, masked invalid operands,
 and unsupported functions. Unit and production browser checks use the same matrix.

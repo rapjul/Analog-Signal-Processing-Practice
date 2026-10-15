@@ -1,4 +1,4 @@
-/** Shared adversarial families used by unit and production browser verification. */
+/** Test-only adversarial families shared by unit and production browser verification. */
 export interface TransformAdversary {
 	/** Regression category for failure diagnostics. */ name: string;
 	/** Additive term expressed in the requested independent variable. */ expression: string;

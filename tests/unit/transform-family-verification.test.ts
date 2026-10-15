@@ -8,7 +8,7 @@ import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
 } from "$lib/math-engine/laplace";
-import { transformAdversaries } from "../fixtures/transform-adversaries";
+import { transformAdversaries } from "$lib/testing/transform-adversaries";
 
 /**
  * Advances a deterministic parameter seed without global randomness.

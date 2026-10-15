@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createCtftCanonicalTarget } from "$lib/math-engine/canonical-targets";
 import {
 	type CtftSignalType,
 	createCtftProblem,
@@ -6,6 +7,25 @@ import {
 } from "$lib/math-engine/fourier-transform";
 
 describe("CTFT answer validation", () => {
+	/** Runtime data outside the typed family union must fail without escaping the grader. */
+	it("reports an unsupported target for an unknown runtime signal family", () => {
+		const problem = createCtftProblem("delta", {
+			a: 1,
+			T: 2,
+			w0: 3,
+			t0: 0,
+		});
+		const unknown = "future-family" as CtftSignalType;
+		expect(() =>
+			createCtftCanonicalTarget(unknown, problem.params),
+		).toThrow("This signal family has no supported verification target.");
+		expect(
+			validateCtftAnswer("1", { ...problem, signalType: unknown }),
+		).toEqual({
+			status: "unsupported",
+			message: "This signal family has no supported verification target.",
+		});
+	});
 	/** Off-grid probes must reject supported terms that vanish on the former decimal grid. */
 	it("rejects a sine term aliased by the original sampling grid", () => {
 		const problem = createCtftProblem("delta", {

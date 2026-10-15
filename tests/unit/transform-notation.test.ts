@@ -13,7 +13,7 @@ import {
 } from "$lib/math-engine/laplace";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 import { validateTransformAnswer } from "$lib/math-engine/transform-validation";
-import { propertyOptions } from "../fixtures/property-options";
+import { propertyOptions } from "$lib/testing/property-options";
 
 /** Supported reference families, independent of the presentation generated below. */
 const families = ["delta", "exponential", "gaussian", "rect", "cos"] as const;
@@ -318,14 +318,15 @@ describe("transform notation properties", () => {
 		]) {
 			const result = validateTransformAnswer(answer, reference);
 			expect(result.status).not.toBe("correct");
-			expect(result.message).toContain("If you intended π");
+			expect(result.message).toContain("If you intended the constant pi");
+			expect(result.message).not.toContain("π");
 		}
 		for (const answer of ["pi", "π", String.raw`\pi`, "3.141592653589793"])
 			expect(validateTransformAnswer(answer, reference).status).toBe(
 				"correct",
 			);
 		expect(validateTransformAnswer("2", reference).message).not.toContain(
-			"intended π",
+			"intended the constant pi",
 		);
 	});
 	/** Resource guards run before the third-party parser allocates its AST. */
