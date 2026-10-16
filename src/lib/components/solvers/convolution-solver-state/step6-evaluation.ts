@@ -8,13 +8,13 @@ import type {
 	ConvolutionEvaluationStepState,
 	ConvolutionEvaluationSubStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
-import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import { verifyConvolutionExpression } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import type { CanonicalInterval } from "$lib/math-engine/canonical-transform";
 import type {
 	ConvolutionItsIntervalPart,
 	ConvolutionMovingSignal,
 	ConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
-import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
 
 /** Pure validation result for one visible evaluation field. */
 export type EvaluationValidationResult =
@@ -99,7 +99,41 @@ export function createEvaluationState(
 	) as ConvolutionEvaluationStepState;
 }
 
-/** Validates one active term field or the final combined interval result. */
+/**
+ * Checks one required expression and maps verification outcomes to tutor feedback.
+ * @param value - Learner entry.
+ * @param expected - Required expression.
+ * @param domain - Open verification interval.
+ * @param blank - Missing-input feedback.
+ * @param wrong - Supported mismatch feedback.
+ * @returns A valid field or a diagnostic without advancing.
+ */
+function validateExpressionField(
+	value: string,
+	expected: string,
+	domain: CanonicalInterval,
+	blank: string,
+	wrong: string,
+): EvaluationValidationResult {
+	if (!value.trim()) return { kind: "blank", message: blank };
+	const result = verifyConvolutionExpression(value, expected, domain);
+	if (result.status === "invalid" || result.status === "unsupported")
+		return { kind: "malformed", message: result.message };
+	return result.status === "correct"
+		? { kind: "valid" }
+		: { kind: "incorrect", message: wrong };
+}
+
+/**
+ * Validates one active term field or the final combined interval result.
+ * @param state - Learner input and active evaluation stage.
+ * @param part - Concrete integral metadata for this interval.
+ * @param movingSignal - Selected reflected signal.
+ * @param expectedFinal - Verified combined expression.
+ * @param minimum - Open interval lower limit.
+ * @param maximum - Open interval upper limit.
+ * @returns A next stage or an actionable diagnostic.
+ */
 export function validateEvaluationStage(
 	state: ConvolutionEvaluationSubStepState,
 	part: ConvolutionItsIntervalPart,
@@ -108,26 +142,15 @@ export function validateEvaluationStage(
 	minimum: number,
 	maximum: number,
 ): EvaluationValidationResult {
-	const samples = intervalSampleTimes(minimum, maximum);
+	const domain = { min: minimum, max: maximum };
 	if (state.stage === "combined") {
-		if (!state.input.trim())
-			return {
-				kind: "blank",
-				message: "Enter the combined expression for this interval.",
-			};
-		if (tryEvaluateLatexAt(state.input, samples[0] ?? 0) === null)
-			return {
-				kind: "malformed",
-				message:
-					"The expression could not be parsed. Enter valid math in t.",
-			};
-		if (!convolutionExpressionsMatch(state.input, expectedFinal, samples))
-			return {
-				kind: "incorrect",
-				message:
-					"The combined expression does not match the verified term contributions on this interval.",
-			};
-		return { kind: "valid" };
+		return validateExpressionField(
+			state.input,
+			expectedFinal,
+			domain,
+			"Enter the combined expression for this interval.",
+			"The combined expression does not match the verified term contributions on this interval.",
+		);
 	}
 
 	const terms = part.evaluationBySignal?.[movingSignal] ?? [];
@@ -167,15 +190,14 @@ export function validateEvaluationStage(
 		},
 	} as const;
 	const check = checks[state.stage];
-	if (!check.value.trim()) return { kind: "blank", message: check.blank };
-	if (tryEvaluateLatexAt(check.value, samples[0] ?? 0) === null)
-		return {
-			kind: "malformed",
-			message:
-				"This field could not be parsed as a mathematical expression.",
-		};
-	if (!convolutionExpressionsMatch(check.value, check.expected, samples))
-		return { kind: "incorrect", message: check.wrong };
+	const result = validateExpressionField(
+		check.value,
+		check.expected,
+		domain,
+		check.blank,
+		check.wrong,
+	);
+	if (result.kind !== "valid") return result;
 
 	if (state.stage === "geometry-amplitude")
 		return { kind: "valid", nextStage: "geometry-width" };

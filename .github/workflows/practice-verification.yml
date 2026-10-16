@@ -96,6 +96,7 @@ jobs:
           tests/e2e/ctft-module.spec.ts
           tests/e2e/laplace-module.spec.ts
           tests/e2e/solver-audit-regressions.spec.ts
+          tests/e2e/convolution-symbolic-verification.spec.ts
           --workers 2 --reporter=line,html
       - name: Retain coverage and browser diagnostics
         if: always()

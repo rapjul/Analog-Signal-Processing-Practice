@@ -22,6 +22,7 @@ import {
 	convolutionExpressionsMatch,
 	convolutionScalarMatches,
 	parseConvolutionScalarInput,
+	verifyConvolutionExpression,
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 import {
 	createBoundsState,
@@ -29,7 +30,6 @@ import {
 } from "$lib/components/solvers/convolution-solver-state/step5-bounds";
 import {
 	createEvaluationState,
-	intervalSampleTimes,
 	validateEvaluationStage,
 } from "$lib/components/solvers/convolution-solver-state/step6-evaluation";
 import type {
@@ -38,7 +38,6 @@ import type {
 	ConvolutionMovingSignal,
 	ConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
-import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
 
 export {
 	convolutionExpressionsMatch,
@@ -209,6 +208,28 @@ function step4Contacts(
 	return problem.itsData.step4.transitionGroups.flatMap(
 		(group) => group.contactsBySignal[movingSignal],
 	);
+}
+
+/**
+ * Formats candidate values while preserving defensive empty-field fallbacks.
+ * @param values - Lower or upper candidate values.
+ * @returns Two scalar input strings.
+ */
+function candidateInputs(values: [number, number]): [string, string] {
+	return [String(values[0] ?? ""), String(values[1] ?? "")];
+}
+
+/**
+ * Selects the diagnostic for a Step 4 count or breakpoint mismatch.
+ * @param id - Active count or breakpoint identifier.
+ * @returns Targeted instructional feedback.
+ */
+function transitionMismatchMessage(id: string): string {
+	if (id === "transition-count")
+		return "Count each distinct grouped transition time once.";
+	if (id === "interval-count")
+		return "The transition times divide the time axis into one more interval than the number of transitions.";
+	return "Count each disconnected pulse separately and include each interior edge, slope change, or formula change.";
 }
 
 /** Creates interval-aligned typed rows for final piecewise assembly. */
@@ -467,6 +488,19 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				);
 				return;
 			}
+			for (const [value, target] of [
+				[input.left, expected.leftLatex],
+				[input.right, expected.rightLatex],
+			] as const) {
+				const result = verifyConvolutionExpression(value, target);
+				if (
+					result.status === "invalid" ||
+					result.status === "unsupported"
+				) {
+					this.setSubStepValidation(this.step3, id, result.message);
+					return;
+				}
+			}
 			if (
 				convolutionExpressionsMatch(input.left, expected.rightLatex) &&
 				convolutionExpressionsMatch(input.right, expected.leftLatex)
@@ -499,42 +533,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		const state = this.step4.subSteps[id];
 		if (!state) return;
 		if (id === "interval-builder") {
-			if (state.intervalInputs.some((input) => !input.trim())) {
-				this.setSubStepValidation(
-					this.step4,
-					id,
-					"Enter every verified boundary to build the chronological intervals.",
-				);
-				return;
-			}
-			const actual = state.intervalInputs.map(
-				parseConvolutionScalarInput,
-			);
-			const expected = this.problem.itsData.step4.intervalBoundaries;
-			if (new Set(actual).size !== actual.length) {
-				this.setSubStepMisconception(
-					this.step4,
-					id,
-					"Each distinct transition appears once in the sorted interval boundary list.",
-				);
-				return;
-			}
-			if (
-				!actual.every((value, index) =>
-					convolutionScalarMatches(
-						String(value),
-						expected[index] ?? Number.NaN,
-					),
-				)
-			) {
-				this.setSubStepIncorrect(
-					this.step4,
-					id,
-					"Use the verified transition times in ascending order without reflecting, omitting, or adding values.",
-				);
-				return;
-			}
-			this.setSubStepPassed(this.step4, id, undefined, 5);
+			this.checkStep4Intervals(state);
 			return;
 		}
 		if (!state.input.trim()) {
@@ -585,17 +584,16 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.passActiveSubStep(this.step4, 5);
 			return;
 		}
-		let expected: number | undefined;
-		if (id === "section-count-x")
-			expected = this.problem.itsData.step4.sectionCounts.x;
-		else if (id === "section-count-h")
-			expected = this.problem.itsData.step4.sectionCounts.h;
-		else if (id === "transition-count")
-			expected = this.problem.itsData.step4.transitionGroups.length;
-		else if (id === "interval-count")
-			expected = this.problem.itsData.step4.intervalLabels.length;
-		else
-			expected = this.problem.itsData.step4.breakpointParts.find(
+		const counts: Record<string, number> = {
+			"section-count-x": this.problem.itsData.step4.sectionCounts.x,
+			"section-count-h": this.problem.itsData.step4.sectionCounts.h,
+			"transition-count":
+				this.problem.itsData.step4.transitionGroups.length,
+			"interval-count": this.problem.itsData.step4.intervalLabels.length,
+		};
+		const expected =
+			counts[id] ??
+			this.problem.itsData.step4.breakpointParts.find(
 				(part) => part.id === id,
 			)?.value;
 		if (
@@ -605,15 +603,63 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step4,
 				id,
-				id === "transition-count"
-					? "Count each distinct grouped transition time once."
-					: id === "interval-count"
-						? "The transition times divide the time axis into one more interval than the number of transitions."
-						: "Count each disconnected pulse separately and include each interior edge, slope change, or formula change.",
+				transitionMismatchMessage(id),
 			);
 			return;
 		}
 		this.passActiveSubStep(this.step4, 5);
+	}
+
+	/**
+	 * Validates the chronological interval partition independently of contact work.
+	 * @param state - Learner entries for the interval-builder substep.
+	 */
+	private checkStep4Intervals(
+		state: ConvolutionTransitionStepState["subSteps"][string],
+	): void {
+		const id = state.id;
+		if (
+			state.intervalInputs.some(
+				/** @param input - Typed boundary. */ (input) => !input.trim(),
+			)
+		) {
+			this.setSubStepValidation(
+				this.step4,
+				id,
+				"Enter every verified boundary to build the chronological intervals.",
+			);
+			return;
+		}
+		const actual = state.intervalInputs.map(parseConvolutionScalarInput);
+		const expected = this.problem.itsData.step4.intervalBoundaries;
+		if (new Set(actual).size !== actual.length) {
+			this.setSubStepMisconception(
+				this.step4,
+				id,
+				"Each distinct transition appears once in the sorted interval boundary list.",
+			);
+			return;
+		}
+		if (
+			!actual.every(
+				/** @param value - Parsed boundary. @param index - Chronological position. */ (
+					value,
+					index,
+				) =>
+					convolutionScalarMatches(
+						String(value),
+						expected[index] ?? Number.NaN,
+					),
+			)
+		) {
+			this.setSubStepIncorrect(
+				this.step4,
+				id,
+				"Use the verified transition times in ascending order without reflecting, omitting, or adding values.",
+			);
+			return;
+		}
+		this.setSubStepPassed(this.step4, id, undefined, 5);
 	}
 
 	/** Applies immediate feedback to the active Step 5 overlap choice. */
@@ -646,8 +692,12 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			(candidate) => candidate.id === id,
 		);
 		const setup = part?.setupBySignal?.[this.flippedSignal];
-		if (!state || !setup) return;
-		const result = validateBoundsStage(state, setup);
+		if (!state || !part || !setup) return;
+		const interval =
+			this.problem.intervals[
+				this.problem.itsData.step5.parts.indexOf(part)
+			];
+		const result = validateBoundsStage(state, setup, interval);
 		if (result.kind === "blank") {
 			this.setSubStepValidation(this.step5, id, result.message);
 			return;
@@ -706,7 +756,10 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.passActiveSubStep(this.step6, 7);
 	}
 
-	/** Validates one Step 7 interval expression independently. */
+	/**
+	 * Validates one Step 7 interval expression independently.
+	 * @param index - Interval-aligned row position.
+	 */
 	checkStep7Row(index: number): void {
 		const row = this.step7.rows[index];
 		const interval = this.problem.intervals[index];
@@ -717,20 +770,20 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setValidation(this.step7, row.feedback);
 			return;
 		}
-		for (const time of intervalSampleTimes(interval.min, interval.max)) {
-			const actual = tryEvaluateLatexAt(row.input, time);
-			if (actual === null) {
-				row.feedback =
-					"The expression could not be parsed as mathematics in $t$.";
-				this.setValidation(this.step7, row.feedback);
-				return;
-			}
-			if (Math.abs(actual - interval.eval(time)) > 1e-6) {
-				row.feedback =
-					"This expression belongs to a different interval or does not match the verified result.";
+		const result = verifyConvolutionExpression(
+			row.input,
+			interval.exprLatex,
+			interval,
+		);
+		if (result.status !== "correct") {
+			row.feedback =
+				result.status === "incorrect"
+					? "This expression belongs to a different interval or does not match the verified result."
+					: result.message;
+			if (result.status === "incorrect")
 				this.setIncorrect(this.step7, row.feedback);
-				return;
-			}
+			else this.setValidation(this.step7, row.feedback);
+			return;
 		}
 		row.isValid = true;
 		row.feedback = null;
@@ -872,25 +925,156 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		return true;
 	}
 
-	/** Developer auto-fill using the same real validation methods. */
+	/** Fills timing entries through the real Step 1 validator. */
+	private devAutoFillTiming(): void {
+		/* v8 ignore next -- the production build removes developer-only work. */
+		if (!import.meta.env.DEV) return;
+		while (this.currentStep === 1) {
+			const expected = this.problem.itsData.step1.parts.find(
+				/** @param part - Guided timing part. */ (part) =>
+					part.id === this.step1.activeSubStepId,
+			);
+			const state = this.step1.subSteps[this.step1.activeSubStepId];
+			if (!expected || !state) break;
+			state.start = String(expected.start);
+			state.end = String(expected.end);
+			state.width = String(expected.width);
+			this.checkStep1();
+		}
+	}
+
+	/** Fills guided transition work through the real Step 4 validator. */
+	private devAutoFillTransitions(): void {
+		/* v8 ignore next -- the production build removes developer-only work. */
+		if (!import.meta.env.DEV) return;
+		while (this.currentStep === 4) {
+			const id = this.step4.activeSubStepId;
+			const state = this.step4.subSteps[id];
+			if (!state) break;
+			const contact = step4Contacts(
+				this.problem,
+				this.flippedSignal,
+			).find(
+				/** @param candidate - Guided breakpoint contact. */ (
+					candidate,
+				) => id.startsWith(candidate.id),
+			);
+			const values: Record<string, number> = {
+				"section-count-x": this.problem.itsData.step4.sectionCounts.x,
+				"section-count-h": this.problem.itsData.step4.sectionCounts.h,
+				"transition-count":
+					this.problem.itsData.step4.transitionGroups.length,
+				"interval-count":
+					this.problem.itsData.step4.intervalLabels.length,
+			};
+			if (id === "interval-builder")
+				state.intervalInputs =
+					this.problem.itsData.step4.intervalBoundaries.map(String);
+			else if (contact)
+				state.input = id.endsWith("-form")
+					? contact.transformedLatex
+					: String(contact.transitionTime);
+			else
+				state.input = String(
+					values[id] ??
+						this.problem.itsData.step4.breakpointParts.find(
+							/** @param part - Guided breakpoint. */ (part) =>
+								part.id === id,
+						)?.value ??
+						"",
+				);
+			this.checkStep4();
+		}
+	}
+
+	/** Fills overlap candidates and bounds through the real Step 5 validator. */
+	private devAutoFillBounds(): void {
+		/* v8 ignore next -- the production build removes developer-only work. */
+		if (!import.meta.env.DEV) return;
+		while (this.currentStep === 5) {
+			const id = this.step5.activeSubStepId;
+			const state = this.step5.subSteps[id];
+			if (!state) break;
+			const setup = this.problem.itsData.step5.parts.find(
+				/** @param part - Guided interval setup. */ (part) =>
+					part.id === id,
+			)?.setupBySignal?.[this.flippedSignal];
+			if (!setup) break;
+			if (state.stage === "overlap") {
+				this.chooseStep5Overlap(setup.hasOverlap);
+				continue;
+			}
+			state.boundInputs = setup.overlaps.map(
+				/** @param overlap - Verified integration bounds. @param index - Connected overlap position. */ (
+					overlap,
+					index,
+				) => ({
+					lowerValues:
+						state.stage === "evaluate"
+							? candidateInputs(overlap.lowerCandidateValues)
+							: (state.boundInputs[index]?.lowerValues ??
+								candidateInputs(overlap.lowerCandidateValues)),
+					upperValues:
+						state.stage === "evaluate"
+							? candidateInputs(overlap.upperCandidateValues)
+							: (state.boundInputs[index]?.upperValues ??
+								candidateInputs(overlap.upperCandidateValues)),
+					lower: overlap.lowerLatex,
+					upper: overlap.upperLatex,
+					splits: [...overlap.splitPointsLatex],
+				}),
+			);
+			this.checkStep5();
+		}
+	}
+
+	/** Fills each concrete integral field through the real Step 6 validator. */
+	private devAutoFillEvaluation(): void {
+		/* v8 ignore next -- the production build removes developer-only work. */
+		if (!import.meta.env.DEV) return;
+		while (this.currentStep === 6) {
+			const index = this.problem.itsData.step6.parts.findIndex(
+				/** @param part - Guided evaluation interval. */ (part) =>
+					part.id === this.step6.activeSubStepId,
+			);
+			const part = this.problem.itsData.step6.parts[index];
+			const state = this.step6.subSteps[this.step6.activeSubStepId];
+			if (!state) break;
+			const term =
+				part?.evaluationBySignal?.[this.flippedSignal]?.[
+					state.activeTermIndex
+				];
+			const input = state.termInputs[state.activeTermIndex];
+			if (state.stage === "combined")
+				state.input = this.problem.intervals[index]?.exprLatex ?? "0";
+			else if (term && input) {
+				if (state.stage === "geometry-amplitude")
+					input.amplitudeProduct =
+						term.geometry?.amplitudeProductLatex ?? "0";
+				else if (state.stage === "geometry-width")
+					input.overlapWidth =
+						term.geometry?.overlapWidthLatex ?? "0";
+				else if (state.stage === "upper")
+					input.upper = term.upperSubstitutionLatex;
+				else if (state.stage === "lower")
+					input.lower = term.lowerSubstitutionLatex;
+				else input.difference = term.differenceLatex;
+			}
+			this.checkStep6();
+		}
+	}
+
+	/**
+	 * Developer auto-fill using the same real validation methods.
+	 * @param stepIndex - Requested parent step, or the currently active step.
+	 */
 	override devAutoFillStep(stepIndex?: number): void {
 		/* v8 ignore next -- exercised by production builds where the harness is disabled. */
 		if (!import.meta.env.DEV) return;
 		const target = stepIndex ?? this.currentStep;
 		switch (target) {
 			case 1:
-				while (this.currentStep === 1) {
-					const expected = this.problem.itsData.step1.parts.find(
-						({ id }) => id === this.step1.activeSubStepId,
-					);
-					const state =
-						this.step1.subSteps[this.step1.activeSubStepId];
-					if (!expected || !state) break;
-					state.start = String(expected.start);
-					state.end = String(expected.end);
-					state.width = String(expected.width);
-					this.checkStep1();
-				}
+				this.devAutoFillTiming();
 				break;
 			case 2:
 				this.checkStep2(
@@ -915,130 +1099,13 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				this.checkStep3Edges();
 				break;
 			case 4:
-				while (this.currentStep === 4) {
-					const id = this.step4.activeSubStepId;
-					const state = this.step4.subSteps[id];
-					if (!state) break;
-					const contact = step4Contacts(
-						this.problem,
-						this.flippedSignal,
-					).find(({ id: contactId }) => id.startsWith(contactId));
-					if (id === "interval-builder")
-						state.intervalInputs =
-							this.problem.itsData.step4.intervalBoundaries.map(
-								String,
-							);
-					else if (id === "section-count-x")
-						state.input = String(
-							this.problem.itsData.step4.sectionCounts.x,
-						);
-					else if (id === "section-count-h")
-						state.input = String(
-							this.problem.itsData.step4.sectionCounts.h,
-						);
-					else if (contact)
-						state.input = id.endsWith("-form")
-							? contact.transformedLatex
-							: String(contact.transitionTime);
-					else if (id === "transition-count")
-						state.input = String(
-							this.problem.itsData.step4.transitionGroups.length,
-						);
-					else if (id === "interval-count")
-						state.input = String(
-							this.problem.itsData.step4.intervalLabels.length,
-						);
-					else
-						state.input = String(
-							this.problem.itsData.step4.breakpointParts.find(
-								(part) => part.id === id,
-							)?.value ?? "",
-						);
-					this.checkStep4();
-				}
+				this.devAutoFillTransitions();
 				break;
 			case 5:
-				while (this.currentStep === 5) {
-					const id = this.step5.activeSubStepId;
-					const state = this.step5.subSteps[id];
-					if (!state) break;
-					const setup = this.problem.itsData.step5.parts.find(
-						(part) => part.id === id,
-					)?.setupBySignal?.[this.flippedSignal];
-					if (!setup) break;
-					if (state.stage === "overlap") {
-						this.chooseStep5Overlap(setup.hasOverlap);
-						continue;
-					}
-					if (state.stage === "evaluate") {
-						state.boundInputs = setup.overlaps.map((overlap) => ({
-							lowerValues: [
-								String(overlap.lowerCandidateValues[0] ?? ""),
-								String(overlap.lowerCandidateValues[1] ?? ""),
-							],
-							upperValues: [
-								String(overlap.upperCandidateValues[0] ?? ""),
-								String(overlap.upperCandidateValues[1] ?? ""),
-							],
-							lower: overlap.lowerLatex,
-							upper: overlap.upperLatex,
-							splits: [...overlap.splitPointsLatex],
-						}));
-						this.checkStep5();
-						continue;
-					}
-					state.boundInputs = setup.overlaps.map(
-						(overlap, index) => ({
-							lowerValues: state.boundInputs[index]
-								?.lowerValues ?? [
-								String(overlap.lowerCandidateValues[0] ?? ""),
-								String(overlap.lowerCandidateValues[1] ?? ""),
-							],
-							upperValues: state.boundInputs[index]
-								?.upperValues ?? [
-								String(overlap.upperCandidateValues[0] ?? ""),
-								String(overlap.upperCandidateValues[1] ?? ""),
-							],
-							lower: overlap.lowerLatex,
-							upper: overlap.upperLatex,
-							splits: [...overlap.splitPointsLatex],
-						}),
-					);
-					this.checkStep5();
-				}
+				this.devAutoFillBounds();
 				break;
 			case 6:
-				while (this.currentStep === 6) {
-					const index = this.problem.itsData.step6.parts.findIndex(
-						(part) => part.id === this.step6.activeSubStepId,
-					);
-					const part = this.problem.itsData.step6.parts[index];
-					const state =
-						this.step6.subSteps[this.step6.activeSubStepId];
-					if (!state) break;
-					const term =
-						part?.evaluationBySignal?.[this.flippedSignal]?.[
-							state.activeTermIndex
-						];
-					const termInput = state.termInputs[state.activeTermIndex];
-					if (state.stage === "combined")
-						state.input =
-							this.problem.intervals[index]?.exprLatex ?? "0";
-					else if (term && termInput) {
-						if (state.stage === "geometry-amplitude")
-							termInput.amplitudeProduct =
-								term.geometry?.amplitudeProductLatex ?? "0";
-						else if (state.stage === "geometry-width")
-							termInput.overlapWidth =
-								term.geometry?.overlapWidthLatex ?? "0";
-						else if (state.stage === "upper")
-							termInput.upper = term.upperSubstitutionLatex;
-						else if (state.stage === "lower")
-							termInput.lower = term.lowerSubstitutionLatex;
-						else termInput.difference = term.differenceLatex;
-					}
-					this.checkStep6();
-				}
+				this.devAutoFillEvaluation();
 				break;
 			case 7:
 				this.problem.intervals.forEach((interval, index) => {
