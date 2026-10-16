@@ -19,312 +19,292 @@
 
 	let { problem }: Props = $props();
 	let isOpen = $state(false);
-
-	/**
-	 * Toggles the full worked derivation open/closed state.
-	 */
-	function toggleOpen(): void {
-		isOpen = !isOpen;
-	}
 </script>
 
-<div class="full-solution-container">
-	<button
-		type="button"
-		class="full-solution-toggle-btn"
-		onclick={toggleOpen}
-		aria-expanded={isOpen}
-	>
-		<span class="toggle-icon">{isOpen ? "▼" : "▶"}</span>
+<details
+	class="full-solution-container"
+	bind:open={isOpen}
+>
+	<summary class="full-solution-summary">
+		<span
+			class="toggle-icon"
+			aria-hidden="true">{isOpen ? "▼" : "▶"}</span
+		>
 		<span class="toggle-title">
 			{isOpen
 				? "Hide Complete Worked Solution"
 				: "View Complete Worked Solution (All 7 Steps)"}
 		</span>
 		<span class="toggle-badge">Zero-Guesswork Derivation</span>
-	</button>
+	</summary>
 
-	{#if isOpen}
-		<div class="solution-content">
-			<!-- Step 1: Characteristic Equation -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 1</span>
-					<h4 class="step-title">
-						Characteristic Equation Formulation
-					</h4>
-				</div>
+	<div class="solution-content">
+		<!-- Step 1: Characteristic Equation -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 1</span>
+				<h4 class="step-title">Characteristic Equation Formulation</h4>
+			</div>
+			<p class="step-prose">
+				<MathText
+					text={String.raw`Mapping differential operators $\frac{d^n}{dt^n} \to s^n$ and setting the homogeneous right-hand side to $0$ ($x(t) = 0$):`}
+				/>
+			</p>
+			<MathBlock
+				math={`Q(s) = ${problem.itsData.step1.latex}`}
+				compact={true}
+				hideHeader={true}
+			/>
+		</div>
+
+		<!-- Step 2: Characteristic Roots -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 2</span>
+				<h4 class="step-title">
+					Characteristic Roots & Classification
+				</h4>
+			</div>
+			{#if "discriminant" in problem.itsData.step2}
 				<p class="step-prose">
 					<MathText
-						text={String.raw`Mapping differential operators $\frac{d^n}{dt^n} \to s^n$ and setting the homogeneous right-hand side to $0$ ($x(t) = 0$):`}
+						text={String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
 					/>
 				</p>
 				<MathBlock
-					math={`Q(s) = ${problem.itsData.step1.latex}`}
+					math={`s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
 					compact={true}
 					hideHeader={true}
 				/>
-			</div>
-
-			<!-- Step 2: Characteristic Roots -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 2</span>
-					<h4 class="step-title">
-						Characteristic Roots & Classification
-					</h4>
-				</div>
-				{#if "discriminant" in problem.itsData.step2}
-					<p class="step-prose">
-						<MathText
-							text={String.raw`Evaluating discriminant $\Delta = b^2 - 4ac = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${problem.itsData.step2.discriminant}$ and applying the quadratic formula:`}
-						/>
-					</p>
-					<MathBlock
-						math={`s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
-						compact={true}
-						hideHeader={true}
+			{:else}
+				<p class="step-prose">
+					<MathText
+						text={String.raw`Solving the linear characteristic equation for its single root:`}
 					/>
-				{:else}
-					<p class="step-prose">
-						<MathText
-							text={String.raw`Solving the linear characteristic equation for its single root:`}
-						/>
-					</p>
-					<MathBlock
-						math={`${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
-						compact={true}
-						hideHeader={true}
+				</p>
+				<MathBlock
+					math={`${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+					compact={true}
+					hideHeader={true}
+				/>
+			{/if}
+			{#if "factoredFormLatex" in problem.itsData.step2 && problem.itsData.step2.factoredFormLatex}
+				<p class="step-sub-prose">
+					<MathText
+						text={`Factored Form: $${problem.itsData.step2.factoredFormLatex}$`}
 					/>
-				{/if}
-				{#if "factoredFormLatex" in problem.itsData.step2 && problem.itsData.step2.factoredFormLatex}
-					<p class="step-sub-prose">
-						<MathText
-							text={`Factored Form: $${problem.itsData.step2.factoredFormLatex}$`}
-						/>
-					</p>
-				{/if}
-			</div>
+				</p>
+			{/if}
+		</div>
 
-			<!-- Step 3: Homogeneous Form -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 3</span>
-					<h4 class="step-title">Homogeneous Solution Form</h4>
-				</div>
+		<!-- Step 3: Homogeneous Form -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 3</span>
+				<h4 class="step-title">Homogeneous Solution Form</h4>
+			</div>
+			<p class="step-prose">
+				<MathText
+					text={problem.params.order === 1
+						? "The single real root produces one natural basis mode:"
+						: String.raw`Based on the root structure (${problem.params.rootType.replace("_", " ")}), the natural basis modes form:`}
+				/>
+			</p>
+			<MathBlock
+				math={problem.itsData.step3.formLatex}
+				compact={true}
+				hideHeader={true}
+			/>
+		</div>
+
+		<!-- Step 4: Particular Solution Ansatz -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 4</span>
+				<h4 class="step-title">Particular Solution Ansatz</h4>
+			</div>
+			<p class="step-prose">
+				<MathText
+					text={String.raw`Matching the functional form of the input forcing function $x(t) = ${problem.forcing.latex}$:`}
+				/>
+			</p>
+			<MathBlock
+				math={problem.itsData.step4.options.find((o) => o.isCorrect)
+					?.latex ?? "y_p(t)"}
+				compact={true}
+				hideHeader={true}
+			/>
+		</div>
+
+		<!-- Step 5: Undetermined Coefficients -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 5</span>
+				<h4 class="step-title">Undetermined Coefficients Derivation</h4>
+			</div>
+			{#if problem.forcing.type === "sinusoid"}
 				<p class="step-prose">
 					<MathText
 						text={problem.params.order === 1
-							? "The single real root produces one natural basis mode:"
-							: String.raw`Based on the root structure (${problem.params.rootType.replace("_", " ")}), the natural basis modes form:`}
-					/>
-				</p>
-				<MathBlock
-					math={problem.itsData.step3.formLatex}
-					compact={true}
-					hideHeader={true}
-				/>
-			</div>
-
-			<!-- Step 4: Particular Solution Ansatz -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 4</span>
-					<h4 class="step-title">Particular Solution Ansatz</h4>
-				</div>
-				<p class="step-prose">
-					<MathText
-						text={String.raw`Matching the functional form of the input forcing function $x(t) = ${problem.forcing.latex}$:`}
-					/>
-				</p>
-				<MathBlock
-					math={problem.itsData.step4.options.find((o) => o.isCorrect)
-						?.latex ?? "y_p(t)"}
-					compact={true}
-					hideHeader={true}
-				/>
-			</div>
-
-			<!-- Step 5: Undetermined Coefficients -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 5</span>
-					<h4 class="step-title">
-						Undetermined Coefficients Derivation
-					</h4>
-				</div>
-				{#if problem.forcing.type === "sinusoid"}
-					<p class="step-prose">
-						<MathText
-							text={problem.params.order === 1
-								? String.raw`Taking the required trial derivative $y_p'(t)$:`
-								: String.raw`Taking trial derivatives $y_p'(t)$ and $y_p''(t)$:`}
-						/>
-					</p>
-					<MathBlock
-						math={problem.params.order === 1
-							? (problem.itsData.step5.firstDerivLatex ?? "")
-							: (problem.itsData.step5.derivativesLatex ?? "")}
-						compact={true}
-						hideHeader={true}
-					/>
-					<p class="step-prose">
-						<MathText
-							text={problem.params.order === 1
-								? String.raw`Substituting into $a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`
-								: String.raw`Substituting into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`}
-						/>
-					</p>
-					<MathBlock
-						math={problem.itsData.step5.systemLatex ?? ""}
-						compact={true}
-						hideHeader={true}
-					/>
-					<p class="step-prose">
-						<MathText
-							text={String.raw`Solving the $2\times 2$ algebraic system yields:`}
-						/>
-					</p>
-					<MathBlock
-						math={`A = ${toFractionLatex(problem.itsData.step5.expectedA ?? 0)}, \\quad B = ${toFractionLatex(problem.itsData.step5.expectedB ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
-						compact={true}
-						hideHeader={true}
-					/>
-				{:else}
-					<p class="step-prose">
-						<MathText
-							text={problem.params.order === 1
-								? String.raw`Substituting $y_p(t)$ into $a_1 y' + a_0 y = ${problem.forcing.latex}$:`
-								: String.raw`Substituting $y_p(t)$ into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$:`}
-						/>
-					</p>
-					<MathBlock
-						math={`y_p(t) = ${problem.solutions.y_p_latex}`}
-						compact={true}
-						hideHeader={true}
-					/>
-				{/if}
-			</div>
-
-			<!-- Step 6: Initial Conditions System -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 6</span>
-					<h4 class="step-title">
-						Initial Conditions & Complete Response
-					</h4>
-				</div>
-				<p class="step-prose">
-					<MathText
-						text={String.raw`Initial conditions apply to the complete response $y(t) = y_h(t) + y_p(t)$. Subtracting forcing offsets at $t = 0^+$:`}
-					/>
-				</p>
-				<MathBlock
-					math={`y_h(0^+) = y(0^+) - y_p(0^+) = ${problem.initialConditions.y0} - (${toFractionLatex(problem.itsData.step6.yp0)}) = ${toFractionLatex(problem.itsData.step6.targetYh0)}`}
-					compact={true}
-					hideHeader={true}
-				/>
-				{#if problem.params.order === 2}
-					<MathBlock
-						math={`y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${problem.initialConditions.dy0 ?? 0} - (${toFractionLatex(problem.itsData.step6.dyp0 ?? 0)}) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}`}
-						compact={true}
-						hideHeader={true}
-					/>
-				{/if}
-				<p class="step-prose">
-					<MathText
-						text={problem.params.order === 1
-							? String.raw`Solving for integration constant $C_1$ gives the complete response:`
-							: String.raw`Solving for integration constants $C_1, C_2$ gives the complete response:`}
+							? String.raw`Taking the required trial derivative $y_p'(t)$:`
+							: String.raw`Taking trial derivatives $y_p'(t)$ and $y_p''(t)$:`}
 					/>
 				</p>
 				<MathBlock
 					math={problem.params.order === 1
-						? `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}`
-						: `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
+						? (problem.itsData.step5.firstDerivLatex ?? "")
+						: (problem.itsData.step5.derivativesLatex ?? "")}
 					compact={true}
 					hideHeader={true}
 				/>
+				<p class="step-prose">
+					<MathText
+						text={problem.params.order === 1
+							? String.raw`Substituting into $a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`
+							: String.raw`Substituting into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`}
+					/>
+				</p>
 				<MathBlock
-					math={`y(t) = ${problem.solutions.y_complete_latex}`}
+					math={problem.itsData.step5.systemLatex ?? ""}
 					compact={true}
 					hideHeader={true}
 				/>
-			</div>
+				<p class="step-prose">
+					<MathText
+						text={String.raw`Solving the $2\times 2$ algebraic system yields:`}
+					/>
+				</p>
+				<MathBlock
+					math={`A = ${toFractionLatex(problem.itsData.step5.expectedA ?? 0)}, \\quad B = ${toFractionLatex(problem.itsData.step5.expectedB ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
+					compact={true}
+					hideHeader={true}
+				/>
+			{:else}
+				<p class="step-prose">
+					<MathText
+						text={problem.params.order === 1
+							? String.raw`Substituting $y_p(t)$ into $a_1 y' + a_0 y = ${problem.forcing.latex}$:`
+							: String.raw`Substituting $y_p(t)$ into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$:`}
+					/>
+				</p>
+				<MathBlock
+					math={`y_p(t) = ${problem.solutions.y_p_latex}`}
+					compact={true}
+					hideHeader={true}
+				/>
+			{/if}
+		</div>
 
-			<!-- Step 7: Response Decomposition -->
-			<div class="solution-step-card">
-				<div class="step-card-header">
-					<span class="step-badge">Step 7</span>
-					<h4 class="step-title">
-						Response Decomposition & Superposition
-					</h4>
-				</div>
-				<div class="decomp-grid">
-					<div class="decomp-card">
-						<span class="decomp-label">
-							Zero-Input Response <MathInline
-								math={"y_{ZI}(t)"}
-							/>:
-						</span>
-						<MathBlock
-							math={`y_{ZI}(t) = ${problem.solutions.y_zi_latex}`}
-							compact={true}
-							hideHeader={true}
-						/>
-					</div>
-					<div class="decomp-card">
-						<span class="decomp-label">
-							Zero-State Response <MathInline
-								math={"y_{ZS}(t)"}
-							/>:
-						</span>
-						<MathBlock
-							math={`y_{ZS}(t) = ${problem.solutions.y_zs_latex}`}
-							compact={true}
-							hideHeader={true}
-						/>
-					</div>
-					<div class="decomp-card">
-						<span class="decomp-label">
-							Transient Response <MathInline
-								math={"y_{tr}(t)"}
-							/>:
-						</span>
-						<MathBlock
-							math={`y_{tr}(t) = ${problem.solutions.y_tr_latex}`}
-							compact={true}
-							hideHeader={true}
-						/>
-					</div>
-					<div class="decomp-card">
-						<span class="decomp-label">
-							Steady-State Response <MathInline
-								math={"y_{ss}(t)"}
-							/>:
-						</span>
-						<MathBlock
-							math={`y_{ss}(t) = ${problem.solutions.y_ss_latex}`}
-							compact={true}
-							hideHeader={true}
-						/>
-					</div>
-				</div>
-				<div class="superposition-identity-box">
-					<span class="identity-badge">Superposition Identity</span>
+		<!-- Step 6: Initial Conditions System -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 6</span>
+				<h4 class="step-title">
+					Initial Conditions & Complete Response
+				</h4>
+			</div>
+			<p class="step-prose">
+				<MathText
+					text={String.raw`Initial conditions apply to the complete response $y(t) = y_h(t) + y_p(t)$. Subtracting forcing offsets at $t = 0^+$:`}
+				/>
+			</p>
+			<MathBlock
+				math={`y_h(0^+) = y(0^+) - y_p(0^+) = ${problem.initialConditions.y0} - (${toFractionLatex(problem.itsData.step6.yp0)}) = ${toFractionLatex(problem.itsData.step6.targetYh0)}`}
+				compact={true}
+				hideHeader={true}
+			/>
+			{#if problem.params.order === 2}
+				<MathBlock
+					math={`y_h'(0^+) = y'(0^+) - y_p'(0^+) = ${problem.initialConditions.dy0 ?? 0} - (${toFractionLatex(problem.itsData.step6.dyp0 ?? 0)}) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}`}
+					compact={true}
+					hideHeader={true}
+				/>
+			{/if}
+			<p class="step-prose">
+				<MathText
+					text={problem.params.order === 1
+						? String.raw`Solving for integration constant $C_1$ gives the complete response:`
+						: String.raw`Solving for integration constants $C_1, C_2$ gives the complete response:`}
+				/>
+			</p>
+			<MathBlock
+				math={problem.params.order === 1
+					? `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}`
+					: `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
+				compact={true}
+				hideHeader={true}
+			/>
+			<MathBlock
+				math={`y(t) = ${problem.solutions.y_complete_latex}`}
+				compact={true}
+				hideHeader={true}
+			/>
+		</div>
+
+		<!-- Step 7: Response Decomposition -->
+		<div class="solution-step-card">
+			<div class="step-card-header">
+				<span class="step-badge">Step 7</span>
+				<h4 class="step-title">
+					Response Decomposition & Superposition
+				</h4>
+			</div>
+			<div class="decomp-grid">
+				<div class="decomp-card">
+					<span class="decomp-label">
+						Zero-Input Response <MathInline math={"y_{ZI}(t)"} />:
+					</span>
 					<MathBlock
-						math={String.raw`y(t) = y_{ZI}(t) + y_{ZS}(t) = y_{tr}(t) + y_{ss}(t)`}
+						math={`y_{ZI}(t) = ${problem.solutions.y_zi_latex}`}
+						compact={true}
+						hideHeader={true}
+					/>
+				</div>
+				<div class="decomp-card">
+					<span class="decomp-label">
+						Zero-State Response <MathInline math={"y_{ZS}(t)"} />:
+					</span>
+					<MathBlock
+						math={`y_{ZS}(t) = ${problem.solutions.y_zs_latex}`}
+						compact={true}
+						hideHeader={true}
+					/>
+				</div>
+				<div class="decomp-card">
+					<span class="decomp-label">
+						Transient Response <MathInline math={"y_{tr}(t)"} />:
+					</span>
+					<MathBlock
+						math={`y_{tr}(t) = ${problem.solutions.y_tr_latex}`}
+						compact={true}
+						hideHeader={true}
+					/>
+				</div>
+				<div class="decomp-card">
+					<span class="decomp-label">
+						Steady-State Response <MathInline math={"y_{ss}(t)"} />:
+					</span>
+					<MathBlock
+						math={`y_{ss}(t) = ${problem.solutions.y_ss_latex}`}
 						compact={true}
 						hideHeader={true}
 					/>
 				</div>
 			</div>
+			<div class="superposition-identity-box">
+				<span class="identity-badge">Superposition Identity</span>
+				<MathBlock
+					math={String.raw`y(t) = y_{ZI}(t) + y_{ZS}(t) = y_{tr}(t) + y_{ss}(t)`}
+					compact={true}
+					hideHeader={true}
+				/>
+			</div>
 		</div>
-	{/if}
-</div>
+	</div>
+</details>
 
 <style>
-	/* ── Full solution accordion container ───────────────────── */
+	/* ── Full solution disclosure container ───────────────────── */
 
 	.full-solution-container {
 		display: flex;
@@ -334,9 +314,9 @@
 		width: 100%;
 	}
 
-	/* ── Full solution toggle button ─────────────────────────── */
+	/* ── Full solution summary disclosure header ─────────────── */
 
-	.full-solution-toggle-btn {
+	.full-solution-summary {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -352,14 +332,19 @@
 		cursor: pointer;
 		transition: all 0.2s ease-in-out;
 		text-align: left;
+		list-style: none;
 	}
 
-	.full-solution-toggle-btn:hover {
+	.full-solution-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.full-solution-summary:hover {
 		background: var(--surface-3, #223048);
 		border-color: var(--accent-cyan, #06b6d4);
 	}
 
-	.full-solution-toggle-btn:focus-visible {
+	.full-solution-summary:focus-visible {
 		outline: 2px solid var(--accent-cyan, #06b6d4);
 		outline-offset: 2px;
 	}
@@ -485,7 +470,7 @@
 	/* ── Mobile media query (≤480px) ─────────────────────────── */
 
 	@media (max-width: 480px) {
-		.full-solution-toggle-btn {
+		.full-solution-summary {
 			flex-direction: column;
 			align-items: flex-start;
 			gap: var(--space-2, 0.5rem);
