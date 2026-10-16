@@ -44,7 +44,7 @@ describe("StepCard.svelte Component", () => {
 		expect(getByText("✓")).toBeTruthy();
 	});
 
-	it("renders locked state with dimmed modifier class", () => {
+	it("renders locked state in a compact form without body or summary row", () => {
 		const { container, getByText } = render(StepCard, {
 			props: {
 				stepNumber: 3,
@@ -55,8 +55,11 @@ describe("StepCard.svelte Component", () => {
 
 		const card = container.querySelector(".step-card");
 		expect(card?.classList.contains("locked")).toBe(true);
+		expect(card?.classList.contains("active")).toBe(false);
+		expect(card?.classList.contains("completed")).toBe(false);
 		expect(getByText("Total Response")).toBeTruthy();
-		// Body should not be rendered for locked steps
-		expect(container.querySelector(".step-card-body")).toBeNull();
+		// Body and summary should not be rendered for locked steps
+		expect(container.querySelector(".step-body")).toBeNull();
+		expect(container.querySelector(".step-summary")).toBeNull();
 	});
 });

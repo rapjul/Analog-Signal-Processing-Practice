@@ -139,14 +139,27 @@
 		padding: 0.75rem 1.25rem;
 	}
 
-	/* Locked — dimmed, pointer events disabled */
+	/* Locked — dimmed, compact padding, dashed border */
 	.step-card.locked {
-		opacity: 0.65;
+		opacity: 0.55;
 		pointer-events: none;
+		padding: 0.6rem 1rem;
+		gap: 0;
+		background: rgba(255, 255, 255, 0.015);
+		border-style: dashed;
 	}
 
 	.step-card.locked .step-badge {
 		background: var(--white-10);
+		color: var(--text-secondary);
+		font-weight: 500;
+		font-size: var(--text-xs);
+		padding: 0.15rem 0.45rem;
+	}
+
+	.step-card.locked .step-title {
+		font-size: var(--text-sm);
+		font-weight: 500;
 		color: var(--text-secondary);
 	}
 
@@ -223,6 +236,10 @@
 
 		.step-card.completed {
 			padding: 0.6rem 0.85rem;
+		}
+
+		.step-card.locked {
+			padding: 0.5rem 0.75rem;
 		}
 	}
 
