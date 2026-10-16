@@ -54,17 +54,18 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ### 7. Linear ODEs: Hide Root Classification Until the Student Derives It
 
-- **Context:** The Linear ODE problem header currently exposes the characteristic
-  root classification before the student reaches the corresponding ITS step.
-  This contradicts the solver anti-spoiler policy and gives away part of the
+- **Context:** The Linear ODE problem header originally exposed the characteristic
+  root classification before the student reached the corresponding ITS step.
+  This contradicted the solver anti-spoiler policy and gave away part of the
   derivation.
-- **Improvement Idea:**
-    - Keep the initial problem header generic, consistent with the Fourier Series
-      practice card.
-    - Reveal the root classification only after the student determines it, or in
-      a completed-step summary.
-    - Add component and end-to-end assertions that the classification is absent
-      before the relevant step and visible afterward.
+- **Resolution:** Completed. The initial problem header in
+  `src/lib/components/ui/OdePracticeCard.svelte` remains generic (displaying only
+  system order, e.g. `1st-Order` or `2nd-Order`). The characteristic root
+  classification is deferred and displayed only after the student completes
+  Step 2 in its verified step summary.
+- **Coverage:** Automated assertions in
+  `tests/e2e/practice-correctness.spec.ts` (`"ODE header keeps root classification hidden"`
+  and `"ODE classification appears in its verified summary @dev-harness"`).
 
 ## Learning Experience & UX Enhancements
 
@@ -108,11 +109,16 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ### 13. Linear ODEs: Use a Native Worked-Solution Disclosure
 
-- **Context:** The Linear ODE completed solution currently imitates disclosure behavior with a button, local open state, and conditionally rendered content.
-- **Improvement Idea:**
-    - Replace the simulated control with native `<details>` and `<summary>` elements.
-    - Show the complete worked solution at once when the disclosure is opened, matching the Fourier Series completed-solution experience.
-    - Preserve keyboard access, focus styling, collapsed-by-default behavior, and narrow-screen reflow coverage.
+- **Context:** The Linear ODE completed solution originally imitated disclosure
+  behavior with a button, local open state, and conditionally rendered content.
+- **Resolution:** Completed. Replaced the simulated button control in
+  `src/lib/components/solvers/OdeFullSolutionView.svelte` with semantic
+  `<details class="full-solution-container">` and `<summary class="full-solution-summary">`
+  elements, keeping all 7 worked steps in the DOM and matching the Fourier Series
+  worked-solution experience (`FourierSeriesPracticeCard.svelte`) and `ADR-0034`.
+- **Coverage:** Preserves keyboard accessibility, `:focus-visible` styling, default
+  collapsed state, and 320px narrow-screen reflow verified in
+  `tests/unit/components/OdeFullSolutionView.test.ts` and `tests/e2e/ode-substeps-e2e.spec.ts`.
 
 ### 14. Convolution Animator: Transition-Aware Region Navigation
 
