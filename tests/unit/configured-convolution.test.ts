@@ -43,6 +43,45 @@ function numericalConvolution(
 }
 
 describe("independently configured convolution signals", () => {
+	/** Output translations must remain reachable in the animation slider. */
+	it.each(["-5", "5"] as const)(
+		"includes the output when both signals shift by %s",
+		/** @param shift - Common input translation. */ (shift) => {
+			const signal = selection("rect", {
+				shiftState: "shifted",
+				shiftValue: shift,
+			});
+			const problem = generateConfiguredConvolutionProblem(
+				{ x: signal, h: signal },
+				{ seed: 13 },
+			);
+			const range = problem.timeRange;
+			if (!range) throw new Error("Expected animation time range.");
+			for (const interval of problem.intervals.filter(
+				({ hasGeometricOverlap }) => hasGeometricOverlap,
+			)) {
+				expect(range[0]).toBeLessThan(interval.min);
+				expect(range[1]).toBeGreaterThan(interval.max);
+			}
+			expect(problem.eval(2 * Number(shift))).toBeCloseTo(1);
+		},
+	);
+	/** Unbounded output still needs its finite onset and a visible tail. */
+	it("includes the summed onset for two delayed exponentials", () => {
+		const signal = selection("exponential", {
+			shiftState: "shifted",
+			shiftValue: "5",
+		});
+		const problem = generateConfiguredConvolutionProblem(
+			{ x: signal, h: signal },
+			{ seed: 13 },
+		);
+		const range = problem.timeRange;
+		if (!range) throw new Error("Expected animation time range.");
+		expect(range[0]).toBeLessThan(10);
+		expect(range[1]).toBeGreaterThan(10);
+		expect(problem.eval(11)).toBeCloseTo(Math.exp(-1));
+	});
 	it("defaults to beginner-safe random signal types with textbook scales", () => {
 		const problem = generateConfiguredConvolutionProblem(undefined, {
 			seed: 9,
