@@ -316,9 +316,9 @@ describe("LCC ODE Analytical Math Engine", () => {
 		});
 
 		/**
-		 * Verifies defensive error throwing for unsupported degenerate sinusoidal resonance.
+		 * Verifies invalid leading coefficients are rejected before sinusoidal solving.
 		 */
-		it("throws an error for unsupported degenerate sinusoidal resonance", () => {
+		it("rejects a zero leading coefficient before sinusoidal solving", () => {
 			const ode = {
 				order: 1 as const,
 				a2: 0 as const,
@@ -334,7 +334,7 @@ describe("LCC ODE Analytical Math Engine", () => {
 					omega: 1,
 					latex: "5 \\cos(t)",
 				}),
-			).toThrow("Unsupported degenerate sinusoidal resonance");
+			).toThrow("First-order leading coefficient a1 must be non-zero");
 		});
 
 		/**
