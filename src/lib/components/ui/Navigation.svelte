@@ -5,8 +5,8 @@
 	 * Displays SignalLab brand, module selector links, and theme toggle.
 	 */
 
-	import { base } from "$app/paths";
 	import { onMount } from "svelte";
+	import { base } from "$app/paths";
 
 	interface Props {
 		/** Current active module path */
