@@ -6,7 +6,7 @@
  * and randomized conceptual mastery question pools.
  */
 
-import { formatSignedLinearTerm } from "../../formatting";
+import { formatExpTerm, formatSignedLinearTerm } from "../../formatting";
 import { toFractionLatex } from "../../fraction";
 import { randomChoice, shuffleWithRandom } from "../../random";
 import type {
@@ -21,6 +21,7 @@ import type {
 	SecondOrderOdeItsStep7,
 	SecondOrderRootType,
 } from "../types";
+import { distinctResponseOptions } from "./response-options";
 
 /**
  * Concept questions pool for testing fundamental signal processing theory.
@@ -248,6 +249,32 @@ export function buildStep7Data(
 				"Misconception: $y_{ZS}(t)$ contains both the transient natural modes needed to satisfy zero initial conditions AND the forced steady-state response.",
 		},
 	];
+	const firstModeLatex =
+		resolvedOrder === 2 && resolvedRootType === "complex_conjugate"
+			? `${formatExpTerm(roots.r1)} \\cos(${toFractionLatex(roots.im ?? 0)}t)`
+			: formatExpTerm(roots.r1);
+	const transientChoices = distinctResponseOptions(
+		transientOptions,
+		{
+			tr_correct: [
+				homogeneousComplete.C1,
+				homogeneousComplete.C2 ?? 0,
+				0,
+			],
+			tr_yp: [0, 0, 1],
+			tr_zi: [homogeneousZI.C1, homogeneousZI.C2 ?? 0, 0],
+		},
+		firstModeLatex,
+	);
+	const steadyStateChoices = distinctResponseOptions(
+		steadyStateOptions,
+		{
+			ss_correct: [0, 0, 1],
+			ss_yh: [homogeneousComplete.C1, homogeneousComplete.C2 ?? 0, 0],
+			ss_zs: [homogeneousZS.C1, homogeneousZS.C2 ?? 0, 1],
+		},
+		firstModeLatex,
+	);
 
 	// Pick a concept question
 	const selectedConceptBase = randomChoice(random, CONCEPT_QUESTIONS_POOL);
@@ -297,8 +324,8 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientOptions, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateOptions, random),
+			transientOptions: shuffleWithRandom(transientChoices, random),
+			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -339,8 +366,8 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientOptions, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateOptions, random),
+			transientOptions: shuffleWithRandom(transientChoices, random),
+			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [

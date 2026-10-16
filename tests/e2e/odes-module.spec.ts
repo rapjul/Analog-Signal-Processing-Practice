@@ -9,6 +9,55 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("LCC ODEs Practice Module", () => {
+	/** Verifies unit-frequency derivative choices and their visible grading. @param fixtures - Browser fixtures. */
+	test("grades distinct unit-frequency derivatives correctly @dev-harness", async ({
+		page,
+	}) => {
+		await page.goto("/odes?order=2&forcing=sinusoid&resonance=none&seed=1");
+		await expect
+			.poll(
+				/** Reads harness availability after hydration. */
+				() =>
+					page.evaluate(
+						/** Checks the registered solver harness. */
+						() => typeof window.__signalLabDev?.goToVisualState,
+					),
+			)
+			.toBe("function");
+		await page.evaluate(
+			/** Opens Step 5 through the existing development harness. */
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"ode.step-05.first-derivative",
+				),
+		);
+		const active = page.locator(".step-card.active");
+		const first = active.locator(".subpart-block").first();
+		const choices = first.locator(".mcq-card");
+		await expect(choices).toHaveCount(4);
+		const formulas = await choices.locator("annotation").allTextContents();
+		const correct = formulas.indexOf(
+			String.raw`y_p'(t) = -1A \sin(1t) + 1B \cos(1t)`,
+		);
+		expect(correct).toBeGreaterThanOrEqual(0);
+		await choices.nth(correct).click();
+		await expect(first).toHaveClass(/subpart-done/);
+		const second = active.locator(".subpart-block").nth(1);
+		const secondFormulas = await second
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		expect(new Set(secondFormulas).size).toBe(4);
+		await second
+			.locator(".mcq-card")
+			.nth(
+				secondFormulas.indexOf(
+					String.raw`y_p''(t) = -1A \cos(1t) - 1B \sin(1t)`,
+				),
+			)
+			.click();
+		await expect(second).toHaveClass(/subpart-done/);
+	});
+
 	test.beforeEach(async ({ page }) => {
 		await page.goto(
 			"/odes?order=2&rootType=distinct_real&forcing=constant&leading=monic&resonance=none&seed=210",
