@@ -13,6 +13,7 @@ import type {
 import type { ConvolutionInterval } from "$lib/math-engine/convolution/types";
 import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
 import { sanitizeLatexMath } from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
 import { formatConvolutionScalar } from "./presentation";
 
 /** Returns a representative interior time for active max/min bounds. */
@@ -95,7 +96,91 @@ function polynomialEvaluationTerm(
 	};
 }
 
-/** Builds a concrete polynomial/exponential term when either signal decays. */
+/**
+ * Formats an affine time factor with small rational coefficients.
+ * @param coefficients - Constant and time coefficient.
+ * @returns Compact polynomial without zero terms.
+ */
+function timeFactor(coefficients: [number, number]): string {
+	return sanitizeLatexMath(
+		[
+			coefficients[0] === 0 ? "" : toFractionLatex(coefficients[0]),
+			coefficients[1] === 0 ? "" : `${toFractionLatex(coefficients[1])}t`,
+		]
+			.filter(Boolean)
+			.join("+") || "0",
+	);
+}
+
+/**
+ * Formats an exponential signal at a specified argument, or its unit prefactor.
+ * @param signal - Resolved finite or exponential signal.
+ * @param argument - Argument before applying the signal's own translation.
+ * @returns Exact exponential factor, or one for a finite signal.
+ */
+function exponentialFactor(
+	signal: ResolvedConvolutionSignal,
+	argument: string,
+): string {
+	return signal.kind === "exponential"
+		? sanitizeLatexMath(
+				`${formatConvolutionScalar(signal.amplitude)}e^{-${formatConvolutionScalar(signal.parameter)}(${argument}-${formatConvolutionScalar(signal.shift)})}`,
+			)
+		: "1";
+}
+
+/**
+ * Formats the actual active signal piece at the specified argument.
+ * @param signal - Resolved signal.
+ * @param coefficients - Active finite polynomial coefficients.
+ * @param argument - Fixed or transformed integration argument.
+ * @returns Complete active piece, preserving integration-variable dependence.
+ */
+function activePieceLatex(
+	signal: ResolvedConvolutionSignal,
+	coefficients: [number, number],
+	argument: string,
+): string {
+	return signal.kind === "exponential"
+		? exponentialFactor(signal, argument)
+		: linearPieceLatex(coefficients, `(${argument})`);
+}
+
+/**
+ * Integrates an affine polynomial times an exponential without expanding zeros.
+ * @param prefactor - Exact factor independent of the integration variable.
+ * @param coefficients - Constant and output-time terms of the integrand.
+ * @param slope - Coefficient of the integration variable.
+ * @param rate - Integration-variable exponential rate.
+ * @returns Compact antiderivative body.
+ */
+function exponentialPrimitive(
+	prefactor: string,
+	coefficients: [number, number],
+	slope: number,
+	rate: number,
+): string {
+	if (Math.abs(rate) < 1e-12)
+		return `${prefactor}((${timeFactor(coefficients)})\\tau${slope === 0 ? "" : `+(${toFractionLatex(slope / 2)})\\tau^2`})`;
+	const q0 = timeFactor([
+		coefficients[0] / rate - slope / (rate * rate),
+		coefficients[1] / rate,
+	]);
+	const q1 = slope / rate;
+	return `${prefactor}e^{${formatConvolutionScalar(rate)}\\tau}((${q0})${q1 === 0 ? "" : `+(${toFractionLatex(q1)})\\tau`})`;
+}
+
+/**
+ * Builds compact, symbolic polynomial/exponential work when either signal decays.
+ * @param id - Stable integral-term identifier.
+ * @param fixed - Signal evaluated at the integration variable.
+ * @param moving - Reflected and translated signal.
+ * @param fixedPiece - Active finite polynomial piece, when present.
+ * @param movingPiece - Active finite moving piece, when present.
+ * @param lowerLatex - Verified lower integration limit.
+ * @param upperLatex - Verified upper integration limit.
+ * @returns Exact displayed factors, primitive, and bound substitutions.
+ */
 function exponentialEvaluationTerm(
 	id: string,
 	fixed: ResolvedConvolutionSignal,
@@ -116,58 +201,38 @@ function exponentialEvaluationTerm(
 	];
 	const [a0, a1] = fixedCoefficients;
 	const [b0, b1] = movingCoefficients;
-	const movingFactor =
-		moving.kind === "exponential"
-			? `${formatConvolutionScalar(moving.amplitude)}e^{-${formatConvolutionScalar(moving.parameter)}(t-${formatConvolutionScalar(moving.shift)})}`
-			: "1";
-	const fixedFactor =
-		fixed.kind === "exponential"
-			? formatConvolutionScalar(
-					fixed.amplitude * Math.exp(fixed.parameter * fixed.shift),
-				)
-			: "1";
-	const p0 =
-		moving.kind === "exponential"
-			? `(${fixedFactor})(${movingFactor})(${formatConvolutionScalar(a0)})`
-			: `(${fixedFactor})(${formatConvolutionScalar(a0)})(${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}t)`;
-	const p1 =
-		moving.kind === "exponential"
-			? `(${fixedFactor})(${movingFactor})(${formatConvolutionScalar(a1)})`
-			: `(${fixedFactor})((${formatConvolutionScalar(a1)})(${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}t)-${formatConvolutionScalar(a0 * b1)})`;
-	const p2 =
-		moving.kind === "exponential"
-			? "0"
-			: `(${fixedFactor})(${formatConvolutionScalar(-a1 * b1)})`;
-	const fixedPieceLatex =
-		fixed.kind === "exponential"
-			? sanitizeLatexMath(
-					`${formatConvolutionScalar(fixed.amplitude)}e^{-${formatConvolutionScalar(fixed.parameter)}(\\tau-${formatConvolutionScalar(fixed.shift)})}`,
-				)
-			: linearPieceLatex(fixedCoefficients, String.raw`\tau`);
-	const movingPieceLatex =
-		moving.kind === "exponential"
-			? sanitizeLatexMath(movingFactor)
-			: sanitizeLatexMath(
-					`${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}(t-\\tau)`,
-				);
+	const movingFactor = exponentialFactor(moving, "t");
+	const fixedFactor = exponentialFactor(fixed, "0");
+	const prefactor = `(${fixedFactor})(${movingFactor})`;
+	const constantCoefficients: [number, number] =
+		moving.kind === "exponential" ? [a0, 0] : [b0, b1];
+	const slope = moving.kind === "exponential" ? a1 : -b1;
+	const constant = timeFactor(constantCoefficients);
+	const fixedPieceLatex = activePieceLatex(
+		fixed,
+		fixedCoefficients,
+		String.raw`\tau`,
+	);
+	const movingPieceLatex = activePieceLatex(
+		moving,
+		movingCoefficients,
+		String.raw`t-\tau`,
+	);
 	const exponential =
 		Math.abs(exponentRate) < 1e-12
 			? ""
 			: `e^{${formatConvolutionScalar(exponentRate)}\\tau}`;
 	const integrandLatex = sanitizeLatexMath(
-		`(${p0}+(${p1})\\tau+(${p2})\\tau^2)${exponential}`,
+		`${prefactor}((${constant})${slope === 0 ? "" : `+(${toFractionLatex(slope)})\\tau`})${exponential}`,
 	);
-	let primitiveBody: string;
-	if (Math.abs(exponentRate) < 1e-12) {
-		primitiveBody = `(${p0})\\tau+\\frac{(${p1})\\tau^2}{2}+\\frac{(${p2})\\tau^3}{3}`;
-	} else {
-		const rate = formatConvolutionScalar(exponentRate);
-		const q2 = `((${p2})/${rate})`;
-		const q1 = `((${p1})-2${q2})/${rate}`;
-		const q0 = `((${p0})-${q1})/${rate}`;
-		primitiveBody = `e^{${rate}\\tau}(${q0}+(${q1})\\tau+(${q2})\\tau^2)`;
-	}
+	const primitiveBody = exponentialPrimitive(
+		prefactor,
+		constantCoefficients,
+		slope,
+		exponentRate,
+	);
 	const primitiveLatex = sanitizeLatexMath(`F(\\tau,t)=${primitiveBody}`);
+	/** @param bound - Verified limit. @returns Primitive evaluated at that limit. */
 	const substitute = (bound: string): string =>
 		sanitizeLatexMath(
 			primitiveBody.replaceAll(String.raw`\tau`, `(${bound})`),
@@ -190,7 +255,75 @@ function exponentialEvaluationTerm(
 	};
 }
 
-/** Builds exact configured polynomial work for every connected integral term. */
+/**
+ * Finds the finite signal piece active at an interior sample coordinate.
+ * @param signal - Resolved signal whose pieces are searched.
+ * @param point - Integration or transformed coordinate.
+ * @returns Active polynomial piece, if the signal has one.
+ */
+function activePolynomialPiece(
+	signal: ResolvedConvolutionSignal,
+	point: number,
+): ConvolutionPolynomialPiece | undefined {
+	return signal.pieces.find(
+		/** @param piece - Candidate finite section. */ (piece) =>
+			point > piece.start - 1e-9 && point < piece.end + 1e-9,
+	);
+}
+
+/**
+ * Builds work for one connected integration interval.
+ * @param id - Stable term identifier.
+ * @param fixed - Fixed signal.
+ * @param moving - Reflected and translated signal.
+ * @param time - Interior output-time sample.
+ * @param lowerLatex - Lower integration limit.
+ * @param upperLatex - Upper integration limit.
+ * @returns Concrete evaluation work, or null for missing geometry.
+ */
+function buildConnectedTerm(
+	id: string,
+	fixed: ResolvedConvolutionSignal,
+	moving: ResolvedConvolutionSignal,
+	time: number,
+	lowerLatex: string,
+	upperLatex: string,
+): ConvolutionEvaluationTerm | null {
+	const lower = tryEvaluateLatexAt(lowerLatex, time);
+	const upper = tryEvaluateLatexAt(upperLatex, time);
+	if (lower === null || upper === null) return null;
+	const tau = (lower + upper) / 2;
+	const fixedPiece = activePolynomialPiece(fixed, tau);
+	const movingPiece = activePolynomialPiece(moving, time - tau);
+	if (fixed.kind !== "exponential" && !fixedPiece) return null;
+	if (moving.kind !== "exponential" && !movingPiece) return null;
+	if (fixed.kind === "exponential" || moving.kind === "exponential")
+		return exponentialEvaluationTerm(
+			id,
+			fixed,
+			moving,
+			fixedPiece,
+			movingPiece,
+			lowerLatex,
+			upperLatex,
+		);
+	return polynomialEvaluationTerm(
+		id,
+		fixedPiece?.coefficients ?? [0, 0],
+		movingPiece?.coefficients ?? [0, 0],
+		lowerLatex,
+		upperLatex,
+	);
+}
+
+/**
+ * Builds exact configured work for every connected integral term.
+ * @param interval - Active output interval.
+ * @param setup - Verified connected overlap bounds.
+ * @param context - Resolved signal and tutoring metadata.
+ * @param movingSignal - Learner-selected reflected signal.
+ * @returns Concrete per-term evaluation work for the selected path.
+ */
 export function buildEvaluationTerms(
 	interval: ConvolutionInterval,
 	setup: ConvolutionIntegralPathSetup | undefined,
@@ -212,40 +345,15 @@ export function buildEvaluationTerms(
 		for (let index = 0; index < boundaries.length - 1; index += 1) {
 			const lowerLatex = boundaries[index] ?? "0";
 			const upperLatex = boundaries[index + 1] ?? "0";
-			const lower = tryEvaluateLatexAt(lowerLatex, time);
-			const upper = tryEvaluateLatexAt(upperLatex, time);
-			if (lower === null || upper === null) continue;
-			const tau = (lower + upper) / 2;
-			const fixedPiece = fixed.pieces.find(
-				(piece) => tau > piece.start - 1e-9 && tau < piece.end + 1e-9,
+			const term = buildConnectedTerm(
+				`term-${terms.length + 1}`,
+				fixed,
+				moving,
+				time,
+				lowerLatex,
+				upperLatex,
 			);
-			const movingPoint = time - tau;
-			const movingPiece = moving.pieces.find(
-				(piece) =>
-					movingPoint > piece.start - 1e-9 &&
-					movingPoint < piece.end + 1e-9,
-			);
-			if (fixed.kind !== "exponential" && !fixedPiece) continue;
-			if (moving.kind !== "exponential" && !movingPiece) continue;
-			terms.push(
-				fixed.kind === "exponential" || moving.kind === "exponential"
-					? exponentialEvaluationTerm(
-							`term-${terms.length + 1}`,
-							fixed,
-							moving,
-							fixedPiece,
-							movingPiece,
-							lowerLatex,
-							upperLatex,
-						)
-					: polynomialEvaluationTerm(
-							`term-${terms.length + 1}`,
-							fixedPiece?.coefficients ?? [0, 0],
-							movingPiece?.coefficients ?? [0, 0],
-							lowerLatex,
-							upperLatex,
-						),
-			);
+			if (term) terms.push(term);
 		}
 	}
 	return terms;
