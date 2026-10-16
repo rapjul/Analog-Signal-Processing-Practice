@@ -67,6 +67,10 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to start pra
 
 ---
 
+## GitHub Pages deployment
+
+Configure **Settings → Pages → Source → GitHub Actions** once. Pushes to `main` and manual dispatch build with the Pages `BASE_PATH`, verify the artifact using `npm run test:pages`, and deploy only after verification passes. PR checks exercise both root and project hosting. See the [Pages verification guide](./docs/development-and-testing.md#github-pages-artifact-verification).
+
 ## 📖 Technical Documentation
 
 - 🛠️ **[Development & Testing Guide](docs/development-and-testing.md)** — Contributor setup, dual-runtime Vitest architecture (ADR `0025`), Playwright E2E suites, AST math testing, and formatting standards.

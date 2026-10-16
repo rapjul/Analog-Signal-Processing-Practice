@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      pages: read # Read site metadata without granting deployment access.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,6 +44,14 @@ jobs:
 
       - name: Build project
         run: npm run build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
+      - name: Install smoke test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify Pages artifact
+        run: npm run test:pages
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
 

@@ -15,6 +15,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pages-smoke:
+    name: Pages smoke (${{ matrix.mount }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mount: root
+            base-path: ""
+          - mount: project
+            base-path: /Analog-Signal-Processing-Practice
+    env:
+      BASE_PATH: ${{ matrix.base-path }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build mounted artifact
+        run: npm run build
+      - name: Install smoke test browser
+        run: npx playwright install --with-deps chromium
+      - name: Verify mounted Pages artifact
+        run: npm run test:pages
+      - name: Retain smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pages-smoke-${{ matrix.mount }}-${{ github.run_attempt }}
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   verify:
     name: Tests, properties, and production workflows
     runs-on: ubuntu-24.04

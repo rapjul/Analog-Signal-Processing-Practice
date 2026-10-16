@@ -183,6 +183,30 @@ Artifact-generating runs also write `tests/e2e/screenshots/solvers/current/timin
 
 ---
 
+## GitHub Pages artifact verification
+
+Configure **Settings → Pages → Source → GitHub Actions** once before deployment. The build reads Pages metadata with `pages: read` and passes `base_path` as `BASE_PATH`. Deployment permissions remain exclusive to the dependent deploy job. PR smoke jobs supply their own base paths and need only `contents: read`.
+
+Use Node.js `24.x` for the native TypeScript static test host. Install Chromium once, then build and test each hosting shape with the same `BASE_PATH` for both commands:
+
+```bash
+npx playwright install chromium
+
+# Root hosting (also the default when BASE_PATH is unset).
+BASE_PATH='' npm run build
+BASE_PATH='' npm run test:pages
+
+# GitHub Pages project URL.
+BASE_PATH=/Analog-Signal-Processing-Practice npm run build
+BASE_PATH=/Analog-Signal-Processing-Practice npm run test:pages
+```
+
+`npm run test:pages` uses `./playwright.pages.config.ts` and port `33211`. It tests the existing `./build` artifact without rebuilding it or reusing another server. The static host only exposes the configured mount, performs HTML file lookup, and serves `404.html` with HTTP `404` for missing routes. Run the hosting variants sequentially because they share the output directory and test port.
+
+The suite checks all six module links, direct navigation, reloads, query parameters, active navigation, error recovery, manifest resources, worker scope and activation, and offline access through the three stepped solvers. Online checks block service workers so cached pages cannot hide host failures. Network auditing rejects missing resources, unhandled application exceptions, and requests outside the mount. Failure traces and screenshots are written under `./test-results/`.
+
+PR verification runs separate root and project smoke jobs. Deployment runs the same suite against its actual Pages build before uploading the artifact, so a failing smoke check prevents deployment.
+
 ## 📐 Mathematical & Code Formatting Guidelines
 
 ### Universal LaTeX Enforcement
