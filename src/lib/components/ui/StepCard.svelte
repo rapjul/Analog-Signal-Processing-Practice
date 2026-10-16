@@ -141,7 +141,7 @@
 
 	/* Locked — dimmed, compact padding, dashed border */
 	.step-card.locked {
-		opacity: 0.55;
+		opacity: 1;
 		pointer-events: none;
 		padding: 0.6rem 1rem;
 		gap: 0;

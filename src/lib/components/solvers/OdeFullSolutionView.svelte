@@ -314,6 +314,10 @@
 		width: 100%;
 	}
 
+	.full-solution-container:not([open])::details-content {
+		display: none;
+	}
+
 	/* ── Full solution summary disclosure header ─────────────── */
 
 	.full-solution-summary {

@@ -95,16 +95,22 @@ describe("OdeFullSolutionView — Native Worked-Solution Disclosure", () => {
 		const summary = container.querySelector<HTMLElement>(
 			"summary.full-solution-summary",
 		);
+		if (!summary) throw new Error("Missing summary element");
 
-		// Toggle open
+		// Simulate user interaction via summary click.
+		// In jsdom, clicking <summary> does not natively mutate details.open or
+		// dispatch the native toggle event, so details.open and the toggle event
+		// are explicitly updated to verify Svelte's bind:open reactivity.
+		await fireEvent.click(summary);
 		details.open = true;
 		await fireEvent(details, new Event("toggle"));
-		expect(summary?.textContent).toContain("Hide Complete Worked Solution");
+		expect(summary.textContent).toContain("Hide Complete Worked Solution");
 
-		// Toggle closed
+		// Simulate user closing the disclosure
+		await fireEvent.click(summary);
 		details.open = false;
 		await fireEvent(details, new Event("toggle"));
-		expect(summary?.textContent).toContain("View Complete Worked Solution");
+		expect(summary.textContent).toContain("View Complete Worked Solution");
 	});
 
 	it("renders first-order ODE worked solutions correctly", () => {

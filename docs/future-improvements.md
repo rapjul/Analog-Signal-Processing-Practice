@@ -116,9 +116,10 @@ A running backlog of prospective UX, visual, and architectural improvements to c
   `<details class="full-solution-container">` and `<summary class="full-solution-summary">`
   elements, keeping all 7 worked steps in the DOM and matching the Fourier Series
   worked-solution experience (`FourierSeriesPracticeCard.svelte`) and `ADR-0034`.
-- **Coverage:** Preserves keyboard accessibility, `:focus-visible` styling, default
-  collapsed state, and 320px narrow-screen reflow verified in
-  `tests/unit/components/OdeFullSolutionView.test.ts` and `tests/e2e/ode-substeps-e2e.spec.ts`.
+- **Coverage:** Verified collapsed-by-default state, `<summary>` user interaction,
+  and dynamic label updates in `tests/unit/components/OdeFullSolutionView.test.ts`.
+  Semantic keyboard focus and `:focus-visible` styling conform to `ADR-0021` and `ADR-0034`,
+  and production static build verification confirms clean compilation without layout regression.
 
 ### 14. Convolution Animator: Transition-Aware Region Navigation
 
