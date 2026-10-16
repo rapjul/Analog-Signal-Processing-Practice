@@ -19,11 +19,21 @@ export function buildStep1Data(
 	w0: number,
 	w0Latex: string,
 ): FourierItsStep1 {
-	const tAliases = [String(T0), `${T0}.0`];
+	const tAliases = [String(T0)];
 	const w0Aliases =
 		T0 === 2
 			? ["pi", "\\pi", "1pi", "3.14", "3.1415", "3.1416"]
-			: ["pi/2", "\\pi/2", "0.5pi", "0.5\\pi", "1/2pi", "1.57", "1.5708"];
+			: T0 === 4
+				? [
+						"pi/2",
+						"\\pi/2",
+						"0.5pi",
+						"0.5\\pi",
+						"1/2pi",
+						"1.57",
+						"1.5708",
+					]
+				: [w0Latex, String(w0)];
 
 	return {
 		expectedT: T0,

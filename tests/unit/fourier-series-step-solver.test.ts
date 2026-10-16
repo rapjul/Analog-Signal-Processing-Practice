@@ -3,6 +3,43 @@ import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-se
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolverState Reactive Controller", () => {
+	/** Checks symbolic constants and equivalent units without binding free variables. */
+	it.each([
+		[1, "1", "s", "2*pi", "rad/s"],
+		[2, "2", "s", "2*pi/2", "rad/s"],
+		[4, "4000", "ms", "1/4", "Hz"],
+		[8, "8", "s", "pi/4", "rad/s"],
+		[8, "8000", "ms", "0.125", "Hz"],
+		[8, "8", "s", String(Math.PI / 4), "rad/s"],
+	])(
+		"accepts equivalent period/frequency inputs for %s",
+		(T0, period, periodUnit, freq, freqUnit) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: Number(T0),
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, { period, periodUnit, freq, freqUnit });
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(2);
+		},
+	);
+
+	/** Rejects stale aliases, malformed expressions, and expressions containing variables. */
+	it.each(["pi/2", "t+pi/4", "1/0", "pi/", "0", "-pi/4"])(
+		"rejects invalid frequency %s",
+		(freq) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: 8,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, { period: "8", freq });
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(1);
+			expect(solver.step1.isValid).toBe(false);
+		},
+	);
 	it("initializes in pristine state on Step 1", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierSeriesStepSolverState(() => problem);

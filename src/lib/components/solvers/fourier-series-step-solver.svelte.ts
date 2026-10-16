@@ -1,3 +1,7 @@
+import {
+	evaluateMathJsonStrict,
+	parseStrictLatex,
+} from "$lib/math-engine/evaluator";
 import type {
 	FourierCoefficientPart,
 	FourierItsOption,
@@ -229,21 +233,32 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		const periodScale = this.step1.periodUnit === "ms" ? 0.001 : 1;
 		const frequencyScale = this.step1.freqUnit === "Hz" ? 2 * Math.PI : 1;
 		const periodSeconds = parseNumericInput(pTrimmed) * periodScale;
-		const frequencyRadiansPerSecond =
-			parseNumericInput(fTrimmed) * frequencyScale;
+		let frequencyValue = parseNumericInput(fTrimmed);
+		if (!Number.isFinite(frequencyValue)) {
+			try {
+				frequencyValue =
+					evaluateMathJsonStrict(parseStrictLatex(fTrimmed), {}) ??
+					Number.NaN;
+			} catch {
+				frequencyValue = Number.NaN;
+			}
+		}
+		const frequencyRadiansPerSecond = frequencyValue * frequencyScale;
 		const pMatch =
 			(this.step1.periodUnit === "s" &&
 				s1Data.tAliases.some(
 					(alias) => pTrimmed === alias.toLowerCase(),
 				)) ||
-			Math.abs(periodSeconds - s1Data.expectedT) < 0.05;
+			(periodSeconds > 0 &&
+				Math.abs(periodSeconds - s1Data.expectedT) < 0.05);
 
 		const fMatch =
 			(this.step1.freqUnit === "rad/s" &&
 				s1Data.w0Aliases.some(
 					(alias) => fTrimmed === alias.toLowerCase(),
 				)) ||
-			Math.abs(frequencyRadiansPerSecond - s1Data.expectedW0) < 0.05;
+			(frequencyRadiansPerSecond > 0 &&
+				Math.abs(frequencyRadiansPerSecond - s1Data.expectedW0) < 0.05);
 
 		if (!pMatch) {
 			this.setIncorrect(

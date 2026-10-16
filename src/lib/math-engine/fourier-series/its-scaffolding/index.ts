@@ -6,6 +6,7 @@
  */
 
 import type { RandomSource } from "../../random";
+import { formatFourierFrequency } from "../frequency";
 import { buildFourierSeriesSymbolicDerivation } from "../solver";
 import type {
 	FourierSeriesCoefficients,
@@ -54,7 +55,7 @@ export function generateFourierSeriesItsData(
 	primaryForm?: FourierSeriesPrimaryForm,
 ): FourierSeriesItsData {
 	const { T0, w0, originParity } = coeffs;
-	const w0Latex = T0 === 2 ? "\\pi" : "\\frac{\\pi}{2}";
+	const w0Latex = formatFourierFrequency(T0);
 
 	// Step 1: Period and Frequency
 	const step1 = buildStep1Data(T0, w0, w0Latex);

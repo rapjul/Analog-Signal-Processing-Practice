@@ -40,7 +40,7 @@ export function buildFinalSeriesLatex(
 		case "half_wave_sine":
 			return `x(t) = \\frac{${A}}{\\pi} + \\frac{${A}}{2}\\sin\\left(${w0Latex} t\\right) + \\sum_{n=2,4,6,\\dots}^{\\infty} \\frac{2(${A})}{\\pi(1-n^2)} \\cos\\left(n ${w0Latex} t\\right)`;
 		case "full_wave_sine":
-			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(2n ${w0Latex} t\\right)`;
+			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(n ${w0Latex} t\\right)`;
 		default: {
 			const _exhaustiveCheck: never = waveformType;
 			throw new Error(

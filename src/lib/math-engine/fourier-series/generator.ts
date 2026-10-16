@@ -12,6 +12,7 @@ import {
 	shuffleWithRandom,
 } from "../random";
 import type { SolutionStep } from "../types";
+import { formatFourierFrequency } from "./frequency";
 import {
 	buildPrimarySeriesOptions,
 	generateFourierSeriesItsData,
@@ -62,7 +63,7 @@ export function generateFourierSeriesProblem(
 	const coeffs = computeFourierSeriesCoefficients(waveformType, { A, T0 });
 	const id = `fs_${waveformType}_${seed}`;
 	const itsData = generateFourierSeriesItsData(coeffs, random);
-	const w0Latex = coeffs.w0 === Math.PI ? "\\pi" : "\\frac{\\pi}{2}";
+	const w0Latex = formatFourierFrequency(T0);
 	const derivation = buildFourierSeriesSymbolicDerivation(coeffs, w0Latex);
 	const alternateForm: FourierSeriesPrimaryForm =
 		itsData.step4.correctForm === "trig" ? "exp" : "trig";
