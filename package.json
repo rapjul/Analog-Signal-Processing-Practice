@@ -23,6 +23,7 @@
     "test:grading:properties:extended": "SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=73 npm run test:grading:properties && SIGNALLAB_PROPERTY_RUNS=5000 SIGNALLAB_PROPERTY_SEED=20261015 npm run test:grading:properties",
     "test:e2e": "playwright test",
     "test:e2e:production": "playwright test --config playwright.production.config.ts",
+    "test:pages": "playwright test --config playwright.pages.config.ts",
     "test:e2e:production:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_INITIAL_ONLY=1 playwright test --config playwright.production.config.ts --project Solver-Visual-Snapshots --update-snapshots none",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
     "test:e2e:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts",

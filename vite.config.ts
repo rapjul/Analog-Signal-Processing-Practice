@@ -56,6 +56,12 @@ function playwrightProbePlugin(): Plugin {
  */
 export default defineConfig(({ command }) => {
 	const isBuild = command === "build";
+	const rawBasePath = process.env.BASE_PATH?.replace(/\/$/, "");
+	const basePath: "" | `/${string}` = rawBasePath
+		? rawBasePath.startsWith("/")
+			? (rawBasePath as `/${string}`)
+			: `/${rawBasePath}`
+		: "";
 
 	return {
 		server: {
@@ -79,6 +85,9 @@ export default defineConfig(({ command }) => {
 				adapter: adapter({
 					fallback: "404.html",
 				}),
+				paths: {
+					base: basePath,
+				},
 			}),
 			VitePWA({
 				strategies: "generateSW",
@@ -86,14 +95,14 @@ export default defineConfig(({ command }) => {
 				devOptions: {
 					enabled: true,
 					type: "module",
-					navigateFallback: "/",
+					navigateFallback: basePath ? `${basePath}/` : "/",
 				},
 				manifest: {
 					name: "SignalLab — UIUC ECE 210 Practice",
 					short_name: "SignalLab",
 					id: "Analog-Signal-Processing-Practice/v1",
-					start_url: "/",
-					scope: "/",
+					start_url: basePath ? `${basePath}/` : "/",
+					scope: basePath ? `${basePath}/` : "/",
 					description:
 						"Practice tool for the mathematics of Analog Signal Processing",
 					lang: "en",
@@ -107,10 +116,10 @@ export default defineConfig(({ command }) => {
 							name: "Differential Equations",
 							short_name: "ODEs",
 							description: "Practice 1st and 2nd Order ODEs",
-							url: "/odes",
+							url: `${basePath}/odes`,
 							icons: [
 								{
-									src: "/icons/pwa-icon-192x192.png",
+									src: `${basePath}/icons/pwa-icon-192x192.png`,
 									sizes: "192x192",
 								},
 							],
@@ -119,10 +128,10 @@ export default defineConfig(({ command }) => {
 							name: "Fourier Series",
 							short_name: "Fourier",
 							description: "Practice Fourier Series Analysis",
-							url: "/fourier-series",
+							url: `${basePath}/fourier-series`,
 							icons: [
 								{
-									src: "/icons/pwa-icon-192x192.png",
+									src: `${basePath}/icons/pwa-icon-192x192.png`,
 									sizes: "192x192",
 								},
 							],
@@ -131,10 +140,10 @@ export default defineConfig(({ command }) => {
 							name: "Convolution",
 							short_name: "Convolution",
 							description: "Practice Continuous-Time Convolution",
-							url: "/convolution",
+							url: `${basePath}/convolution`,
 							icons: [
 								{
-									src: "/icons/pwa-icon-192x192.png",
+									src: `${basePath}/icons/pwa-icon-192x192.png`,
 									sizes: "192x192",
 								},
 							],
@@ -143,10 +152,10 @@ export default defineConfig(({ command }) => {
 							name: "Laplace Transforms",
 							short_name: "Laplace",
 							description: "Practice Laplace Transforms and PFD",
-							url: "/laplace",
+							url: `${basePath}/laplace`,
 							icons: [
 								{
-									src: "/icons/pwa-icon-192x192.png",
+									src: `${basePath}/icons/pwa-icon-192x192.png`,
 									sizes: "192x192",
 								},
 							],
@@ -155,10 +164,10 @@ export default defineConfig(({ command }) => {
 							name: "Circuits & RLC",
 							short_name: "Circuits",
 							description: "Practice RLC Circuit Analysis",
-							url: "/circuits",
+							url: `${basePath}/circuits`,
 							icons: [
 								{
-									src: "/icons/pwa-icon-192x192.png",
+									src: `${basePath}/icons/pwa-icon-192x192.png`,
 									sizes: "192x192",
 								},
 							],
@@ -166,31 +175,31 @@ export default defineConfig(({ command }) => {
 					],
 					icons: [
 						{
-							src: "/icons/pwa-icon-192x192.png",
+							src: `${basePath}/icons/pwa-icon-192x192.png`,
 							sizes: "192x192",
 							type: "image/png",
 							purpose: "any",
 						},
 						{
-							src: "/icons/pwa-icon-512x512.png",
+							src: `${basePath}/icons/pwa-icon-512x512.png`,
 							sizes: "512x512",
 							type: "image/png",
 							purpose: "any",
 						},
 						{
-							src: "/icons/pwa-icon-maskable-192x192.png",
+							src: `${basePath}/icons/pwa-icon-maskable-192x192.png`,
 							sizes: "192x192",
 							type: "image/png",
 							purpose: "maskable",
 						},
 						{
-							src: "/icons/pwa-icon-maskable-512x512.png",
+							src: `${basePath}/icons/pwa-icon-maskable-512x512.png`,
 							sizes: "512x512",
 							type: "image/png",
 							purpose: "maskable",
 						},
 						{
-							src: "/apple-touch-icon.png",
+							src: `${basePath}/apple-touch-icon.png`,
 							sizes: "180x180",
 							type: "image/png",
 							purpose: "any",
@@ -233,14 +242,20 @@ export default defineConfig(({ command }) => {
 										manifest: [
 											...entries,
 											// The adapter has not emitted HTML, so its size is unknown.
-											{ url: "/", revision, size: 0 },
+											{
+												url: basePath
+													? `${basePath}/`
+													: "/",
+												revision,
+												size: 0,
+											},
 										],
 										warnings: [],
 									};
 								},
 							]
 						: [],
-					navigateFallback: "/",
+					navigateFallback: basePath ? `${basePath}/` : "/",
 					// Only pre-cache static assets during production build; in dev mode, Vite serves on-demand from memory.
 					globPatterns: isBuild
 						? ["**/*.{js,css,html,svg,woff2,png}"]
