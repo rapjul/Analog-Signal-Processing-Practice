@@ -26,7 +26,7 @@ jobs:
           - mount: root
             base-path: ""
           - mount: project
-            base-path: /Analog-Signal-Processing-Practice
+            base-path: /${{ github.event.repository.name }}
     env:
       BASE_PATH: ${{ matrix.base-path }}
     steps:
@@ -37,7 +37,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: npm
       - name: Install locked dependencies
         run: npm ci
