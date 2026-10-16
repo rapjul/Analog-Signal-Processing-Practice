@@ -5,6 +5,7 @@
 	 * Displays SignalLab brand, module selector links, and theme toggle.
 	 */
 
+	import { base } from "$app/paths";
 	import { onMount } from "svelte";
 
 	interface Props {
@@ -125,7 +126,7 @@
 <header class="navbar">
 	<div class="nav-brand">
 		<a
-			href="/"
+			href="{base}/"
 			class="brand-link"
 			onclick={closeMenu}
 		>
@@ -139,7 +140,7 @@
 		class:open={isMenuOpen}
 	>
 		<a
-			href="/odes"
+			href="{base}/odes"
 			class="nav-link"
 			class:active={activeRoute === "/odes"}
 			onclick={closeMenu}
@@ -147,7 +148,7 @@
 			LCC ODEs
 		</a>
 		<a
-			href="/fourier-series"
+			href="{base}/fourier-series"
 			class="nav-link"
 			class:active={activeRoute === "/fourier-series"}
 			onclick={closeMenu}
@@ -155,7 +156,7 @@
 			Fourier Series
 		</a>
 		<a
-			href="/fourier-transform"
+			href="{base}/fourier-transform"
 			class="nav-link"
 			class:active={activeRoute === "/fourier-transform"}
 			onclick={closeMenu}
@@ -163,7 +164,7 @@
 			CTFT
 		</a>
 		<a
-			href="/convolution"
+			href="{base}/convolution"
 			class="nav-link"
 			class:active={activeRoute === "/convolution"}
 			onclick={closeMenu}
@@ -171,7 +172,7 @@
 			Convolution
 		</a>
 		<a
-			href="/laplace"
+			href="{base}/laplace"
 			class="nav-link"
 			class:active={activeRoute === "/laplace"}
 			onclick={closeMenu}
@@ -179,7 +180,7 @@
 			Laplace
 		</a>
 		<a
-			href="/circuits"
+			href="{base}/circuits"
 			class="nav-link"
 			class:active={activeRoute === "/circuits"}
 			onclick={closeMenu}

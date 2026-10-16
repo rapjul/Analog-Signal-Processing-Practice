@@ -5,6 +5,7 @@
 	 * Renders when a requested path is not found or when a requested practice module is under development.
 	 */
 
+	import { base } from "$app/paths";
 	import { page } from "$app/state";
 	import MathInline from "$lib/components/math/MathInline.svelte";
 	import Navigation from "$lib/components/ui/Navigation.svelte";
@@ -125,15 +126,15 @@
 			<span class="notice-heading">Practice Ready Modules:</span>
 			<div class="module-quick-links">
 				<a
-					href="/odes"
+					href="{base}/odes"
 					class="quick-link">LCC ODEs</a
 				>
 				<a
-					href="/convolution"
+					href="{base}/convolution"
 					class="quick-link">Convolution</a
 				>
 				<a
-					href="/fourier-series"
+					href="{base}/fourier-series"
 					class="quick-link">Fourier Series</a
 				>
 			</div>
@@ -141,7 +142,7 @@
 
 		<div class="action-buttons">
 			<a
-				href="/"
+				href="{base}/"
 				class="home-button"
 			>
 				Return to Main Dashboard
