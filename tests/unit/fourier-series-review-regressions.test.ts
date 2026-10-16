@@ -3,6 +3,7 @@ import {
 	evaluateMathJsonStrict,
 	parseStrictLatex,
 } from "$lib/math-engine/evaluator";
+import { formatFourierFrequency } from "$lib/math-engine/fourier-series/frequency";
 import {
 	computePartialSum,
 	evaluateFourierSeriesWaveform,
@@ -10,6 +11,39 @@ import {
 } from "$lib/math-engine/fourier-series/index";
 
 describe("Fourier Series adversarial regressions", () => {
+	/** Checks that scientific notation retains its numerical meaning in rendered math. */
+	it.each([1e-7, 1.25e-7, 1e21])(
+		"formats scientific period %s as valid LaTeX",
+		(T0) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0,
+			});
+			const expected = (2 * Math.PI) / T0;
+			const frequency = evaluateMathJsonStrict(
+				parseStrictLatex(formatFourierFrequency(T0)),
+				{},
+			);
+			expect(frequency).not.toBeNull();
+			expect(Number(frequency) / expected).toBeCloseTo(1, 12);
+			const expressions = [
+				problem.signalLatex,
+				problem.periodLatex,
+				problem.omega0Latex,
+				...problem.itsData.step1.hints,
+			];
+			for (const expression of expressions)
+				expect(expression).not.toMatch(/\de[+-]\d/);
+			for (const alias of problem.itsData.step1.w0Aliases) {
+				const value = evaluateMathJsonStrict(
+					parseStrictLatex(alias),
+					{},
+				);
+				expect(value).not.toBeNull();
+				expect(Number(value) / expected).toBeCloseTo(1, 12);
+			}
+		},
+	);
 	/** Checks the displayed series itself against an independent waveform oracle. */
 	it("reconstructs the full-wave sine using its fundamental frequency", () => {
 		const problem = generateFourierSeriesProblem("full_wave_sine", {

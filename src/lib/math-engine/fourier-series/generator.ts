@@ -12,7 +12,7 @@ import {
 	shuffleWithRandom,
 } from "../random";
 import type { SolutionStep } from "../types";
-import { formatFourierFrequency } from "./frequency";
+import { formatFourierFrequency, formatFourierNumber } from "./frequency";
 import {
 	buildPrimarySeriesOptions,
 	generateFourierSeriesItsData,
@@ -30,6 +30,12 @@ import type {
 	FourierSeriesProblem,
 	FourierSeriesWaveformType,
 } from "./types";
+
+/** Display names shared by synthesis and conversion prompts. */
+const formNames: Record<FourierSeriesPrimaryForm, string> = {
+	trig: "Trigonometric",
+	exp: "Exponential",
+};
 
 /**
  * Generates a practice Fourier Series problem with randomized parameters and ITS step metadata.
@@ -64,6 +70,7 @@ export function generateFourierSeriesProblem(
 	const id = `fs_${waveformType}_${seed}`;
 	const itsData = generateFourierSeriesItsData(coeffs, random);
 	const w0Latex = formatFourierFrequency(T0);
+	const periodLatex = formatFourierNumber(T0);
 	const derivation = buildFourierSeriesSymbolicDerivation(coeffs, w0Latex);
 	const alternateForm: FourierSeriesPrimaryForm =
 		itsData.step4.correctForm === "trig" ? "exp" : "trig";
@@ -71,13 +78,15 @@ export function generateFourierSeriesProblem(
 		alternateForm === "trig"
 			? derivation.finalTrigLatex
 			: derivation.finalExpLatex;
+	const primaryName = formNames[itsData.step4.correctForm];
+	const alternateName = formNames[alternateForm];
 	const compactLatex = buildCompactSeriesLatex(coeffs, w0Latex);
 	const conversionChallenge: FourierSeriesConversionChallenge = {
 		parts: [
 			{
 				id: "alternate",
-				title: `Convert to ${alternateForm === "trig" ? "Trigonometric" : "Exponential"} Form`,
-				prompt: `Convert the completed ${itsData.step4.correctForm === "trig" ? "trigonometric" : "exponential"} series to its equivalent ${alternateForm === "trig" ? "trigonometric" : "exponential"} representation.`,
+				title: `Convert to ${alternateName} Form`,
+				prompt: `Convert the completed ${primaryName.toLowerCase()} series to its equivalent ${alternateName.toLowerCase()} representation.`,
 				resultLatex: alternateLatex,
 				options: shuffleWithRandom(
 					buildPrimarySeriesOptions(alternateLatex, alternateForm),
@@ -86,7 +95,7 @@ export function generateFourierSeriesProblem(
 				hints: [
 					"Use $F_0=a_0/2$ and $F_n=(a_n-jb_n)/2$ for positive indices.",
 					"For a real signal, pair $F_n$ with $F_{-n}=F_n^*$ when returning to trigonometric form.",
-					`The equivalent ${alternateForm === "trig" ? "trigonometric" : "exponential"} representation is $${alternateLatex}$.`,
+					`The equivalent ${alternateName.toLowerCase()} representation is $${alternateLatex}$.`,
 				],
 			},
 			{
@@ -112,7 +121,7 @@ export function generateFourierSeriesProblem(
 			title: "Period and Fundamental Frequency",
 			description:
 				"Read one complete repetition from the waveform and convert its period to angular frequency.",
-			latex: `T_0=${T0}\\text{ s},\\qquad \\omega_0=\\frac{2\\pi}{T_0}=\\frac{2\\pi}{${T0}}=${w0Latex}\\text{ rad/s}`,
+			latex: `T_0=${periodLatex}\\text{ s},\\qquad \\omega_0=\\frac{2\\pi}{T_0}=\\frac{2\\pi}{${periodLatex}}=${w0Latex}\\text{ rad/s}`,
 		},
 		{
 			title: "Symmetry and Vanishing Terms",
@@ -150,10 +159,7 @@ export function generateFourierSeriesProblem(
 			latex: `a_0=\\frac{2}{T_0}\\int_{T_0}x(t)\\,dt=${derivation.a0Latex},\\qquad F_0=\\frac{a_0}{2}`,
 		},
 		{
-			title:
-				itsData.step4.correctForm === "trig"
-					? "Trigonometric Synthesis"
-					: "Exponential Synthesis",
+			title: `${primaryName} Synthesis`,
 			description:
 				"Insert only the evaluated non-zero coefficients into the selected primary Fourier representation.",
 			latex:
@@ -170,8 +176,8 @@ export function generateFourierSeriesProblem(
 		seed,
 		waveformType,
 		title: "Practice Problem: Periodic Waveform",
-		periodLatex: `T_0 = ${T0}\\text{ s}`,
-		omega0Latex: `\\omega_0 = \\frac{2\\pi}{${T0}} = ${w0Latex}\\text{ rad/s}`,
+		periodLatex: `T_0 = ${periodLatex}\\text{ s}`,
+		omega0Latex: `\\omega_0 = \\frac{2\\pi}{${periodLatex}} = ${w0Latex}\\text{ rad/s}`,
 		signalLatex,
 		a0Latex: derivation.a0Latex,
 		anLatex: derivation.anLatex,
@@ -183,7 +189,7 @@ export function generateFourierSeriesProblem(
 		conversionChallenge,
 		conversionSolutionSteps: [
 			{
-				title: `${alternateForm === "trig" ? "Trigonometric" : "Exponential"} Form Conversion`,
+				title: `${alternateName} Form Conversion`,
 				description:
 					"Convert the primary coefficients without re-integrating the waveform.",
 				latex: alternateLatex,

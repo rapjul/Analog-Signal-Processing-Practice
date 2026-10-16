@@ -21,20 +21,18 @@ export function buildPrimarySeriesOptions(
 	correct: string,
 	form: FourierPrimaryForm,
 ): FourierItsOption[] {
-	const signDistractor = correct
-		.replace("x(t)=", "x(t)=-")
-		.replace("x(t) =", "x(t) = -");
-	const kernelDistractor =
-		form === "exp"
-			? correct.replace("e^{j n", "e^{-j n")
-			: correct.includes("\\sin\\left(")
-				? correct.replaceAll("\\sin\\left(", "\\cos\\left(")
-				: correct.includes("\\cos\\left(")
-					? correct.replaceAll("\\cos\\left(", "\\sin\\left(")
-					: correct.replaceAll("\\cos(", "\\sin(");
-	const scaleDistractor = correct.includes("\\frac{")
-		? correct.replace("\\frac{", "\\frac{1}{2}\\frac{")
-		: correct.replace("\\dfrac{", "\\frac{1}{2}\\dfrac{");
+	// Coefficient definitions follow the synthesis expression and must stay intact.
+	const definitionIndex = correct.indexOf(",\\qquad");
+	const synthesis =
+		definitionIndex < 0 ? correct : correct.slice(0, definitionIndex);
+	const definitions =
+		definitionIndex < 0 ? "" : correct.slice(definitionIndex);
+	const rhs = synthesis.slice(synthesis.indexOf("=") + 1).trim();
+	const signDistractor = `x(t)=-\\left(${rhs}\\right)${definitions}`;
+	const scaleDistractor = `x(t)=\\frac{1}{2}\\left(${rhs}\\right)${definitions}`;
+	// Double only the independent time symbol; preserve phase and coefficient symbols.
+	const doubledTime = rhs.replace(/(?<![a-zA-Z\\])t(?![a-zA-Z])/g, "(2t)");
+	const kernelDistractor = `x(t)=${doubledTime}${definitions}`;
 	return [
 		{ id: "series-correct", latex: correct, isCorrect: true },
 		{
@@ -50,8 +48,8 @@ export function buildPrimarySeriesOptions(
 			isCorrect: false,
 			feedback:
 				form === "exp"
-					? "Kernel Sign Error: Synthesis uses $e^{j n \\omega_0 t}$ after analysis used the negative exponent."
-					: "Kernel Error: Match each evaluated coefficient family to its sine or cosine basis function.",
+					? "Harmonic Frequency Error: Use the fundamental frequency in the exponential synthesis kernel without doubling it."
+					: "Harmonic Frequency Error: Use the fundamental frequency in the trigonometric basis without doubling it.",
 		},
 		{
 			id: "series-scale",

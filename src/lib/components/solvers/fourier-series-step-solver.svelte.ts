@@ -3,9 +3,8 @@ import {
 	parseStrictLatex,
 } from "$lib/math-engine/evaluator";
 import type {
-	FourierCoefficientPart,
 	FourierItsOption,
-	FourierItsStep2,
+	FourierSeriesItsStep1,
 	FourierSeriesProblem,
 	OriginParity,
 } from "$lib/math-engine/fourier-series/index";
@@ -13,9 +12,7 @@ import { parseNumericInput } from "$lib/math-engine/fraction";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
-	createMultiPartStepState,
 	createStepState,
-	createSubStepState,
 	type SolverVisualStateDescriptor,
 	type SubStepProgress,
 } from "./base-step-solver.svelte";
@@ -58,6 +55,64 @@ import {
 	createCoefficientMultiPartState,
 	createSymmetryMultiPartState,
 } from "./fourier-series-solver-state/factory-helpers";
+
+/**
+ * Parses a finite constant expression without assigning any free variables.
+ * @param input - Trimmed student frequency input.
+ * @returns Parsed numeric value or NaN for unsupported input.
+ */
+function parseFrequencyValue(input: string): number {
+	const numeric = parseNumericInput(input);
+	if (Number.isFinite(numeric)) return numeric;
+	try {
+		return (
+			evaluateMathJsonStrict(parseStrictLatex(input), {}) ?? Number.NaN
+		);
+	} catch {
+		return Number.NaN;
+	}
+}
+
+/**
+ * Checks period aliases and converts the chosen time unit before comparison.
+ * @param input - Trimmed period input.
+ * @param unit - Validated time unit.
+ * @param data - Expected period and supported aliases.
+ * @returns Whether the period is correct.
+ */
+function matchesPeriodAnswer(
+	input: string,
+	unit: string,
+	data: FourierSeriesItsStep1,
+): boolean {
+	const seconds = parseNumericInput(input) * (unit === "ms" ? 0.001 : 1);
+	return (
+		(unit === "s" &&
+			data.tAliases.some((alias) => input === alias.toLowerCase())) ||
+		(seconds > 0 && Math.abs(seconds - data.expectedT) < 0.05)
+	);
+}
+
+/**
+ * Checks historical frequency aliases and equivalent constant expressions.
+ * @param input - Trimmed frequency input.
+ * @param unit - Validated frequency unit.
+ * @param data - Expected angular frequency and supported aliases.
+ * @returns Whether the converted angular frequency is correct.
+ */
+function matchesFrequencyAnswer(
+	input: string,
+	unit: string,
+	data: FourierSeriesItsStep1,
+): boolean {
+	const radians =
+		parseFrequencyValue(input) * (unit === "Hz" ? 2 * Math.PI : 1);
+	return (
+		(unit === "rad/s" &&
+			data.w0Aliases.some((alias) => input === alias.toLowerCase())) ||
+		(radians > 0 && Math.abs(radians - data.expectedW0) < 0.05)
+	);
+}
 
 /**
  * Reactive State and Controller for the 7-Step Fourier Series ITS Solver.
@@ -230,44 +285,14 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			return;
 		}
 
-		const periodScale = this.step1.periodUnit === "ms" ? 0.001 : 1;
-		const frequencyScale = this.step1.freqUnit === "Hz" ? 2 * Math.PI : 1;
-		const periodSeconds = parseNumericInput(pTrimmed) * periodScale;
-		let frequencyValue = parseNumericInput(fTrimmed);
-		if (!Number.isFinite(frequencyValue)) {
-			try {
-				frequencyValue =
-					evaluateMathJsonStrict(parseStrictLatex(fTrimmed), {}) ??
-					Number.NaN;
-			} catch {
-				frequencyValue = Number.NaN;
-			}
-		}
-		const frequencyRadiansPerSecond = frequencyValue * frequencyScale;
-		const pMatch =
-			(this.step1.periodUnit === "s" &&
-				s1Data.tAliases.some(
-					(alias) => pTrimmed === alias.toLowerCase(),
-				)) ||
-			(periodSeconds > 0 &&
-				Math.abs(periodSeconds - s1Data.expectedT) < 0.05);
-
-		const fMatch =
-			(this.step1.freqUnit === "rad/s" &&
-				s1Data.w0Aliases.some(
-					(alias) => fTrimmed === alias.toLowerCase(),
-				)) ||
-			(frequencyRadiansPerSecond > 0 &&
-				Math.abs(frequencyRadiansPerSecond - s1Data.expectedW0) < 0.05);
-
-		if (!pMatch) {
+		if (!matchesPeriodAnswer(pTrimmed, this.step1.periodUnit, s1Data)) {
 			this.setIncorrect(
 				this.step1,
 				"Incorrect Period value: inspect the duration over which the waveform repeats itself.",
 			);
 			return;
 		}
-		if (!fMatch) {
+		if (!matchesFrequencyAnswer(fTrimmed, this.step1.freqUnit, s1Data)) {
 			this.setIncorrect(
 				this.step1,
 				"Incorrect Fundamental Frequency: use $\\omega_0 = \\frac{2\\pi}{T_0}$. (e.g. $\\pi$ or $\\pi/2$).",

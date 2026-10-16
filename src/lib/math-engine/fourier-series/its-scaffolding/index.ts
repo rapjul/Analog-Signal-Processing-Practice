@@ -5,8 +5,8 @@
  * `generateFourierSeriesItsData` for assembling full 7-step ITS scaffolding data.
  */
 
+import { formatFourierFrequency } from "$lib/math-engine/fourier-series/frequency";
 import type { RandomSource } from "../../random";
-import { formatFourierFrequency } from "../frequency";
 import { buildFourierSeriesSymbolicDerivation } from "../solver";
 import type {
 	FourierSeriesCoefficients,
