@@ -9,6 +9,59 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("LCC ODEs Practice Module", () => {
+	/** Verifies a decaying forced response is accepted as transient with zero steady-state. @param fixtures - Browser fixtures. */
+	test("grades decaying resonance as transient with zero steady-state @dev-harness", async ({
+		page,
+	}) => {
+		await page.goto(
+			"/odes?order=1&forcing=exponential&resonance=simple&seed=3",
+		);
+		await expect
+			.poll(
+				/** Waits for the hydrated solver harness. */
+				() =>
+					page.evaluate(
+						/** Reads the harness registration. */
+						() => typeof window.__signalLabDev?.goToVisualState,
+					),
+			)
+			.toBe("function");
+		await page.evaluate(
+			/** Opens the actual response-classification controls. */
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"ode.step-07.transient-steady-state",
+				),
+		);
+		const active = page.locator(".step-card.active");
+		const transient = active.locator(".classification-group").first();
+		const steady = active.locator(".classification-group").last();
+		const transientFormulas = await transient
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		const steadyFormulas = await steady
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		expect(new Set(transientFormulas).size).toBe(3);
+		expect(new Set(steadyFormulas).size).toBe(3);
+		const complete = transientFormulas.findIndex(
+			/** @param formula - Candidate transient equation. */
+			(formula) => formula.includes("4 t e^{-t}"),
+		);
+		expect(complete).toBeGreaterThanOrEqual(0);
+		await transient.locator(".mcq-card").nth(complete).click();
+		await steady
+			.locator(".mcq-card")
+			.nth(steadyFormulas.indexOf("y_{ss}(t) = 0"))
+			.click();
+		await active
+			.getByRole("button", { name: "Verify Transient & Steady-State" })
+			.click();
+		await expect(
+			active.getByText("Targeted Conceptual Mastery Check"),
+		).toBeVisible();
+	});
+
 	/** Verifies unit-frequency derivative choices and their visible grading. @param fixtures - Browser fixtures. */
 	test("grades distinct unit-frequency derivatives correctly @dev-harness", async ({
 		page,
@@ -68,7 +121,7 @@ test.describe("LCC ODEs Practice Module", () => {
 	/**
 	 * Verifies initial rendering of the ODEs module page.
 	 */
-	test("renders header, deterministic drill filters, and active practice card with difficulty badge", async ({
+	test("renders header, deterministic drill filters, and order badges without answer spoilers", async ({
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
@@ -92,9 +145,9 @@ test.describe("LCC ODEs Practice Module", () => {
 			/Practice Problem: 2nd-Order LCC ODE/i,
 		);
 
-		// Verify difficulty badges and category badge
+		// The category and order badges preserve the existing anti-spoiler header.
 		const badges = practiceCard.locator(".badges-row .badge");
-		await expect(badges).toHaveCount(3);
+		await expect(badges).toHaveText(["LCC ODE Problem", "2nd-Order"]);
 		await expect(practiceCard.locator(".badge.category")).toHaveCount(0);
 	});
 

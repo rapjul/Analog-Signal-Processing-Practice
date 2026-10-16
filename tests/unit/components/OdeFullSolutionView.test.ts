@@ -6,6 +6,28 @@ import { generateOdeProblem } from "$lib/math-engine/odes/index";
 afterEach(cleanup);
 
 describe("OdeFullSolutionView — Native Worked-Solution Disclosure", () => {
+	/** Verifies the final summary uses the decay-based split for exponential forcing. */
+	it("renders a decaying resonant response with zero steady-state", () => {
+		const problem = generateOdeProblem({
+			order: 1,
+			forcingType: "exponential",
+			resonance: "simple",
+			seed: 3,
+		});
+		const { container } = render(OdeFullSolutionView, {
+			props: { problem },
+		});
+		const formulas = Array.from(
+			container.querySelectorAll(".decomp-card annotation"),
+			/** @param element - Rendered equation annotation. */
+			(element) => element.textContent,
+		);
+		expect(formulas).toContain("y_{ss}(t) = 0");
+		expect(formulas).toContain(
+			`y_{tr}(t) = ${problem.solutions.y_complete_latex}`,
+		);
+	});
+
 	/**
 	 * Generates a deterministic second-order ODE problem for component tests.
 	 *
