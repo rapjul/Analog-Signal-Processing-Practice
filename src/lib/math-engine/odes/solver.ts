@@ -14,6 +14,12 @@ import {
 	sanitizeLatexMath,
 } from "../formatting";
 import { toFractionLatex } from "../fraction";
+import {
+	divideByProduct,
+	hasCancellation,
+	isCancellationZero,
+	MIN_NORMAL_NUMBER,
+} from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
 	FirstOrderCharacteristicCoefficients,
@@ -56,9 +62,10 @@ interface ScaledDiscriminant {
  */
 function scaledDiscriminant(b: number, c: number): ScaledDiscriminant {
 	const magnitude = b * b + 4 * Math.abs(c);
-	const scale = Number.isFinite(magnitude)
-		? 1
-		: Math.max(Math.abs(b), Math.sqrt(Math.abs(c)));
+	const scale =
+		Number.isFinite(magnitude) && magnitude >= MIN_NORMAL_NUMBER
+			? 1
+			: Math.max(Math.abs(b), Math.sqrt(Math.abs(c))) || 1;
 	const linear = b / scale;
 	const constant = c / scale / scale;
 	return {
@@ -98,20 +105,6 @@ function normalizeCoefficients(
 			"ODE coefficient ratios exceed the finite numeric range",
 		);
 	return normalized;
-}
-
-/**
- * Detects cancellation relative to the magnitude of the evaluated terms.
- * @param value - Computed sum or difference.
- * @param magnitude - Sum of the absolute magnitudes of its terms.
- * @returns Whether the result is zero within floating-point rounding error.
- */
-function isCancellationZero(value: number, magnitude: number): boolean {
-	return (
-		Number.isFinite(value) &&
-		Number.isFinite(magnitude) &&
-		Math.abs(value) <= 32 * Number.EPSILON * magnitude
-	);
 }
 
 /**
@@ -247,17 +240,14 @@ function computePolynomialParticular(
 	const p = constant ? 0 : (forcing.p ?? -1);
 	const polynomial = (a2 * p + a1) * p + a0;
 	const derivative = 2 * a2 * p + a1;
-	const collision = isCancellationZero(
-		polynomial,
-		Math.abs(a2 * p * p) + Math.abs(a1 * p) + Math.abs(a0),
-	);
+	const collision = hasCancellation(polynomial, a2 * p * p, a1 * p, a0);
 	const multiplicity = collision
-		? isCancellationZero(derivative, Math.abs(2 * a2 * p) + Math.abs(a1))
+		? hasCancellation(derivative, 2 * a2 * p, a1)
 			? 2
 			: 1
 		: 0;
 	const divisor = [polynomial, derivative, 2 * a2][multiplicity]!;
-	const Kp = forcing.K / scale / divisor;
+	const Kp = divideByProduct(forcing.K, scale, divisor);
 	const suffix = ["", " t", " t^2"][multiplicity]!;
 	const latex = constant
 		? `${toFractionLatex(Kp)}${suffix}`
@@ -297,7 +287,6 @@ function computeSinusoidalParticular(
 	forcing: ForcingFunction,
 ): ParticularSolution {
 	const { scale, a2, a1, a0 } = coefficients;
-	const K = forcing.K / scale;
 	const w = forcing.omega ?? 1;
 
 	// Substitute y_p(t) = A*cos(w*t) + B*sin(w*t) into y_p'' + a1*y_p' + a0*y_p = K*cos(w*t):
@@ -308,14 +297,11 @@ function computeSinusoidalParticular(
 	const m11 = a0 - a2 * w * w;
 	const m12 = a1 * w;
 
-	if (
-		isCancellationZero(m11, Math.abs(a0) + Math.abs(a2 * w * w)) &&
-		m12 === 0
-	) {
+	if (hasCancellation(m11, a0, a2 * w * w) && m12 === 0) {
 		if (a2 === 0 || w === 0) {
 			throw new Error("Unsupported degenerate sinusoidal resonance");
 		}
-		const B = K / (2 * a2 * w);
+		const B = divideByProduct(forcing.K, scale, 2 * a2 * w);
 		return {
 			formDescription:
 				"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
@@ -341,7 +327,7 @@ function computeSinusoidalParticular(
 	const real = m11 / harmonicScale;
 	const imaginary = m12 / harmonicScale;
 	const denominator = real * real + imaginary * imaginary;
-	const amplitude = K / harmonicScale;
+	const amplitude = divideByProduct(forcing.K, scale, harmonicScale);
 	const A = (amplitude * real) / denominator;
 	const B = (amplitude * imaginary) / denominator;
 
