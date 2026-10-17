@@ -50,10 +50,9 @@ test.describe("LCC ODEs Practice Module", () => {
 		);
 		expect(complete).toBeGreaterThanOrEqual(0);
 		await transient.locator(".mcq-card").nth(complete).click();
-		await steady
-			.locator(".mcq-card")
-			.nth(steadyFormulas.indexOf("y_{ss}(t) = 0"))
-			.click();
+		const zeroSteady = steadyFormulas.indexOf("y_{ss}(t) = 0");
+		expect(zeroSteady).toBeGreaterThanOrEqual(0);
+		await steady.locator(".mcq-card").nth(zeroSteady).click();
 		await active
 			.getByRole("button", { name: "Verify Transient & Steady-State" })
 			.click();
@@ -100,14 +99,11 @@ test.describe("LCC ODEs Practice Module", () => {
 			.locator(".mcq-card annotation")
 			.allTextContents();
 		expect(new Set(secondFormulas).size).toBe(4);
-		await second
-			.locator(".mcq-card")
-			.nth(
-				secondFormulas.indexOf(
-					String.raw`y_p''(t) = -1A \cos(1t) - 1B \sin(1t)`,
-				),
-			)
-			.click();
+		const secondCorrect = secondFormulas.indexOf(
+			String.raw`y_p''(t) = -1A \cos(1t) - 1B \sin(1t)`,
+		);
+		expect(secondCorrect).toBeGreaterThanOrEqual(0);
+		await second.locator(".mcq-card").nth(secondCorrect).click();
 		await expect(second).toHaveClass(/subpart-done/);
 	});
 
