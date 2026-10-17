@@ -6,13 +6,13 @@
  */
 
 import { formatFourierFrequency } from "$lib/math-engine/fourier-series/frequency";
-import type { RandomSource } from "../../random";
-import { buildFourierSeriesSymbolicDerivation } from "../solver";
+import { buildFourierSeriesSymbolicDerivation } from "$lib/math-engine/fourier-series/solver";
 import type {
 	FourierSeriesCoefficients,
 	FourierSeriesItsData,
 	FourierSeriesPrimaryForm,
-} from "../types";
+} from "$lib/math-engine/fourier-series/types";
+import type { RandomSource } from "$lib/math-engine/random";
 import { buildStep1Data } from "./step1-period-freq";
 import { buildStep2Data } from "./step2-symmetry";
 import { buildStep3Data, getVanishingCoefficients } from "./step3-shortcuts";

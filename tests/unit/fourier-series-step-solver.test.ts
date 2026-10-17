@@ -3,6 +3,55 @@ import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-se
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolverState Reactive Controller", () => {
+	/** Checks scaled tolerances after unit conversion while retaining aliases and ordinary bounds. */
+	it.each([
+		{ T0: 1e-7, input: { period: "0.01" }, accepted: false },
+		{
+			T0: 1e-7,
+			input: { period: "10", periodUnit: "ms" },
+			accepted: false,
+		},
+		{ T0: 1e21, input: { freq: "0.01" }, accepted: false },
+		{ T0: 1e21, input: { freq: "0.01", freqUnit: "Hz" }, accepted: false },
+		{ T0: 1e-7, input: { period: "0.000000104" }, accepted: true },
+		{
+			T0: 1e-7,
+			input: { period: "0.000104", periodUnit: "ms" },
+			accepted: true,
+		},
+		{ T0: 1e21, input: { freq: "6.5\\times10^{-21}" }, accepted: true },
+		{
+			T0: 1e21,
+			input: { freq: "1.04\\times10^{-21}", freqUnit: "Hz" },
+			accepted: true,
+		},
+		{ T0: 1e-7, input: { period: "0.000000106" }, accepted: false },
+		{ T0: 1e21, input: { freq: "6.7\\times10^{-21}" }, accepted: false },
+		{ T0: 2, input: { period: "2.06" }, accepted: false },
+		{ T0: 2, input: { freq: String(Math.PI + 0.06) }, accepted: false },
+		{ T0: 2, input: { period: "2.04", freq: "3.18" }, accepted: true },
+		{ T0: 4, input: { period: "4.04", freq: "1.61" }, accepted: true },
+		{ T0: 1e-7, input: {}, accepted: true },
+		{ T0: 1e21, input: {}, accepted: true },
+	])(
+		"grades scaled Step 1 input $input for period $T0",
+		({ T0, input, accepted }) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, {
+				period: String(T0),
+				freq: problem.itsData.step1.w0Aliases[0],
+				...input,
+			});
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(accepted ? 2 : 1);
+			expect(solver.step1.isValid).toBe(accepted);
+		},
+	);
+
 	/** Checks symbolic constants and equivalent units without binding free variables. */
 	it.each([
 		[1, "1", "s", "2*pi", "rad/s"],

@@ -86,10 +86,12 @@ function matchesPeriodAnswer(
 	data: FourierSeriesItsStep1,
 ): boolean {
 	const seconds = parseNumericInput(input) * (unit === "ms" ? 0.001 : 1);
+	// Keep the ordinary absolute bound without overwhelming sub-unit periods.
+	const tolerance = 0.05 * Math.min(1, data.expectedT);
 	return (
 		(unit === "s" &&
 			data.tAliases.some((alias) => input === alias.toLowerCase())) ||
-		(seconds > 0 && Math.abs(seconds - data.expectedT) < 0.05)
+		(seconds > 0 && Math.abs(seconds - data.expectedT) < tolerance)
 	);
 }
 
@@ -107,10 +109,12 @@ function matchesFrequencyAnswer(
 ): boolean {
 	const radians =
 		parseFrequencyValue(input) * (unit === "Hz" ? 2 * Math.PI : 1);
+	// Compare after unit conversion so hertz and radians use the same tolerance.
+	const tolerance = 0.05 * Math.min(1, data.expectedW0);
 	return (
 		(unit === "rad/s" &&
 			data.w0Aliases.some((alias) => input === alias.toLowerCase())) ||
-		(radians > 0 && Math.abs(radians - data.expectedW0) < 0.05)
+		(radians > 0 && Math.abs(radians - data.expectedW0) < tolerance)
 	);
 }
 
