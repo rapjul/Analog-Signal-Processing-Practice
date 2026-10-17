@@ -122,11 +122,16 @@ function exponentialFactor(
 	signal: ResolvedConvolutionSignal,
 	argument: string,
 ): string {
-	return signal.kind === "exponential"
-		? sanitizeLatexMath(
-				`${formatConvolutionScalar(signal.amplitude)}e^{-${formatConvolutionScalar(signal.parameter)}(${argument}-${formatConvolutionScalar(signal.shift)})}`,
-			)
-		: "1";
+	if (signal.kind !== "exponential") return "1";
+	const amplitude = formatConvolutionScalar(signal.amplitude);
+	if (signal.shift === 0 && argument === "0") return amplitude;
+	const translated =
+		signal.shift === 0
+			? argument
+			: `${argument}-${formatConvolutionScalar(signal.shift)}`;
+	return sanitizeLatexMath(
+		`${amplitude}e^{-${formatConvolutionScalar(signal.parameter)}(${translated})}`,
+	);
 }
 
 /**
