@@ -6,6 +6,21 @@ import {
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 describe("convolution expression equivalence", () => {
+	/** Exact cancellation accepts removable singularities but cannot remove genuine poles. */
+	it("compares rational identities almost everywhere on the open interval", () => {
+		expect(
+			verifyConvolutionExpression("(t^2-4)/(t-2)", "t+2", {
+				min: 0,
+				max: 4,
+			}).status,
+		).toBe("correct");
+		expect(
+			verifyConvolutionExpression("1/(t-2)", "t+2", {
+				min: 0,
+				max: 4,
+			}).status,
+		).toBe("incorrect");
+	});
 	/** A delayed step must never disappear when typed without a multiplication sign. */
 	it.each(["tu(t-100)", "t u(t-100)", "t*u(t-100)"])(
 		"rejects the incorrectly gated answer %s",

@@ -25,24 +25,6 @@ export type EvaluationValidationResult =
 	  }
 	| { kind: "blank" | "malformed" | "incorrect"; message: string };
 
-/** Returns deterministic sample times strictly inside one interval. */
-export function intervalSampleTimes(
-	minimum: number,
-	maximum: number,
-): number[] {
-	if (Number.isFinite(minimum) && Number.isFinite(maximum)) {
-		const span = maximum - minimum;
-		return [0.17, 0.33, 0.5, 0.67, 0.83].map(
-			(ratio) => minimum + span * ratio,
-		);
-	}
-	if (Number.isFinite(minimum))
-		return [0.5, 1, 2, 3, 5].map((offset) => minimum + offset);
-	if (Number.isFinite(maximum))
-		return [0.5, 1, 2, 3, 5].map((offset) => maximum - offset);
-	return [-3, -1, 0, 2, 5];
-}
-
 /** Selects the first required stage for one concrete term. */
 function firstTermStage(
 	part: ConvolutionItsIntervalPart,

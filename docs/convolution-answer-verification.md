@@ -24,6 +24,11 @@ feedback rather than claiming that an unproved identity is false.
 
 ## Exactness and limits
 
+Equality is almost everywhere on the open interval: exact common factors may
+cancel removable singularities. For example, `(t^2-4)/(t-2)` matches `t+2` even
+when the interval contains `t=2`. Genuine poles do not cancel and remain
+`incorrect` when compared with a regular reference expression.
+
 Rates, support boundaries, and expected zero terms are compared structurally.
 Matched nonzero coefficients use the existing canonical tolerance of
 `1e-8 + 1e-8 * abs(expected)`. Symbolic exponential shift factors are retained in
