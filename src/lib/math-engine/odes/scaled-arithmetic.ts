@@ -1,8 +1,7 @@
+import { exactProductSum, type ScaledNumber } from "./exact-arithmetic";
+
 /** Smallest normal binary64 value; smaller nonzero values have reduced precision. */
 export const MIN_NORMAL_NUMBER = Number.MIN_VALUE / Number.EPSILON;
-
-/** Signed normalized mantissa and unrestricted integer binary exponent; zero has exponent zero. */
-type ScaledNumber = readonly [mantissa: number, exponent: number];
 
 /** Particular amplitude and collision order evaluated in a common scale. */
 interface PolynomialResponse {
@@ -30,9 +29,9 @@ type PolynomialProducts = readonly [
 
 /**
  * Defines polynomial and derivative products once for both arithmetic paths.
- * @param a2 - Monic quadratic coefficient.
- * @param a1 - Monic linear coefficient.
- * @param a0 - Monic constant coefficient.
+ * @param a2 - Working quadratic coefficient.
+ * @param a1 - Working linear coefficient.
+ * @param a0 - Working constant coefficient.
  * @param p - Forcing exponent.
  * @returns Polynomial contributions followed by derivative contributions.
  */
@@ -46,27 +45,6 @@ function polynomialProducts(
 		[[a2, p, p], [a1, p], [a0]],
 		[[2, a2, p], [a1]],
 	];
-}
-
-/**
- * Detects unsafe polynomial or derivative products using the evaluator's definitions.
- * @param a2 - Monic quadratic coefficient.
- * @param a1 - Monic linear coefficient.
- * @param a0 - Monic constant coefficient.
- * @param p - Forcing exponent.
- * @returns Whether any expanded product needs scaled evaluation.
- */
-export function polynomialNeedsScaling(
-	a2: number,
-	a1: number,
-	a0: number,
-	p: number,
-): boolean {
-	const [terms, derivatives] = polynomialProducts(a2, a1, a0, p);
-	return [...terms, ...derivatives].some(
-		/** @param factors - Original factors for one contribution. */
-		(factors) => productNeedsScaling(...factors),
-	);
 }
 
 /**
@@ -151,35 +129,6 @@ function sumScaled(...terms: ScaledNumber[]): ScaledNumber {
 }
 
 /**
- * Applies the existing relative cancellation tolerance to unmaterialized terms.
- * @param terms - Contributions whose cancellation is being classified.
- * @returns Whether the residual is within the existing rounding-error bound.
- */
-function scaledCancellation(...terms: ScaledNumber[]): boolean {
-	const nonzero = terms.filter(
-		/** @param term - Scaled contribution. */
-		(term) => term[0] !== 0,
-	);
-	if (nonzero.length === 0) return true;
-	const exponent = Math.max(
-		...nonzero.map(
-			/** @param term - Nonzero contribution. */
-			(term) => term[1],
-		),
-	);
-	const aligned = nonzero.map(
-		/** @param term - Contribution expressed in the common exponent. */
-		(term) => term[0] * 2 ** (term[1] - exponent),
-	);
-	const residual = aligned.reduce(
-		/** @param total - Accumulated sum. @param term - Next aligned contribution. */
-		(total, term) => total + term,
-		0,
-	);
-	return hasCancellation(residual, ...aligned);
-}
-
-/**
  * Materializes only the final quotient, preserving representable subnormal answers.
  * @param numerator - Scaled numerator, including signed zero.
  * @param denominator - Nonzero scaled denominator.
@@ -246,9 +195,9 @@ export function divideByProduct(
  * Solves a polynomial response with independently scaled polynomial and derivative terms.
  * @param numerator - Original forcing amplitude.
  * @param equationScale - Removed leading coefficient.
- * @param a2 - Monic quadratic coefficient, zero for first-order equations.
- * @param a1 - Monic linear coefficient.
- * @param a0 - Monic constant coefficient.
+ * @param a2 - Working quadratic coefficient, zero for first-order equations.
+ * @param a1 - Working linear coefficient.
+ * @param a0 - Working constant coefficient.
  * @param p - Finite exponential forcing exponent.
  * @returns Particular amplitude and resonance multiplicity.
  */
@@ -261,24 +210,15 @@ export function computeScaledPolynomialResponse(
 	p: number,
 ): PolynomialResponse {
 	const [products, derivatives] = polynomialProducts(a2, a1, a0, p);
-	const terms = products.map(
-		/** @param factors - Original factors for one polynomial term. */
-		(factors) => scaledProduct(...factors),
-	);
-	const derivativeTerms = derivatives.map(
-		/** @param factors - Original factors for one derivative term. */
-		(factors) => scaledProduct(...factors),
-	);
-	const multiplicity = scaledCancellation(...terms)
-		? scaledCancellation(...derivativeTerms)
-			? 2
-			: 1
-		: 0;
+	const polynomial = exactProductSum(products);
+	const derivative = exactProductSum(derivatives);
+	const multiplicity =
+		polynomial[0] === 0 ? (derivative[0] === 0 ? 2 : 1) : 0;
 	const divisor =
 		multiplicity === 0
-			? sumScaled(...terms)
+			? polynomial
 			: multiplicity === 1
-				? sumScaled(...derivativeTerms)
+				? derivative
 				: scaledProduct(2, a2);
 	return {
 		Kp: divideScaled(
@@ -293,9 +233,9 @@ export function computeScaledPolynomialResponse(
  * Solves the harmonic matrix without materializing its products, determinant, or common amplitude.
  * @param numerator - Original forcing amplitude.
  * @param equationScale - Removed leading coefficient.
- * @param a2 - Monic quadratic coefficient, zero for first-order equations.
- * @param a1 - Monic damping coefficient.
- * @param a0 - Monic constant coefficient.
+ * @param a2 - Working quadratic coefficient, zero for first-order equations.
+ * @param a1 - Working damping coefficient.
+ * @param a0 - Working constant coefficient.
  * @param w - Finite angular frequency.
  * @returns Finite harmonic coefficients whenever their final values are representable.
  */
@@ -307,19 +247,14 @@ export function computeScaledHarmonicResponse(
 	a0: number,
 	w: number,
 ): HarmonicResponse {
-	const constant = scaledProduct(a0);
-	const negativeQuadratic = scaledProduct(-a2, w, w);
-	const real = sumScaled(constant, negativeQuadratic);
+	const real = exactProductSum([[a0], [-a2, w, w]]);
 	const imaginary = scaledProduct(a1, w);
-	if (
-		scaledCancellation(constant, negativeQuadratic) &&
-		(a1 === 0 || w === 0)
-	) {
+	if (real[0] === 0 && (a1 === 0 || w === 0)) {
 		if (a2 === 0 || w === 0)
 			throw new Error("Unsupported degenerate sinusoidal resonance");
 		return {
 			A: 0,
-			B: divideByProduct(numerator, equationScale, 2 * a2, w),
+			B: divideByProduct(numerator, equationScale, 2, a2, w),
 			multiplicity: 1,
 		};
 	}
@@ -345,32 +280,64 @@ export function computeScaledHarmonicResponse(
 }
 
 /**
- * Detects cancellation relative to a finite term-magnitude sum.
- * @param value - Computed sum or difference.
- * @param magnitude - Finite sum of absolute term magnitudes.
- * @returns Whether rounding error explains the residual.
+ * Retains exponential magnitude when Math.exp alone leaves the binary64 range.
+ * @param argument - Exponential argument for a finite evaluation time.
+ * @returns Scaled exponential; distant tails exceed every possible finite polynomial factor.
  */
-export function isCancellationZero(value: number, magnitude: number): boolean {
-	return (
-		Number.isFinite(value) &&
-		Number.isFinite(magnitude) &&
-		Math.abs(value) <= 32 * Number.EPSILON * magnitude
-	);
+function exponentialScale(argument: number): ScaledNumber {
+	const value = Math.exp(argument);
+	if (value >= MIN_NORMAL_NUMBER && Number.isFinite(value))
+		return binaryParts(value);
+	// Degree-two responses and their derivatives have at most four finite factors,
+	// so these exponential tails exceed every possible compensating binary exponent.
+	if (argument > 10000) return [1, 100000];
+	if (argument < -10000) return [1, -100000];
+	const exponent = Math.floor(argument / Math.LN2);
+	return normalized(Math.exp(argument - exponent * Math.LN2), exponent);
 }
 
 /**
- * Tests cancellation after scaling individual materialized terms.
- * @param value - Computed polynomial or derivative residual.
- * @param terms - Individual finite contributions.
- * @returns Whether the scaled residual is zero within floating-point precision.
+ * Evaluates polynomial-exponential responses without materializing their powers first.
+ * @param coefficient - Particular solution coefficient.
+ * @param p - Finite exponential exponent.
+ * @param multiplicity - Polynomial degree from resonance.
+ * @param t - Evaluation time; nonfinite values retain direct IEEE arithmetic behavior.
+ * @param derivative - Whether to evaluate the analytic first derivative.
+ * @returns Final response or derivative with compensation retained through multiplication.
  */
-export function hasCancellation(value: number, ...terms: number[]): boolean {
-	const scale = Math.max(...terms.map(Math.abs));
-	if (scale === 0) return value === 0;
-	const magnitude = terms.reduce(
-		/** @param total - Accumulated bound. @param term - Next contribution. */
-		(total, term) => total + Math.abs(term / scale),
-		0,
+export function evaluateScaledExponential(
+	coefficient: number,
+	p: number,
+	multiplicity: 0 | 1 | 2,
+	t: number,
+	derivative = false,
+): number {
+	if (!Number.isFinite(coefficient) || !Number.isFinite(t)) {
+		const power = multiplicity === 0 ? 1 : t ** multiplicity;
+		const factor = derivative
+			? multiplicity === 0
+				? p
+				: multiplicity * t ** (multiplicity - 1) + p * power
+			: power;
+		return coefficient * Math.exp(p * t) * factor;
+	}
+	if (coefficient === 0) return coefficient;
+	const powers = multiplicity === 0 ? [] : multiplicity === 1 ? [t] : [t, t];
+	let polynomial = scaledProduct(coefficient, ...powers);
+	if (derivative) {
+		const terms = [scaledProduct(coefficient, p, ...powers)];
+		if (multiplicity !== 0)
+			terms.push(
+				scaledProduct(
+					coefficient,
+					multiplicity,
+					...(multiplicity === 1 ? [] : [t]),
+				),
+			);
+		polynomial = sumScaled(...terms);
+	}
+	return divideScaled(
+		multiplyScaled(polynomial, exponentialScale(p * t)),
+		[1, 0],
 	);
-	return isCancellationZero(value / scale, magnitude);
 }

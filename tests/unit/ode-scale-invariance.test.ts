@@ -179,7 +179,21 @@ describe("ODE coefficient scale invariance", () => {
 				solveCharacteristicEquation(coefficients),
 				forcing,
 			);
-			for (const scale of scales) {
+			// Exact resonance requires rescalings that do not round the supplied polynomial.
+			const equivalentScales =
+				reference.resonanceMultiplicity === 0
+					? scales
+					: [
+							2 ** -600,
+							2 ** -34,
+							2 ** -20,
+							1,
+							2 ** 20,
+							2 ** 600,
+							-(2 ** -34),
+							-(2 ** 20),
+						];
+			for (const scale of equivalentScales) {
 				const ode = solveCharacteristicEquation(
 					scaleEquation(coefficients, scale),
 				);

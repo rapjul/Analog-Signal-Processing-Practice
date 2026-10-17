@@ -14,14 +14,12 @@ import {
 	sanitizeLatexMath,
 } from "../formatting";
 import { toFractionLatex } from "../fraction";
+import { exactProductSum } from "./exact-arithmetic";
 import {
 	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
 	divideByProduct,
-	hasCancellation,
-	isCancellationZero,
-	MIN_NORMAL_NUMBER,
-	polynomialNeedsScaling,
+	evaluateScaledExponential,
 } from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
@@ -35,15 +33,15 @@ import type {
 	SecondOrderOdeParams,
 } from "./types";
 
-/** Equation coefficients normalized by their signed leading coefficient. */
+/** Equation coefficients expressed in a stable working scale. */
 interface NormalizedCoefficients {
 	/** Signed multiplier removed from both the equation and its forcing. */
 	scale: number;
-	/** Normalized second derivative coefficient. */
+	/** Working second derivative coefficient. */
 	a2: number;
-	/** Normalized first derivative coefficient. */
+	/** Working first derivative coefficient. */
 	a1: number;
-	/** Normalized constant coefficient. */
+	/** Working constant coefficient. */
 	a0: number;
 }
 
@@ -51,30 +49,36 @@ interface NormalizedCoefficients {
 interface ScaledDiscriminant {
 	/** Difference between scaled squared-linear and constant terms. */
 	value: number;
-	/** Sum of absolute scaled terms for cancellation detection. */
-	magnitude: number;
 	/** Multiplier that restores the square root to its original scale. */
 	scale: number;
 }
 
 /**
- * Computes a monic discriminant without overflowing squared finite coefficients.
- * @param b - Monic linear coefficient.
- * @param c - Monic constant coefficient.
- * @returns Scaled discriminant and rounding-error comparison magnitude.
+ * Computes the original exact discriminant before converting its magnitude to monic scale.
+ * @param a2 - Original quadratic coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ * @returns Bounded discriminant and its square-root scale.
  */
-function scaledDiscriminant(b: number, c: number): ScaledDiscriminant {
-	const magnitude = b * b + 4 * Math.abs(c);
-	const scale =
-		Number.isFinite(magnitude) && magnitude >= MIN_NORMAL_NUMBER
-			? 1
-			: Math.max(Math.abs(b), Math.sqrt(Math.abs(c))) || 1;
-	const linear = b / scale;
-	const constant = c / scale / scale;
+function scaledDiscriminant(
+	a2: number,
+	a1: number,
+	a0: number,
+): ScaledDiscriminant {
+	const [mantissa, originalExponent] = exactProductSum([
+		[a1, a1],
+		[-4, a2, a0],
+	]);
+	const [leading, leadingExponent] = exactProductSum([[a2]]);
+	if (mantissa === 0) return { value: 0, scale: 1 };
+	const quotient = mantissa / (leading * leading);
+	const adjustment = Math.floor(Math.log2(Math.abs(quotient)));
+	const exponent = originalExponent - 2 * leadingExponent + adjustment;
+	const halfExponent = Math.floor(exponent / 2);
 	return {
-		value: linear * linear - 4 * constant,
-		magnitude: linear * linear + 4 * Math.abs(constant),
-		scale,
+		value:
+			(quotient / 2 ** adjustment) * 2 ** (exponent - 2 * halfExponent),
+		scale: 2 ** halfExponent,
 	};
 }
 
@@ -111,9 +115,26 @@ function normalizeCoefficients(
 }
 
 /**
+ * Retains original coefficients for exact classification before any monic division.
+ * @param ode - Original finite equation coefficients.
+ * @returns Validated original coefficients with unit removed scale.
+ */
+function forcingCoefficients(ode: OdeParams): NormalizedCoefficients {
+	normalizeCoefficients(ode);
+	return {
+		scale: 1,
+		a2: ode.order === 2 ? ode.a2 : 0,
+		a1: ode.a1,
+		a0: ode.a0,
+	};
+}
+
+/**
  * Solves first- or second-order characteristic equations. The two-number form
  * retains the historical monic quadratic API; the object form supports
  * first-order and non-monic equations without positional ambiguity.
+ * Multiplicity uses the supplied binary64 coefficients exactly; nearby roots
+ * are not collapsed by an assumed decimal-input rounding tolerance.
  *
  * @param {number | CharacteristicEquationCoefficients} a1OrCoefficients Linear coefficient a1 or coefficient configuration object
  * @param {number} [a0Argument] Constant coefficient a0 (when using numeric overload)
@@ -161,13 +182,25 @@ export function solveCharacteristicEquation(
 	}
 
 	const b = normalized.a1;
-	const c = normalized.a0;
-	const {
-		value: disc,
-		magnitude,
-		scale: discriminantScale,
-	} = scaledDiscriminant(b, c);
-	if (isCancellationZero(disc, magnitude)) {
+	// Factor s(a2*s + a1) directly before a subnormal square-root scale can vanish.
+	if (a0 === 0 && a1 !== 0) {
+		const root = -b;
+		const zero = a0 / (a2 * (b >= 0 ? -1 : 1));
+		return {
+			order: 2,
+			a2,
+			a1,
+			a0,
+			rootType: "distinct_real",
+			roots: b >= 0 ? { r1: zero, r2: root } : { r1: root, r2: zero },
+		};
+	}
+	const { value: disc, scale: discriminantScale } = scaledDiscriminant(
+		a2,
+		a1,
+		a0,
+	);
+	if (disc === 0) {
 		const r = -b / 2;
 		return {
 			order: 2,
@@ -186,8 +219,9 @@ export function solveCharacteristicEquation(
 		const q = Number.isFinite(sum)
 			? -0.5 * sum
 			: -0.5 * b - 0.5 * signedRoot;
-		const r1 = b >= 0 ? c / q : q;
-		const r2 = b >= 0 ? q : c / q;
+		const smaller = q === 0 ? q : divideByProduct(a0, a2, q);
+		const r1 = b >= 0 ? smaller : q;
+		const r2 = b >= 0 ? q : smaller;
 		return {
 			order: 2,
 			a2,
@@ -212,6 +246,8 @@ export function solveCharacteristicEquation(
 
 /**
  * Computes the particular solution y_p(t) for an ODE: a2*y'' + a1*y' + a0*y = x(t).
+ * Resonance requires exact cancellation of the supplied binary64 coefficients
+ * and forcing exponent or frequency, rather than approximate decimal intent.
  *
  * @param {OdeParams} ode ODE parameters
  * @param {ForcingFunction} forcing Forcing function parameters
@@ -221,7 +257,7 @@ export function computeParticularSolution(
 	ode: OdeParams,
 	forcing: ForcingFunction,
 ): ParticularSolution {
-	const coefficients = normalizeCoefficients(ode);
+	const coefficients = forcingCoefficients(ode);
 	switch (forcing.type) {
 		case "constant":
 		case "exponential":
@@ -235,7 +271,7 @@ export function computeParticularSolution(
 
 /**
  * Solves constant and exponential forcing using its root collision multiplicity.
- * @param coefficients - Monic equation and removed forcing scale.
+ * @param coefficients - Working equation and removed forcing scale.
  * @param forcing - Constant or exponential input.
  * @returns Particular solution and its analytic first derivative.
  */
@@ -246,25 +282,14 @@ function computePolynomialParticular(
 	const { scale, a2, a1, a0 } = coefficients;
 	const constant = forcing.type === "constant";
 	const p = constant ? 0 : (forcing.p ?? -1);
-	const polynomial = (a2 * p + a1) * p + a0;
-	const derivative = 2 * a2 * p + a1;
-	const collision = hasCancellation(polynomial, a2 * p * p, a1 * p, a0);
-	const detectedMultiplicity: 0 | 1 | 2 = collision
-		? hasCancellation(derivative, 2 * a2 * p, a1)
-			? 2
-			: 1
-		: 0;
-	const divisor = [polynomial, derivative, 2 * a2][detectedMultiplicity]!;
-	const needsScaling =
-		!Number.isFinite(polynomial) ||
-		!Number.isFinite(derivative) ||
-		polynomialNeedsScaling(a2, a1, a0, p);
-	const { Kp, multiplicity } = !needsScaling
-		? {
-				Kp: divideByProduct(forcing.K, scale, divisor),
-				multiplicity: detectedMultiplicity,
-			}
-		: computeScaledPolynomialResponse(forcing.K, scale, a2, a1, a0, p);
+	const { Kp, multiplicity } = computeScaledPolynomialResponse(
+		forcing.K,
+		scale,
+		a2,
+		a1,
+		a0,
+		p,
+	);
 	const suffix = ["", " t", " t^2"][multiplicity]!;
 	const latex = constant
 		? `${toFractionLatex(Kp)}${suffix}`
@@ -279,15 +304,10 @@ function computePolynomialParticular(
 		formDescription: `y_p(t) = K_p${suffix}${constant ? "" : " e^{p t}"}`,
 		latex,
 		/** @param t - Evaluation time. @returns The particular response. */
-		eval: (t: number) => Kp * t ** multiplicity * Math.exp(p * t),
+		eval: (t: number) => evaluateScaledExponential(Kp, p, multiplicity, t),
 		/** @param t - Evaluation time. @returns The particular response derivative. */
 		evalDeriv: (t: number) =>
-			Kp *
-			Math.exp(p * t) *
-			(multiplicity === 0
-				? p
-				: multiplicity * t ** (multiplicity - 1) +
-					p * t ** multiplicity),
+			evaluateScaledExponential(Kp, p, multiplicity, t, true),
 		coeffs: { Kp },
 		resonanceMultiplicity: multiplicity,
 	};
@@ -295,7 +315,7 @@ function computePolynomialParticular(
 
 /**
  * Solves harmonic forcing with scaled amplitudes and exact damping detection.
- * @param coefficients - Monic equation and removed forcing scale.
+ * @param coefficients - Working equation and removed forcing scale.
  * @param forcing - Sinusoidal input.
  * @returns Particular harmonic or resonant response.
  */

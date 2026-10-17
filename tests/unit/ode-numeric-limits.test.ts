@@ -7,27 +7,211 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Preserves callback compatibility for nonfinite sampling times without scaled-decomposition exceptions. */
+	it("retains IEEE callback behavior at nonfinite evaluation times", () => {
+		const ode = solveCharacteristicEquation({ order: 1, a1: 1, a0: 1 });
+		const response = computeParticularSolution(ode, {
+			type: "constant",
+			K: 1,
+			latex: "",
+		});
+		for (const t of [
+			Number.NaN,
+			Number.POSITIVE_INFINITY,
+			Number.NEGATIVE_INFINITY,
+		]) {
+			expect(Number.isNaN(response.eval(t))).toBe(true);
+			expect(Number.isNaN(response.evalDeriv(t))).toBe(true);
+		}
+	});
+
+	/** Keeps a genuinely nonzero original residual after decimal coefficient scaling introduces rounding. */
+	it("does not invent exact resonance from rounded monic ratios", () => {
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 1e-100,
+			a1: -1e308 * 1e-100,
+			a0: 0,
+		});
+		const response = computeParticularSolution(ode, {
+			type: "exponential",
+			K: 1e-100,
+			p: 1e308,
+			latex: "",
+		});
+		expect(response.resonanceMultiplicity).toBe(0);
+		expect(Math.abs(response.coeffs.Kp!)).toBe(0);
+	});
+
+	/** Checks exact classification before division by a non-dyadic leading coefficient. */
+	it("classifies non-monic repeated roots and resonance from original coefficients", () => {
+		const repeated = solveCharacteristicEquation({
+			order: 2,
+			a2: 9,
+			a1: 6,
+			a0: 1,
+		});
+		expect(repeated.rootType).toBe("repeated_real");
+		expect(repeated.roots.r1).toBe(-1 / 3);
+		const resonant = computeParticularSolution(
+			solveCharacteristicEquation({ order: 2, a2: 3, a1: 4, a0: 1 }),
+			{ type: "exponential", K: 1, p: -1, latex: "" },
+		);
+		expect(resonant.resonanceMultiplicity).toBe(1);
+		expect(resonant.coeffs.Kp).toBe(-0.5);
+		const extreme = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** 1023,
+			a1: 0,
+			a0: -Number.MIN_VALUE,
+		});
+		const expected = Math.SQRT1_2 * 2 ** -1048;
+		expect(extreme.rootType).toBe("distinct_real");
+		expect(extreme.roots.r1 / expected).toBeCloseTo(1, 7);
+		expect(extreme.roots.r2! / -expected).toBeCloseTo(1, 7);
+	});
+
+	/** Keeps plotting callbacks usable when the coefficient itself is outside the finite range. */
+	it("retains IEEE overflow values rather than throwing from response evaluation", () => {
+		const response = computeParticularSolution(
+			solveCharacteristicEquation({ order: 1, a1: 1, a0: 1e-10 }),
+			{ type: "constant", K: 1e308, latex: "" },
+		);
+		expect(response.coeffs.Kp).toBe(Number.POSITIVE_INFINITY);
+		expect(response.eval(0)).toBe(Number.POSITIVE_INFINITY);
+		expect(Number.isNaN(response.evalDeriv(0))).toBe(true);
+	});
+
+	/** Distinguishes exact small residuals from zero in both root and forcing classification. */
+	it("preserves nonzero discriminants and polynomial residuals near large terms", () => {
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 1,
+			a1: -2e8,
+			a0: 10000000000000002,
+		});
+		expect(ode.rootType).toBe("complex_conjugate");
+		expect(ode.roots.r1).toBe(1e8);
+		expect(ode.roots.im).toBeCloseTo(Math.SQRT2, 12);
+		const response = computeParticularSolution(ode, {
+			type: "exponential",
+			K: 1,
+			p: 1e8,
+			latex: "",
+		});
+		expect(response.resonanceMultiplicity).toBe(0);
+		expect(response.coeffs.Kp).toBe(0.5);
+		const adjacent = solveCharacteristicEquation({
+			order: 2,
+			a2: 1,
+			a1: 134217729,
+			a0: 4503599694479360,
+		});
+		expect(adjacent.rootType).toBe("distinct_real");
+		expect(adjacent.roots.r1).toBe(-67108864);
+		expect(adjacent.roots.r2).toBe(-67108865);
+	});
+
+	/** Retains an original coefficient whose normalized ratio is below the binary64 range. */
+	it("preserves coefficient contributions lost by monic normalization", () => {
+		for (const sign of [1, -1]) {
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** 1023,
+				a1: sign * 2 ** -1022,
+				a0: -2,
+			});
+			const response = computeParticularSolution(ode, {
+				type: "exponential",
+				K: 2 ** -1074,
+				p: 2 ** -511,
+				latex: "",
+			});
+			expect(response.resonanceMultiplicity).toBe(0);
+			expect(response.coeffs.Kp! / (sign * 2 ** 459)).toBe(1);
+		}
+	});
+
+	/** Checks repeated-resonance evaluations without constructing tiny or huge powers first. */
+	it("preserves compensated repeated-resonance values and derivatives", () => {
+		for (const { a1, a0, K, p, t, value, derivative } of [
+			{
+				a1: 1,
+				a0: 0.5,
+				K: 1e308,
+				p: -1,
+				t: 1e-308,
+				value: 1e-308,
+				derivative: 2,
+			},
+			{
+				a1: 0,
+				a0: 0,
+				K: 1e-300,
+				p: 0,
+				t: 1e200,
+				value: 1e100,
+				derivative: 2e-100,
+			},
+			...[745, 1000].map(
+				/** @param t - Time with a subnormal or underflowed exponential before compensation. */
+				(t) => {
+					const value = Math.exp(
+						308 * Math.LN10 + 2 * Math.log(t) - t,
+					);
+					return {
+						a1: 1,
+						a0: 0.5,
+						K: 1e308,
+						p: -1,
+						t,
+						value,
+						derivative: value * (2 / t - 1),
+					};
+				},
+			),
+		]) {
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: 0.5,
+				a1,
+				a0,
+			});
+			const response = computeParticularSolution(ode, {
+				type: "exponential",
+				K,
+				p,
+				latex: "",
+			});
+			expect(response.resonanceMultiplicity).toBe(2);
+			expect(response.eval(t) / value).toBeCloseTo(1, 12);
+			expect(response.evalDeriv(t) / derivative).toBeCloseTo(1, 12);
+		}
+	});
+
 	/** Checks both root orders and signs without masking lost subnormal values with absolute tolerances. */
-	it("preserves the smallest representable root when forming the stable quadratic sum", () => {
+	it("preserves the smallest representable roots and their ordering", () => {
 		for (const b of [
 			Number.MIN_VALUE,
 			-Number.MIN_VALUE,
 			3 * Number.MIN_VALUE,
 			-3 * Number.MIN_VALUE,
 		]) {
-			const ode = solveCharacteristicEquation({
-				order: 2,
-				a2: 1,
-				a1: b,
-				a0: 0,
-			});
-			expect(ode.rootType).toBe("distinct_real");
-			const nonzero = b > 0 ? ode.roots.r2 : ode.roots.r1;
-			const zero = b > 0 ? ode.roots.r1 : ode.roots.r2;
-			expect(nonzero).toBe(-b);
-			expect(Math.abs(zero!)).toBe(0);
-			expect(Number.isFinite(ode.roots.r1)).toBe(true);
-			expect(Number.isFinite(ode.roots.r2)).toBe(true);
+			for (const a2 of [1, 1.5]) {
+				const ode = solveCharacteristicEquation({
+					order: 2,
+					a2,
+					a1: b,
+					a0: 0,
+				});
+				expect(ode.rootType).toBe("distinct_real");
+				const nonzero = b > 0 ? ode.roots.r2 : ode.roots.r1;
+				const zero = b > 0 ? ode.roots.r1 : ode.roots.r2;
+				expect(nonzero).toBe(-b / a2);
+				expect(Math.abs(zero!)).toBe(0);
+				expect(Number.isFinite(ode.roots.r1)).toBe(true);
+				expect(Number.isFinite(ode.roots.r2)).toBe(true);
+			}
 		}
 	});
 
@@ -42,7 +226,7 @@ describe("ODE finite numeric limits", () => {
 	});
 	/** Checks finite Horner cancellation even when expanded terms and derivative products overflow. */
 	it("preserves exponential resonance when expanded terms overflow", () => {
-		for (const scale of [1, -1, 1e-100]) {
+		for (const scale of [1, -1, 2 ** -300]) {
 			for (const p of [1e308, -1e308]) {
 				const ode = solveCharacteristicEquation({
 					order: 2,
@@ -265,27 +449,28 @@ describe("ODE finite numeric limits", () => {
 
 	/** Checks exact exponential resonance without overflowing the cancellation bound. */
 	it("recognizes resonance when the absolute polynomial terms overflow their sum", () => {
+		const p = 3 * 2 ** 510;
 		const ode = solveCharacteristicEquation({
 			order: 2,
 			a2: 1,
 			a1: 0,
-			a0: -1e308,
+			a0: -9 * 2 ** 1020,
 		});
 		const particular = computeParticularSolution(ode, {
 			type: "exponential",
 			K: 1,
-			p: 1e154,
+			p,
 			latex: "",
 		});
 		expect(particular.resonanceMultiplicity).toBe(1);
-		expect(particular.coeffs.Kp! / (1 / 2e154)).toBeCloseTo(1, 12);
+		expect(particular.coeffs.Kp! / (1 / (2 * p))).toBeCloseTo(1, 12);
 		expect(particular.eval(0)).toBe(0);
-		expect(particular.evalDeriv(0) / (1 / 2e154)).toBeCloseTo(1, 12);
+		expect(particular.evalDeriv(0) / (1 / (2 * p))).toBeCloseTo(1, 12);
 	});
 
-	/** Applies the same relative resonance tolerance after scaling near the finite numeric limit. */
-	it("detects near-root cancellation after an overflowing polynomial evaluation", () => {
-		const p = Math.sqrt(Number.MAX_VALUE) * (1 + Number.EPSILON);
+	/** Retains the exact nonzero difference between an overflowing square and the largest finite value. */
+	it("preserves a nonzero near-root residual after an overflowing polynomial evaluation", () => {
+		const p = 2 ** 512;
 		expect(p * p).toBe(Number.POSITIVE_INFINITY);
 		const ode = solveCharacteristicEquation({
 			order: 2,
@@ -299,35 +484,31 @@ describe("ODE finite numeric limits", () => {
 			p,
 			latex: "",
 		});
-		expect(particular.resonanceMultiplicity).toBe(1);
-		expect(particular.coeffs.Kp! / (1 / (2 * p))).toBeCloseTo(1, 12);
+		expect(particular.resonanceMultiplicity).toBe(0);
+		expect(particular.coeffs.Kp! / 2 ** -971).toBe(1);
 	});
 
-	/** Checks scaled harmonic amplitudes and near-root cancellation after frequency squaring overflows. */
+	/** Checks scaled harmonic amplitudes and exact nonzero boundary determinants. */
 	it("scales overflowing harmonic polynomials and preserves resonance decisions", () => {
-		for (const resonant of [false, true]) {
-			const scale = resonant ? 1 : 1e-200;
-			const omega = resonant
-				? Math.sqrt(Number.MAX_VALUE) * (1 + Number.EPSILON)
-				: 1e200;
+		for (const boundary of [false, true]) {
+			const scale = boundary ? 1 : 1e-200;
+			const omega = boundary ? 2 ** 512 : 1e200;
 			const ode = solveCharacteristicEquation({
 				order: 2,
 				a2: scale,
 				a1: 0,
-				a0: resonant ? Number.MAX_VALUE : scale,
+				a0: boundary ? Number.MAX_VALUE : scale,
 			});
 			const particular = computeParticularSolution(ode, {
 				type: "sinusoid",
-				K: resonant ? 1 : 1e200,
+				K: boundary ? 1 : 1e200,
 				omega,
 				latex: "",
 			});
-			expect(particular.resonanceMultiplicity).toBe(resonant ? 1 : 0);
-			if (resonant) {
-				expect(particular.coeffs.B! / (1 / (2 * omega))).toBeCloseTo(
-					1,
-					12,
-				);
+			expect(particular.resonanceMultiplicity).toBe(0);
+			if (boundary) {
+				expect(particular.coeffs.A! / -(2 ** -971)).toBe(1);
+				expect(Math.abs(particular.coeffs.B!)).toBe(0);
 			} else {
 				expect(particular.coeffs.A).toBeCloseTo(-1, 12);
 				expect(particular.eval(0)).toBeCloseTo(-1, 12);
@@ -337,20 +518,21 @@ describe("ODE finite numeric limits", () => {
 
 	/** Checks harmonic cancellation with the same large-term magnitude bound. */
 	it("recognizes sinusoidal resonance when the frequency terms overflow their sum", () => {
+		const omega = 3 * 2 ** 510;
 		const ode = solveCharacteristicEquation({
 			order: 2,
 			a2: 1,
 			a1: 0,
-			a0: 1e308,
+			a0: 9 * 2 ** 1020,
 		});
 		const particular = computeParticularSolution(ode, {
 			type: "sinusoid",
 			K: 1,
-			omega: 1e154,
+			omega,
 			latex: "",
 		});
 		expect(particular.resonanceMultiplicity).toBe(1);
-		expect(particular.coeffs.B! / (1 / 2e154)).toBeCloseTo(1, 12);
+		expect(particular.coeffs.B! / (1 / (2 * omega))).toBeCloseTo(1, 12);
 		expect(particular.eval(0)).toBe(0);
 		expect(particular.evalDeriv(0)).toBe(0);
 	});
