@@ -15,12 +15,13 @@ import {
 } from "../formatting";
 import { toFractionLatex } from "../fraction";
 import {
+	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
 	divideByProduct,
 	hasCancellation,
 	isCancellationZero,
 	MIN_NORMAL_NUMBER,
-	scaledPolynomialTerms,
+	polynomialNeedsScaling,
 } from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
@@ -249,7 +250,11 @@ function computePolynomialParticular(
 			: 1
 		: 0;
 	const divisor = [polynomial, derivative, 2 * a2][detectedMultiplicity]!;
-	const { Kp, multiplicity } = Number.isFinite(polynomial)
+	const needsScaling =
+		!Number.isFinite(polynomial) ||
+		!Number.isFinite(derivative) ||
+		polynomialNeedsScaling(a2, a1, a0, p);
+	const { Kp, multiplicity } = !needsScaling
 		? {
 				Kp: divideByProduct(forcing.K, scale, divisor),
 				multiplicity: detectedMultiplicity,
@@ -301,23 +306,15 @@ function computeSinusoidalParticular(
 	//   sin(w*t) term: -(a1*w)*A        + (a0 - a2*w^2)*B = 0
 	// System matrix: [ m11  m12 ] [ A ] = [ K ]
 	//                [ m21  m22 ] [ B ]   [ 0 ]
-	let m11 = a0 - a2 * w * w;
-	let m12 = a1 * w;
-	let cancellationTerms = [a0, a2 * w * w];
-	let polynomialFactors: readonly number[] = [];
-	if (!Number.isFinite(m11) || !Number.isFinite(m12)) {
-		const { terms, factors } = scaledPolynomialTerms(a2, a1, a0, w);
-		m11 = terms[2] - terms[0];
-		m12 = terms[1];
-		cancellationTerms = [terms[2], terms[0]];
-		polynomialFactors = factors;
-	}
-
-	if (hasCancellation(m11, ...cancellationTerms) && (a1 === 0 || w === 0)) {
-		if (a2 === 0 || w === 0) {
-			throw new Error("Unsupported degenerate sinusoidal resonance");
-		}
-		const B = divideByProduct(forcing.K, scale, 2 * a2, w);
+	const { A, B, multiplicity } = computeScaledHarmonicResponse(
+		forcing.K,
+		scale,
+		a2,
+		a1,
+		a0,
+		w,
+	);
+	if (multiplicity === 1) {
 		return {
 			formDescription:
 				"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
@@ -338,20 +335,6 @@ function computeSinusoidalParticular(
 			resonanceMultiplicity: 1,
 		};
 	}
-	// Scale the harmonic pair before squaring to avoid determinant underflow.
-	const harmonicScale = Math.max(Math.abs(m11), Math.abs(m12));
-	const real = m11 / harmonicScale;
-	const imaginary = m12 / harmonicScale;
-	const denominator = real * real + imaginary * imaginary;
-	const amplitude = divideByProduct(
-		forcing.K,
-		scale,
-		harmonicScale,
-		...polynomialFactors,
-	);
-	const A = (amplitude * real) / denominator;
-	const B = (amplitude * imaginary) / denominator;
-
 	const latexA = toFractionLatex(A);
 	const latexB = toFractionLatex(B);
 

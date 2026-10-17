@@ -3,9 +3,117 @@ import {
 	computeParticularSolution,
 	solveCharacteristicEquation,
 } from "$lib/math-engine/odes/index";
+import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Checks signed zero through the same unmaterialized factors used by the forcing solver. */
+	it("preserves signed zero through scaled product division", () => {
+		expect(Object.is(divideByProduct(-0, -1, 1e-300, 1e-300), 0)).toBe(
+			true,
+		);
+		expect(Object.is(divideByProduct(0, -1, 1e-300, 1e-300), -0)).toBe(
+			true,
+		);
+	});
+	/** Checks finite Horner cancellation even when expanded terms and derivative products overflow. */
+	it("preserves exponential resonance when expanded terms overflow", () => {
+		for (const scale of [1, -1, 1e-100]) {
+			for (const p of [1e308, -1e308]) {
+				const ode = solveCharacteristicEquation({
+					order: 2,
+					a2: scale,
+					a1: -p * scale,
+					a0: 0,
+				});
+				for (const K of [scale, 0]) {
+					const particular = computeParticularSolution(ode, {
+						type: "exponential",
+						K,
+						p,
+						latex: "",
+					});
+					expect(particular.resonanceMultiplicity).toBe(1);
+					if (K === 0)
+						expect(Math.abs(particular.coeffs.Kp!)).toBe(0);
+					else
+						expect(particular.coeffs.Kp! / (1 / p)).toBeCloseTo(
+							1,
+							12,
+						);
+					expect(Math.abs(particular.eval(0))).toBe(0);
+				}
+				const nearby = computeParticularSolution(ode, {
+					type: "exponential",
+					K: scale,
+					p: p * 0.9,
+					latex: "",
+				});
+				expect(nearby.resonanceMultiplicity).toBe(0);
+				expect(Number.isFinite(nearby.coeffs.Kp)).toBe(true);
+			}
+		}
+	});
+
+	/** Checks small-frequency terms and independent scaled matrix residuals across signs and equation scales. */
+	it("preserves harmonic products below the materialized numeric range", () => {
+		for (const scale of [1, -1, 1e50]) {
+			for (const sign of [1, -1]) {
+				const ode = solveCharacteristicEquation({
+					order: 2,
+					a2: 1e200 * scale,
+					a1: 1e100 * scale,
+					a0: 0,
+				});
+				const particular = computeParticularSolution(ode, {
+					type: "sinusoid",
+					K: 1e-300 * scale,
+					omega: sign * 1e-300,
+					latex: "",
+				});
+				const { A = Number.NaN, B = Number.NaN } = particular.coeffs;
+				expect(particular.resonanceMultiplicity).toBe(0);
+				expect(A / -1e-300).toBeCloseTo(1, 12);
+				expect(B / (sign * 1e-100)).toBeCloseTo(1, 12);
+				expect((-1e-200 * A + sign * B) / 1e-100).toBeCloseTo(1, 12);
+				expect((-sign * A - 1e-200 * B) / 1e-300).toBeCloseTo(0, 12);
+				const zero = computeParticularSolution(ode, {
+					type: "sinusoid",
+					K: 0,
+					omega: sign * 1e-300,
+					latex: "",
+				});
+				expect(Math.abs(zero.coeffs.A!)).toBe(0);
+				expect(Math.abs(zero.coeffs.B!)).toBe(0);
+			}
+		}
+	});
+
+	/** Ensures the determinant correction is applied before an otherwise overflowing amplitude is materialized. */
+	it("preserves finite harmonic coefficients after determinant correction", () => {
+		for (const scale of [1, -1, 2]) {
+			for (const sign of [1, -1]) {
+				const ode = solveCharacteristicEquation({
+					order: 1,
+					a1: scale,
+					a0: 5e-309 * scale,
+				});
+				const particular = computeParticularSolution(ode, {
+					type: "sinusoid",
+					K: scale,
+					omega: sign * 5e-309,
+					latex: "",
+				});
+				const { A = Number.NaN, B = Number.NaN } = particular.coeffs;
+				expect(A / 1e308).toBeCloseTo(1, 12);
+				expect(B / (sign * 1e308)).toBeCloseTo(1, 12);
+				expect(5e-309 * A + sign * 5e-309 * B).toBeCloseTo(1, 12);
+				expect(-sign * 5e-309 * A + 5e-309 * B).toBeCloseTo(0, 12);
+				expect(Number.isFinite(particular.eval(0))).toBe(true);
+			}
+		}
+	});
+
 	/** Verifies the quotient remains finite when undoing leading-coefficient normalization. */
 	it("preserves finite constant responses across extreme coefficient ratios", () => {
 		for (const { a1, a0, K } of [
