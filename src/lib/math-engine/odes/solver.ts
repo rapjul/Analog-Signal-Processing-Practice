@@ -16,6 +16,7 @@ import {
 import { toFractionLatex } from "../fraction";
 import {
 	divideByProduct,
+	divideByScaledPolynomial,
 	hasCancellation,
 	isCancellationZero,
 	MIN_NORMAL_NUMBER,
@@ -247,7 +248,9 @@ function computePolynomialParticular(
 			: 1
 		: 0;
 	const divisor = [polynomial, derivative, 2 * a2][multiplicity]!;
-	const Kp = divideByProduct(forcing.K, scale, divisor);
+	const Kp = Number.isFinite(polynomial)
+		? divideByProduct(forcing.K, scale, divisor)
+		: divideByScaledPolynomial(forcing.K, scale, a2, a1, a0, p);
 	const suffix = ["", " t", " t^2"][multiplicity]!;
 	const latex = constant
 		? `${toFractionLatex(Kp)}${suffix}`

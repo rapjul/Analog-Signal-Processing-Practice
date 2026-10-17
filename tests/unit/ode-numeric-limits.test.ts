@@ -66,6 +66,46 @@ describe("ODE finite numeric limits", () => {
 		expect(particular.evalDeriv(0)).toBeCloseTo(1, 12);
 	});
 
+	/** Checks the original finite quotient when monic normalization overflows its polynomial. */
+	it("preserves finite exponential amplitudes when the normalized polynomial overflows", () => {
+		for (const { scale, K, p, expected } of [
+			{ scale: 1e-200, K: 1e200, p: 1e200, expected: 1 },
+			{ scale: -1e-200, K: -1e200, p: -1e200, expected: 1 },
+			{ scale: 1e200, K: 1e300, p: 1e200, expected: 1e-300 },
+		]) {
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: scale,
+				a1: 0,
+				a0: scale,
+			});
+			const particular = computeParticularSolution(ode, {
+				type: "exponential",
+				K,
+				p,
+				latex: "",
+			});
+			expect(particular.resonanceMultiplicity).toBe(0);
+			expect(particular.coeffs.Kp! / expected).toBeCloseTo(1, 12);
+			expect(particular.eval(0) / expected).toBeCloseTo(1, 12);
+			expect(particular.evalDeriv(0) / (p * expected)).toBeCloseTo(1, 12);
+		}
+	});
+
+	/** Checks finite first-order responses when adding large polynomial terms overflows. */
+	it("scales large first-order polynomial terms before adding them", () => {
+		const ode = solveCharacteristicEquation({ order: 1, a1: 1, a0: 1e308 });
+		const particular = computeParticularSolution(ode, {
+			type: "exponential",
+			K: 1e308,
+			p: 1e308,
+			latex: "",
+		});
+		expect(particular.coeffs.Kp).toBeCloseTo(0.5, 12);
+		expect(particular.eval(0)).toBeCloseTo(0.5, 12);
+		expect(particular.evalDeriv(0) / 5e307).toBeCloseTo(1, 12);
+	});
+
 	/** Keeps a zero root distinct from a small nonzero root even when squaring underflows. */
 	it("preserves distinct roots when a tiny linear coefficient has an underflowing square", () => {
 		const ode = solveCharacteristicEquation({

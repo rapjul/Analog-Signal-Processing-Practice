@@ -15,36 +15,93 @@ function binaryParts(value: number): BinaryParts {
 }
 
 /**
- * Divides by two factors without overflowing or underflowing a cancellable intermediate.
+ * Divides by factors without overflowing or underflowing a cancellable intermediate.
  * @param numerator - Finite forcing amplitude.
  * @param first - Finite nonzero removed equation scale.
  * @param second - Finite nonzero normalized solution divisor.
+ * @param additional - Additional finite nonzero polynomial scaling factors.
  * @returns Quotient, with overflow only when the result itself exceeds binary64 range.
  */
 export function divideByProduct(
 	numerator: number,
 	first: number,
 	second: number,
+	...additional: number[]
 ): number {
+	const factors = [first, second, ...additional];
 	if (
-		![numerator, first, second].every(Number.isFinite) ||
-		first === 0 ||
-		second === 0
+		!Number.isFinite(numerator) ||
+		!factors.every(
+			/** @param factor - Next denominator factor. */
+			(factor) => Number.isFinite(factor) && factor !== 0,
+		)
 	)
 		throw new Error(
 			"Particular-solution factors must be finite and divisors non-zero",
 		);
-	if (numerator === 0) return numerator / first / second;
+	if (numerator === 0)
+		return factors.reduce(
+			/** @param quotient - Signed zero quotient. @param factor - Next divisor. */
+			(quotient, factor) => quotient / factor,
+			numerator,
+		);
 	const product = first * second;
-	if (Number.isFinite(product) && Math.abs(product) >= MIN_NORMAL_NUMBER)
+	if (
+		additional.length === 0 &&
+		Number.isFinite(product) &&
+		Math.abs(product) >= MIN_NORMAL_NUMBER
+	)
 		return numerator / product;
 	const [n, nExponent] = binaryParts(numerator);
-	const [a, aExponent] = binaryParts(first);
-	const [b, bExponent] = binaryParts(second);
-	const exponent = nExponent - aExponent - bExponent;
+	let mantissa = n;
+	let exponent = nExponent;
+	for (const factor of factors) {
+		const [part, partExponent] = binaryParts(factor);
+		mantissa /= part;
+		exponent -= partExponent;
+	}
 	const initialExponent = Math.max(-1022, Math.min(1023, exponent));
-	return (
-		(n / a / b) * 2 ** initialExponent * 2 ** (exponent - initialExponent)
+	return mantissa * 2 ** initialExponent * 2 ** (exponent - initialExponent);
+}
+
+/**
+ * Restores a forcing quotient when the monic polynomial overflows Horner evaluation.
+ * @param numerator - Original forcing amplitude.
+ * @param equationScale - Leading coefficient removed from the equation.
+ * @param a2 - Monic quadratic coefficient, zero for first-order equations.
+ * @param a1 - Monic linear coefficient.
+ * @param a0 - Monic constant coefficient.
+ * @param p - Finite exponential forcing exponent.
+ * @returns Forcing divided by the polynomial without constructing its large powers.
+ */
+export function divideByScaledPolynomial(
+	numerator: number,
+	equationScale: number,
+	a2: number,
+	a1: number,
+	a0: number,
+	p: number,
+): number {
+	const frequencyScale = Math.max(1, Math.abs(p));
+	const linear = a1 / frequencyScale;
+	const constant = a0 / frequencyScale / frequencyScale;
+	const coefficientScale = Math.max(
+		Math.abs(a2),
+		Math.abs(linear),
+		Math.abs(constant),
+	);
+	const frequency = p / frequencyScale;
+	const polynomial =
+		(a2 / coefficientScale) * frequency * frequency +
+		(linear / coefficientScale) * frequency +
+		constant / coefficientScale;
+	return divideByProduct(
+		numerator,
+		equationScale,
+		frequencyScale,
+		frequencyScale,
+		coefficientScale,
+		polynomial,
 	);
 }
 
