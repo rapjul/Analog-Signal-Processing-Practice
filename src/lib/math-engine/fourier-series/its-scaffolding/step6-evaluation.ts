@@ -31,6 +31,19 @@ export function buildEvaluationOptions(
 ): FourierItsOption[] {
 	const label =
 		target === "a0" ? "a_0" : `${target === "Fn" ? "F" : target[0]}_n`;
+	if (resultLatex === "0") {
+		return [0, 1, -1, 2].map((value, index) => ({
+			id: `${target}-${["correct", "scale", "sign", "support"][index]}`,
+			latex: `${label}=${value}`,
+			isCorrect: index === 0,
+			...(index === 0
+				? {}
+				: {
+						feedback:
+							"DC Error: The positive and negative areas cancel, so the average is zero.",
+					}),
+		}));
+	}
 	return [
 		{
 			id: `${target}-correct`,
@@ -53,10 +66,10 @@ export function buildEvaluationOptions(
 		},
 		{
 			id: `${target}-support`,
-			latex: `${label}=\\left(${resultLatex}\\right)(-1)^n`,
+			latex: `${label}=2\\left(${resultLatex}\\right)`,
 			isCorrect: false,
 			feedback:
-				"Harmonic Support Error: Simplify the parity factor only after applying all piecewise bounds.",
+				"Scale Factor Error: Do not apply the Fourier normalization a second time.",
 		},
 	];
 }

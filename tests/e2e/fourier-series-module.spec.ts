@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 /**
  * End-to-End Test Suite: Fourier Series Practice Module (/fourier-series).
@@ -9,6 +10,48 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("Fourier Series Module", () => {
+	/** Confirms the corrected zero-DC options and final synthesis in a real browser. */
+	test("grades zero DC and finishes corrected synthesis @dev-harness", async ({
+		page,
+	}) => {
+		const problem = generateFourierSeriesProblem("triangle", { seed: 1 });
+		await page.goto("/fourier-series?waveform=triangle&seed=1");
+		await page.waitForLoadState("networkidle");
+		const prepared = await page.evaluate(() =>
+			window.__signalLabDev?.goToVisualState(
+				"fourier-series.step-06.coefficient-evaluation",
+			),
+		);
+		expect(prepared).toBe(true);
+		const options = page
+			.getByTestId("fourier-step6-options")
+			.getByRole("button");
+		const dc = problem.itsData.step6.parts[0]!;
+		const wrongIndex = dc.options.findIndex((option) => !option.isCorrect);
+		await options.nth(wrongIndex).click();
+		await expect(page.locator(".feedback-alert")).toContainText(
+			"average is zero",
+		);
+		for (const part of problem.itsData.step6.parts) {
+			await options
+				.nth(part.options.findIndex((option) => option.isCorrect))
+				.click();
+		}
+		const step7 = page.locator(".step-card").nth(6);
+		await expect(step7).toHaveClass(/active/);
+		await step7
+			.locator(".mcq-card")
+			.nth(
+				problem.itsData.step7.options.findIndex(
+					(option) => option.isCorrect,
+				),
+			)
+			.click();
+		await expect(
+			page.getByText("Problem Completed!", { exact: true }),
+		).toBeVisible();
+		await expect(page.locator(".katex-error")).toHaveCount(0);
+	});
 	test.beforeEach(async ({ page }) => {
 		await page.goto("/fourier-series");
 		await page.waitForLoadState("networkidle");

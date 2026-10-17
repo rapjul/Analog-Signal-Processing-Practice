@@ -19,9 +19,29 @@ import type {
 /**
  * Builds one correct integral choice and three misconception-driven distractors.
  * @param {string} correct Correct integral LaTeX string
+ * @param zeroResult Whether cancellation makes every rescaling of the integral equivalent.
  * @returns {FourierItsOption[]} Four options with feedback
  */
-export function buildIntegralOptions(correct: string): FourierItsOption[] {
+export function buildIntegralOptions(
+	correct: string,
+	zeroResult = false,
+): FourierItsOption[] {
+	if (zeroResult) {
+		return [0, 1, -1, 2].map((offset, index) => ({
+			id: index === 0 ? "c1" : `d${index}`,
+			latex:
+				offset === 0
+					? correct
+					: `${correct}${offset < 0 ? "-" : "+"}${Math.abs(offset)}`,
+			isCorrect: index === 0,
+			...(index === 0
+				? {}
+				: {
+						feedback:
+							"DC Offset Error: The integral already computes the average coefficient; do not add an offset.",
+					}),
+		}));
+	}
 	const scalingDistractor = correct.includes("\\frac{4}{T_0}")
 		? correct.replace("\\frac{4}{T_0}", "\\frac{2}{T_0}")
 		: correct.includes("\\frac{2j}{T_0}")
@@ -153,7 +173,10 @@ export function buildStep5Data(
 		prompt: `Select the integral that computes $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
 		resultLatex: integralByTarget[target],
 		options: shuffleWithRandom(
-			buildIntegralOptions(integralByTarget[target]),
+			buildIntegralOptions(
+				integralByTarget[target],
+				target === "a0" && derivation.a0Latex === "0",
+			),
 			random,
 		),
 		hints: [
