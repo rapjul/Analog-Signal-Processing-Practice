@@ -7,6 +7,30 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Checks both root orders and signs without masking lost subnormal values with absolute tolerances. */
+	it("preserves the smallest representable root when forming the stable quadratic sum", () => {
+		for (const b of [
+			Number.MIN_VALUE,
+			-Number.MIN_VALUE,
+			3 * Number.MIN_VALUE,
+			-3 * Number.MIN_VALUE,
+		]) {
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: 1,
+				a1: b,
+				a0: 0,
+			});
+			expect(ode.rootType).toBe("distinct_real");
+			const nonzero = b > 0 ? ode.roots.r2 : ode.roots.r1;
+			const zero = b > 0 ? ode.roots.r1 : ode.roots.r2;
+			expect(nonzero).toBe(-b);
+			expect(Math.abs(zero!)).toBe(0);
+			expect(Number.isFinite(ode.roots.r1)).toBe(true);
+			expect(Number.isFinite(ode.roots.r2)).toBe(true);
+		}
+	});
+
 	/** Checks signed zero through the same unmaterialized factors used by the forcing solver. */
 	it("preserves signed zero through scaled product division", () => {
 		expect(Object.is(divideByProduct(-0, -1, 1e-300, 1e-300), 0)).toBe(

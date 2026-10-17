@@ -180,7 +180,12 @@ export function solveCharacteristicEquation(
 	} else if (disc > 0) {
 		const sqrtDisc = Math.sqrt(disc) * discriminantScale;
 		// Recover the smaller root from the product instead of subtracting near-equal values.
-		const q = -0.5 * b - 0.5 * (b >= 0 ? sqrtDisc : -sqrtDisc);
+		const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
+		const sum = b + signedRoot;
+		// Sum first to preserve subnormals; split only when the sum would overflow.
+		const q = Number.isFinite(sum)
+			? -0.5 * sum
+			: -0.5 * b - 0.5 * signedRoot;
 		const r1 = b >= 0 ? c / q : q;
 		const r2 = b >= 0 ? q : c / q;
 		return {
