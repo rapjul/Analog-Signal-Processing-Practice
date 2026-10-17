@@ -25,6 +25,7 @@ import {
 	buildStep6Data,
 	buildStep7Data,
 } from "./its-scaffolding";
+import { classifyResponseDecomposition } from "./response-decomposition";
 import { computeParticularSolution, solveHomogeneousConstants } from "./solver";
 import type {
 	FirstOrderOdeItsData,
@@ -292,17 +293,23 @@ export function generateOdeProblem(
 
 	const odeLatex = `${formatOdeLhs(a2, a1, a0)} = ${forcing.latex}`;
 
-	const completeLatex =
+	const completeLatex = sanitizeLatexMath(
 		particular.latex === "0"
 			? homogeneousComplete.latex
-			: `${homogeneousComplete.latex} + ${particular.latex}`;
+			: `${homogeneousComplete.latex} + ${particular.latex}`,
+	);
 	const ziLatex = homogeneousZI.latex;
 	const zsLatex =
 		particular.latex === "0"
 			? homogeneousZS.latex
 			: `${homogeneousZS.latex} + ${particular.latex}`;
-	const y_tr_latex = homogeneousComplete.latex;
-	const y_ss_latex = particular.latex;
+	const { particularDecays, y_tr_latex, y_ss_latex } =
+		classifyResponseDecomposition(
+			forcing,
+			homogeneousComplete,
+			particular,
+			completeLatex,
+		);
 
 	// Characteristic Equation LHS
 	const charEqLhs = formatPolynomial(
@@ -379,6 +386,7 @@ export function generateOdeProblem(
 		homogeneousZS,
 		homogeneousComplete,
 		particular,
+		particularDecays,
 		ziLatex,
 		zsLatex,
 		y_tr_latex,

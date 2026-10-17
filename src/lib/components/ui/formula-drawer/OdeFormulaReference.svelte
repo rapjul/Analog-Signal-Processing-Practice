@@ -92,6 +92,11 @@
 	<ul class="ref-list">
 		<li>
 			<MathText
+				text={String.raw`<strong>Transient / Steady-State:</strong> Transient terms decay to zero, including decaying forced exponentials. Steady-state contains persistent terms; if the entire response decays, $y_{tr}(t)=y(t)$ and $y_{ss}(t)=0$.`}
+			/>
+		</li>
+		<li>
+			<MathText
 				text={String.raw`<strong>Zero-Input Response ($y_{ZI}$):</strong> Driven purely by initial conditions ($x(t) = 0$).`}
 			/>
 		</li>

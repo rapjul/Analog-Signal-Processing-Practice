@@ -93,9 +93,12 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 			},
 			{
 				id: "d1_missing_factor",
-				latex: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t)`,
+				latex:
+					w === 1
+						? String.raw`y_p'(t) = -2A \sin(${w}t) + 2B \cos(${w}t)`
+						: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t)`,
 				isCorrect: false,
-				feedback: String.raw`Chain Rule Error: Differentiating $\cos(${w}t)$ and $\sin(${w}t)$ pulls out the inner factor of $${w}$.`,
+				feedback: String.raw`Chain Rule Error: The inner derivative is $${w}$, so each term must have exactly that factor.`,
 			},
 		];
 
@@ -113,7 +116,7 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 			},
 			{
 				id: "d2_missing_square",
-				latex: String.raw`y_p''(t) = -${w}A \cos(${w}t) - ${w}B \sin(${w}t)`,
+				latex: String.raw`y_p''(t) = -${w === 1 ? 2 : w}A \cos(${w}t) - ${w === 1 ? 2 : w}B \sin(${w}t)`,
 				isCorrect: false,
 				feedback: `Chain Rule Error: Differentiating twice accumulates an inner factor of $(${w})^2 = ${w2}$.`,
 			},
@@ -139,9 +142,12 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 			},
 			{
 				id: "deriv_missing_omega",
-				latex: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t), \quad y_p''(t) = -A \cos(${w}t) - B \sin(${w}t)`,
+				latex:
+					w === 1
+						? String.raw`y_p'(t) = -2A \sin(${w}t) + 2B \cos(${w}t), \quad y_p''(t) = -2A \cos(${w}t) - 2B \sin(${w}t)`
+						: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t), \quad y_p''(t) = -A \cos(${w}t) - B \sin(${w}t)`,
 				isCorrect: false,
-				feedback: String.raw`Chain Rule Error: Differentiating $\cos(${w}t)$ and $\sin(${w}t)$ pulls out an inner factor of $${w}$.`,
+				feedback: String.raw`Chain Rule Error: The first derivative has a factor of $${w}$ and the second has a factor of $${w2}$.`,
 			},
 		];
 
@@ -159,9 +165,9 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 			},
 			{
 				id: "sys_missing_factor",
-				latex: String.raw`\begin{cases} (${m11})A + (${a1})B = ${forcing.K} \\ (-${a1})A + (${m22})B = 0 \end{cases}`,
+				latex: String.raw`\begin{cases} (${m11})A + (${w === 1 ? 2 * a1 : a1})B = ${forcing.K} \\ (${-(w === 1 ? 2 * a1 : a1)})A + (${m22})B = 0 \end{cases}`,
 				isCorrect: false,
-				feedback: String.raw`Missing Inner Factor: The first derivative term contributes $a_1 \cdot ${w} = ${m12}$, not just $a_1$.`,
+				feedback: String.raw`Incorrect Inner Factor: The first derivative term contributes exactly $a_1 \cdot ${w} = ${m12}$.`,
 			},
 			{
 				id: "sys_uncoupled",
