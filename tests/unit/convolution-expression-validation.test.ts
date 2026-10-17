@@ -1,8 +1,26 @@
 /** Regression coverage for algebraic and malformed convolution answers. */
 import { describe, expect, it } from "vitest";
-import { convolutionExpressionsMatch } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import {
+	convolutionExpressionsMatch,
+	verifyConvolutionExpression,
+} from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 describe("convolution expression equivalence", () => {
+	/** Exact cancellation accepts removable singularities but cannot remove genuine poles. */
+	it("compares rational identities almost everywhere on the open interval", () => {
+		expect(
+			verifyConvolutionExpression("(t^2-4)/(t-2)", "t+2", {
+				min: 0,
+				max: 4,
+			}).status,
+		).toBe("correct");
+		expect(
+			verifyConvolutionExpression("1/(t-2)", "t+2", {
+				min: 0,
+				max: 4,
+			}).status,
+		).toBe("incorrect");
+	});
 	/** A delayed step must never disappear when typed without a multiplication sign. */
 	it.each(["tu(t-100)", "t u(t-100)", "t*u(t-100)"])(
 		"rejects the incorrectly gated answer %s",
@@ -11,11 +29,15 @@ describe("convolution expression equivalence", () => {
 			expect(convolutionExpressionsMatch(answer, "t")).toBe(false);
 		},
 	);
-	/** Empty sampling must not establish equivalence between finite expressions. */
-	it("requires samples for finite expressions but not infinity sentinels", () => {
-		expect(convolutionExpressionsMatch("4", "5", [])).toBe(false);
-		expect(convolutionExpressionsMatch("t", "t", [])).toBe(false);
-		expect(convolutionExpressionsMatch("inf", "\\infty", [])).toBe(true);
+	/** Empty domains cannot establish finite expression equivalence. */
+	it("requires a nonempty domain for finite expressions", () => {
+		expect(convolutionExpressionsMatch("4", "5", { min: 1, max: 1 })).toBe(
+			false,
+		);
+		expect(convolutionExpressionsMatch("t", "t", { min: 1, max: 1 })).toBe(
+			false,
+		);
+		expect(convolutionExpressionsMatch("inf", "\\infty")).toBe(true);
 	});
 	/** Equivalent finite constants must use the same expression evaluator. */
 	it.each(["2+2", "(4)", "8/2", "4+t-t"])(
@@ -36,11 +58,56 @@ describe("convolution expression equivalence", () => {
 	);
 	/** A shifted unit step must retain its support when comparing answers. */
 	it("rejects an expression gated off throughout the active interval", () => {
-		expect(convolutionExpressionsMatch("t*u(t-100)", "t", [1, 2, 3])).toBe(
-			false,
+		expect(
+			convolutionExpressionsMatch("t*u(t-100)", "t", { min: 1, max: 3 }),
+		).toBe(false);
+		expect(
+			convolutionExpressionsMatch("t*u(t)", "t", { min: 1, max: 3 }),
+		).toBe(true);
+	});
+	/** Known sample collisions must be compared algebraically. */
+	it("rejects a polynomial agreeing at every former sample", () => {
+		expect(
+			convolutionExpressionsMatch("t+(t+3)(t+1)t(t-2)(t-5)", "t"),
+		).toBe(false);
+	});
+	/** Hidden support changes cannot disappear beyond the finite sample window. */
+	it.each(["t*e^{-t}u(6-t)", "t*e^{-t}u(t-100)"])(
+		"rejects %s on an exponential tail",
+		/** @param answer - Submitted expression with an incorrect support factor. */
+		(answer) => {
+			expect(
+				verifyConvolutionExpression(answer, "t*e^{-t}", {
+					min: 0,
+					max: Infinity,
+				}).status,
+			).not.toBe("correct");
+		},
+	);
+	/** Endpoint support conventions do not affect an open interval identity. */
+	it("proves shifted support at interval edges and equivalent factored answers", () => {
+		expect(
+			convolutionExpressionsMatch("(t+1)^2*u(t+1)*u(2-t)", "t^2+2t+1", {
+				min: -1,
+				max: 2,
+			}),
+		).toBe(true);
+		expect(
+			convolutionExpressionsMatch("t*u(-t)", "t", {
+				min: -Infinity,
+				max: 0,
+			}),
+		).toBe(true);
+	});
+	/** Unsupported syntax and invalid mathematics remain distinct and bounded. */
+	it("reports conservative diagnostics and enforces resource limits", () => {
+		expect(verifyConvolutionExpression("sqrt(t)", "t").status).toBe(
+			"unsupported",
 		);
-		expect(convolutionExpressionsMatch("t*u(t)", "t", [1, 2, 3])).toBe(
-			true,
+		expect(verifyConvolutionExpression("1/0", "0").status).toBe("invalid");
+		expect(verifyConvolutionExpression("(t", "t").status).toBe("invalid");
+		expect(verifyConvolutionExpression("1".repeat(16385), "0").status).toBe(
+			"unsupported",
 		);
 	});
 	/** Infinity is a scalar boundary sentinel rather than a finite expression. */

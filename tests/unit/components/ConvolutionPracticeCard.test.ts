@@ -11,9 +11,81 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
-import { generateConvolutionProblem } from "$lib/math-engine/convolution/index";
+import {
+	generateConfiguredConvolutionProblem,
+	generateConvolutionProblem,
+	TEXTBOOK_CONVOLUTION_SELECTION,
+} from "$lib/math-engine/convolution/index";
 
 describe("ConvolutionPracticeCard", () => {
+	/** Each new problem must notify and lock the same verified moving choice. */
+	it("synchronizes repeated moving choices across consecutive problems", async () => {
+		const onNextProblem = vi.fn();
+		const view = render(ConvolutionPracticeCard, {
+			problem: generateConfiguredConvolutionProblem(
+				TEXTBOOK_CONVOLUTION_SELECTION,
+				{ seed: 1 },
+			),
+			onNextProblem,
+		});
+		for (const seed of [1, 2]) {
+			if (seed === 2)
+				await view.rerender({
+					problem: generateConfiguredConvolutionProblem(
+						TEXTBOOK_CONVOLUTION_SELECTION,
+						{ seed },
+					),
+					onNextProblem,
+				});
+			await act(
+				/** Advances to the real binary moving-signal choice. */ () => {
+					window.__signalLabDev?.autoFillStep(1);
+					window.__signalLabDev?.autoFillStep(2);
+				},
+			);
+			const choice = view.container.querySelector<HTMLButtonElement>(
+				".step-card.active .binary-grid button",
+			);
+			if (!choice) throw new Error("Expected moving-signal choice.");
+			await fireEvent.click(choice);
+			expect(view.getByText(/Step 3 is verified/)).toBeTruthy();
+			for (const button of view.container.querySelectorAll<HTMLButtonElement>(
+				".preview-path-controls button",
+			))
+				expect(button.disabled).toBe(true);
+		}
+	});
+	/** A regenerated object with unchanged resolved parameters must restart practice. */
+	it("resets completion when the replacement retains the same identifier", async () => {
+		const first = generateConfiguredConvolutionProblem(
+			TEXTBOOK_CONVOLUTION_SELECTION,
+			{ seed: 1 },
+		);
+		const onNextProblem = vi.fn();
+		const view = render(ConvolutionPracticeCard, {
+			problem: first,
+			onNextProblem,
+		});
+		await act(
+			/** Completes the original tutor through its real validators. */ () =>
+				window.__signalLabDev?.solveAll(),
+		);
+		expect(view.getByText("Problem Completed!")).toBeTruthy();
+		const replacement = generateConfiguredConvolutionProblem(
+			{
+				...TEXTBOOK_CONVOLUTION_SELECTION,
+				x: { ...TEXTBOOK_CONVOLUTION_SELECTION.x, amplitude: "1" },
+			},
+			{ seed: 1 },
+		);
+		expect(replacement.id).toBe(first.id);
+		await view.rerender({ problem: replacement, onNextProblem });
+		expect(view.queryByText("Problem Completed!")).toBeNull();
+		expect(
+			view.container.querySelectorAll(".step-card.locked"),
+		).toHaveLength(6);
+		expect(window.__signalLabDev?.activeSolver?.currentStep).toBe(1);
+	});
 	beforeEach(() => {
 		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
 			null,
