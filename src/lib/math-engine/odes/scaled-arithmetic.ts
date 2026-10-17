@@ -64,24 +64,36 @@ export function divideByProduct(
 	return mantissa * 2 ** initialExponent * 2 ** (exponent - initialExponent);
 }
 
+/** Polynomial terms expressed over shared frequency and coefficient factors. */
+interface ScaledPolynomial {
+	/** Quadratic, linear, and constant contributions in the shared scale. */
+	terms: readonly [number, number, number];
+	/** Frequency, frequency, and coefficient factors removed from each contribution. */
+	factors: readonly [number, number, number];
+}
+
+/** Particular amplitude and collision order evaluated in a common scale. */
+interface PolynomialResponse {
+	/** Particular amplitude after all removed scales are restored. */
+	Kp: number;
+	/** Number of resonance factors required by the characteristic polynomial. */
+	multiplicity: 0 | 1 | 2;
+}
+
 /**
- * Restores a forcing quotient when the monic polynomial overflows Horner evaluation.
- * @param numerator - Original forcing amplitude.
- * @param equationScale - Leading coefficient removed from the equation.
+ * Scales polynomial terms before powers or sums can overflow.
  * @param a2 - Monic quadratic coefficient, zero for first-order equations.
  * @param a1 - Monic linear coefficient.
  * @param a0 - Monic constant coefficient.
- * @param p - Finite exponential forcing exponent.
- * @returns Forcing divided by the polynomial without constructing its large powers.
+ * @param p - Finite forcing exponent or angular frequency.
+ * @returns Bounded terms and their removed factors.
  */
-export function divideByScaledPolynomial(
-	numerator: number,
-	equationScale: number,
+export function scaledPolynomialTerms(
 	a2: number,
 	a1: number,
 	a0: number,
 	p: number,
-): number {
+): ScaledPolynomial {
 	const frequencyScale = Math.max(1, Math.abs(p));
 	const linear = a1 / frequencyScale;
 	const constant = a0 / frequencyScale / frequencyScale;
@@ -91,18 +103,59 @@ export function divideByScaledPolynomial(
 		Math.abs(constant),
 	);
 	const frequency = p / frequencyScale;
-	const polynomial =
-		(a2 / coefficientScale) * frequency * frequency +
-		(linear / coefficientScale) * frequency +
-		constant / coefficientScale;
-	return divideByProduct(
-		numerator,
-		equationScale,
-		frequencyScale,
-		frequencyScale,
-		coefficientScale,
-		polynomial,
-	);
+	return {
+		terms: [
+			(a2 / coefficientScale) * frequency * frequency,
+			(linear / coefficientScale) * frequency,
+			constant / coefficientScale,
+		],
+		factors: [frequencyScale, frequencyScale, coefficientScale],
+	};
+}
+
+/**
+ * Solves a forcing coefficient and resonance order after Horner evaluation overflows.
+ * @param numerator - Original forcing amplitude.
+ * @param equationScale - Leading coefficient removed from the equation.
+ * @param a2 - Monic quadratic coefficient, zero for first-order equations.
+ * @param a1 - Monic linear coefficient.
+ * @param a0 - Monic constant coefficient.
+ * @param p - Finite exponential forcing exponent.
+ * @returns Finite-scale particular amplitude and resonance multiplicity.
+ */
+export function computeScaledPolynomialResponse(
+	numerator: number,
+	equationScale: number,
+	a2: number,
+	a1: number,
+	a0: number,
+	p: number,
+): PolynomialResponse {
+	const { terms, factors } = scaledPolynomialTerms(a2, a1, a0, p);
+	const [frequencyScale, , coefficientScale] = factors;
+	const frequency = p / frequencyScale;
+	const polynomial = terms[0] + terms[1] + terms[2];
+	const firstDerivativeTerm = ((2 * a2) / coefficientScale) * frequency;
+	const secondDerivativeTerm = a1 / frequencyScale / coefficientScale;
+	const derivative = firstDerivativeTerm + secondDerivativeTerm;
+	const multiplicity = hasCancellation(polynomial, ...terms)
+		? hasCancellation(derivative, firstDerivativeTerm, secondDerivativeTerm)
+			? 2
+			: 1
+		: 0;
+	const Kp =
+		multiplicity === 0
+			? divideByProduct(numerator, equationScale, polynomial, ...factors)
+			: multiplicity === 1
+				? divideByProduct(
+						numerator,
+						equationScale,
+						derivative,
+						frequencyScale,
+						coefficientScale,
+					)
+				: divideByProduct(numerator, equationScale, 2 * a2);
+	return { Kp, multiplicity };
 }
 
 /**

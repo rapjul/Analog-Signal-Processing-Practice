@@ -15,11 +15,12 @@ import {
 } from "../formatting";
 import { toFractionLatex } from "../fraction";
 import {
+	computeScaledPolynomialResponse,
 	divideByProduct,
-	divideByScaledPolynomial,
 	hasCancellation,
 	isCancellationZero,
 	MIN_NORMAL_NUMBER,
+	scaledPolynomialTerms,
 } from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
@@ -242,15 +243,18 @@ function computePolynomialParticular(
 	const polynomial = (a2 * p + a1) * p + a0;
 	const derivative = 2 * a2 * p + a1;
 	const collision = hasCancellation(polynomial, a2 * p * p, a1 * p, a0);
-	const multiplicity = collision
+	const detectedMultiplicity: 0 | 1 | 2 = collision
 		? hasCancellation(derivative, 2 * a2 * p, a1)
 			? 2
 			: 1
 		: 0;
-	const divisor = [polynomial, derivative, 2 * a2][multiplicity]!;
-	const Kp = Number.isFinite(polynomial)
-		? divideByProduct(forcing.K, scale, divisor)
-		: divideByScaledPolynomial(forcing.K, scale, a2, a1, a0, p);
+	const divisor = [polynomial, derivative, 2 * a2][detectedMultiplicity]!;
+	const { Kp, multiplicity } = Number.isFinite(polynomial)
+		? {
+				Kp: divideByProduct(forcing.K, scale, divisor),
+				multiplicity: detectedMultiplicity,
+			}
+		: computeScaledPolynomialResponse(forcing.K, scale, a2, a1, a0, p);
 	const suffix = ["", " t", " t^2"][multiplicity]!;
 	const latex = constant
 		? `${toFractionLatex(Kp)}${suffix}`
@@ -297,14 +301,23 @@ function computeSinusoidalParticular(
 	//   sin(w*t) term: -(a1*w)*A        + (a0 - a2*w^2)*B = 0
 	// System matrix: [ m11  m12 ] [ A ] = [ K ]
 	//                [ m21  m22 ] [ B ]   [ 0 ]
-	const m11 = a0 - a2 * w * w;
-	const m12 = a1 * w;
+	let m11 = a0 - a2 * w * w;
+	let m12 = a1 * w;
+	let cancellationTerms = [a0, a2 * w * w];
+	let polynomialFactors: readonly number[] = [];
+	if (!Number.isFinite(m11) || !Number.isFinite(m12)) {
+		const { terms, factors } = scaledPolynomialTerms(a2, a1, a0, w);
+		m11 = terms[2] - terms[0];
+		m12 = terms[1];
+		cancellationTerms = [terms[2], terms[0]];
+		polynomialFactors = factors;
+	}
 
-	if (hasCancellation(m11, a0, a2 * w * w) && m12 === 0) {
+	if (hasCancellation(m11, ...cancellationTerms) && (a1 === 0 || w === 0)) {
 		if (a2 === 0 || w === 0) {
 			throw new Error("Unsupported degenerate sinusoidal resonance");
 		}
-		const B = divideByProduct(forcing.K, scale, 2 * a2 * w);
+		const B = divideByProduct(forcing.K, scale, 2 * a2, w);
 		return {
 			formDescription:
 				"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
@@ -330,7 +343,12 @@ function computeSinusoidalParticular(
 	const real = m11 / harmonicScale;
 	const imaginary = m12 / harmonicScale;
 	const denominator = real * real + imaginary * imaginary;
-	const amplitude = divideByProduct(forcing.K, scale, harmonicScale);
+	const amplitude = divideByProduct(
+		forcing.K,
+		scale,
+		harmonicScale,
+		...polynomialFactors,
+	);
 	const A = (amplitude * real) / denominator;
 	const B = (amplitude * imaginary) / denominator;
 

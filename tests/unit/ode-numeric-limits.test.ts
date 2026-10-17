@@ -151,6 +151,58 @@ describe("ODE finite numeric limits", () => {
 		expect(particular.evalDeriv(0) / (1 / 2e154)).toBeCloseTo(1, 12);
 	});
 
+	/** Applies the same relative resonance tolerance after scaling near the finite numeric limit. */
+	it("detects near-root cancellation after an overflowing polynomial evaluation", () => {
+		const p = Math.sqrt(Number.MAX_VALUE) * (1 + Number.EPSILON);
+		expect(p * p).toBe(Number.POSITIVE_INFINITY);
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 1,
+			a1: 0,
+			a0: -Number.MAX_VALUE,
+		});
+		const particular = computeParticularSolution(ode, {
+			type: "exponential",
+			K: 1,
+			p,
+			latex: "",
+		});
+		expect(particular.resonanceMultiplicity).toBe(1);
+		expect(particular.coeffs.Kp! / (1 / (2 * p))).toBeCloseTo(1, 12);
+	});
+
+	/** Checks scaled harmonic amplitudes and near-root cancellation after frequency squaring overflows. */
+	it("scales overflowing harmonic polynomials and preserves resonance decisions", () => {
+		for (const resonant of [false, true]) {
+			const scale = resonant ? 1 : 1e-200;
+			const omega = resonant
+				? Math.sqrt(Number.MAX_VALUE) * (1 + Number.EPSILON)
+				: 1e200;
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: scale,
+				a1: 0,
+				a0: resonant ? Number.MAX_VALUE : scale,
+			});
+			const particular = computeParticularSolution(ode, {
+				type: "sinusoid",
+				K: resonant ? 1 : 1e200,
+				omega,
+				latex: "",
+			});
+			expect(particular.resonanceMultiplicity).toBe(resonant ? 1 : 0);
+			if (resonant) {
+				expect(particular.coeffs.B! / (1 / (2 * omega))).toBeCloseTo(
+					1,
+					12,
+				);
+			} else {
+				expect(particular.coeffs.A).toBeCloseTo(-1, 12);
+				expect(particular.eval(0)).toBeCloseTo(-1, 12);
+			}
+		}
+	});
+
 	/** Checks harmonic cancellation with the same large-term magnitude bound. */
 	it("recognizes sinusoidal resonance when the frequency terms overflow their sum", () => {
 		const ode = solveCharacteristicEquation({
