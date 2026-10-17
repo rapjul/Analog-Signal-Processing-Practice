@@ -1,6 +1,12 @@
-import { formatExpTerm, formatSignedLinearTerm } from "../../formatting";
-import { toFractionLatex } from "../../fraction";
-import type { HomogeneousSolution, OdeItsOption } from "../types";
+import {
+	formatExpTerm,
+	formatSignedLinearTerm,
+} from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import type {
+	HomogeneousSolution,
+	OdeItsOption,
+} from "$lib/math-engine/odes/types";
 import type { BuildStep7Params } from "./step7-decomposition";
 
 /** Coefficients of the first natural mode, second natural mode, and particular solution. */

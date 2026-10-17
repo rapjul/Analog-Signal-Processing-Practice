@@ -157,7 +157,7 @@ export interface BuildStep7Params {
 	/** Particular solution computation results */
 	particular: ParticularSolution;
 	/** Whether the particular solution decays and therefore belongs to the transient response. */
-	particularDecays?: boolean;
+	particularDecays: boolean;
 	/** Zero-Input solution LaTeX */
 	ziLatex: string;
 	/** Zero-State solution LaTeX */
