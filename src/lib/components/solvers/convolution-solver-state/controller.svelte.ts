@@ -936,10 +936,13 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			);
 			const state = this.step1.subSteps[this.step1.activeSubStepId];
 			if (!expected || !state) break;
+			const before = `${this.step1.activeSubStepId}:${state.isValid}`;
 			state.start = String(expected.start);
 			state.end = String(expected.end);
 			state.width = String(expected.width);
 			this.checkStep1();
+			if (`${this.step1.activeSubStepId}:${state.isValid}` === before)
+				break;
 		}
 	}
 
@@ -951,6 +954,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			const id = this.step4.activeSubStepId;
 			const state = this.step4.subSteps[id];
 			if (!state) break;
+			const before = `${id}:${state.isValid}`;
 			const contact = step4Contacts(
 				this.problem,
 				this.flippedSignal,
@@ -984,6 +988,8 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 						"",
 				);
 			this.checkStep4();
+			if (`${this.step4.activeSubStepId}:${state.isValid}` === before)
+				break;
 		}
 	}
 
@@ -995,6 +1001,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			const id = this.step5.activeSubStepId;
 			const state = this.step5.subSteps[id];
 			if (!state) break;
+			const before = `${id}:${state.stage}:${state.isValid}`;
 			const setup = this.problem.itsData.step5.parts.find(
 				/** @param part - Guided interval setup. */ (part) =>
 					part.id === id,
@@ -1002,6 +1009,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			if (!setup) break;
 			if (state.stage === "overlap") {
 				this.chooseStep5Overlap(setup.hasOverlap);
+				if (
+					`${this.step5.activeSubStepId}:${state.stage}:${state.isValid}` ===
+					before
+				)
+					break;
 				continue;
 			}
 			state.boundInputs = setup.overlaps.map(
@@ -1025,6 +1037,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				}),
 			);
 			this.checkStep5();
+			if (
+				`${this.step5.activeSubStepId}:${state.stage}:${state.isValid}` ===
+				before
+			)
+				break;
 		}
 	}
 
@@ -1033,6 +1050,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		/* v8 ignore next -- the production build removes developer-only work. */
 		if (!import.meta.env.DEV) return;
 		while (this.currentStep === 6) {
+			const id = this.step6.activeSubStepId;
 			const index = this.problem.itsData.step6.parts.findIndex(
 				/** @param part - Guided evaluation interval. */ (part) =>
 					part.id === this.step6.activeSubStepId,
@@ -1040,6 +1058,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			const part = this.problem.itsData.step6.parts[index];
 			const state = this.step6.subSteps[this.step6.activeSubStepId];
 			if (!state) break;
+			const before = `${id}:${state.stage}:${state.activeTermIndex}:${state.isValid}`;
 			const term =
 				part?.evaluationBySignal?.[this.flippedSignal]?.[
 					state.activeTermIndex
@@ -1061,6 +1080,11 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 				else input.difference = term.differenceLatex;
 			}
 			this.checkStep6();
+			if (
+				`${this.step6.activeSubStepId}:${state.stage}:${state.activeTermIndex}:${state.isValid}` ===
+				before
+			)
+				break;
 		}
 	}
 

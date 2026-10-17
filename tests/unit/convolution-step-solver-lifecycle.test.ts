@@ -953,6 +953,37 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		expect(missingSetupSolver.currentStep).toBe(5);
 	});
 
+	/** Developer helpers stop after one rejected check instead of freezing the harness. */
+	it.each([
+		[1, "checkStep1"],
+		[4, "checkStep4"],
+		[5, "checkStep5"],
+		[5, "chooseStep5Overlap"],
+		[6, "checkStep6"],
+	] as const)(
+		"stops Step %s auto-fill when %s cannot progress",
+		/** @param step - Parent step to exercise. @param method - Real validation entry point. */
+		(step, method) => {
+			const problem = generateConvolutionProblem("rect_rect", {
+				seed: 13,
+			});
+			const solver = new ConvolutionStepSolverState(() => problem);
+			for (let parent = 1; parent < step; parent++)
+				solver.devAutoFillStep(parent);
+			expect(solver.currentStep).toBe(step);
+			const check = vi.spyOn(solver, method).mockImplementation(
+				/** Reject without progress; a repeated check fails immediately instead of hanging. */
+				() => {
+					if (check.mock.calls.length > 1)
+						throw new Error("Repeated stalled validation.");
+				},
+			);
+			solver.devAutoFillStep(step);
+			expect(check).toHaveBeenCalledTimes(1);
+			expect(solver.currentStep).toBe(step);
+		},
+	);
+
 	it("resets typed state and exposes all parent visual states", () => {
 		const problem = generateConvolutionProblem("multi_rect", { seed: 4 });
 		const solver = new ConvolutionStepSolverState(() => problem);
