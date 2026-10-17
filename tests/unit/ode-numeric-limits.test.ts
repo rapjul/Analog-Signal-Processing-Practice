@@ -516,6 +516,40 @@ describe("ODE finite numeric limits", () => {
 		}
 	});
 
+	/** Preserves finite resonant harmonic products and derivatives before trigonometric compensation. */
+	it("scales resonant harmonic evaluation through the final product", () => {
+		for (const sign of [1, -1, 0]) {
+			const ode = solveCharacteristicEquation({
+				order: 2,
+				a2: 5e-309,
+				a1: 0,
+				a0: 5e-309,
+			});
+			const particular = computeParticularSolution(ode, {
+				type: "sinusoid",
+				K: sign,
+				omega: 1,
+				latex: "",
+			});
+			const B = particular.coeffs.B!;
+			expect(particular.resonanceMultiplicity).toBe(1);
+			if (sign === 0) {
+				expect(Math.abs(particular.eval(Math.PI))).toBe(0);
+				expect(Math.abs(particular.evalDeriv(Math.PI))).toBe(0);
+				continue;
+			}
+			const expected = B * Math.sin(Math.PI) * Math.PI;
+			expect(particular.eval(Math.PI) / expected).toBeCloseTo(1, 12);
+			const t = Math.PI / 2;
+			const derivative = B * Math.sin(t) + B * Math.cos(t) * t;
+			expect(particular.evalDeriv(t) / derivative).toBeCloseTo(1, 12);
+			expect(Math.abs(particular.eval(0))).toBe(0);
+			expect(Math.abs(particular.evalDeriv(0))).toBe(0);
+			expect(particular.eval(Number.POSITIVE_INFINITY)).toBeNaN();
+			expect(particular.evalDeriv(Number.NaN)).toBeNaN();
+		}
+	});
+
 	/** Checks harmonic cancellation with the same large-term magnitude bound. */
 	it("recognizes sinusoidal resonance when the frequency terms overflow their sum", () => {
 		const omega = 3 * 2 ** 510;

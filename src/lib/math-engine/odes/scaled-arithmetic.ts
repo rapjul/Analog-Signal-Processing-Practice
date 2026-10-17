@@ -192,6 +192,36 @@ export function divideByProduct(
 }
 
 /**
+ * Evaluates a resonant harmonic product without overflowing before sine compensation.
+ * @param coefficient - Resonant sine coefficient.
+ * @param frequency - Angular forcing frequency.
+ * @param t - Sampling time.
+ * @param derivative - Whether to evaluate the analytic first derivative.
+ * @returns Response or derivative after the final scaled conversion.
+ */
+export function evaluateScaledResonantHarmonic(
+	coefficient: number,
+	frequency: number,
+	t: number,
+	derivative = false,
+): number {
+	const angle = frequency * t;
+	const sine = Math.sin(angle);
+	const cosine = Math.cos(angle);
+	if (![coefficient, frequency, t, angle].every(Number.isFinite))
+		return derivative
+			? coefficient * (sine + frequency * t * cosine)
+			: coefficient * t * sine;
+	const result = derivative
+		? sumScaled(
+				scaledProduct(coefficient, sine),
+				scaledProduct(coefficient, frequency, t, cosine),
+			)
+		: scaledProduct(coefficient, t, sine);
+	return divideScaled(result, [1, 0]);
+}
+
+/**
  * Solves a polynomial response with independently scaled polynomial and derivative terms.
  * @param numerator - Original forcing amplitude.
  * @param equationScale - Removed leading coefficient.

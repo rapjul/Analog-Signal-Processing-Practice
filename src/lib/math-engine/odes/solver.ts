@@ -20,6 +20,7 @@ import {
 	computeScaledPolynomialResponse,
 	divideByProduct,
 	evaluateScaledExponential,
+	evaluateScaledResonantHarmonic,
 } from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
@@ -352,10 +353,10 @@ function computeSinusoidalParticular(
 					),
 				) || "0",
 			/** @param t - Evaluation time. @returns Resonant particular response. */
-			eval: (t: number) => B * t * Math.sin(w * t),
+			eval: (t: number) => evaluateScaledResonantHarmonic(B, w, t),
 			/** @param t - Evaluation time. @returns Resonant particular derivative. */
 			evalDeriv: (t: number) =>
-				B * (Math.sin(w * t) + w * t * Math.cos(w * t)),
+				evaluateScaledResonantHarmonic(B, w, t, true),
 			coeffs: { A: 0, B },
 			resonanceMultiplicity: 1,
 		};
