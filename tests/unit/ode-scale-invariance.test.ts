@@ -69,16 +69,15 @@ describe("ODE coefficient scale invariance", () => {
 		expect(actual.roots.im! / 1e154).toBeCloseTo(1, 12);
 	});
 
-	/** Rejects coefficient ratios that cannot be represented before comparing root multiplicity. */
-	it("rejects nonfinite normalized intermediates explicitly", () => {
+	/** Retains the first-order restriction on unrepresentable final roots. */
+	it("rejects overflowing first-order root ratios explicitly", () => {
 		expect(
 			/** Attempts to normalize a ratio beyond the floating-point range. */
 			() =>
 				solveCharacteristicEquation({
-					order: 2,
-					a2: 1e-308,
-					a1: 1e308,
-					a0: 1,
+					order: 1,
+					a1: 1e-308,
+					a0: 1e308,
 				}),
 		).toThrow("ODE coefficient ratios exceed the finite numeric range");
 	});

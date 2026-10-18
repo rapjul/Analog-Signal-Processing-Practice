@@ -24,6 +24,7 @@ import {
 	evaluateScaledResonantHarmonic,
 	restoreBinaryScale,
 } from "./scaled-arithmetic";
+import { solveScaledQuadratic } from "./scaled-roots";
 import type {
 	CharacteristicEquationCoefficients,
 	FirstOrderCharacteristicCoefficients,
@@ -109,10 +110,7 @@ function normalizeCoefficients(
 		a1: a1 / scale,
 		a0: a0 / scale,
 	};
-	if (
-		!Number.isFinite(normalized.a1) ||
-		(order === 1 && !Number.isFinite(normalized.a0))
-	)
+	if (order === 1 && !Number.isFinite(normalized.a0))
 		throw new Error(
 			"ODE coefficient ratios exceed the finite numeric range",
 		);
@@ -201,11 +199,11 @@ export function solveCharacteristicEquation(
 }
 
 /**
- * Classifies quadratic roots from the original discriminant and a finite linear ratio.
+ * Classifies quadratic roots, retaining ordinary arithmetic where its intermediates are safe.
  * @param a2 - Original nonzero leading coefficient.
  * @param a1 - Original linear coefficient.
  * @param a0 - Original constant coefficient.
- * @param b - Validated monic linear coefficient.
+ * @param b - Monic linear coefficient, possibly overflowing.
  * @returns Quadratic roots with original supplied coefficients.
  */
 function solveQuadratic(
@@ -214,6 +212,7 @@ function solveQuadratic(
 	a0: number,
 	b: number,
 ): SecondOrderOdeParams {
+	if (!Number.isFinite(b)) return solveScaledQuadratic(a2, a1, a0);
 	// Factor s(a2*s + a1) directly before a subnormal square-root scale can vanish.
 	if (a0 === 0 && a1 !== 0) {
 		const root = -b;
@@ -239,6 +238,9 @@ function solveQuadratic(
 			rootType: "repeated_real",
 		};
 	} else if (disc > 0) {
+		const magnitude = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
+		if (!Number.isFinite(magnitude + Math.abs(b)))
+			return solveScaledQuadratic(a2, a1, a0);
 		return {
 			order: 2,
 			a2,
@@ -279,15 +281,9 @@ function distinctQuadraticRoots(
 ): { r1: number; r2: number } {
 	const sqrtDisc = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
 	const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
-	const sum = b + signedRoot;
-	// Sum before halving to preserve subnormals; split only when the sum overflows.
-	const q = Number.isFinite(sum)
-		? -0.5 * sum
-		: -0.5 * b -
-			(b >= 0 ? 1 : -1) *
-				restoreBinaryScale(Math.sqrt(disc), scaleExponent - 1);
-	const smaller =
-		q === 0 ? q : Number.isFinite(q) ? divideByProduct(a0, a2, q) : -q;
+	// The caller guarantees a finite sum; add before halving to preserve subnormals.
+	const q = -0.5 * (b + signedRoot);
+	const smaller = q === 0 ? q : divideByProduct(a0, a2, q);
 	return { r1: b >= 0 ? smaller : q, r2: b >= 0 ? q : smaller };
 }
 

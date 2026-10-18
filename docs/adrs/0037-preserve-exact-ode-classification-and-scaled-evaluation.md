@@ -41,8 +41,10 @@ Use normalized signed mantissas and unrestricted binary exponents for products,
 quotients, response powers, and exponential tails. Restore ordinary binary64
 numbers only after compensating factors are combined. Retain original equation
 coefficients for classification and preserve the product relation when recovering
-the smaller real root. Quadratic constant ratios may exceed the finite range;
-their square-root scales remain implicit until final root conversion.
+the companion real root. Both quadratic linear and constant ratios may exceed
+the finite range. Keep the original discriminant square root and stable `q`
+scaled until their final root quotients, including a finite companion beside
+an overflowing root. Preserve ordinary arithmetic when its intermediates are safe.
 
 For resonant harmonic angles smaller than `2^-26` in magnitude, retain frequency
 and time separately and use `sin(x)/x = 1` to binary64 accuracy. Evaluate both
@@ -64,7 +66,8 @@ changing the shared fraction formatter's contract.
 - Exact accumulation uses bounded-size `BigInt` arithmetic for fixed-degree ODEs;
   it does not make the entire solver an arbitrary-precision symbolic system.
 - Nonfinite supplied coefficients and zero leading coefficients remain invalid.
-  Overflowing normalized linear ratios and first-order root ratios remain rejected.
+  Overflowing first-order root ratios remain rejected; quadratic monic ratios
+  do not restrict supported inputs.
   Final numerical answers outside binary64 range retain IEEE overflow behavior.
 - Display fractions, response grading, and seeded random draw order remain separate
   contracts. Small-angle evaluation changes numerical callbacks, not teaching text.

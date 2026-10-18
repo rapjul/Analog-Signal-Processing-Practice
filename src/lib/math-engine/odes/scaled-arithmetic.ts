@@ -134,7 +134,7 @@ function sumScaled(...terms: ScaledNumber[]): ScaledNumber {
  * @param denominator - Nonzero scaled denominator.
  * @returns Final binary64 quotient; only the final result may overflow or underflow.
  */
-function divideScaled(
+export function divideScaled(
 	numerator: ScaledNumber,
 	denominator: ScaledNumber,
 ): number {

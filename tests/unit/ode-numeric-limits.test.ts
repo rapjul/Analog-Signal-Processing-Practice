@@ -7,6 +7,70 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Keeps final root quotients representable despite overflowing monic linear ratios. */
+	it("solves every quadratic root family beyond the linear ratio range", () => {
+		for (const scale of [1, -1, 0.5, -0.5]) {
+			const repeated = solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** -1023 * scale,
+				a1: 2 * scale,
+				a0: 2 ** 1023 * scale,
+			});
+			expect(repeated.rootType).toBe("repeated_real");
+			expect(repeated.roots.r1).toBe(-(2 ** 1023));
+			const distinct = solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** -1022 * scale,
+				a1: -4 * scale,
+				a0: 2 ** 1023 * scale,
+			});
+			expect(distinct.rootType).toBe("distinct_real");
+			expect(
+				distinct.roots.r1 / ((2 + Math.SQRT2) * 2 ** 1022),
+			).toBeCloseTo(1, 14);
+			expect(
+				distinct.roots.r2! / ((2 - Math.SQRT2) * 2 ** 1022),
+			).toBeCloseTo(1, 14);
+			const complex = solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** -1024 * scale,
+				a1: 1.5 * scale,
+				a0: 1.5 * 2 ** 1023 * scale,
+			});
+			expect(complex.rootType).toBe("complex_conjugate");
+			expect(complex.roots.r1 / (-1.5 * 2 ** 1023)).toBeCloseTo(1, 14);
+			expect(
+				complex.roots.im! / (Math.sqrt(0.75) * 2 ** 1023),
+			).toBeCloseTo(1, 14);
+		}
+		for (const sign of [1, -1]) {
+			const zeroRoots = solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** -1023,
+				a1: sign * 2,
+				a0: 0,
+			}).roots;
+			expect(sign > 0 ? zeroRoots.r2 : zeroRoots.r1).toBe(
+				-sign * Infinity,
+			);
+			expect(
+				Object.is(
+					sign > 0 ? zeroRoots.r1 : zeroRoots.r2,
+					sign > 0 ? -0 : 0,
+				),
+			).toBe(true);
+			const roots = solveCharacteristicEquation({
+				order: 2,
+				a2: 1e-308,
+				a1: sign * 1e308,
+				a0: 1,
+			}).roots;
+			expect(sign > 0 ? roots.r2 : roots.r1).toBe(-sign * Infinity);
+			expect(
+				(sign > 0 ? roots.r1 : roots.r2!) / (-sign * 1e-308),
+			).toBeCloseTo(1, 14);
+		}
+	});
 	/** Keeps a tiny harmonic angle implicit until coefficient and time compensation are applied. */
 	it("preserves underflowed resonant harmonic angles and both derivative terms", () => {
 		const omega = 2 ** -530;
