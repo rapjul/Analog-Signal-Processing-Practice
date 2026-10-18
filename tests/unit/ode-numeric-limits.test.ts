@@ -7,6 +7,96 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Uses exact doubling and Sterbenz subtraction to derive an independent resonant residual. */
+	it("accumulates resonant harmonic derivative products before rounding", () => {
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 0.25,
+			a1: 0,
+			a0: 1,
+		});
+		for (const sign of [1, -1]) {
+			const response = computeParticularSolution(ode, {
+				type: "sinusoid",
+				K: sign * 1e308,
+				omega: 2,
+				latex: "",
+			});
+			const reference = (Math.sin(2) + 2 * Math.cos(2)) * (sign * 1e308);
+			expect(
+				Math.abs((response.evalDeriv(1) - reference) / reference),
+			).toBeLessThanOrEqual(Number.EPSILON);
+		}
+	});
+	/** Retains coefficient and trigonometric products until cancellation is complete. */
+	it("evaluates overflowing harmonic derivative contributions before cancellation", () => {
+		for (const sign of [1, -1, 0]) {
+			const ode = solveCharacteristicEquation({
+				order: 1,
+				a1: 1e-308,
+				a0: 3e-308,
+			});
+			const reported = computeParticularSolution(ode, {
+				type: "sinusoid",
+				K: sign * 6,
+				omega: 3,
+				latex: "",
+			});
+			expect(Number.isFinite(reported.evalDeriv(Math.PI / 12))).toBe(
+				true,
+			);
+			const dyadic = computeParticularSolution(
+				solveCharacteristicEquation({
+					order: 1,
+					a1: 2 ** -1023,
+					a0: 3 * 2 ** -1023,
+				}),
+				{ type: "sinusoid", K: sign * 6, omega: 3, latex: "" },
+			);
+			expect(dyadic.coeffs.A).toBe(sign * 2 ** 1023);
+			expect(dyadic.coeffs.B).toBe(sign * 2 ** 1023);
+			const t = Math.PI / 12;
+			// The dyadic amplitude is exact; subtract the bounded trig factors first.
+			const reference =
+				(Math.cos(3 * t) - Math.sin(3 * t)) * (sign * 2 ** 1023) * 3;
+			if (sign === 0) expect(Math.abs(dyadic.evalDeriv(t))).toBe(0);
+			else expect(dyadic.evalDeriv(t) / reference).toBeCloseTo(1, 14);
+		}
+		const cosine = computeParticularSolution(
+			solveCharacteristicEquation({
+				order: 2,
+				a2: 2 ** -1023,
+				a1: 0,
+				a0: 17 * 2 ** -1023,
+			}),
+			{ type: "sinusoid", K: 1, omega: 4, latex: "" },
+		);
+		expect(Math.abs(cosine.evalDeriv(0))).toBe(0);
+		const t = Math.PI / 4;
+		expect(
+			cosine.evalDeriv(t) / (-(cosine.coeffs.A! * Math.sin(4 * t)) * 4),
+		).toBeCloseTo(1, 14);
+	});
+
+	/** Keeps tiny ordinary harmonic angles implicit until the amplitude compensates. */
+	it("preserves underflowed ordinary harmonic angles and direct nonfinite behavior", () => {
+		const omega = 2 ** -530;
+		for (const sign of [1, -1, 0]) {
+			const response = computeParticularSolution(
+				solveCharacteristicEquation({ order: 1, a1: 1, a0: 0 }),
+				{ type: "sinusoid", K: sign * 1e308 * omega, omega, latex: "" },
+			);
+			for (const t of [2 ** -600, -(2 ** -600)]) {
+				const reference = response.coeffs.B! * omega * t;
+				if (sign === 0) expect(Math.abs(response.eval(t))).toBe(0);
+				else expect(response.eval(t) / reference).toBeCloseTo(1, 14);
+			}
+			for (const t of [Infinity, -Infinity, NaN]) {
+				expect(response.eval(t)).toBeNaN();
+				expect(response.evalDeriv(t)).toBeNaN();
+			}
+		}
+	});
 	/** Keeps final root quotients representable despite overflowing monic linear ratios. */
 	it("solves every quadratic root family beyond the linear ratio range", () => {
 		for (const scale of [1, -1, 0.5, -0.5]) {

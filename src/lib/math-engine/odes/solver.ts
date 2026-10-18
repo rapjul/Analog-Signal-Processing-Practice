@@ -16,6 +16,7 @@ import {
 import { toFractionLatex } from "$lib/math-engine/fraction";
 import { exactProductSum } from "./exact-arithmetic";
 import { formatHarmonicScalar } from "./formatting";
+import { evaluateHarmonic } from "./harmonic-evaluation";
 import {
 	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
@@ -419,10 +420,9 @@ function computeSinusoidalParticular(
 		formDescription: "y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
 		latex: latexStr,
 		/** @param t - Evaluation time. @returns Harmonic particular response. */
-		eval: (t: number) => A * Math.cos(w * t) + B * Math.sin(w * t),
+		eval: (t: number) => evaluateHarmonic(A, B, w, t),
 		/** @param t - Evaluation time. @returns Harmonic particular derivative. */
-		evalDeriv: (t: number) =>
-			-A * w * Math.sin(w * t) + B * w * Math.cos(w * t),
+		evalDeriv: (t: number) => evaluateHarmonic(A, B, w, t, true),
 		coeffs: { A, B },
 		resonanceMultiplicity: 0,
 	};

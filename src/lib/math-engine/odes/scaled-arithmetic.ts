@@ -224,22 +224,14 @@ export function evaluateScaledResonantHarmonic(
 			: coefficient * t * sine;
 	// Below this bound, replacing sin(x)/x with one loses less than half an ulp.
 	// Retain frequency and time separately even when their product rounds to zero.
-	if (Math.abs(angle) < 2 ** -26) {
-		const first = scaledProduct(coefficient, frequency, t);
-		return divideScaled(
-			derivative
-				? sumScaled(first, multiplyScaled(first, binaryParts(cosine)))
-				: multiplyScaled(first, binaryParts(t)),
-			[1, 0],
-		);
-	}
-	const result = derivative
-		? sumScaled(
-				scaledProduct(coefficient, sine),
-				scaledProduct(coefficient, frequency, t, cosine),
-			)
-		: scaledProduct(coefficient, t, sine);
-	return divideScaled(result, [1, 0]);
+	const sineFactors = Math.abs(angle) < 2 ** -26 ? [frequency, t] : [sine];
+	const products = derivative
+		? [
+				[coefficient, ...sineFactors],
+				[coefficient, frequency, t, cosine],
+			]
+		: [[coefficient, t, ...sineFactors]];
+	return divideScaled(exactProductSum(products), [1, 0]);
 }
 
 /**

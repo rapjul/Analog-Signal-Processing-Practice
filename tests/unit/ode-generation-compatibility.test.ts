@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { generateOdeProblem } from "$lib/math-engine/odes/generator";
 
-/** Pins seeded output and callback samples, with the reviewed harmonic sign correction applied. */
+/** Pins seeded public data separately from intentionally improved callback rounding. */
 describe("ODE seeded generation compatibility", () => {
-	/** Compares all public data and sampled response values over the original 3,072-case matrix. */
+	/** Compares all public data and response decomposition over the original 3,072-case matrix. */
 	it("preserves the reviewed deterministic generation matrix", () => {
 		const hash = createHash("sha256");
 		for (const seed of [0, 3, 17, 991])
@@ -41,22 +41,25 @@ describe("ODE seeded generation compatibility", () => {
 									resonance,
 									leadingCoefficient,
 								});
-								hash.update(
-									JSON.stringify([
-										problem,
-										[0, 0.25, 2].map(
-											/** @param t - Sample time for each public response callback. */
-											(t) => [
-												problem.evalComplete(t),
-												problem.evalZI(t),
+								hash.update(JSON.stringify(problem));
+								for (const t of [0, 0.25, 2]) {
+									const complete = problem.evalComplete(t);
+									expect(Number.isFinite(complete)).toBe(
+										true,
+									);
+									expect(
+										Math.abs(
+											complete -
+												problem.evalZI(t) -
 												problem.evalZS(t),
-											],
 										),
-									]),
-								);
+									).toBeLessThan(
+										1e-12 * Math.max(1, Math.abs(complete)),
+									);
+								}
 							}
 		expect(hash.digest("hex")).toBe(
-			"ca277b0453f95970a88ddc879805f577d176045bf4c8e6d76401207cc56b88ca",
+			"36da58af5d23e878a7c804722ce076df126090529cfcce10656880c8aa7f432e",
 		);
 	});
 });

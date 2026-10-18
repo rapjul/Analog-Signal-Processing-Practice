@@ -46,10 +46,12 @@ the finite range. Keep the original discriminant square root and stable `q`
 scaled until their final root quotients, including a finite companion beside
 an overflowing root. Preserve ordinary arithmetic when its intermediates are safe.
 
-For resonant harmonic angles smaller than `2^-26` in magnitude, retain frequency
+For ordinary and resonant harmonic angles smaller than `2^-26` in magnitude, retain frequency
 and time separately and use `sin(x)/x = 1` to binary64 accuracy. Evaluate both
 analytic derivative contributions before final conversion. Outside that interval,
-use the existing trigonometric functions. Nonfinite callback inputs retain the
+use the existing trigonometric functions. Accumulate ordinary harmonic amplitude,
+frequency, and trigonometric products exactly before their final sum, so large
+derivative contributions can cancel without overflowing. Nonfinite callback inputs retain the
 existing IEEE behavior. Select positive or negative zero explicitly when the
 final scaled magnitude underflows.
 
@@ -77,8 +79,9 @@ changing the shared fraction formatter's contract.
 Numerical-limit and scale-invariance tests exercise independent scaled residuals,
 exact cancellation, large and subnormal roots, compensated forcing coefficients,
 small harmonic angles, derivatives, signed zero, and nonfinite callback inputs.
-The deterministic generator matrix covers all public data and sampled callbacks
-across 3,072 configurations. Browser tests verify generated grading flows.
+The deterministic generator fingerprint covers all public structural data across
+3,072 configurations. Separate callback checks verify response decomposition
+without pinning intentionally improved summation rounding. Browser tests verify generated grading flows.
 Coverage is reported without claiming a numerical threshold that is not configured.
 
 ## Pros and Cons of the Options
