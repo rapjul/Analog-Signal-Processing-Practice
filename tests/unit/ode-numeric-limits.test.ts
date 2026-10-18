@@ -7,6 +7,52 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Keeps a tiny harmonic angle implicit until coefficient and time compensation are applied. */
+	it("preserves underflowed resonant harmonic angles and both derivative terms", () => {
+		const omega = 2 ** -530;
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 1,
+			a1: 0,
+			a0: omega * omega,
+		});
+		for (const sign of [1, -1, 0]) {
+			const response = computeParticularSolution(ode, {
+				type: "sinusoid",
+				K: sign * (2 * omega * 1e308),
+				omega,
+				latex: "",
+			});
+			for (const t of [2 ** -600, -(2 ** -600), 2 ** -540]) {
+				const expected = response.coeffs.B! * omega * t * t;
+				const derivative = response.coeffs.B! * omega * t * 2;
+				if (sign === 0) {
+					expect(Math.abs(response.eval(t))).toBe(0);
+					expect(Math.abs(response.evalDeriv(t))).toBe(0);
+				} else {
+					expect(response.eval(t) / expected).toBeCloseTo(1, 12);
+					expect(response.evalDeriv(t) / derivative).toBeCloseTo(
+						1,
+						12,
+					);
+				}
+			}
+		}
+		const ordinary = computeParticularSolution(
+			solveCharacteristicEquation({ order: 2, a2: 1, a1: 0, a0: 1 }),
+			{ type: "sinusoid", K: 2, omega: 1, latex: "" },
+		);
+		for (const t of [
+			2 ** -26 * (1 - Number.EPSILON),
+			2 ** -26,
+			2 ** -26 * (1 + Number.EPSILON),
+		]) {
+			expect(ordinary.eval(t) / (t * Math.sin(t))).toBeCloseTo(1, 14);
+			expect(
+				ordinary.evalDeriv(t) / (Math.sin(t) + t * Math.cos(t)),
+			).toBeCloseTo(1, 14);
+		}
+	});
 	/** Accepts finite roots even when the quadratic constant cannot be normalized. */
 	it("retains finite roots beyond the normalized constant range", () => {
 		for (const sign of [1, -1]) {
