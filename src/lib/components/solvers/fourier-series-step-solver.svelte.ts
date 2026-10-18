@@ -1,14 +1,10 @@
-import {
-	evaluateMathJsonStrict,
-	parseStrictLatex,
-} from "$lib/math-engine/evaluator";
+import { parseConstantInput } from "$lib/math-engine/evaluator";
 import type {
 	FourierItsOption,
 	FourierSeriesItsStep1,
 	FourierSeriesProblem,
 	OriginParity,
 } from "$lib/math-engine/fourier-series/index";
-import { parseNumericInput } from "$lib/math-engine/fraction";
 import {
 	BaseStepSolverState,
 	type BaseStepState,
@@ -57,23 +53,6 @@ import {
 } from "./fourier-series-solver-state/factory-helpers";
 
 /**
- * Parses a finite constant expression without assigning any free variables.
- * @param input - Trimmed student frequency input.
- * @returns Parsed numeric value or NaN for unsupported input.
- */
-function parseFrequencyValue(input: string): number {
-	const numeric = parseNumericInput(input);
-	if (Number.isFinite(numeric)) return numeric;
-	try {
-		return (
-			evaluateMathJsonStrict(parseStrictLatex(input), {}) ?? Number.NaN
-		);
-	} catch {
-		return Number.NaN;
-	}
-}
-
-/**
  * Checks period aliases and converts the chosen time unit before comparison.
  * @param input - Trimmed period input.
  * @param unit - Validated time unit.
@@ -85,7 +64,7 @@ function matchesPeriodAnswer(
 	unit: string,
 	data: FourierSeriesItsStep1,
 ): boolean {
-	const seconds = parseNumericInput(input) * (unit === "ms" ? 0.001 : 1);
+	const seconds = parseConstantInput(input) * (unit === "ms" ? 0.001 : 1);
 	// Keep the ordinary absolute bound without overwhelming sub-unit periods.
 	const tolerance = 0.05 * Math.min(1, data.expectedT);
 	return (
@@ -108,7 +87,7 @@ function matchesFrequencyAnswer(
 	data: FourierSeriesItsStep1,
 ): boolean {
 	const radians =
-		parseFrequencyValue(input) * (unit === "Hz" ? 2 * Math.PI : 1);
+		parseConstantInput(input) * (unit === "Hz" ? 2 * Math.PI : 1);
 	// Compare after unit conversion so hertz and radians use the same tolerance.
 	const tolerance = 0.05 * Math.min(1, data.expectedW0);
 	return (

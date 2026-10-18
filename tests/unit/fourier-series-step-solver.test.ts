@@ -1,8 +1,68 @@
 import { describe, expect, it, vi } from "vitest";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
+import { formatFourierNumber } from "$lib/math-engine/fourier-series/frequency";
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolverState Reactive Controller", () => {
+	it.each([1e-7, 1.25e-7, 1e21])(
+		"accepts displayed scientific period %s in seconds and equivalent milliseconds",
+		/**
+		 * Grades the actual formatter output after converting the selected units.
+		 * @param T0 - Custom period in seconds.
+		 */
+		(T0) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0,
+			});
+			for (const periodUnit of ["s", "ms"]) {
+				const solver = new FourierSeriesStepSolverState(() => problem);
+				const period = formatFourierNumber(
+					T0 * (periodUnit === "ms" ? 1000 : 1),
+				);
+				Object.assign(solver.step1, {
+					period,
+					periodUnit,
+					freq: problem.itsData.step1.w0Aliases[0],
+				});
+				solver.checkStep1();
+				expect(solver.currentStep).toBe(2);
+				expect(solver.step1.isValid).toBe(true);
+			}
+		},
+	);
+	it.each([
+		"t+1",
+		"1/0",
+		"Infinity",
+		"NaN",
+		"1+",
+		"0",
+		"-1",
+		String.raw`10^{1000}`,
+		String.raw`1\times10^{-6}`,
+	])(
+		"rejects invalid scientific period input %s",
+		/**
+		 * Keeps invalid constants and wrong magnitudes on the current step.
+		 * @param period - Invalid period expression.
+		 */
+		(period) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: 1e-7,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, {
+				period,
+				freq: problem.itsData.step1.w0Aliases[0],
+			});
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(1);
+			expect(solver.step1.isValid).toBe(false);
+			expect(solver.step1.feedback).toContain("Incorrect Period value");
+		},
+	);
 	/** Checks scaled tolerances after unit conversion while retaining aliases and ordinary bounds. */
 	it.each([
 		{ T0: 1e-7, input: { period: "0.01" }, accepted: false },
