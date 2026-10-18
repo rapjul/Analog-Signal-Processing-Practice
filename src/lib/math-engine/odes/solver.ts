@@ -12,8 +12,8 @@ import {
 	formatLinearCombination,
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
-} from "../formatting";
-import { toFractionLatex } from "../fraction";
+} from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
 import { exactProductSum } from "./exact-arithmetic";
 import {
 	computeScaledHarmonicResponse,
@@ -94,8 +94,7 @@ function normalizeCoefficients(
 ): NormalizedCoefficients {
 	const { order, a1, a0 } = coefficients;
 	const a2 = order === 2 ? (coefficients.a2 ?? 1) : 0;
-	if (![a2, a1, a0].every(Number.isFinite))
-		throw new Error("ODE coefficients must be finite");
+	validateFiniteCoefficients(a2, a1, a0);
 	const scale = order === 1 ? a1 : a2;
 	if (scale === 0)
 		throw new Error(
@@ -117,6 +116,17 @@ function normalizeCoefficients(
 			"ODE coefficient ratios exceed the finite numeric range",
 		);
 	return normalized;
+}
+
+/**
+ * Rejects nonfinite supplied coefficients before exact arithmetic is attempted.
+ * @param a2 - Original quadratic coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ */
+function validateFiniteCoefficients(a2: number, a1: number, a0: number): void {
+	if (![a2, a1, a0].every(Number.isFinite))
+		throw new Error("ODE coefficients must be finite");
 }
 
 /**
@@ -186,7 +196,23 @@ export function solveCharacteristicEquation(
 		};
 	}
 
-	const b = normalized.a1;
+	return solveQuadratic(a2, a1, a0, normalized.a1);
+}
+
+/**
+ * Classifies quadratic roots from the original discriminant and a finite linear ratio.
+ * @param a2 - Original nonzero leading coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ * @param b - Validated monic linear coefficient.
+ * @returns Quadratic roots with original supplied coefficients.
+ */
+function solveQuadratic(
+	a2: number,
+	a1: number,
+	a0: number,
+	b: number,
+): SecondOrderOdeParams {
 	// Factor s(a2*s + a1) directly before a subnormal square-root scale can vanish.
 	if (a0 === 0 && a1 !== 0) {
 		const root = -b;
@@ -212,26 +238,12 @@ export function solveCharacteristicEquation(
 			rootType: "repeated_real",
 		};
 	} else if (disc > 0) {
-		const sqrtDisc = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
-		// Recover the smaller root from the product instead of subtracting near-equal values.
-		const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
-		const sum = b + signedRoot;
-		// Sum first to preserve subnormals; split only when the sum would overflow.
-		const q = Number.isFinite(sum)
-			? -0.5 * sum
-			: -0.5 * b -
-				(b >= 0 ? 1 : -1) *
-					restoreBinaryScale(Math.sqrt(disc), scaleExponent - 1);
-		const smaller =
-			q === 0 ? q : Number.isFinite(q) ? divideByProduct(a0, a2, q) : -q;
-		const r1 = b >= 0 ? smaller : q;
-		const r2 = b >= 0 ? q : smaller;
 		return {
 			order: 2,
 			a2,
 			a1,
 			a0,
-			roots: { r1, r2 },
+			roots: distinctQuadraticRoots(a2, a0, b, disc, scaleExponent),
 			rootType: "distinct_real",
 		};
 	} else {
@@ -246,6 +258,36 @@ export function solveCharacteristicEquation(
 			rootType: "complex_conjugate",
 		};
 	}
+}
+
+/**
+ * Recovers distinct real roots without subtracting near-equal values or losing half-products.
+ * @param a2 - Original nonzero leading coefficient.
+ * @param a0 - Original constant coefficient.
+ * @param b - Finite normalized linear coefficient.
+ * @param disc - Positive bounded discriminant mantissa.
+ * @param scaleExponent - Binary exponent restoring its square root.
+ * @returns Ordered real roots, with the smaller root recovered from their product.
+ */
+function distinctQuadraticRoots(
+	a2: number,
+	a0: number,
+	b: number,
+	disc: number,
+	scaleExponent: number,
+): { r1: number; r2: number } {
+	const sqrtDisc = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
+	const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
+	const sum = b + signedRoot;
+	// Sum before halving to preserve subnormals; split only when the sum overflows.
+	const q = Number.isFinite(sum)
+		? -0.5 * sum
+		: -0.5 * b -
+			(b >= 0 ? 1 : -1) *
+				restoreBinaryScale(Math.sqrt(disc), scaleExponent - 1);
+	const smaller =
+		q === 0 ? q : Number.isFinite(q) ? divideByProduct(a0, a2, q) : -q;
+	return { r1: b >= 0 ? smaller : q, r2: b >= 0 ? q : smaller };
 }
 
 /**

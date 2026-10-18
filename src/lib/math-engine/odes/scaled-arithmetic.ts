@@ -146,7 +146,7 @@ function divideScaled(
 	);
 	if (mantissa === 0) return mantissa;
 	if (exponent > 1023) return Math.sign(mantissa) * Number.POSITIVE_INFINITY;
-	if (exponent < -1075) return Math.sign(mantissa) * 0;
+	if (exponent < -1075) return mantissa < 0 ? -0 : 0;
 	if (exponent < -1022) return mantissa * 2 ** -1022 * 2 ** (exponent + 1022);
 	return mantissa * 2 ** exponent;
 }
