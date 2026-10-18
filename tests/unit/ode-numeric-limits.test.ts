@@ -3,7 +3,10 @@ import {
 	computeParticularSolution,
 	solveCharacteristicEquation,
 } from "$lib/math-engine/odes/index";
-import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
+import {
+	divideByProduct,
+	evaluateScaledExponential,
+} from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
@@ -27,6 +30,45 @@ describe("ODE finite numeric limits", () => {
 				Math.abs((response.evalDeriv(1) - reference) / reference),
 			).toBeLessThanOrEqual(Number.EPSILON);
 		}
+	});
+	/** Derives the cancellation residual from exact dyadic operands rather than rounded products. */
+	it("retains exponential derivative residuals for every resonance degree", () => {
+		for (const sign of [1, -1, 0]) {
+			for (const direction of [1, -1]) {
+				const p = direction * (1 + 2 ** -52);
+				for (const degree of [1, 2] as const) {
+					const t = -direction * degree * (1 - 2 ** -53);
+					const residual = degree * (-(2 ** -53) + 2 ** -105);
+					const reference =
+						sign *
+						1e308 *
+						residual *
+						(degree === 1 ? 1 : t) *
+						Math.exp(p * t);
+					const actual = evaluateScaledExponential(
+						sign * 1e308,
+						p,
+						degree,
+						t,
+						true,
+					);
+					if (sign === 0) expect(Math.abs(actual)).toBe(0);
+					else expect(actual / reference).toBeCloseTo(1, 14);
+				}
+			}
+			const coefficient = sign * 2 ** 1023;
+			expect(evaluateScaledExponential(coefficient, 4, 0, -1, true)).toBe(
+				coefficient * Math.exp(-4) * 4,
+			);
+		}
+		const p = 1 + 2 ** -52;
+		const response = computeParticularSolution(
+			solveCharacteristicEquation({ order: 1, a1: 1, a0: -p }),
+			{ type: "exponential", K: 1e308, p, latex: "" },
+		);
+		expect(
+			response.evalDeriv(-(1 - 2 ** -53)) / -4.0842822587477096e291,
+		).toBeCloseTo(1, 14);
 	});
 	/** Retains coefficient and trigonometric products until cancellation is complete. */
 	it("evaluates overflowing harmonic derivative contributions before cancellation", () => {

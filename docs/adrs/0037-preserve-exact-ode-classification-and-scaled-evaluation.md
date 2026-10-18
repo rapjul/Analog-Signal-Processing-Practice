@@ -55,6 +55,10 @@ derivative contributions can cancel without overflowing. Nonfinite callback inpu
 existing IEEE behavior. Select positive or negative zero explicitly when the
 final scaled magnitude underflows.
 
+Accumulate polynomial-exponential derivative products exactly before applying
+the scaled exponential. This retains small nonzero residuals in factors such
+as `1 + p*t` and `2*t + p*t*t` that disappear if the products round separately.
+
 Retain every nonzero harmonic amplitude in the rendered particular solution.
 Use the shared fraction format for ordinary values and an ODE-local round-trip
 scientific LaTeX fallback when that format would erase a nonzero scalar or emit

@@ -368,16 +368,14 @@ export function evaluateScaledExponential(
 	const powers = multiplicity === 0 ? [] : multiplicity === 1 ? [t] : [t, t];
 	let polynomial = scaledProduct(coefficient, ...powers);
 	if (derivative) {
-		const terms = [scaledProduct(coefficient, p, ...powers)];
+		const terms = [[coefficient, p, ...powers]];
 		if (multiplicity !== 0)
-			terms.push(
-				scaledProduct(
-					coefficient,
-					multiplicity,
-					...(multiplicity === 1 ? [] : [t]),
-				),
-			);
-		polynomial = sumScaled(...terms);
+			terms.push([
+				coefficient,
+				multiplicity,
+				...(multiplicity === 1 ? [] : [t]),
+			]);
+		polynomial = exactProductSum(terms);
 	}
 	return divideScaled(
 		multiplyScaled(polynomial, exponentialScale(p * t)),
