@@ -18,6 +18,10 @@ import { exactProductSum } from "./exact-arithmetic";
 import { formatHarmonicScalar } from "./formatting";
 import { evaluateHarmonic } from "./harmonic-evaluation";
 import {
+	distinctInitialConstants,
+	secondInitialConstant,
+} from "./initial-conditions";
+import {
 	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
 	divideByProduct,
@@ -464,8 +468,12 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 + C2 = targetY0
 			//   y_h'(0) = r1*C1 + r2*C2 = targetDY0
 			//           => C2 = (targetDY0 - r1 * targetY0) / (r2 - r1)
-			const C2 = (targetDY0 - r1 * targetY0) / (r2 - r1);
-			const C1 = targetY0 - C2;
+			const [C1, C2] = distinctInitialConstants(
+				r1,
+				r2,
+				targetY0,
+				targetDY0,
+			);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
@@ -496,7 +504,7 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 = targetY0
 			//  y_h'(0)  = r*C1 + C2 = targetDY0 => C2 = targetDY0 - r*C1
 			const C1 = targetY0;
-			const C2 = targetDY0 - r * C1;
+			const C2 = secondInitialConstant(r, C1, targetDY0, 1);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
@@ -523,7 +531,7 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 = targetY0
 			//  y_h'(0)  = sigma*C1 + omega_d*C2 = targetDY0 => C2 = (targetDY0 - sigma*C1) / omega_d
 			const C1 = targetY0;
-			const C2 = (targetDY0 - sigma * C1) / omega_d;
+			const C2 = secondInitialConstant(sigma, C1, targetDY0, omega_d);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);

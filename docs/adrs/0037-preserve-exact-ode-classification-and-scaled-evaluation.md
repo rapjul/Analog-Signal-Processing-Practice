@@ -59,6 +59,12 @@ Accumulate polynomial-exponential derivative products exactly before applying
 the scaled exponential. This retains small nonzero residuals in factors such
 as `1 + p*t` and `2*t + p*t*t` that disappear if the products round separately.
 
+Keep ordinary homogeneous initial-condition formulas when their intermediates
+are safe. Otherwise, accumulate their numerator and denominator products before
+scaled division. Recover distinct-mode constants with symmetric quotients so an
+overflowing root difference or initial-condition product cannot contaminate both
+constants. Nonfinite roots and initial conditions retain their existing IEEE fallback.
+
 Retain every nonzero harmonic amplitude in the rendered particular solution.
 Use the shared fraction format for ordinary values and an ODE-local round-trip
 scientific LaTeX fallback when that format would erase a nonzero scalar or emit

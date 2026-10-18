@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	computeParticularSolution,
 	solveCharacteristicEquation,
+	solveHomogeneousConstants,
 } from "$lib/math-engine/odes/index";
 import {
 	divideByProduct,
@@ -29,6 +30,106 @@ describe("ODE finite numeric limits", () => {
 			expect(
 				Math.abs((response.evalDeriv(1) - reference) / reference),
 			).toBeLessThanOrEqual(Number.EPSILON);
+		}
+	});
+	/** Checks initial conditions using scaled roots so the residual calculation cannot overflow. */
+	it("solves homogeneous constants with overflowing initial-condition intermediates", () => {
+		const magnitude = 2 ** 1023;
+		const distinct = solveCharacteristicEquation({
+			order: 2,
+			a2: 1e-308,
+			a1: 0,
+			a0: -1e308,
+		});
+		for (const y of [2, -2, 0, 1e308]) {
+			const solution = solveHomogeneousConstants(distinct, y, 0);
+			expect(Number.isFinite(solution.C1)).toBe(true);
+			expect(Number.isFinite(solution.C2)).toBe(true);
+			if (y === 0) expect(Math.abs(solution.eval(0))).toBe(0);
+			else {
+				expect(solution.eval(0) / y).toBeCloseTo(1, 14);
+				const first =
+					(distinct.roots.r1 / magnitude) * (solution.C1 / y);
+				const second =
+					(distinct.roots.r2! / magnitude) * (solution.C2! / y);
+				expect(
+					Math.abs(first + second) /
+						(Math.abs(first) + Math.abs(second)),
+				).toBeLessThan(1e-14);
+			}
+		}
+		const repeated = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** -1023,
+			a1: 2,
+			a0: magnitude,
+		});
+		const repeatedSolution = solveHomogeneousConstants(
+			repeated,
+			2,
+			-magnitude,
+		);
+		expect(repeatedSolution.C1).toBe(2);
+		expect(repeatedSolution.C2).toBe(magnitude);
+		expect(repeatedSolution.eval(0)).toBe(2);
+		expect(solveHomogeneousConstants(repeated, 0, 0).eval(0)).toBe(0);
+		const complex = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** -1024,
+			a1: 1.5,
+			a0: 1.5 * magnitude,
+		});
+		for (const y of [4, -4, 0, 1e308]) {
+			const solution = solveHomogeneousConstants(complex, y, 0);
+			expect(Number.isFinite(solution.C2)).toBe(true);
+			if (y === 0) expect(Math.abs(solution.C2!)).toBe(0);
+			else
+				expect(
+					(complex.roots.r1 / magnitude +
+						(complex.roots.im! / magnitude) * (solution.C2! / y)) /
+						Math.abs(complex.roots.r1 / magnitude),
+				).toBeCloseTo(0, 14);
+			expect(solution.eval(0)).toBe(y);
+		}
+	});
+	/** Preserves compensated subnormal numerators and legacy IEEE fallback constants. */
+	it("handles tiny homogeneous products and nonfinite initial conditions", () => {
+		const tiny = 2 ** -600;
+		const complex = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** 600,
+			a1: -2,
+			a0: 2 ** -599,
+		});
+		const solution = solveHomogeneousConstants(complex, tiny, 0);
+		expect(solution.C2! / -tiny).toBeCloseTo(1, 14);
+		const families = [
+			solveCharacteristicEquation(-3, 2),
+			solveCharacteristicEquation(-2, 1),
+			solveCharacteristicEquation(2, 2),
+			solveCharacteristicEquation({
+				order: 2,
+				a2: Number.MIN_VALUE,
+				a1: 1,
+				a0: -1,
+			}),
+		];
+		for (const ode of families) {
+			for (const y of [Infinity, -Infinity, NaN]) {
+				const { r1, r2 = 0, im = 0 } = ode.roots;
+				const divisor =
+					ode.rootType === "distinct_real"
+						? r2 - r1
+						: ode.rootType === "complex_conjugate"
+							? im
+							: 1;
+				const C2 = (0 - r1 * y) / divisor;
+				const result = solveHomogeneousConstants(ode, y, 0);
+				expect(result.C2).toBe(C2);
+				expect(result.C1).toBe(
+					ode.rootType === "distinct_real" ? y - C2 : y,
+				);
+			}
 		}
 	});
 	/** Derives the cancellation residual from exact dyadic operands rather than rounded products. */
