@@ -55,6 +55,9 @@ derivative contributions can cancel without overflowing. Nonfinite callback inpu
 existing IEEE behavior. Select positive or negative zero explicitly when the
 final scaled magnitude underflows.
 
+Finite harmonic operands whose angle product overflows also retain direct IEEE
+behavior. Extended-range trigonometric argument reduction is outside this contract.
+
 Accumulate polynomial-exponential derivative products exactly before applying
 the scaled exponential. This retains small nonzero residuals in factors such
 as `1 + p*t` and `2*t + p*t*t` that disappear if the products round separately.
@@ -64,6 +67,10 @@ are safe. Otherwise, accumulate their numerator and denominator products before
 scaled division. Recover distinct-mode constants with symmetric quotients so an
 overflowing root difference or initial-condition product cannot contaminate both
 constants. Nonfinite roots and initial conditions retain their existing IEEE fallback.
+
+For repeated natural modes, accumulate the affine time factor exactly and retain
+its scale through the exponential tail. This preserves finite compensated values
+and signed underflow without an intermediate infinity multiplied by zero.
 
 Retain every nonzero harmonic amplitude in the rendered particular solution.
 Use the shared fraction format for ordinary values and an ODE-local round-trip

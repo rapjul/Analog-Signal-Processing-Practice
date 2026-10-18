@@ -26,6 +26,7 @@ import {
 	computeScaledPolynomialResponse,
 	divideByProduct,
 	evaluateScaledExponential,
+	evaluateScaledRepeatedMode,
 	evaluateScaledResonantHarmonic,
 	restoreBinaryScale,
 } from "./scaled-arithmetic";
@@ -519,7 +520,8 @@ export function solveHomogeneousConstants(
 				latex,
 				C1,
 				C2,
-				eval: (t: number) => (C1 + C2 * t) * Math.exp(r * t),
+				/** @param t - Sampling time. @returns Compensated repeated natural response. */
+				eval: (t: number) => evaluateScaledRepeatedMode(C1, C2, r, t),
 			};
 		}
 		// Complex conjugate: r1 = sigma + j*omega_d

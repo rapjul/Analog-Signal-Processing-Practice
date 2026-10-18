@@ -382,3 +382,28 @@ export function evaluateScaledExponential(
 		[1, 0],
 	);
 }
+
+/**
+ * Evaluates a repeated natural mode without materializing its affine time factor.
+ * @param constant - Constant polynomial coefficient.
+ * @param linear - Linear polynomial coefficient.
+ * @param root - Repeated natural root.
+ * @param t - Sampling time; nonfinite inputs retain direct IEEE behavior.
+ * @returns Response after combining the polynomial and exponential scales.
+ */
+export function evaluateScaledRepeatedMode(
+	constant: number,
+	linear: number,
+	root: number,
+	t: number,
+): number {
+	if (![constant, linear, root, t].every(Number.isFinite))
+		return (constant + linear * t) * Math.exp(root * t);
+	return divideScaled(
+		multiplyScaled(
+			exactProductSum([[constant], [linear, t]]),
+			exponentialScale(root * t),
+		),
+		[1, 0],
+	);
+}

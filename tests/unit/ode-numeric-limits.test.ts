@@ -11,6 +11,68 @@ import {
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Keeps the repeated-mode time factor implicit until the exponential has compensated it. */
+	it("evaluates enormous stable repeated modes without infinity times zero", () => {
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** -1023,
+			a1: 2,
+			a0: 2 ** 1023,
+		});
+		for (const sign of [1, -1]) {
+			const solution = solveHomogeneousConstants(
+				ode,
+				0,
+				sign * Number.MAX_VALUE,
+			);
+			expect(solution.C2).toBe(sign * Number.MAX_VALUE);
+			expect(Object.is(solution.eval(2), sign > 0 ? 0 : -0)).toBe(true);
+			expect(solution.eval(-2)).toBe(-sign * Infinity);
+			const t = Number.MIN_VALUE;
+			const reference = solution.C2! * t * Math.exp(ode.roots.r1 * t);
+			expect(solution.eval(t) / reference).toBeCloseTo(1, 14);
+			expect(solution.eval(0)).toBe(0);
+			for (const time of [Infinity, -Infinity, NaN])
+				expect(solution.eval(time)).toBe(
+					(solution.C1 + solution.C2! * time) *
+						Math.exp(ode.roots.r1 * time),
+				);
+		}
+		const decay = solveHomogeneousConstants(
+			solveCharacteristicEquation(800, 160000),
+			0,
+			Number.MAX_VALUE,
+		);
+		const decayReference =
+			Number.MAX_VALUE * Math.exp(-400) * Math.exp(-400) * 2;
+		expect(decay.eval(2) / decayReference).toBeCloseTo(1, 12);
+		const growth = solveHomogeneousConstants(
+			solveCharacteristicEquation(-800, 160000),
+			0,
+			Number.MIN_VALUE,
+		);
+		const growthReference =
+			Number.MIN_VALUE * Math.exp(400) * Math.exp(400) * 2;
+		expect(growth.eval(2) / growthReference).toBeCloseTo(1, 12);
+	});
+	/** Pins the approved direct IEEE policy when finite harmonic operands produce an overflowing angle. */
+	it("retains direct IEEE behavior for overflowing harmonic angles", () => {
+		const ode = solveCharacteristicEquation({
+			order: 2,
+			a2: 1e-308,
+			a1: 0,
+			a0: 0,
+		});
+		const response = computeParticularSolution(ode, {
+			type: "sinusoid",
+			K: 1e308,
+			omega: 1e308,
+			latex: "",
+		});
+		expect(response.coeffs.A).toBe(-1);
+		expect(response.eval(2)).toBeNaN();
+		expect(response.evalDeriv(2)).toBeNaN();
+	});
 	/** Uses exact doubling and Sterbenz subtraction to derive an independent resonant residual. */
 	it("accumulates resonant harmonic derivative products before rounding", () => {
 		const ode = solveCharacteristicEquation({
