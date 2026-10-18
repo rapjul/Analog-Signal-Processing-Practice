@@ -7,6 +7,43 @@ import { divideByProduct } from "$lib/math-engine/odes/scaled-arithmetic";
 
 /** Registers mathematical regressions for finite results near floating-point limits. */
 describe("ODE finite numeric limits", () => {
+	/** Accepts finite roots even when the quadratic constant cannot be normalized. */
+	it("retains finite roots beyond the normalized constant range", () => {
+		for (const sign of [1, -1]) {
+			for (const scale of [1, -1, 2 ** 100]) {
+				const ode = solveCharacteristicEquation({
+					order: 2,
+					a2: 1e-308 * scale,
+					a1: 0,
+					a0: sign * 10 * scale,
+				});
+				const magnitude = Math.sqrt(10) / Math.sqrt(1e-308);
+				expect(ode.rootType).toBe(
+					sign > 0 ? "complex_conjugate" : "distinct_real",
+				);
+				if (sign > 0)
+					expect(ode.roots.im! / magnitude).toBeCloseTo(1, 12);
+				else {
+					expect(ode.roots.r1 / magnitude).toBeCloseTo(1, 12);
+					expect(ode.roots.r2! / -magnitude).toBeCloseTo(1, 12);
+				}
+				const rootMagnitude = sign > 0 ? ode.roots.im! : ode.roots.r1;
+				expect(
+					(1e-308 * rootMagnitude * rootMagnitude) / 10,
+				).toBeCloseTo(1, 12);
+			}
+		}
+		const boundary = solveCharacteristicEquation({
+			order: 2,
+			a2: 2 ** -1022,
+			a1: 0,
+			a0: -(2 ** 1023),
+		});
+		expect(boundary.roots.r1 / (Math.SQRT1_2 * 2 ** 1023)).toBeCloseTo(
+			1,
+			12,
+		);
+	});
 	/** Preserves callback compatibility for nonfinite sampling times without scaled-decomposition exceptions. */
 	it("retains IEEE callback behavior at nonfinite evaluation times", () => {
 		const ode = solveCharacteristicEquation({ order: 1, a1: 1, a0: 1 });

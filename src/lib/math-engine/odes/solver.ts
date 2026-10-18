@@ -21,6 +21,7 @@ import {
 	divideByProduct,
 	evaluateScaledExponential,
 	evaluateScaledResonantHarmonic,
+	restoreBinaryScale,
 } from "./scaled-arithmetic";
 import type {
 	CharacteristicEquationCoefficients,
@@ -50,8 +51,8 @@ interface NormalizedCoefficients {
 interface ScaledDiscriminant {
 	/** Difference between scaled squared-linear and constant terms. */
 	value: number;
-	/** Multiplier that restores the square root to its original scale. */
-	scale: number;
+	/** Binary exponent restoring the square root without an overflowing multiplier. */
+	scaleExponent: number;
 }
 
 /**
@@ -71,7 +72,7 @@ function scaledDiscriminant(
 		[-4, a2, a0],
 	]);
 	const [leading, leadingExponent] = exactProductSum([[a2]]);
-	if (mantissa === 0) return { value: 0, scale: 1 };
+	if (mantissa === 0) return { value: 0, scaleExponent: 0 };
 	const quotient = mantissa / (leading * leading);
 	const adjustment = Math.floor(Math.log2(Math.abs(quotient)));
 	const exponent = originalExponent - 2 * leadingExponent + adjustment;
@@ -79,7 +80,7 @@ function scaledDiscriminant(
 	return {
 		value:
 			(quotient / 2 ** adjustment) * 2 ** (exponent - 2 * halfExponent),
-		scale: 2 ** halfExponent,
+		scaleExponent: halfExponent,
 	};
 }
 
@@ -108,7 +109,10 @@ function normalizeCoefficients(
 		a1: a1 / scale,
 		a0: a0 / scale,
 	};
-	if (![normalized.a1, normalized.a0].every(Number.isFinite))
+	if (
+		!Number.isFinite(normalized.a1) ||
+		(order === 1 && !Number.isFinite(normalized.a0))
+	)
 		throw new Error(
 			"ODE coefficient ratios exceed the finite numeric range",
 		);
@@ -196,11 +200,7 @@ export function solveCharacteristicEquation(
 			roots: b >= 0 ? { r1: zero, r2: root } : { r1: root, r2: zero },
 		};
 	}
-	const { value: disc, scale: discriminantScale } = scaledDiscriminant(
-		a2,
-		a1,
-		a0,
-	);
+	const { value: disc, scaleExponent } = scaledDiscriminant(a2, a1, a0);
 	if (disc === 0) {
 		const r = -b / 2;
 		return {
@@ -212,15 +212,18 @@ export function solveCharacteristicEquation(
 			rootType: "repeated_real",
 		};
 	} else if (disc > 0) {
-		const sqrtDisc = Math.sqrt(disc) * discriminantScale;
+		const sqrtDisc = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
 		// Recover the smaller root from the product instead of subtracting near-equal values.
 		const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
 		const sum = b + signedRoot;
 		// Sum first to preserve subnormals; split only when the sum would overflow.
 		const q = Number.isFinite(sum)
 			? -0.5 * sum
-			: -0.5 * b - 0.5 * signedRoot;
-		const smaller = q === 0 ? q : divideByProduct(a0, a2, q);
+			: -0.5 * b -
+				(b >= 0 ? 1 : -1) *
+					restoreBinaryScale(Math.sqrt(disc), scaleExponent - 1);
+		const smaller =
+			q === 0 ? q : Number.isFinite(q) ? divideByProduct(a0, a2, q) : -q;
 		const r1 = b >= 0 ? smaller : q;
 		const r2 = b >= 0 ? q : smaller;
 		return {
@@ -233,7 +236,7 @@ export function solveCharacteristicEquation(
 		};
 	} else {
 		const sigma = -b / 2;
-		const omega_d = (Math.sqrt(-disc) / 2) * discriminantScale;
+		const omega_d = restoreBinaryScale(Math.sqrt(-disc), scaleExponent - 1);
 		return {
 			order: 2,
 			a2,

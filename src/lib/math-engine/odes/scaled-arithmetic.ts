@@ -152,6 +152,16 @@ function divideScaled(
 }
 
 /**
+ * Restores a binary scale only after the final value is known.
+ * @param value - Finite mantissa to restore.
+ * @param exponent - Unrestricted binary exponent.
+ * @returns Final binary64 value, including representable subnormals.
+ */
+export function restoreBinaryScale(value: number, exponent: number): number {
+	return divideScaled([value, exponent], [1, 0]);
+}
+
+/**
  * Detects unsafe product intermediates before they lose magnitude information.
  * @param factors - Original finite factors, including possible exact zeros.
  * @returns Whether the product needs the shared scaled representation.
