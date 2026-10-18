@@ -411,9 +411,9 @@ function computeSinusoidalParticular(
 
 	let latexStr = "";
 	if (Math.abs(A) > 1e-6) latexStr += `${latexA} \\cos(${w}t)`;
-	if (B > 1e-6) latexStr += ` + ${latexB} \\sin(${w}t)`;
+	if (B > 1e-6) latexStr += `${latexStr ? " + " : ""}${latexB} \\sin(${w}t)`;
 	else if (B < -1e-6)
-		latexStr += ` - ${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
+		latexStr += `${latexStr ? " - " : "-"}${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
 	if (!latexStr) latexStr = "0";
 
 	return {
