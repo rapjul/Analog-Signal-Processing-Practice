@@ -15,6 +15,7 @@ import {
 } from "$lib/math-engine/formatting";
 import { toFractionLatex } from "$lib/math-engine/fraction";
 import { exactProductSum } from "./exact-arithmetic";
+import { formatHarmonicScalar } from "./formatting";
 import {
 	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
@@ -371,6 +372,7 @@ function computeSinusoidalParticular(
 ): ParticularSolution {
 	const { scale, a2, a1, a0 } = coefficients;
 	const w = forcing.omega ?? 1;
+	const frequencyLatex = formatHarmonicScalar(w);
 
 	// Substitute y_p(t) = A*cos(w*t) + B*sin(w*t) into y_p'' + a1*y_p' + a0*y_p = K*cos(w*t):
 	//   cos(w*t) term:  (a0 - a2*w^2)*A + (a1*w)*B     = K
@@ -392,8 +394,8 @@ function computeSinusoidalParticular(
 			latex:
 				sanitizeLatexMath(
 					formatSignedLinearTerm(
-						toFractionLatex(B),
-						`t \\sin(${w}t)`,
+						formatHarmonicScalar(B),
+						`t \\sin(${frequencyLatex}t)`,
 						true,
 					),
 				) || "0",
@@ -406,14 +408,15 @@ function computeSinusoidalParticular(
 			resonanceMultiplicity: 1,
 		};
 	}
-	const latexA = toFractionLatex(A);
-	const latexB = toFractionLatex(B);
+	const latexA = formatHarmonicScalar(A);
+	const latexB = formatHarmonicScalar(B);
 
 	let latexStr = "";
-	if (Math.abs(A) > 1e-6) latexStr += `${latexA} \\cos(${w}t)`;
-	if (B > 1e-6) latexStr += `${latexStr ? " + " : ""}${latexB} \\sin(${w}t)`;
-	else if (B < -1e-6)
-		latexStr += `${latexStr ? " - " : "-"}${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
+	if (A !== 0) latexStr += `${latexA} \\cos(${frequencyLatex}t)`;
+	if (B > 0)
+		latexStr += `${latexStr ? " + " : ""}${latexB} \\sin(${frequencyLatex}t)`;
+	else if (B < 0)
+		latexStr += `${latexStr ? " - " : "-"}${formatHarmonicScalar(Math.abs(B))} \\sin(${frequencyLatex}t)`;
 	if (!latexStr) latexStr = "0";
 
 	return {

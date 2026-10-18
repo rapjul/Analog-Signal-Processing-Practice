@@ -51,6 +51,12 @@ use the existing trigonometric functions. Nonfinite callback inputs retain the
 existing IEEE behavior. Select positive or negative zero explicitly when the
 final scaled magnitude underflows.
 
+Retain every nonzero harmonic amplitude in the rendered particular solution.
+Use the shared fraction format for ordinary values and an ODE-local round-trip
+scientific LaTeX fallback when that format would erase a nonzero scalar or emit
+raw exponent notation. Apply the same fallback to harmonic frequencies without
+changing the shared fraction formatter's contract.
+
 ### Consequences
 
 - Exact cancellation is stable under exactly representable common rescalings.
