@@ -89,6 +89,15 @@ describe("ODE finite numeric limits", () => {
 			1,
 			12,
 		);
+		const overflow = solveCharacteristicEquation({
+			order: 2,
+			a2: Number.MIN_VALUE,
+			a1: 0,
+			a0: -Number.MAX_VALUE,
+		});
+		expect(overflow.rootType).toBe("distinct_real");
+		expect(overflow.roots.r1).toBe(Number.POSITIVE_INFINITY);
+		expect(overflow.roots.r2).toBe(Number.NEGATIVE_INFINITY);
 	});
 	/** Preserves callback compatibility for nonfinite sampling times without scaled-decomposition exceptions. */
 	it("retains IEEE callback behavior at nonfinite evaluation times", () => {
