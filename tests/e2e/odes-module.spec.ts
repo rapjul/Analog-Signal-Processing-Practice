@@ -36,6 +36,8 @@ test.describe("LCC ODEs Practice Module", () => {
 		const active = page.locator(".step-card.active");
 		const transient = active.locator(".classification-group").first();
 		const steady = active.locator(".classification-group").last();
+		await expect(transient.locator(".mcq-card annotation")).toHaveCount(3);
+		await expect(steady.locator(".mcq-card annotation")).toHaveCount(3);
 		const transientFormulas = await transient
 			.locator(".mcq-card annotation")
 			.allTextContents();
