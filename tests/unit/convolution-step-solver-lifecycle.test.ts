@@ -953,6 +953,37 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		expect(missingSetupSolver.currentStep).toBe(5);
 	});
 
+	/** Resource limits explain failed validation without advancing or completing the tutor. */
+	it("shows specific resource-limit feedback on final rows without advancing", () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 13 });
+		const solver = new ConvolutionStepSolverState(
+			/** Returns the fixed regression problem. */ () => problem,
+		);
+		solver.currentStep = 7;
+		const index = solver.step7.rows.findIndex(({ isLocked }) => !isLocked);
+		const row = solver.step7.rows[index];
+		if (!row) throw new Error("Expected an editable output row.");
+		for (const [answer, message] of [
+			["1".repeat(16385), /shorten.*16,384/],
+			[
+				Array.from(
+					{ length: 65 },
+					/** @param unused - Unused array entry. @param index - Distinct exponential rate. */
+					(unused, index) => `e^{${index}t}`,
+				).join("+"),
+				/verification limits/,
+			],
+		] as const) {
+			row.input = answer;
+			solver.checkStep7Row(index);
+			expect(solver.currentFeedbackType).toBe("validation");
+			expect(solver.currentFeedback).toMatch(message);
+			expect(row.isValid).toBe(false);
+			expect(solver.currentStep).toBe(7);
+			expect(solver.isCompleted).toBe(false);
+		}
+	});
+
 	/** Developer helpers stop after one rejected check instead of freezing the harness. */
 	it.each([
 		[1, "checkStep1"],

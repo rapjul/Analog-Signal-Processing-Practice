@@ -6,6 +6,59 @@ import {
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 
 describe("convolution expression equivalence", () => {
+	/** Specific limits remain actionable rather than being replaced with form guidance. */
+	it("preserves explicit length and canonical resource-limit diagnostics", () => {
+		const oversized = "1".repeat(16385);
+		for (const [student, expected] of [
+			[oversized, "0"],
+			["0", oversized],
+		] as const) {
+			expect(verifyConvolutionExpression(student, expected)).toEqual({
+				status: "unsupported",
+				message:
+					"Please shorten the expression to 16,384 characters or fewer.",
+			});
+		}
+		const oversizedAst = Array.from(
+			{ length: 65 },
+			/** @param unused - Unused array entry. @param index - Distinct exponential rate. */
+			(unused, index) => `e^{${index}t}`,
+		).join("+");
+		expect(verifyConvolutionExpression(oversizedAst, "t")).toEqual({
+			status: "unsupported",
+			message:
+				"This expression exceeds the supported verification limits. Use the standard transform form.",
+		});
+	});
+	/** Ambiguous exact constant proofs retain their more specific explanation. */
+	it("preserves a constant-verification diagnostic", () => {
+		expect(
+			verifyConvolutionExpression("u((3.141592653589793-\\pi)t)", "0"),
+		).toEqual({
+			status: "unsupported",
+			message:
+				"This constant's sign or domain cannot be established exactly. Use the standard transform form.",
+		});
+	});
+	/** Unsupported forms keep tutor guidance, while invalid mathematics keeps its own explanation. */
+	it("retains form guidance and invalid-expression diagnostics", () => {
+		for (const answer of ["sqrt(t)", "t^{17}"]) {
+			expect(verifyConvolutionExpression(answer, "t")).toEqual({
+				status: "unsupported",
+				message:
+					"This form cannot be verified. Use a polynomial or a sum of polynomial-times-exponential terms with support constant throughout this interval.",
+			});
+		}
+		expect(verifyConvolutionExpression("1/0", "0")).toEqual({
+			status: "invalid",
+			message: "The answer divides by zero.",
+		});
+		expect(verifyConvolutionExpression("(t", "t")).toEqual({
+			status: "invalid",
+			message:
+				"Check matching brackets and paired left/right delimiters.",
+		});
+	});
 	/** Exact cancellation accepts removable singularities but cannot remove genuine poles. */
 	it("compares rational identities almost everywhere on the open interval", () => {
 		expect(

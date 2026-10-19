@@ -79,7 +79,9 @@ export function verifyConvolutionExpression(
 			? {
 					status: error.status,
 					message:
-						error.status === "unsupported"
+						error.status === "unsupported" &&
+						error.message ===
+							"This expression is outside the supported answer forms. Use the standard transform form."
 							? "This form cannot be verified. Use a polynomial or a sum of polynomial-times-exponential terms with support constant throughout this interval."
 							: error.message,
 				}
