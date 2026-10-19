@@ -9,11 +9,13 @@ import type {
 	ConvolutionBoundsSubStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
 import {
-	convolutionExpressionsMatch,
 	convolutionScalarMatches,
+	verifyConvolutionExpression,
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import type { CanonicalInterval } from "$lib/math-engine/canonical-transform";
 import type {
 	ConvolutionIntegralPathSetup,
+	ConvolutionOverlapBounds,
 	ConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
 
@@ -62,10 +64,150 @@ export function createBoundsState(
 	) as ConvolutionBoundsStepState;
 }
 
-/** Validates the active bounds or split points for an overlap interval. */
+/** One connected overlap's learner-entered bounds and evaluations. */
+type BoundInput = ConvolutionBoundsSubStepState["boundInputs"][number];
+
+/**
+ * Checks all numeric candidates before diagnosing a specific mismatch.
+ * @param input - Learner candidate evaluations.
+ * @param expected - Verified overlap metadata.
+ * @returns Valid evaluations or a missing/incorrect input diagnostic.
+ */
+function validateCandidates(
+	input: BoundInput,
+	expected: ConvolutionOverlapBounds,
+): BoundsValidationResult {
+	const pairs = [
+		{
+			values: input.lowerValues,
+			expressions: expected.lowerCandidatesLatex,
+			targets: expected.lowerCandidateValues,
+			label: "lower",
+		},
+		{
+			values: input.upperValues,
+			expressions: expected.upperCandidatesLatex,
+			targets: expected.upperCandidateValues,
+			label: "upper",
+		},
+	];
+	for (const pair of pairs) {
+		for (const [index, expression] of pair.expressions.entries()) {
+			if ((index === 0 || expression) && !pair.values?.[index]?.trim())
+				return {
+					kind: "blank",
+					message:
+						"Evaluate all candidate boundary expressions at the test time.",
+				};
+		}
+	}
+	for (const pair of pairs) {
+		for (const [index, expression] of pair.expressions.entries()) {
+			if (
+				(index === 0 || expression) &&
+				!convolutionScalarMatches(
+					pair.values?.[index] ?? "",
+					pair.targets[index] ?? NaN,
+				)
+			)
+				return {
+					kind: "incorrect",
+					message: `Recheck your evaluation of the ${pair.label} limit candidates at the test time.`,
+				};
+		}
+	}
+	return { kind: "valid" };
+}
+
+/**
+ * Checks symbolic limits on their active interval.
+ * @param input - Learner lower and upper bounds.
+ * @param expected - Verified overlap metadata.
+ * @param domain - Open output interval.
+ * @returns Verified limits or actionable feedback.
+ */
+function validateSymbolicBounds(
+	input: BoundInput,
+	expected: ConvolutionOverlapBounds,
+	domain?: CanonicalInterval,
+): BoundsValidationResult {
+	if (!input.lower.trim() || !input.upper.trim())
+		return {
+			kind: "blank",
+			message:
+				"Enter the symbolic lower and upper limits for this overlap.",
+		};
+	for (const [value, target, message] of [
+		[
+			input.lower,
+			expected.lowerLatex,
+			"The lower limit is the larger of the two active left edges.",
+		],
+		[
+			input.upper,
+			expected.upperLatex,
+			"The upper limit is the smaller of the two active right edges.",
+		],
+	] as const) {
+		const result = verifyConvolutionExpression(value, target, domain);
+		if (result.status === "invalid" || result.status === "unsupported")
+			return { kind: "blank", message: result.message };
+		if (result.status !== "correct")
+			return { kind: "misconception", message };
+	}
+	return { kind: "valid" };
+}
+
+/**
+ * Checks every interior formula-change location.
+ * @param input - Learner split expressions.
+ * @param expected - Required split locations.
+ * @param domain - Open output interval.
+ * @returns Verified splits or actionable feedback.
+ */
+function validateSplits(
+	input: BoundInput,
+	expected: ConvolutionOverlapBounds,
+	domain?: CanonicalInterval,
+): BoundsValidationResult {
+	if (
+		input.splits.length !== expected.splitPointsLatex.length ||
+		input.splits.some((split) => !split.trim())
+	)
+		return {
+			kind: "blank",
+			message:
+				"Enter every interior split point where an active formula changes.",
+		};
+	for (const [index, split] of input.splits.entries()) {
+		const result = verifyConvolutionExpression(
+			split,
+			expected.splitPointsLatex[index] ?? "",
+			domain,
+		);
+		if (result.status === "invalid" || result.status === "unsupported")
+			return { kind: "blank", message: result.message };
+		if (result.status !== "correct")
+			return {
+				kind: "incorrect",
+				message:
+					"Split wherever an active triangle apex, slope change, or piecewise formula change lies inside the bounds.",
+			};
+	}
+	return { kind: "valid" };
+}
+
+/**
+ * Validates the active bounds or split points for an overlap interval.
+ * @param state - Learner entries for this interval.
+ * @param setup - Verified overlap geometry.
+ * @param domain - Active open output interval; defaults to global equivalence.
+ * @returns Next stage or a diagnostic without advancing.
+ */
 export function validateBoundsStage(
 	state: ConvolutionBoundsSubStepState,
 	setup: ConvolutionIntegralPathSetup,
+	domain?: CanonicalInterval,
 ): BoundsValidationResult {
 	if (state.hasOverlap === null)
 		return {
@@ -86,115 +228,20 @@ export function validateBoundsStage(
 			message:
 				"Confirm the overlap choice before entering its integration bounds.",
 		};
-
 	for (const [index, expected] of setup.overlaps.entries()) {
 		const input = state.boundInputs[index];
 		if (!input)
 			return { kind: "blank", message: "Complete this overlap first." };
-
-		if (state.stage === "evaluate") {
-			const lower0 = input.lowerValues?.[0] ?? "";
-			const lower1 = input.lowerValues?.[1] ?? "";
-			const upper0 = input.upperValues?.[0] ?? "";
-			const upper1 = input.upperValues?.[1] ?? "";
-
-			if (
-				!lower0.trim() ||
-				!upper0.trim() ||
-				(expected.lowerCandidatesLatex[1] && !lower1.trim()) ||
-				(expected.upperCandidatesLatex[1] && !upper1.trim())
-			) {
-				return {
-					kind: "blank",
-					message:
-						"Evaluate all candidate boundary expressions at the test time.",
-				};
-			}
-
-			if (
-				!convolutionScalarMatches(
-					lower0,
-					expected.lowerCandidateValues[0],
-				) ||
-				(expected.lowerCandidatesLatex[1] &&
-					!convolutionScalarMatches(
-						lower1,
-						expected.lowerCandidateValues[1],
-					))
-			) {
-				return {
-					kind: "incorrect",
-					message:
-						"Recheck your evaluation of the lower limit candidates at the test time.",
-				};
-			}
-
-			if (
-				!convolutionScalarMatches(
-					upper0,
-					expected.upperCandidateValues[0],
-				) ||
-				(expected.upperCandidatesLatex[1] &&
-					!convolutionScalarMatches(
-						upper1,
-						expected.upperCandidateValues[1],
-					))
-			) {
-				return {
-					kind: "incorrect",
-					message:
-						"Recheck your evaluation of the upper limit candidates at the test time.",
-				};
-			}
-		}
-
-		if (state.stage === "bounds") {
-			if (!input.lower.trim() || !input.upper.trim())
-				return {
-					kind: "blank",
-					message:
-						"Enter the symbolic lower and upper limits for this overlap.",
-				};
-			if (!convolutionExpressionsMatch(input.lower, expected.lowerLatex))
-				return {
-					kind: "misconception",
-					message:
-						"The lower limit is the larger of the two active left edges.",
-				};
-			if (!convolutionExpressionsMatch(input.upper, expected.upperLatex))
-				return {
-					kind: "misconception",
-					message:
-						"The upper limit is the smaller of the two active right edges.",
-				};
-		}
-		if (state.stage === "splits") {
-			if (input.splits.some((split) => !split.trim()))
-				return {
-					kind: "blank",
-					message:
-						"Enter every interior split point where an active formula changes.",
-				};
-			if (
-				!input.splits.every((split, splitIndex) =>
-					convolutionExpressionsMatch(
-						split,
-						expected.splitPointsLatex[splitIndex] ?? "",
-					),
-				)
-			)
-				return {
-					kind: "incorrect",
-					message:
-						"Split wherever an active triangle apex, slope change, or piecewise formula change lies inside the bounds.",
-				};
-		}
+		const result =
+			state.stage === "evaluate"
+				? validateCandidates(input, expected)
+				: state.stage === "bounds"
+					? validateSymbolicBounds(input, expected, domain)
+					: validateSplits(input, expected, domain);
+		if (result.kind !== "valid") return result;
 	}
-
-	if (state.stage === "evaluate") {
+	if (state.stage === "evaluate")
 		return { kind: "valid", nextStage: "bounds" };
-	}
-
 	if (
 		state.stage === "bounds" &&
 		setup.overlaps.some((overlap) => overlap.splitPointsLatex.length > 0)

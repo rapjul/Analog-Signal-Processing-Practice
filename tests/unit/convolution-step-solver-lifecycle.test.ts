@@ -953,6 +953,116 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		expect(missingSetupSolver.currentStep).toBe(5);
 	});
 
+	/** Undefined and unsupported answers on infinite reflected edges remain validation feedback. */
+	it.each(["x", "h"] as const)(
+		"preserves invalid infinite-edge feedback when moving %s",
+		/** @param moving - Reflected exponential signal. */
+		(moving) => {
+			const problem = generateConvolutionProblem("exp_exp", { seed: 13 });
+			const solver = new ConvolutionStepSolverState(
+				/** Returns the unbounded regression problem. */ () => problem,
+			);
+			solver.currentStep = 3;
+			solver.chooseMovingSignal(moving);
+			solver.checkStep3Formula(
+				option(
+					problem.itsData.step3.formulaBySignal[moving].options,
+					true,
+				),
+			);
+			const sections = problem.itsData.step3.sectionsBySignal[moving];
+			for (const section of sections)
+				solver.step3.edgeInputs[section.id] = {
+					left: section.leftLatex,
+					right: section.rightLatex,
+				};
+			const section = sections[0];
+			if (!section) throw new Error("Expected exponential section.");
+			expect(section.leftLatex).toContain("\\infty");
+			const input = solver.step3.edgeInputs[section.id];
+			if (!input) throw new Error("Expected infinite edge input.");
+			for (const [answer, diagnostic] of [
+				["(t", /bracket/i],
+				["1/0", /zero/i],
+				["sqrt(t)", /polynomial/i],
+			] as const) {
+				input.left = answer;
+				solver.checkStep3Edges();
+				expect(solver.currentFeedbackType).toBe("validation");
+				expect(solver.currentFeedback).toMatch(diagnostic);
+				expect(solver.currentStep).toBe(3);
+				expect(solver.step3.subSteps["transform-edges"]?.isValid).toBe(
+					false,
+				);
+			}
+			input.left = section.leftLatex;
+			solver.checkStep3Edges();
+			expect(solver.currentStep).toBe(4);
+		},
+	);
+
+	/** Resource limits explain failed validation without advancing or completing the tutor. */
+	it("shows specific resource-limit feedback on final rows without advancing", () => {
+		const problem = generateConvolutionProblem("rect_rect", { seed: 13 });
+		const solver = new ConvolutionStepSolverState(
+			/** Returns the fixed regression problem. */ () => problem,
+		);
+		solver.currentStep = 7;
+		const index = solver.step7.rows.findIndex(({ isLocked }) => !isLocked);
+		const row = solver.step7.rows[index];
+		if (!row) throw new Error("Expected an editable output row.");
+		for (const [answer, message] of [
+			["1".repeat(16385), /shorten.*16,384/],
+			[
+				Array.from(
+					{ length: 65 },
+					/** @param unused - Unused array entry. @param index - Distinct exponential rate. */
+					(unused, index) => `e^{${index}t}`,
+				).join("+"),
+				/verification limits/,
+			],
+		] as const) {
+			row.input = answer;
+			solver.checkStep7Row(index);
+			expect(solver.currentFeedbackType).toBe("validation");
+			expect(solver.currentFeedback).toMatch(message);
+			expect(row.isValid).toBe(false);
+			expect(solver.currentStep).toBe(7);
+			expect(solver.isCompleted).toBe(false);
+		}
+	});
+
+	/** Developer helpers stop after one rejected check instead of freezing the harness. */
+	it.each([
+		[1, "checkStep1"],
+		[4, "checkStep4"],
+		[5, "checkStep5"],
+		[5, "chooseStep5Overlap"],
+		[6, "checkStep6"],
+	] as const)(
+		"stops Step %s auto-fill when %s cannot progress",
+		/** @param step - Parent step to exercise. @param method - Real validation entry point. */
+		(step, method) => {
+			const problem = generateConvolutionProblem("rect_rect", {
+				seed: 13,
+			});
+			const solver = new ConvolutionStepSolverState(() => problem);
+			for (let parent = 1; parent < step; parent++)
+				solver.devAutoFillStep(parent);
+			expect(solver.currentStep).toBe(step);
+			const check = vi.spyOn(solver, method).mockImplementation(
+				/** Reject without progress; a repeated check fails immediately instead of hanging. */
+				() => {
+					if (check.mock.calls.length > 1)
+						throw new Error("Repeated stalled validation.");
+				},
+			);
+			solver.devAutoFillStep(step);
+			expect(check).toHaveBeenCalledTimes(1);
+			expect(solver.currentStep).toBe(step);
+		},
+	);
+
 	it("resets typed state and exposes all parent visual states", () => {
 		const problem = generateConvolutionProblem("multi_rect", { seed: 4 });
 		const solver = new ConvolutionStepSolverState(() => problem);

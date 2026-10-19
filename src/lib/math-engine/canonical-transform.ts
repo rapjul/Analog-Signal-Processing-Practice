@@ -31,6 +31,10 @@ import {
 } from "$lib/math-engine/canonical-algebra";
 import { Complex } from "$lib/math-engine/complex";
 
+/** Shared default unsupported-form diagnostic for domain-specific guidance. */
+export const UNSUPPORTED_FORM_MESSAGE =
+	"This expression is outside the supported answer forms. Use the standard transform form.";
+
 /** Rational coefficient multiplying an exponential of a polynomial. */
 export interface CanonicalTerm {
 	/** Reduced rational factor. */ factor: Factor;
@@ -60,6 +64,13 @@ export interface CanonicalTransform {
 interface Context {
 	/** Allowed variable. */ variable: "t" | "omega";
 	/** Negative or positive open half-line. */ side: -1 | 1;
+	/** Optional open interval used only by convolution verification. */ interval?: CanonicalInterval;
+}
+
+/** Exact finite endpoints or infinite limits of an open verification interval. */
+export interface CanonicalInterval {
+	/** Lower time limit. */ min: number;
+	/** Upper time limit. */ max: number;
 }
 
 /** @returns Empty regular/distribution sum. */
@@ -69,10 +80,7 @@ function empty(): CanonicalSpectrum {
 
 /** @returns Accessible failure for operations outside the verification language. */
 function unsupported(): CanonicalError {
-	return new CanonicalError(
-		"unsupported",
-		"This expression is outside the supported answer forms. Use the standard transform form.",
-	);
+	return new CanonicalError("unsupported", UNSUPPORTED_FORM_MESSAGE);
 }
 
 /**
@@ -533,10 +541,48 @@ function step(args: unknown[], context: Context): CanonicalSpectrum {
 	if (context.variable !== "t") throw unsupported();
 	const p = asPolynomial(normalize(args[0], context), 1),
 		slope = p[1];
+	if (context.interval) return intervalStep(p, context.interval);
 	if (!slope || !scalarField.isZero(p[0] ?? scalar(0))) throw unsupported();
 	const sign = slope.requireRealSign();
 	if (sign === 0) throw unsupported();
 	return constant(scalar(sign * context.side > 0 ? 1 : 0));
+}
+
+/**
+ * Folds affine support only after proving its sign throughout an open interval.
+ * @param p - Affine step argument.
+ * @param interval - Open verification domain.
+ * @returns Constant support or an unsupported diagnostic.
+ */
+function intervalStep(
+	p: Polynomial<Scalar>,
+	interval: CanonicalInterval,
+): CanonicalSpectrum {
+	const slope = p[1];
+	const intercept = p[0] ?? scalar(0);
+	const coefficient = slope ?? scalar(0);
+	const direction = coefficient.requireRealSign();
+	if (direction === 0) {
+		const sign = intercept.requireRealSign();
+		if (sign === 0) throw unsupported();
+		return constant(scalar(sign > 0 ? 1 : 0));
+	}
+	/**
+	 * Proves the affine sign at a finite endpoint or infinite limit.
+	 * @param endpoint - Finite boundary or infinite domain limit.
+	 * @returns Exact sign of the affine boundary value or limit.
+	 */
+	const endpointSign = (endpoint: number): -1 | 0 | 1 =>
+		Number.isFinite(endpoint)
+			? intercept
+					.add(coefficient.multiply(scalar(endpoint)))
+					.requireRealSign()
+			: ((Math.sign(endpoint) * direction) as -1 | 1);
+	const lower = endpointSign(interval.min);
+	const upper = endpointSign(interval.max);
+	if (lower >= 0 && upper >= 0) return constant(scalar(1));
+	if (lower <= 0 && upper <= 0) return constant(scalar(0));
+	throw unsupported();
 }
 
 /**
@@ -884,6 +930,29 @@ export function normalizeCanonicalTransform(
 		variable,
 		right,
 		left: variable === "t" ? normalize(ast, { variable, side: -1 }) : right,
+	};
+	checkConstantDomains(result);
+	return result;
+}
+
+/**
+ * Normalizes an expression on one open interval without changing transform grading.
+ * @param ast - Parsed expression, subject to the shared structure limits.
+ * @param interval - Open domain on which affine support factors must be constant.
+ * @returns A regular canonical form with identical left and right representations.
+ */
+export function normalizeCanonicalInterval(
+	ast: unknown,
+	interval: CanonicalInterval,
+): CanonicalTransform {
+	if (!(interval.min < interval.max)) throw unsupported();
+	checkStructure(ast, 0, { nodes: 0 });
+	const spectrum = normalize(ast, { variable: "t", side: 1, interval });
+	if (spectrum.impulses.length) throw unsupported();
+	const result: CanonicalTransform = {
+		variable: "t",
+		left: spectrum,
+		right: spectrum,
 	};
 	checkConstantDomains(result);
 	return result;

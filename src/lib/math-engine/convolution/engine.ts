@@ -313,7 +313,12 @@ function configuredSignalName(
 	}
 }
 
-/** Generates one exact problem from independent x(t) and h(t) selections. */
+/**
+ * Generates one exact problem from independent x(t) and h(t) selections.
+ * @param selection - Independently configured signal families and parameters.
+ * @param options - Optional reproducible generation seed.
+ * @returns Complete tutor problem with input and output animation bounds.
+ */
 export function generateConfiguredConvolutionProblem(
 	selection: ConvolutionProblemSelection = DEFAULT_CONVOLUTION_SELECTION,
 	options: ConvolutionGenerationOptions = {},
@@ -324,6 +329,7 @@ export function generateConfiguredConvolutionProblem(
 	const finiteEdges = [
 		...resolvedSignals.x.sections.flatMap(({ start, end }) => [start, end]),
 		...resolvedSignals.h.sections.flatMap(({ start, end }) => [start, end]),
+		...result.intervals.flatMap(({ min, max }) => [min, max]),
 	].filter(Number.isFinite);
 	const minimum = Math.min(...finiteEdges, -1);
 	const maximum = Math.max(...finiteEdges, 1);

@@ -1,7 +1,100 @@
 /** Shared strict typed-expression validation for convolution tutor steps. */
 
-import { tryEvaluateLatexAt } from "$lib/math-engine/evaluator";
+import { CanonicalError } from "$lib/math-engine/canonical-algebra";
+import {
+	type CanonicalInterval,
+	canonicalTransformsMatch,
+	normalizeCanonicalInterval,
+	UNSUPPORTED_FORM_MESSAGE,
+} from "$lib/math-engine/canonical-transform";
+import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import { parseNumericInput } from "$lib/math-engine/fraction";
+import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
+
+/** Symbolically established answer status with an accessible explanation. */
+export interface ConvolutionVerificationResult {
+	/** Only a correct result may advance the tutor. */
+	status: "correct" | "incorrect" | "invalid" | "unsupported";
+	/** Explanation of an unsupported form or failed comparison. */
+	message: string;
+}
+
+/**
+ * Verifies expressions on an open domain without certifying numerical samples.
+ * @param student - Submitted expression or infinity sentinel.
+ * @param expected - Reference expression or infinity sentinel.
+ * @param interval - Active interval; defaults to the complete real line.
+ * @returns Canonical equivalence or a conservative diagnostic.
+ */
+export function verifyConvolutionExpression(
+	student: string,
+	expected: string,
+	interval: CanonicalInterval = { min: -Infinity, max: Infinity },
+): ConvolutionVerificationResult {
+	try {
+		if (student.length > 16384 || expected.length > 16384)
+			throw new CanonicalError(
+				"unsupported",
+				"Please shorten the expression to 16,384 characters or fewer.",
+			);
+		const actualScalar = parseConvolutionScalarInput(student);
+		const targetScalar = parseConvolutionScalarInput(expected);
+		/** @param value - Parsed scalar. @returns Whether it is an infinity sentinel. */
+		const isInfinity = (value: number): boolean =>
+			value === Infinity || value === -Infinity;
+		/**
+		 * Normalizes one bounded expression while preserving its support.
+		 * @param expression - Student or reference expression.
+		 * @returns Canonical representation on the requested domain.
+		 */
+		const normalize = (expression: string) =>
+			normalizeCanonicalInterval(
+				parseStrictLatex(
+					normalizeTransformNotation(
+						expression.replace(/^\s*y\s*\(\s*t\s*\)\s*=\s*/, ""),
+						"t",
+					),
+				),
+				interval,
+			);
+		if (isInfinity(actualScalar) || isInfinity(targetScalar)) {
+			// Validate finite operands before diagnosing a boundary mismatch.
+			if (!isInfinity(actualScalar)) normalize(student);
+			if (!isInfinity(targetScalar)) normalize(expected);
+			return {
+				status: Object.is(actualScalar, targetScalar)
+					? "correct"
+					: "incorrect",
+				message: "Use the verified finite or infinite boundary.",
+			};
+		}
+		const correct = canonicalTransformsMatch(
+			normalize(student),
+			normalize(expected),
+		);
+		return {
+			status: correct ? "correct" : "incorrect",
+			message: correct
+				? "The expressions agree on this interval."
+				: "This expression does not match the verified result on this interval.",
+		};
+	} catch (error) {
+		return error instanceof CanonicalError
+			? {
+					status: error.status,
+					message:
+						error.status === "unsupported" &&
+						error.message === UNSUPPORTED_FORM_MESSAGE
+							? "This form cannot be verified. Use a polynomial or a sum of polynomial-times-exponential terms with support constant throughout this interval."
+							: error.message,
+				}
+			: {
+					status: "invalid",
+					message:
+						"Enter valid mathematics in t with matching brackets and finite constants.",
+				};
+	}
+}
 
 /** Parses a finite scalar or a common positive/negative infinity spelling. */
 export function parseConvolutionScalarInput(input: string): number {
@@ -27,38 +120,21 @@ export function convolutionScalarMatches(
 }
 
 /**
- * Compares one-variable expressions at deterministic output-time values.
+ * Compares one-variable expressions through bounded symbolic verification.
  * @param student - Student expression or infinity boundary sentinel.
  * @param expected - Verified expression or infinity boundary sentinel.
- * @param sampleTimes - Output-time values within the relevant interval.
- * @returns Whether both expressions agree at every sample.
+ * @param interval - Open interval on which the expressions must agree.
+ * @returns Whether their supported canonical forms match.
  */
 export function convolutionExpressionsMatch(
 	student: string,
 	expected: string,
-	sampleTimes: number[] = [-3, -1, 0, 2, 5],
+	interval?: CanonicalInterval,
 ): boolean {
-	const studentInfinity = parseConvolutionScalarInput(student);
-	const expectedInfinity = parseConvolutionScalarInput(expected);
-	if (
-		studentInfinity === Number.POSITIVE_INFINITY ||
-		studentInfinity === Number.NEGATIVE_INFINITY ||
-		expectedInfinity === Number.POSITIVE_INFINITY ||
-		expectedInfinity === Number.NEGATIVE_INFINITY
-	)
-		return Object.is(studentInfinity, expectedInfinity);
-	if (sampleTimes.length === 0) return false;
-	for (const time of sampleTimes) {
-		const actual = tryEvaluateLatexAt(student, time);
-		const target = tryEvaluateLatexAt(expected, time);
-		if (
-			actual === null ||
-			target === null ||
-			Math.abs(actual - target) > 1e-7
-		)
-			return false;
-	}
-	return true;
+	return (
+		verifyConvolutionExpression(student, expected, interval).status ===
+		"correct"
+	);
 }
 
 /**

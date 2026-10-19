@@ -35,14 +35,17 @@
 		() => () => onComplete?.(solver.flippedSignal),
 	);
 
-	/** Last problem identifier used to synchronize state resets. */
-	let lastProblemId = "";
+	/** Last problem object used to synchronize state resets, even for identical IDs. */
+	let lastProblem: ConvolutionProblem | undefined;
+	/** Moving choice already announced for the active problem. */
 	let lastVerifiedMovingSignal = "";
 	let solverElement: HTMLDivElement | undefined = $state();
 	let lastProgressKey = "";
+	/** Restarts all tutor and notification state for each replacement problem. */
 	$effect(() => {
-		if (problem.id !== lastProblemId) {
-			lastProblemId = problem.id;
+		if (problem !== lastProblem) {
+			lastProblem = problem;
+			lastVerifiedMovingSignal = "";
 			solver.reset();
 		}
 	});
