@@ -1,8 +1,154 @@
 import { describe, expect, it, vi } from "vitest";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
+import { formatFourierNumber } from "$lib/math-engine/fourier-series/frequency";
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolverState Reactive Controller", () => {
+	it.each([1e-7, 1.25e-7, 1e21])(
+		"accepts displayed scientific period %s in seconds and equivalent milliseconds",
+		/**
+		 * Grades the actual formatter output after converting the selected units.
+		 * @param T0 - Custom period in seconds.
+		 */
+		(T0) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0,
+			});
+			for (const periodUnit of ["s", "ms"]) {
+				const solver = new FourierSeriesStepSolverState(() => problem);
+				const period = formatFourierNumber(
+					T0 * (periodUnit === "ms" ? 1000 : 1),
+				);
+				Object.assign(solver.step1, {
+					period,
+					periodUnit,
+					freq: problem.itsData.step1.w0Aliases[0],
+				});
+				solver.checkStep1();
+				expect(solver.currentStep).toBe(2);
+				expect(solver.step1.isValid).toBe(true);
+			}
+		},
+	);
+	it.each([
+		"t+1",
+		"1/0",
+		"Infinity",
+		"NaN",
+		"1+",
+		"0",
+		"-1",
+		String.raw`10^{1000}`,
+		String.raw`1\times10^{-6}`,
+	])(
+		"rejects invalid scientific period input %s",
+		/**
+		 * Keeps invalid constants and wrong magnitudes on the current step.
+		 * @param period - Invalid period expression.
+		 */
+		(period) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: 1e-7,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, {
+				period,
+				freq: problem.itsData.step1.w0Aliases[0],
+			});
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(1);
+			expect(solver.step1.isValid).toBe(false);
+			expect(solver.step1.feedback).toContain("Incorrect Period value");
+		},
+	);
+	/** Checks scaled tolerances after unit conversion while retaining aliases and ordinary bounds. */
+	it.each([
+		{ T0: 1e-7, input: { period: "0.01" }, accepted: false },
+		{
+			T0: 1e-7,
+			input: { period: "10", periodUnit: "ms" },
+			accepted: false,
+		},
+		{ T0: 1e21, input: { freq: "0.01" }, accepted: false },
+		{ T0: 1e21, input: { freq: "0.01", freqUnit: "Hz" }, accepted: false },
+		{ T0: 1e-7, input: { period: "0.000000104" }, accepted: true },
+		{
+			T0: 1e-7,
+			input: { period: "0.000104", periodUnit: "ms" },
+			accepted: true,
+		},
+		{ T0: 1e21, input: { freq: "6.5\\times10^{-21}" }, accepted: true },
+		{
+			T0: 1e21,
+			input: { freq: "1.04\\times10^{-21}", freqUnit: "Hz" },
+			accepted: true,
+		},
+		{ T0: 1e-7, input: { period: "0.000000106" }, accepted: false },
+		{ T0: 1e21, input: { freq: "6.7\\times10^{-21}" }, accepted: false },
+		{ T0: 2, input: { period: "2.06" }, accepted: false },
+		{ T0: 2, input: { freq: String(Math.PI + 0.06) }, accepted: false },
+		{ T0: 2, input: { period: "2.04", freq: "3.18" }, accepted: true },
+		{ T0: 4, input: { period: "4.04", freq: "1.61" }, accepted: true },
+		{ T0: 1e-7, input: {}, accepted: true },
+		{ T0: 1e21, input: {}, accepted: true },
+	])(
+		"grades scaled Step 1 input $input for period $T0",
+		({ T0, input, accepted }) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, {
+				period: String(T0),
+				freq: problem.itsData.step1.w0Aliases[0],
+				...input,
+			});
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(accepted ? 2 : 1);
+			expect(solver.step1.isValid).toBe(accepted);
+		},
+	);
+
+	/** Checks symbolic constants and equivalent units without binding free variables. */
+	it.each([
+		[1, "1", "s", "2*pi", "rad/s"],
+		[2, "2", "s", "2*pi/2", "rad/s"],
+		[4, "4000", "ms", "1/4", "Hz"],
+		[8, "8", "s", "pi/4", "rad/s"],
+		[8, "8000", "ms", "0.125", "Hz"],
+		[8, "8", "s", String(Math.PI / 4), "rad/s"],
+	])(
+		"accepts equivalent period/frequency inputs for %s",
+		(T0, period, periodUnit, freq, freqUnit) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: Number(T0),
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, { period, periodUnit, freq, freqUnit });
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(2);
+		},
+	);
+
+	/** Rejects stale aliases, malformed expressions, and expressions containing variables. */
+	it.each(["pi/2", "t+pi/4", "1/0", "pi/", "0", "-pi/4"])(
+		"rejects invalid frequency %s",
+		(freq) => {
+			const problem = generateFourierSeriesProblem("square", {
+				seed: 1,
+				T0: 8,
+			});
+			const solver = new FourierSeriesStepSolverState(() => problem);
+			Object.assign(solver.step1, { period: "8", freq });
+			solver.checkStep1();
+			expect(solver.currentStep).toBe(1);
+			expect(solver.step1.isValid).toBe(false);
+		},
+	);
 	it("initializes in pristine state on Step 1", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierSeriesStepSolverState(() => problem);

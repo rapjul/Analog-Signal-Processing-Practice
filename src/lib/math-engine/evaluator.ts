@@ -6,6 +6,7 @@
  */
 
 import { parse } from "@cortex-js/compute-engine/latex-syntax";
+import { parseNumericInput } from "$lib/math-engine/fraction";
 import { evaluateRealExpression } from "$lib/math-engine/real-evaluation";
 
 export interface ValidationResult {
@@ -30,6 +31,25 @@ export function evaluateMathJsonStrict(
 	vars: Record<string, number>,
 ): number | null {
 	return evaluateRealExpression(node, vars);
+}
+
+/**
+ * Parses a finite real constant using numeric syntax or strict LaTeX evaluation.
+ * No variables are assigned; callers retain responsibility for units, signs,
+ * and domain-specific answer tolerances.
+ * @param input - Numeric, fractional, or constant mathematical input.
+ * @returns Finite real value, including zero and negatives, or NaN for invalid input.
+ */
+export function parseConstantInput(input: string): number {
+	const numeric = parseNumericInput(input);
+	if (Number.isFinite(numeric)) return numeric;
+	if (!input.trim()) return Number.NaN;
+	try {
+		const result = evaluateMathJsonStrict(parseStrictLatex(input), {});
+		return result !== null && Number.isFinite(result) ? result : Number.NaN;
+	} catch {
+		return Number.NaN;
+	}
 }
 
 /**

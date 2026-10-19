@@ -3,12 +3,62 @@ import {
 	evaluateLatexAt,
 	evaluatePiecewiseLatexAt,
 	normalizeMathLatex,
+	parseConstantInput,
 	tryEvaluateLatexAt,
 	validateConvolutionResponse,
 	validateLatexAnswer,
 } from "$lib/math-engine/evaluator";
 
 describe("Math Engine Evaluator (evaluator.ts)", () => {
+	describe("parseConstantInput", () => {
+		it.each([
+			[" 42 ", 42],
+			["-2.5", -2.5],
+			["0", 0],
+			["(-11)/3", -11 / 3],
+			[String.raw`\frac{5}{3}`, 5 / 3],
+			[String.raw`1\times 10^{-7}`, 1e-7],
+			[String.raw`1.25\times 10^{+21}`, 1.25e21],
+			["2*pi/8", Math.PI / 4],
+			["2+3", 5],
+		])(
+			"evaluates finite constant %s",
+			/**
+			 * Checks constant expressions without enforcing domain-specific positivity.
+			 * @param input - Numeric or mathematical input.
+			 * @param expected - Finite real value.
+			 */
+			(input, expected) => {
+				expect(parseConstantInput(String(input))).toBeCloseTo(
+					Number(expected),
+					12,
+				);
+			},
+		);
+		it.each([
+			"",
+			" ",
+			"t+2",
+			"s",
+			"n",
+			"abc",
+			"2+",
+			"1/0",
+			"Infinity",
+			"NaN",
+			String.raw`10^{1000}`,
+			String.raw`\sqrt{-1}`,
+		])(
+			"rejects invalid constant %s",
+			/**
+			 * Requires unsupported or nonfinite expressions to fail closed.
+			 * @param input - Invalid constant input.
+			 */
+			(input) => {
+				expect(parseConstantInput(input)).toBeNaN();
+			},
+		);
+	});
 	describe("tryEvaluateLatexAt", () => {
 		/** Unsupported identifiers and text must remain unevaluable during grading. */
 		it.each([

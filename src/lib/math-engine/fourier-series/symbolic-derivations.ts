@@ -6,6 +6,7 @@
  * continuous-time Fourier series waveform archetypes.
  */
 
+import { formatFourierNumber } from "./frequency";
 import type {
 	FourierSeriesCoefficients,
 	FourierSeriesSymbolicDerivation,
@@ -40,7 +41,7 @@ export function buildFinalSeriesLatex(
 		case "half_wave_sine":
 			return `x(t) = \\frac{${A}}{\\pi} + \\frac{${A}}{2}\\sin\\left(${w0Latex} t\\right) + \\sum_{n=2,4,6,\\dots}^{\\infty} \\frac{2(${A})}{\\pi(1-n^2)} \\cos\\left(n ${w0Latex} t\\right)`;
 		case "full_wave_sine":
-			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(2n ${w0Latex} t\\right)`;
+			return `x(t) = \\frac{2(${A})}{\\pi} - \\sum_{n=1}^{\\infty} \\frac{4(${A})}{\\pi(4n^2-1)} \\cos\\left(n ${w0Latex} t\\right)`;
 		default: {
 			const _exhaustiveCheck: never = waveformType;
 			throw new Error(
@@ -117,23 +118,26 @@ export function buildSignalLatex(
 	A: number,
 	T0: number,
 ): string {
+	const period = formatFourierNumber(T0);
+	const halfPeriod = formatFourierNumber(T0 / 2);
+	const quarterPeriod = formatFourierNumber(T0 / 4);
 	switch (waveformType) {
 		case "square":
 		case "square_odd":
-			return `x(t)=\\begin{cases}-${A}&-${T0 / 2}<t<0\\\\${A}&0<t<${T0 / 2}\\end{cases}`;
+			return `x(t)=\\begin{cases}-${A}&-${halfPeriod}<t<0\\\\${A}&0<t<${halfPeriod}\\end{cases}`;
 		case "square_even":
-			return `x(t)=\\begin{cases}${A}&|t|<${T0 / 4}\\\\-${A}&${T0 / 4}<|t|<${T0 / 2}\\end{cases}`;
+			return `x(t)=\\begin{cases}${A}&|t|<${quarterPeriod}\\\\-${A}&${quarterPeriod}<|t|<${halfPeriod}\\end{cases}`;
 		case "triangle":
 		case "triangle_even":
-			return `x(t)=${A}\\left(1-\\frac{4|t|}{${T0}}\\right),\\quad |t|<${T0 / 2}`;
+			return `x(t)=${A}\\left(1-\\frac{4|t|}{${period}}\\right),\\quad |t|<${halfPeriod}`;
 		case "triangle_odd":
-			return `x(t)=\\begin{cases}-2(${A})-\\frac{4(${A})}{${T0}}t&-${T0 / 2}<t<-${T0 / 4}\\\\\\frac{4(${A})}{${T0}}t&-${T0 / 4}<t<${T0 / 4}\\\\2(${A})-\\frac{4(${A})}{${T0}}t&${T0 / 4}<t<${T0 / 2}\\end{cases}`;
+			return `x(t)=\\begin{cases}-2(${A})-\\frac{4(${A})}{${period}}t&-${halfPeriod}<t<-${quarterPeriod}\\\\\\frac{4(${A})}{${period}}t&-${quarterPeriod}<t<${quarterPeriod}\\\\2(${A})-\\frac{4(${A})}{${period}}t&${quarterPeriod}<t<${halfPeriod}\\end{cases}`;
 		case "sawtooth":
-			return `x(t)=\\frac{2(${A})}{${T0}}t,\\quad -${T0 / 2}<t<${T0 / 2}`;
+			return `x(t)=\\frac{2(${A})}{${period}}t,\\quad -${halfPeriod}<t<${halfPeriod}`;
 		case "half_wave_sine":
-			return `x(t)=\\begin{cases}${A}\\sin(\\omega_0t)&0<t<${T0 / 2}\\\\0&${T0 / 2}<t<${T0}\\end{cases}`;
+			return `x(t)=\\begin{cases}${A}\\sin(\\omega_0t)&0<t<${halfPeriod}\\\\0&${halfPeriod}<t<${period}\\end{cases}`;
 		case "full_wave_sine":
-			return `x(t)=${A}\\left|\\sin\\left(\\frac{\\pi t}{${T0}}\\right)\\right|`;
+			return `x(t)=${A}\\left|\\sin\\left(\\frac{\\pi t}{${period}}\\right)\\right|`;
 		default: {
 			const _exhaustiveCheck: never = waveformType;
 			throw new Error(
