@@ -51,6 +51,7 @@
 				<button
 					type="button"
 					class="mcq-card"
+					data-option-id={opt.id}
 					class:selected={solver.step4.selected === opt.id}
 					onclick={() => solver.checkStep4(opt)}
 				>

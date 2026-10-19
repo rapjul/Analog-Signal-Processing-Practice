@@ -39,6 +39,7 @@
 			<button
 				type="button"
 				class="concept-option-card"
+				data-option-id={option.id}
 				class:selected={solver.step7.selectedConcept === option.id}
 				onclick={() => {
 					solver.step7.selectedConcept = option.id;

@@ -41,10 +41,10 @@
 	);
 
 	// Reset state when problem instance changes
-	let lastProblemId = "";
+	let lastProblem: OdeProblem | undefined;
 	$effect(() => {
-		if (problem.id !== lastProblemId) {
-			lastProblemId = problem.id;
+		if (problem !== lastProblem) {
+			lastProblem = problem;
 			solver.reset();
 		}
 	});

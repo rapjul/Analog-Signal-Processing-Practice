@@ -142,53 +142,41 @@
 				<span class="step-badge">Step 5</span>
 				<h4 class="step-title">Undetermined Coefficients Derivation</h4>
 			</div>
+			<p class="step-prose">
+				Differentiate the selected trial, including any resonance
+				multiplier:
+			</p>
+			<MathBlock
+				math={problem.itsData.step5.derivativesLatex ?? ""}
+				compact={true}
+				hideHeader={true}
+			/>
+			<p class="step-prose">
+				Substitute into the original ODE, retaining each derivative
+				coefficient:
+			</p>
+			<MathBlock
+				math={problem.itsData.step5.substitutionLatex ?? ""}
+				compact={true}
+				hideHeader={true}
+			/>
+			<p class="step-prose">
+				Match coefficients of the independent basis functions:
+			</p>
+			<MathBlock
+				math={problem.itsData.step5.systemLatex ?? ""}
+				compact={true}
+				hideHeader={true}
+			/>
 			{#if problem.forcing.type === "sinusoid"}
-				<p class="step-prose">
-					<MathText
-						text={problem.params.order === 1
-							? String.raw`Taking the required trial derivative $y_p'(t)$:`
-							: String.raw`Taking trial derivatives $y_p'(t)$ and $y_p''(t)$:`}
-					/>
-				</p>
-				<MathBlock
-					math={problem.params.order === 1
-						? (problem.itsData.step5.firstDerivLatex ?? "")
-						: (problem.itsData.step5.derivativesLatex ?? "")}
-					compact={true}
-					hideHeader={true}
-				/>
-				<p class="step-prose">
-					<MathText
-						text={problem.params.order === 1
-							? String.raw`Substituting into $a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`
-							: String.raw`Substituting into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$ and equating sine/cosine harmonics:`}
-					/>
-				</p>
-				<MathBlock
-					math={problem.itsData.step5.systemLatex ?? ""}
-					compact={true}
-					hideHeader={true}
-				/>
-				<p class="step-prose">
-					<MathText
-						text={String.raw`Solving the $2\times 2$ algebraic system yields:`}
-					/>
-				</p>
 				<MathBlock
 					math={`A = ${toFractionLatex(problem.itsData.step5.expectedA ?? 0)}, \\quad B = ${toFractionLatex(problem.itsData.step5.expectedB ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
 					compact={true}
 					hideHeader={true}
 				/>
 			{:else}
-				<p class="step-prose">
-					<MathText
-						text={problem.params.order === 1
-							? String.raw`Substituting $y_p(t)$ into $a_1 y' + a_0 y = ${problem.forcing.latex}$:`
-							: String.raw`Substituting $y_p(t)$ into $a_2y'' + a_1 y' + a_0 y = ${problem.forcing.latex}$:`}
-					/>
-				</p>
 				<MathBlock
-					math={`y_p(t) = ${problem.solutions.y_p_latex}`}
+					math={`K_p = ${toFractionLatex(problem.itsData.step5.expectedKp ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
 					compact={true}
 					hideHeader={true}
 				/>
@@ -199,9 +187,7 @@
 		<div class="solution-step-card">
 			<div class="step-card-header">
 				<span class="step-badge">Step 6</span>
-				<h4 class="step-title">
-					Initial Conditions & Complete Response
-				</h4>
+				<h4 class="step-title">Initial Conditions & Total Response</h4>
 			</div>
 			<p class="step-prose">
 				<MathText
@@ -221,6 +207,14 @@
 				/>
 			{/if}
 			<p class="step-prose">
+				Match the homogeneous initial values using this system:
+			</p>
+			<MathBlock
+				math={problem.itsData.step6.icSystemLatex ?? ""}
+				compact={true}
+				hideHeader={true}
+			/>
+			<p class="step-prose">
 				<MathText
 					text={problem.params.order === 1
 						? String.raw`Solving for integration constant $C_1$ gives the complete response:`
@@ -231,6 +225,11 @@
 				math={problem.params.order === 1
 					? `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}`
 					: `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
+				compact={true}
+				hideHeader={true}
+			/>
+			<MathBlock
+				math={`y_h(t) = ${problem.solutions.y_h_latex}`}
 				compact={true}
 				hideHeader={true}
 			/>
@@ -291,6 +290,13 @@
 					/>
 				</div>
 			</div>
+			{#if problem.itsData.step7.decompositionMode === "homogeneous_particular"}
+				<p class="step-prose">
+					<MathText
+						text={"The homogeneous and particular contributions both decay for this stable system and decaying exponential input. Thus the entire response is transient, $y_{tr}(t)=y(t)$, and the steady-state response is $y_{ss}(t)=0$. The algebraic split $y=y_h+y_p$ differs from the long-term split $y=y_{tr}+y_{ss}$."}
+					/>
+				</p>
+			{/if}
 			<div class="superposition-identity-box">
 				<span class="identity-badge">Superposition Identity</span>
 				<MathBlock
