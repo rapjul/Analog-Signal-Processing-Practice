@@ -11,6 +11,45 @@ import {
 import { parseStrictLatex } from "$lib/math-engine/evaluator";
 
 describe("convolution expression equivalence", () => {
+	/** Infinite boundaries cannot hide invalid or unsupported mathematics on the other side. */
+	it.each(["inf", "-inf"])(
+		"preserves non-infinity operand diagnostics beside %s",
+		/** @param sentinel - Positive or negative infinity boundary. */
+		(sentinel) => {
+			for (const expression of [
+				"(t",
+				"1/0",
+				"sqrt(t)",
+				"1".repeat(16385),
+			]) {
+				const diagnostic = verifyConvolutionExpression(expression, "0");
+				expect(["invalid", "unsupported"]).toContain(diagnostic.status);
+				expect(
+					verifyConvolutionExpression(expression, sentinel),
+				).toEqual(diagnostic);
+				expect(
+					verifyConvolutionExpression(sentinel, expression),
+				).toEqual(diagnostic);
+			}
+			for (const expression of ["2", "t+1", "e^{-t}"]) {
+				expect(
+					verifyConvolutionExpression(expression, sentinel).status,
+				).toBe("incorrect");
+				expect(
+					verifyConvolutionExpression(sentinel, expression).status,
+				).toBe("incorrect");
+			}
+			expect(verifyConvolutionExpression(sentinel, sentinel).status).toBe(
+				"correct",
+			);
+			expect(
+				verifyConvolutionExpression(
+					sentinel,
+					sentinel === "inf" ? "-inf" : "inf",
+				).status,
+			).toBe("incorrect");
+		},
+	);
 	/** Specific limits remain actionable rather than being replaced with form guidance. */
 	it("preserves explicit length and canonical resource-limit diagnostics", () => {
 		const oversized = "1".repeat(16385);

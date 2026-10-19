@@ -953,6 +953,54 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		expect(missingSetupSolver.currentStep).toBe(5);
 	});
 
+	/** Undefined and unsupported answers on infinite reflected edges remain validation feedback. */
+	it.each(["x", "h"] as const)(
+		"preserves invalid infinite-edge feedback when moving %s",
+		/** @param moving - Reflected exponential signal. */
+		(moving) => {
+			const problem = generateConvolutionProblem("exp_exp", { seed: 13 });
+			const solver = new ConvolutionStepSolverState(
+				/** Returns the unbounded regression problem. */ () => problem,
+			);
+			solver.currentStep = 3;
+			solver.chooseMovingSignal(moving);
+			solver.checkStep3Formula(
+				option(
+					problem.itsData.step3.formulaBySignal[moving].options,
+					true,
+				),
+			);
+			const sections = problem.itsData.step3.sectionsBySignal[moving];
+			for (const section of sections)
+				solver.step3.edgeInputs[section.id] = {
+					left: section.leftLatex,
+					right: section.rightLatex,
+				};
+			const section = sections[0];
+			if (!section) throw new Error("Expected exponential section.");
+			expect(section.leftLatex).toContain("\\infty");
+			const input = solver.step3.edgeInputs[section.id];
+			if (!input) throw new Error("Expected infinite edge input.");
+			for (const [answer, diagnostic] of [
+				["(t", /bracket/i],
+				["1/0", /zero/i],
+				["sqrt(t)", /polynomial/i],
+			] as const) {
+				input.left = answer;
+				solver.checkStep3Edges();
+				expect(solver.currentFeedbackType).toBe("validation");
+				expect(solver.currentFeedback).toMatch(diagnostic);
+				expect(solver.currentStep).toBe(3);
+				expect(solver.step3.subSteps["transform-edges"]?.isValid).toBe(
+					false,
+				);
+			}
+			input.left = section.leftLatex;
+			solver.checkStep3Edges();
+			expect(solver.currentStep).toBe(4);
+		},
+	);
+
 	/** Resource limits explain failed validation without advancing or completing the tutor. */
 	it("shows specific resource-limit feedback on final rows without advancing", () => {
 		const problem = generateConvolutionProblem("rect_rect", { seed: 13 });

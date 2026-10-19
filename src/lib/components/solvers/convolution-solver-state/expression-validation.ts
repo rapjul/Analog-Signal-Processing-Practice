@@ -42,14 +42,6 @@ export function verifyConvolutionExpression(
 		/** @param value - Parsed scalar. @returns Whether it is an infinity sentinel. */
 		const isInfinity = (value: number): boolean =>
 			value === Infinity || value === -Infinity;
-		if (isInfinity(actualScalar) || isInfinity(targetScalar)) {
-			return {
-				status: Object.is(actualScalar, targetScalar)
-					? "correct"
-					: "incorrect",
-				message: "Use the verified finite or infinite boundary.",
-			};
-		}
 		/**
 		 * Normalizes one bounded expression while preserving its support.
 		 * @param expression - Student or reference expression.
@@ -65,6 +57,17 @@ export function verifyConvolutionExpression(
 				),
 				interval,
 			);
+		if (isInfinity(actualScalar) || isInfinity(targetScalar)) {
+			// Validate finite operands before diagnosing a boundary mismatch.
+			if (!isInfinity(actualScalar)) normalize(student);
+			if (!isInfinity(targetScalar)) normalize(expected);
+			return {
+				status: Object.is(actualScalar, targetScalar)
+					? "correct"
+					: "incorrect",
+				message: "Use the verified finite or infinite boundary.",
+			};
+		}
 		const correct = canonicalTransformsMatch(
 			normalize(student),
 			normalize(expected),
