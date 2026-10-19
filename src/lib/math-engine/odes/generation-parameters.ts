@@ -166,7 +166,55 @@ function resolveLeading(
 }
 
 /**
- * Resolves generator choices without changing seeded draw order or compatibility aliases.
+ * Resolves order and resonance together, preserving compatibility aliases and draws.
+ * @param options - Requested generation options.
+ * @param random - Seeded random source.
+ * @returns Effective order and resonance after applying explicit constraints.
+ */
+function resolveOrderAndResonance(
+	options: OdeGenerationOptions,
+	random: RandomSource,
+): Pick<GenerationParameters, "resolvedOrder" | "resolvedResonance"> {
+	const requestedOrder = options.order ?? "random";
+	let resolvedOrder: OdeOrder =
+		requestedOrder === "random"
+			? randomChoice(random, [1, 2] as const)
+			: requestedOrder;
+	let resolvedResonance = resolveResonance(options, resolvedOrder, random);
+	if (
+		requestedOrder === "random" &&
+		options.rootType !== undefined &&
+		options.rootType !== "random"
+	)
+		resolvedOrder = 2;
+	if (randomResonanceConflicts(options)) resolvedResonance = "none";
+	if (resolvedResonance === "repeated" && requestedOrder === "random")
+		resolvedOrder = 2;
+	else if (resolvedOrder === 1 && resolvedResonance === "repeated")
+		resolvedResonance = "simple";
+	return { resolvedOrder, resolvedResonance };
+}
+
+/**
+ * Determines when a random resonance draw must yield to explicit filters.
+ * @param options - Requested generation options.
+ * @returns Whether the random resonance conflicts with a concrete selection.
+ */
+function randomResonanceConflicts(options: OdeGenerationOptions): boolean {
+	const concreteRoot =
+		options.rootType !== undefined && options.rootType !== "random";
+	const concreteNonExponential =
+		options.forcingType !== undefined &&
+		options.forcingType !== "random" &&
+		options.forcingType !== "exponential";
+	return (
+		options.resonance === "random" &&
+		(concreteRoot || concreteNonExponential)
+	);
+}
+
+/**
+ * Resolves generation choices while retaining seeded draw order and aliases.
  * @param options - Requested generation options.
  * @param random - Seeded random source.
  * @returns Resolved generation parameters.
@@ -175,16 +223,10 @@ export function resolveGenerationParameters(
 	options: OdeGenerationOptions,
 	random: RandomSource,
 ): GenerationParameters {
-	const requestedOrder = options.order ?? "random";
-	let resolvedOrder: OdeOrder =
-		requestedOrder === "random"
-			? randomChoice(random, [1, 2] as const)
-			: requestedOrder;
-	let resolvedResonance = resolveResonance(options, resolvedOrder, random);
-	if (resolvedOrder === 1 && resolvedResonance === "repeated")
-		resolvedResonance = "simple";
-	else if (resolvedResonance === "repeated" && requestedOrder === "random")
-		resolvedOrder = 2;
+	const { resolvedOrder, resolvedResonance } = resolveOrderAndResonance(
+		options,
+		random,
+	);
 	let resolvedRootType = randomRootType(options, random);
 	if (resolvedOrder === 1 || resolvedResonance === "simple")
 		resolvedRootType = "distinct_real";

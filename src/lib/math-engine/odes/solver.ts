@@ -21,6 +21,7 @@ import {
 	distinctInitialConstants,
 	secondInitialConstant,
 } from "./initial-conditions";
+import { finiteOdeValue, normalizeOdeForcing } from "./numerics";
 import {
 	computeScaledHarmonicResponse,
 	computeScaledPolynomialResponse,
@@ -307,6 +308,7 @@ export function computeParticularSolution(
 	forcing: ForcingFunction,
 ): ParticularSolution {
 	const coefficients = forcingCoefficients(ode);
+	forcing = normalizeOdeForcing(forcing);
 	switch (forcing.type) {
 		case "constant":
 		case "exponential":
@@ -447,6 +449,8 @@ export function solveHomogeneousConstants(
 	targetDY0: number,
 ): HomogeneousSolution {
 	const { rootType, roots } = ode;
+	finiteOdeValue(targetY0, "Initial value");
+	finiteOdeValue(targetDY0, "Initial derivative");
 
 	if (ode.order === 1) {
 		const C1 = targetY0;

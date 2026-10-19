@@ -154,8 +154,8 @@ describe("ODE finite numeric limits", () => {
 			expect(solution.eval(0)).toBe(y);
 		}
 	});
-	/** Preserves compensated subnormal numerators and legacy IEEE fallback constants. */
-	it("handles tiny homogeneous products and nonfinite initial conditions", () => {
+	/** Preserves compensated subnormal numerators and rejects invalid initial states. */
+	it("handles tiny homogeneous products and rejects nonfinite initial conditions", () => {
 		const tiny = 2 ** -600;
 		const complex = solveCharacteristicEquation({
 			order: 2,
@@ -178,18 +178,8 @@ describe("ODE finite numeric limits", () => {
 		];
 		for (const ode of families) {
 			for (const y of [Infinity, -Infinity, NaN]) {
-				const { r1, r2 = 0, im = 0 } = ode.roots;
-				const divisor =
-					ode.rootType === "distinct_real"
-						? r2 - r1
-						: ode.rootType === "complex_conjugate"
-							? im
-							: 1;
-				const C2 = (0 - r1 * y) / divisor;
-				const result = solveHomogeneousConstants(ode, y, 0);
-				expect(result.C2).toBe(C2);
-				expect(result.C1).toBe(
-					ode.rootType === "distinct_real" ? y - C2 : y,
+				expect(() => solveHomogeneousConstants(ode, y, 0)).toThrow(
+					"finite",
 				);
 			}
 		}

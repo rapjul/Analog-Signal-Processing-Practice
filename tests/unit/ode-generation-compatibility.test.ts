@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { generateOdeProblem } from "$lib/math-engine/odes/generator";
 
-/** Pins seeded public data separately from intentionally improved callback rounding. */
+/** Pins seeded data, including the deliberately revised constraint contracts. */
 describe("ODE seeded generation compatibility", () => {
 	/** Compares all public data and response decomposition over the original 3,072-case matrix. */
-	it("preserves the reviewed deterministic generation matrix", () => {
+	it("pins deterministic equations and explicit-filter precedence", () => {
 		const hash = createHash("sha256");
 		for (const seed of [0, 3, 17, 991])
 			for (const order of [1, 2, "random"] as const)
@@ -58,8 +58,9 @@ describe("ODE seeded generation compatibility", () => {
 									);
 								}
 							}
+		// Updated for explicit-filter precedence while retaining deterministic seeds.
 		expect(hash.digest("hex")).toBe(
-			"36da58af5d23e878a7c804722ce076df126090529cfcce10656880c8aa7f432e",
+			"c40f959c0c11ad4c465e668cda1eb97309da0fd83d8daf23e236dfa2d88085d3",
 		);
 	});
 });
