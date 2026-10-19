@@ -6,13 +6,15 @@
  * and randomized conceptual mastery question pools.
  */
 
-import { formatSignedLinearTerm } from "../../formatting";
+import { formatExpTerm, formatSignedLinearTerm } from "../../formatting";
 import { toFractionLatex } from "../../fraction";
 import { randomChoice, shuffleWithRandom } from "../../random";
 import type {
 	FirstOrderOdeItsStep7,
 	HomogeneousSolution,
+	OdeDecompositionMode,
 	OdeItsConceptQuestion,
+	OdeItsOption,
 	OdeItsStep7,
 	OdeOrder,
 	OdeProblem,
@@ -20,14 +22,14 @@ import type {
 	SecondOrderOdeItsStep7,
 	SecondOrderRootType,
 } from "../types";
-import { buildResponseChoices } from "./response-options";
+import { uniqueOdeOptions } from "./trial-algebra";
 
 /**
  * Concept questions pool for testing fundamental signal processing theory.
  */
 export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 	{
-		prompt: "Why does the Zero-State response $y_{ZS}(t)$ contain exponential terms matching the natural homogeneous modes?",
+		prompt: "Why can the Zero-State response $y_{ZS}(t)$ contain natural homogeneous modes in addition to the particular solution?",
 		options: [
 			{
 				id: "cq1_opt1",
@@ -50,7 +52,7 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 			},
 		],
 		explanation:
-			"Even with zero initial conditions ($y(0^-)=0, y'(0^-)=0$), the forced particular solution $y_p(t)$ is generally non-zero at $t=0$. Natural homogeneous modes with non-zero arbitrary constants $C_{1,ZS}, C_{2,ZS}$ are required to cancel $y_p(0)$ so that the total zero-state response starts from rest.",
+			"The particular solution or its derivatives may be non-zero initially. Homogeneous modes cancel those offsets to impose a zero initial state. If the particular solution already satisfies every zero initial condition, no homogeneous correction is needed.",
 	},
 	{
 		prompt: "Under what condition does the total response $y(t)$ equal the Zero-State response $y_{ZS}(t)$?",
@@ -90,7 +92,8 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 				id: "cq3_opt2",
 				latex: String.raw`\displaystyle \lim_{t \to \infty} y_{tr}(t) = y_p(t)`,
 				isCorrect: false,
-				feedback: String.raw`Every transient term decays to $0$ as $t \to \infty$, including decaying forced terms such as $t e^{-t}$. Only persistent terms belong to the steady-state response.`,
+				feedback:
+					"Transient means a component that tends to zero. A decaying particular solution can also contribute to the transient response.",
 			},
 			{
 				id: "cq3_opt3",
@@ -99,7 +102,7 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 				feedback: String.raw`Initial conditions dictate the starting values at $t=0$, not the asymptotic limit at $t \to \infty$.`,
 			},
 		],
-		explanation: String.raw`The natural modes decay because all characteristic roots have negative real parts. Decaying exponential inputs also produce decaying particular terms, even with resonance factors $t$ or $t^2$. All these terms belong to $y_{tr}(t)$, whose limit is $0$.`,
+		explanation: String.raw`Transient components tend to zero. Negative-real-part roots make homogeneous modes decay, and a decaying exponential input also produces a decaying particular response, including resonance terms such as $te^{-\alpha t}$.`,
 	},
 	{
 		prompt: String.raw`If the forcing function $x(t)$ is replaced by a different input signal $\tilde{x}(t)$, which response component is guaranteed to remain strictly identical?`,
@@ -140,6 +143,10 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
  * Parameters required to build Step 7 ITS data.
  */
 export interface BuildStep7Params {
+	/** Existing decay classification retained for scaffold API compatibility. */
+	particularDecays?: boolean;
+	/** Teaching split; omitted for compatibility with existing scaffold callers. */
+	decompositionMode?: OdeDecompositionMode;
 	/** Differential equation order (1 or 2) */
 	resolvedOrder: OdeOrder;
 	/** Root classification type */
@@ -156,8 +163,6 @@ export interface BuildStep7Params {
 	homogeneousComplete: HomogeneousSolution;
 	/** Particular solution computation results */
 	particular: ParticularSolution;
-	/** Whether the particular solution decays and therefore belongs to the transient response. */
-	particularDecays: boolean;
 	/** Zero-Input solution LaTeX */
 	ziLatex: string;
 	/** Zero-State solution LaTeX */
@@ -183,38 +188,231 @@ export interface Step7ScaffoldingResult {
 }
 
 /**
- * Builds the Step 7 (Response Decomposition) ITS metadata.
- *
- * @param {BuildStep7Params} params Configuration parameters for Step 7
- * @returns {Step7ScaffoldingResult} Zero-Input system LaTeX and Step 7 ITS metadata
+ * Selects consistent symbols, expressions, and hints for the decomposition.
+ * @param params - Solved responses and teaching mode.
+ * @returns Shared interpretation used by both response-choice sets.
  */
-export function buildStep7Data(
-	params: BuildStep7Params,
-): Step7ScaffoldingResult {
+function decompositionPresentation(params: BuildStep7Params) {
+	const { homogeneousComplete, particular, y_tr_latex, y_ss_latex } = params;
+
+	const decompositionMode =
+		params.decompositionMode ?? "transient_steady_state";
+	const isAlgebraic = decompositionMode === "homogeneous_particular";
+	const firstSymbol = isAlgebraic ? "y_h" : "y_{tr}";
+	const secondSymbol = isAlgebraic ? "y_p" : "y_{ss}";
+	const transientParticularScale =
+		!isAlgebraic && params.particularDecays ? 1 : 0;
+	const steadyParticularScale = 1 - transientParticularScale;
+	const decompositionHints = isAlgebraic
+		? [
+				"The homogeneous contribution satisfies the ODE with the forcing set to zero; its constants match the total initial conditions after subtracting particular offsets.",
+				"The particular solution matches the input. For these stable systems with decaying exponential inputs, both contributions decay: the entire response is transient and $y_{ss}(t)=0$.",
+				`$y_h(t) = ${homogeneousComplete.latex}$ and $y_p(t) = ${particular.latex}$.`,
+			]
+		: [
+				"Transient response tends to zero as time increases.",
+				"For this stable constant or sinusoidal input, the selected particular solution is the persistent steady-state response.",
+				`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
+			];
+	return {
+		decompositionMode,
+		isAlgebraic,
+		firstSymbol,
+		secondSymbol,
+		transientParticularScale,
+		steadyParticularScale,
+		decompositionHints,
+		firstResponse: isAlgebraic ? homogeneousComplete.latex : y_tr_latex,
+		secondResponse: isAlgebraic ? particular.latex : y_ss_latex,
+	};
+}
+
+/**
+ * Builds distinct choices from the selected response bases and interpretation.
+ * @param params - Solved responses and teaching mode.
+ * @returns Mathematical choices and shared interpretation.
+ */
+function buildResponseChoices(params: BuildStep7Params) {
 	const {
 		resolvedOrder,
 		resolvedRootType,
 		roots,
-		initialConditions,
 		homogeneousZI,
 		homogeneousZS,
+		homogeneousComplete,
+		particular,
 		ziLatex,
 		zsLatex,
-		y_tr_latex,
-		y_ss_latex,
-		random,
 	} = params;
+	const {
+		decompositionMode,
+		isAlgebraic,
+		firstSymbol,
+		secondSymbol,
+		transientParticularScale,
+		steadyParticularScale,
+		decompositionHints,
+		firstResponse,
+		secondResponse,
+	} = decompositionPresentation(params);
+	/** Encodes a response in the independent homogeneous and particular bases.
+	 * @param homogeneous - Homogeneous constants, if present.
+	 * @param particularScale - Multiplier of the selected particular solution.
+	 */
+	const signature = (
+		homogeneous?: HomogeneousSolution,
+		particularScale = 0,
+	): Record<string, number> => ({
+		C1: homogeneous?.C1 ?? 0,
+		C2: homogeneous?.C2 ?? 0,
+		Kp: particularScale * (particular.coeffs.Kp ?? 0),
+		A: particularScale * (particular.coeffs.A ?? 0),
+		B: particularScale * (particular.coeffs.B ?? 0),
+	});
+	const firstBasis = `${formatExpTerm(roots.r1)}${resolvedOrder === 2 && resolvedRootType === "complex_conjugate" ? ` \\cos(${roots.im ?? 1}t)` : ""}`;
+	// The legacy array names retain compatibility; the mode defines their meaning.
+	const transientOptions: OdeItsOption[] = [
+		{
+			id: "tr_correct",
+			latex: `${firstSymbol}(t) = ${firstResponse}`,
+			isCorrect: true,
+			coefficients: signature(
+				homogeneousComplete,
+				transientParticularScale,
+			),
+		},
+		{
+			id: "tr_yp",
+			latex: `${firstSymbol}(t) = ${particular.latex}`,
+			isCorrect: false,
+			coefficients: signature(undefined, 1),
+			feedback: isAlgebraic
+				? "This is the particular solution, not the homogeneous contribution."
+				: "For this stable constant or sinusoidal input, the selected particular solution is the steady-state component.",
+		},
+		{
+			id: "tr_zi",
+			latex: `${firstSymbol}(t) = ${ziLatex}`,
+			isCorrect: false,
+			coefficients: signature(homogeneousZI),
+			feedback:
+				"Zero-input constants satisfy the original initial state; the total homogeneous constants must also account for the particular-solution offsets.",
+		},
+	];
 
-	const { transientChoices, steadyStateChoices } =
-		buildResponseChoices(params);
+	const steadyStateOptions: OdeItsOption[] = [
+		{
+			id: "ss_correct",
+			latex: `${secondSymbol}(t) = ${secondResponse}`,
+			isCorrect: true,
+			coefficients: signature(undefined, steadyParticularScale),
+		},
+		{
+			id: "ss_yh",
+			latex: `${secondSymbol}(t) = ${homogeneousComplete.latex}`,
+			isCorrect: false,
+			coefficients: signature(homogeneousComplete),
+			feedback: isAlgebraic
+				? "This is the homogeneous solution, not the particular solution."
+				: "For this stable system, homogeneous modes decay and are transient.",
+		},
+		{
+			id: "ss_zs",
+			latex: `${secondSymbol}(t) = ${zsLatex}`,
+			isCorrect: false,
+			coefficients: signature(homogeneousZS, 1),
+			feedback:
+				"The zero-state response includes any homogeneous correction needed to satisfy zero initial conditions, in addition to the particular solution.",
+		},
+	];
+	// A deliberately shifted coefficient supplies a distractor even when all responses vanish.
+	transientOptions.push({
+		id: "tr_offset",
+		latex: `${firstSymbol}(t) = (${firstResponse}) + ${firstBasis}`,
+		isCorrect: false,
+		coefficients: {
+			...signature(homogeneousComplete, transientParticularScale),
+			C1: homogeneousComplete.C1 + 1,
+		},
+		feedback:
+			"This adds an extra natural mode and changes the required initial conditions.",
+	});
+	steadyStateOptions.push({
+		id: "ss_offset",
+		latex: `${secondSymbol}(t) = (${secondResponse}) + ${firstBasis}`,
+		isCorrect: false,
+		coefficients: {
+			...signature(undefined, steadyParticularScale),
+			C1: 1,
+		},
+		feedback:
+			"This includes an extra homogeneous mode rather than only the requested particular or steady-state component.",
+	});
+	return {
+		decompositionMode,
+		isAlgebraic,
+		decompositionHints,
+		transientOptions,
+		steadyStateOptions,
+	};
+}
 
+/**
+ * Selects an unambiguous concept question and tailors its initial-state wording.
+ * @param params - Differential order, initial state, and seeded source.
+ * @param isAlgebraic - Whether the particular contribution decays.
+ * @returns Selected and shuffled conceptual question.
+ */
+function selectConceptQuestion(
+	params: BuildStep7Params,
+	isAlgebraic: boolean,
+): OdeItsConceptQuestion {
+	const { random, initialConditions, resolvedOrder } = params;
 	// Pick a concept question
-	const selectedConceptBase = randomChoice(random, CONCEPT_QUESTIONS_POOL);
+	// Keep the limit question's distractors distinct for decaying inputs and zero states.
+	const selectedConceptBase = randomChoice(
+		random,
+		isAlgebraic || initialConditions.y0 === 0
+			? CONCEPT_QUESTIONS_POOL.filter(
+					/** Excludes an ambiguous limit distractor. @param question - Candidate question. */ (
+						question,
+					) => question !== CONCEPT_QUESTIONS_POOL[2],
+				)
+			: CONCEPT_QUESTIONS_POOL,
+	);
 	const selectedConceptQ = {
 		...selectedConceptBase,
-		options: shuffleWithRandom(selectedConceptBase.options, random),
+		options: shuffleWithRandom(
+			selectedConceptBase.options.map(
+				/** Tailors the initial state to differential order. @param option - Concept choice. */ (
+					option,
+				) =>
+					resolvedOrder === 1 && option.id === "cq2_opt1"
+						? {
+								...option,
+								latex: String.raw`\text{When the initial condition is zero: } y(0^-)=0`,
+							}
+						: option,
+			),
+			random,
+		),
+		explanation:
+			resolvedOrder === 1 &&
+			selectedConceptBase === CONCEPT_QUESTIONS_POOL[1]
+				? "The zero-input response depends linearly on the initial value. When $y(0^-)=0$, $y_{ZI}(t)=0$, so the total response equals the zero-state response."
+				: selectedConceptBase.explanation,
 	};
+	return selectedConceptQ;
+}
 
+/**
+ * Renders the initial-condition equations for the zero-input homogeneous modes.
+ * @param params - Root family and original initial state.
+ * @returns Zero-input initial-condition system in LaTeX.
+ */
+function zeroInputSystem(params: BuildStep7Params): string {
+	const { resolvedOrder, resolvedRootType, roots, initialConditions } =
+		params;
 	// Formulate Zero-Input initial condition system LaTeX matching y(0-) and y'(0-)
 	let ziSystemLatex = "";
 	if (resolvedOrder === 1) {
@@ -242,10 +440,40 @@ export function buildStep7Data(
 		const eq2 = `${term1} ${term2} = ${toFractionLatex(initialConditions.dy0 ?? 0)}`;
 		ziSystemLatex = String.raw`\begin{cases} ${eq1} \\ ${eq2} \end{cases}`;
 	}
+	return ziSystemLatex;
+}
 
+/**
+ * Builds the Step 7 response-decomposition metadata in seeded draw order.
+ * @param params - Solved responses, initial state, and teaching configuration.
+ * @returns Zero-input system, selected concept, and order-specific metadata.
+ */
+export function buildStep7Data(
+	params: BuildStep7Params,
+): Step7ScaffoldingResult {
+	const {
+		resolvedOrder,
+		homogeneousZI,
+		homogeneousZS,
+		ziLatex,
+		zsLatex,
+		y_tr_latex,
+		y_ss_latex,
+		random,
+	} = params;
+	const {
+		decompositionMode,
+		isAlgebraic,
+		decompositionHints,
+		transientOptions,
+		steadyStateOptions,
+	} = buildResponseChoices(params);
+	const selectedConceptQ = selectConceptQuestion(params, isAlgebraic);
+	const ziSystemLatex = zeroInputSystem(params);
 	let step7Data: OdeItsStep7;
 	if (resolvedOrder === 1) {
 		const step7FirstOrder: FirstOrderOdeItsStep7 = {
+			decompositionMode,
 			expectedZI: ziLatex,
 			expectedZS: zsLatex,
 			ziConstants: {
@@ -256,8 +484,14 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientChoices, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
+			transientOptions: shuffleWithRandom(
+				uniqueOdeOptions(transientOptions).slice(0, 3),
+				random,
+			),
+			steadyStateOptions: shuffleWithRandom(
+				uniqueOdeOptions(steadyStateOptions).slice(0, 3),
+				random,
+			),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -271,11 +505,7 @@ export function buildStep7Data(
 					"Zero-State ($y_{ZS}$) is driven by $x(t)$ with $y(0^-)=0$.",
 					`$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$ and $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$.`,
 				],
-				tr_ss: [
-					String.raw`Transient response $y_{tr}(t)$ includes all terms that decay to zero, including decaying exponential particular solutions.`,
-					String.raw`Steady-state response $y_{ss}(t)$ contains only persistent terms; it is zero when the entire response decays.`,
-					`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
-				],
+				tr_ss: [...decompositionHints],
 				concept: [
 					"Think about system linearity, stability, and the physical definition of each response component.",
 					"Review how initial conditions affect Zero-Input vs Zero-State responses.",
@@ -286,6 +516,7 @@ export function buildStep7Data(
 		step7Data = step7FirstOrder;
 	} else {
 		const step7SecondOrder: SecondOrderOdeItsStep7 = {
+			decompositionMode,
 			expectedZI: ziLatex,
 			expectedZS: zsLatex,
 			ziConstants: {
@@ -298,8 +529,14 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientChoices, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
+			transientOptions: shuffleWithRandom(
+				uniqueOdeOptions(transientOptions).slice(0, 3),
+				random,
+			),
+			steadyStateOptions: shuffleWithRandom(
+				uniqueOdeOptions(steadyStateOptions).slice(0, 3),
+				random,
+			),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -313,11 +550,7 @@ export function buildStep7Data(
 					"Zero-State ($y_{ZS}$) is driven by $x(t)$ with $y(0^-)=y'(0^-)=0$.",
 					`$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$, $C_{2,ZI}=${toFractionLatex(homogeneousZI.C2 ?? 0)}$, $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$, and $C_{2,ZS}=${toFractionLatex(homogeneousZS.C2 ?? 0)}$.`,
 				],
-				tr_ss: [
-					String.raw`Transient response $y_{tr}(t)$ includes all terms that decay to zero, including decaying exponential particular solutions.`,
-					String.raw`Steady-state response $y_{ss}(t)$ contains only persistent terms; it is zero when the entire response decays.`,
-					`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
-				],
+				tr_ss: [...decompositionHints],
 				concept: [
 					"Think about system linearity, stability, and the physical definition of each response component.",
 					"Review how initial conditions affect Zero-Input vs Zero-State responses.",

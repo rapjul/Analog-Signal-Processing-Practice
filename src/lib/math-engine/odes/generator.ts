@@ -182,6 +182,10 @@ export function generateOdeProblem(
 	});
 
 	const { step7Data } = buildStep7Data({
+		decompositionMode:
+			forcing.type === "exponential"
+				? "homogeneous_particular"
+				: "transient_steady_state",
 		resolvedOrder,
 		resolvedRootType,
 		roots,

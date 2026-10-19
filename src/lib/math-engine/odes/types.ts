@@ -153,7 +153,10 @@ export interface HomogeneousSolution {
 }
 
 /** Evaluation option for ITS multiple-choice steps (alias to shared ItsOption) */
-export type OdeItsOption = ItsOption;
+export type OdeItsOption = ItsOption & {
+	/** Independent mathematical coefficients for generated numeric choices. */
+	coefficients?: Readonly<Record<string, number>>;
+};
 
 /** ITS Step 1: Characteristic Equation */
 export interface OdeItsStep1 extends BaseItsStep {
@@ -280,6 +283,8 @@ export interface FirstOrderOdeItsStep5 extends BaseItsStep {
 	secondDerivLatex?: undefined;
 	/** Correct system equations LaTeX string */
 	systemLatex?: string | undefined;
+	/** Trial and derivatives substituted into the original coefficient-weighted ODE. */
+	substitutionLatex?: string | undefined;
 	/** Sub-step-specific progressive hints */
 	subStepHints?: Record<string, string[]> | undefined;
 }
@@ -308,6 +313,8 @@ export interface SecondOrderOdeItsStep5 extends BaseItsStep {
 	secondDerivLatex?: string | undefined;
 	/** Correct system equations LaTeX string */
 	systemLatex?: string | undefined;
+	/** Trial and derivatives substituted into the original coefficient-weighted ODE. */
+	substitutionLatex?: string | undefined;
 	/** Sub-step-specific progressive hints */
 	subStepHints?: Record<string, string[]> | undefined;
 }
@@ -370,6 +377,8 @@ export interface OdeItsConceptQuestion {
 
 /** First-Order ITS Step 7: Response Decomposition & Conceptual Mastery */
 export interface FirstOrderOdeItsStep7 extends BaseItsStep {
+	/** Determines whether Part B identifies algebraic or long-term response components. */
+	decompositionMode: OdeDecompositionMode;
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
@@ -396,6 +405,8 @@ export interface FirstOrderOdeItsStep7 extends BaseItsStep {
 
 /** Second-Order ITS Step 7: Response Decomposition & Conceptual Mastery */
 export interface SecondOrderOdeItsStep7 extends BaseItsStep {
+	/** Determines whether Part B identifies algebraic or long-term response components. */
+	decompositionMode: OdeDecompositionMode;
 	/** Zero-input LaTeX expression */
 	expectedZI: string;
 	/** Zero-state LaTeX expression */
@@ -422,6 +433,10 @@ export interface SecondOrderOdeItsStep7 extends BaseItsStep {
 
 /** ITS Step 7: Response Decomposition */
 export type OdeItsStep7 = FirstOrderOdeItsStep7 | SecondOrderOdeItsStep7;
+
+/** The two distinct response decompositions taught in Part B. */
+export type OdeDecompositionMode =
+	"homogeneous_particular" | "transient_steady_state";
 
 /** Complete ITS problem data container for first-order ODE problem */
 export interface FirstOrderOdeItsData {

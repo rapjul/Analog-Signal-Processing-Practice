@@ -86,8 +86,9 @@ export function validateStep6Constants(
 	if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 		return {
 			kind: "validation",
-			message:
-				"Please enter numeric values for both constants: $C_1$ and $C_2$.",
+			message: isFirstOrder
+				? "Please enter a numeric value for $C_1$."
+				: "Please enter numeric values for both constants: $C_1$ and $C_2$.",
 		};
 	}
 
@@ -100,7 +101,8 @@ export function validateStep6Constants(
 
 	return {
 		kind: "incorrect",
-		message:
-			"Incorrect constants $C_1$, $C_2$. Solve the linear system matching $y_h(0^+)$ and $y_h'(0^+)$.",
+		message: isFirstOrder
+			? "Incorrect constant $C_1$. Use $C_1=y(0^+)-y_p(0^+)$."
+			: "Incorrect constants $C_1$, $C_2$. Solve the linear system matching $y_h(0^+)$ and $y_h'(0^+)$.",
 	};
 }

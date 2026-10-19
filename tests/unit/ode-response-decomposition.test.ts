@@ -95,10 +95,14 @@ describe("ODE transient and steady-state decomposition", () => {
 							(option) => option.isCorrect,
 						)!;
 					expect(correctTransient.latex).toBe(
-						`y_{tr}(t) = ${problem.solutions.y_tr_latex}`,
+						decays
+							? `y_h(t) = ${problem.solutions.y_h_latex}`
+							: `y_{tr}(t) = ${problem.solutions.y_tr_latex}`,
 					);
 					expect(correctSteady.latex).toBe(
-						`y_{ss}(t) = ${problem.solutions.y_ss_latex}`,
+						decays
+							? `y_p(t) = ${problem.solutions.y_p_latex}`
+							: `y_{ss}(t) = ${problem.solutions.y_ss_latex}`,
 					);
 				}
 	});
