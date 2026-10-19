@@ -349,6 +349,7 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 
 			// Test Step 7 distinct real with omitted r2 and dy0
 			const s7Distinct = buildStep7Data({
+				particularDecays: false,
 				resolvedOrder: 2,
 				resolvedRootType: "distinct_real",
 				roots: { r1: -2 },
@@ -374,6 +375,7 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 
 			// Test Step 7 repeated real with omitted dy0
 			const s7Repeated = buildStep7Data({
+				particularDecays: false,
 				resolvedOrder: 2,
 				resolvedRootType: "repeated_real",
 				roots: { r1: -2 },
@@ -399,6 +401,7 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 
 			// Test Step 7 complex conjugate with omitted im and dy0
 			const s7Complex = buildStep7Data({
+				particularDecays: false,
 				resolvedOrder: 2,
 				resolvedRootType: "complex_conjugate",
 				roots: { r1: -1 },

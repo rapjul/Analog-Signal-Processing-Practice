@@ -4,7 +4,7 @@
 	 *
 	 * Step 7 Part 7B: Transient ($y_{tr}$) & Steady-State ($y_{ss}$) Identification.
 	 *
-	 * Guides students through classifying natural decaying modes vs persistent forced responses.
+	 * Guides students through classifying all decaying terms and persistent responses.
 	 */
 
 	import MathText from "$lib/components/math/MathText.svelte";
@@ -49,7 +49,7 @@
 
 	<p class="step-prompt">
 		<MathText
-			text={String.raw`Identify which part is the Transient Response $y_{tr}(t)$ (natural modes decaying as $t \to \infty$) and which is the Steady-State Response $y_{ss}(t)$ (forced component persisting as $t \to \infty$):`}
+			text={String.raw`Identify the Transient Response $y_{tr}(t)$ (all terms decaying as $t \to \infty$, including decaying forced terms) and the Steady-State Response $y_{ss}(t)$ (persistent terms, or zero if the entire response decays):`}
 		/>
 	</p>
 

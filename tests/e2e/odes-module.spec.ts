@@ -9,6 +9,106 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("LCC ODEs Practice Module", () => {
+	/** Verifies a decaying forced response is accepted as transient with zero steady-state. @param fixtures - Browser fixtures. */
+	test("grades decaying resonance as transient with zero steady-state @dev-harness", async ({
+		page,
+	}) => {
+		await page.goto(
+			"/odes?order=1&forcing=exponential&resonance=simple&seed=3",
+		);
+		await expect
+			.poll(
+				/** Waits for the hydrated solver harness. */
+				() =>
+					page.evaluate(
+						/** Reads the harness registration. */
+						() => typeof window.__signalLabDev?.goToVisualState,
+					),
+			)
+			.toBe("function");
+		await page.evaluate(
+			/** Opens the actual response-classification controls. */
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"ode.step-07.transient-steady-state",
+				),
+		);
+		const active = page.locator(".step-card.active");
+		const transient = active.locator(".classification-group").first();
+		const steady = active.locator(".classification-group").last();
+		await expect(transient.locator(".mcq-card annotation")).toHaveCount(3);
+		await expect(steady.locator(".mcq-card annotation")).toHaveCount(3);
+		const transientFormulas = await transient
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		const steadyFormulas = await steady
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		expect(new Set(transientFormulas).size).toBe(3);
+		expect(new Set(steadyFormulas).size).toBe(3);
+		const complete = transientFormulas.findIndex(
+			/** @param formula - Candidate transient equation. */
+			(formula) => formula.includes("4 t e^{-t}"),
+		);
+		expect(complete).toBeGreaterThanOrEqual(0);
+		await transient.locator(".mcq-card").nth(complete).click();
+		const zeroSteady = steadyFormulas.indexOf("y_{ss}(t) = 0");
+		expect(zeroSteady).toBeGreaterThanOrEqual(0);
+		await steady.locator(".mcq-card").nth(zeroSteady).click();
+		await active
+			.getByRole("button", { name: "Verify Transient & Steady-State" })
+			.click();
+		await expect(
+			active.getByText("Targeted Conceptual Mastery Check"),
+		).toBeVisible();
+	});
+
+	/** Verifies unit-frequency derivative choices and their visible grading. @param fixtures - Browser fixtures. */
+	test("grades distinct unit-frequency derivatives correctly @dev-harness", async ({
+		page,
+	}) => {
+		await page.goto("/odes?order=2&forcing=sinusoid&resonance=none&seed=1");
+		await expect
+			.poll(
+				/** Reads harness availability after hydration. */
+				() =>
+					page.evaluate(
+						/** Checks the registered solver harness. */
+						() => typeof window.__signalLabDev?.goToVisualState,
+					),
+			)
+			.toBe("function");
+		await page.evaluate(
+			/** Opens Step 5 through the existing development harness. */
+			() =>
+				window.__signalLabDev?.goToVisualState(
+					"ode.step-05.first-derivative",
+				),
+		);
+		const active = page.locator(".step-card.active");
+		const first = active.locator(".subpart-block").first();
+		const choices = first.locator(".mcq-card");
+		await expect(choices).toHaveCount(4);
+		const formulas = await choices.locator("annotation").allTextContents();
+		const correct = formulas.indexOf(
+			String.raw`y_p'(t) = -1A \sin(1t) + 1B \cos(1t)`,
+		);
+		expect(correct).toBeGreaterThanOrEqual(0);
+		await choices.nth(correct).click();
+		await expect(first).toHaveClass(/subpart-done/);
+		const second = active.locator(".subpart-block").nth(1);
+		const secondFormulas = await second
+			.locator(".mcq-card annotation")
+			.allTextContents();
+		expect(new Set(secondFormulas).size).toBe(4);
+		const secondCorrect = secondFormulas.indexOf(
+			String.raw`y_p''(t) = -1A \cos(1t) - 1B \sin(1t)`,
+		);
+		expect(secondCorrect).toBeGreaterThanOrEqual(0);
+		await second.locator(".mcq-card").nth(secondCorrect).click();
+		await expect(second).toHaveClass(/subpart-done/);
+	});
+
 	test.beforeEach(async ({ page }) => {
 		await page.goto(
 			"/odes?order=2&rootType=distinct_real&forcing=constant&leading=monic&resonance=none&seed=210",
@@ -19,7 +119,7 @@ test.describe("LCC ODEs Practice Module", () => {
 	/**
 	 * Verifies initial rendering of the ODEs module page.
 	 */
-	test("renders header, deterministic drill filters, and active practice card with difficulty badge", async ({
+	test("renders header, deterministic drill filters, and order badges without answer spoilers", async ({
 		page,
 	}) => {
 		await expect(page).toHaveTitle(
@@ -43,9 +143,9 @@ test.describe("LCC ODEs Practice Module", () => {
 			/Practice Problem: 2nd-Order LCC ODE/i,
 		);
 
-		// Verify difficulty badges and category badge
+		// The category and order badges preserve the existing anti-spoiler header.
 		const badges = practiceCard.locator(".badges-row .badge");
-		await expect(badges).toHaveCount(3);
+		await expect(badges).toHaveText(["LCC ODE Problem", "2nd-Order"]);
 		await expect(practiceCard.locator(".badge.category")).toHaveCount(0);
 	});
 

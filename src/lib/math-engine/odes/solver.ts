@@ -12,8 +12,25 @@ import {
 	formatLinearCombination,
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
-} from "../formatting";
-import { toFractionLatex } from "../fraction";
+} from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import { exactProductSum } from "./exact-arithmetic";
+import { formatHarmonicScalar } from "./formatting";
+import { evaluateHarmonic } from "./harmonic-evaluation";
+import {
+	distinctInitialConstants,
+	secondInitialConstant,
+} from "./initial-conditions";
+import {
+	computeScaledHarmonicResponse,
+	computeScaledPolynomialResponse,
+	divideByProduct,
+	evaluateScaledExponential,
+	evaluateScaledRepeatedMode,
+	evaluateScaledResonantHarmonic,
+	restoreBinaryScale,
+} from "./scaled-arithmetic";
+import { solveScaledQuadratic } from "./scaled-roots";
 import type {
 	CharacteristicEquationCoefficients,
 	FirstOrderCharacteristicCoefficients,
@@ -26,10 +43,118 @@ import type {
 	SecondOrderOdeParams,
 } from "./types";
 
+/** Equation coefficients expressed in a stable working scale. */
+interface NormalizedCoefficients {
+	/** Signed multiplier removed from both the equation and its forcing. */
+	scale: number;
+	/** Working second derivative coefficient. */
+	a2: number;
+	/** Working first derivative coefficient. */
+	a1: number;
+	/** Working constant coefficient. */
+	a0: number;
+}
+
+/** Quadratic discriminant and term magnitudes expressed in a safe common scale. */
+interface ScaledDiscriminant {
+	/** Difference between scaled squared-linear and constant terms. */
+	value: number;
+	/** Binary exponent restoring the square root without an overflowing multiplier. */
+	scaleExponent: number;
+}
+
+/**
+ * Computes the original exact discriminant before converting its magnitude to monic scale.
+ * @param a2 - Original quadratic coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ * @returns Bounded discriminant and its square-root scale.
+ */
+function scaledDiscriminant(
+	a2: number,
+	a1: number,
+	a0: number,
+): ScaledDiscriminant {
+	const [mantissa, originalExponent] = exactProductSum([
+		[a1, a1],
+		[-4, a2, a0],
+	]);
+	const [leading, leadingExponent] = exactProductSum([[a2]]);
+	if (mantissa === 0) return { value: 0, scaleExponent: 0 };
+	const quotient = mantissa / (leading * leading);
+	const adjustment = Math.floor(Math.log2(Math.abs(quotient)));
+	const exponent = originalExponent - 2 * leadingExponent + adjustment;
+	const halfExponent = Math.floor(exponent / 2);
+	return {
+		value:
+			(quotient / 2 ** adjustment) * 2 ** (exponent - 2 * halfExponent),
+		scaleExponent: halfExponent,
+	};
+}
+
+/**
+ * Removes a common equation scale before testing roots or resonance.
+ * @param coefficients - Original first- or second-order equation.
+ * @returns Monic coefficients and the signed scale removed from the forcing.
+ */
+function normalizeCoefficients(
+	coefficients: CharacteristicEquationCoefficients,
+): NormalizedCoefficients {
+	const { order, a1, a0 } = coefficients;
+	const a2 = order === 2 ? (coefficients.a2 ?? 1) : 0;
+	validateFiniteCoefficients(a2, a1, a0);
+	const scale = order === 1 ? a1 : a2;
+	if (scale === 0)
+		throw new Error(
+			order === 1
+				? "First-order leading coefficient a1 must be non-zero"
+				: "Second-order leading coefficient a2 must be non-zero",
+		);
+	const normalized = {
+		scale,
+		a2: order === 2 ? 1 : 0,
+		a1: a1 / scale,
+		a0: a0 / scale,
+	};
+	if (order === 1 && !Number.isFinite(normalized.a0))
+		throw new Error(
+			"ODE coefficient ratios exceed the finite numeric range",
+		);
+	return normalized;
+}
+
+/**
+ * Rejects nonfinite supplied coefficients before exact arithmetic is attempted.
+ * @param a2 - Original quadratic coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ */
+function validateFiniteCoefficients(a2: number, a1: number, a0: number): void {
+	if (![a2, a1, a0].every(Number.isFinite))
+		throw new Error("ODE coefficients must be finite");
+}
+
+/**
+ * Retains original coefficients for exact classification before any monic division.
+ * @param ode - Original finite equation coefficients.
+ * @returns Validated original coefficients with unit removed scale.
+ */
+function forcingCoefficients(ode: OdeParams): NormalizedCoefficients {
+	normalizeCoefficients(ode);
+	return {
+		scale: 1,
+		a2: ode.order === 2 ? ode.a2 : 0,
+		a1: ode.a1,
+		a0: ode.a0,
+	};
+}
+
 /**
  * Solves first- or second-order characteristic equations. The two-number form
  * retains the historical monic quadratic API; the object form supports
  * first-order and non-monic equations without positional ambiguity.
+ * Multiplicity uses the supplied binary64 coefficients exactly; nearby roots
+ * are not collapsed by an assumed decimal-input rounding tolerance.
  *
  * @param {number | CharacteristicEquationCoefficients} a1OrCoefficients Linear coefficient a1 or coefficient configuration object
  * @param {number} [a0Argument] Constant coefficient a0 (when using numeric overload)
@@ -63,30 +188,53 @@ export function solveCharacteristicEquation(
 			: a1OrCoefficients;
 	const { order, a1, a0 } = coefficients;
 	const a2 = order === 2 ? (coefficients.a2 ?? 1) : 0;
+	const normalized = normalizeCoefficients(coefficients);
 
 	if (order === 1) {
-		if (Math.abs(a1) < 1e-12) {
-			throw new Error(
-				"First-order leading coefficient a1 must be non-zero",
-			);
-		}
 		return {
 			order: 1,
 			a2: 0,
 			a1,
 			a0,
-			roots: { r1: -a0 / a1 },
+			roots: { r1: -normalized.a0 },
 			rootType: "single_real",
 		};
 	}
 
-	if (Math.abs(a2) < 1e-12) {
-		throw new Error("Second-order leading coefficient a2 must be non-zero");
-	}
+	return solveQuadratic(a2, a1, a0, normalized.a1);
+}
 
-	const disc = a1 * a1 - 4 * a2 * a0;
-	if (Math.abs(disc) < 1e-9) {
-		const r = -a1 / (2 * a2);
+/**
+ * Classifies quadratic roots, retaining ordinary arithmetic where its intermediates are safe.
+ * @param a2 - Original nonzero leading coefficient.
+ * @param a1 - Original linear coefficient.
+ * @param a0 - Original constant coefficient.
+ * @param b - Monic linear coefficient, possibly overflowing.
+ * @returns Quadratic roots with original supplied coefficients.
+ */
+function solveQuadratic(
+	a2: number,
+	a1: number,
+	a0: number,
+	b: number,
+): SecondOrderOdeParams {
+	if (!Number.isFinite(b)) return solveScaledQuadratic(a2, a1, a0);
+	// Factor s(a2*s + a1) directly before a subnormal square-root scale can vanish.
+	if (a0 === 0 && a1 !== 0) {
+		const root = -b;
+		const zero = a0 / (a2 * (b >= 0 ? -1 : 1));
+		return {
+			order: 2,
+			a2,
+			a1,
+			a0,
+			rootType: "distinct_real",
+			roots: b >= 0 ? { r1: zero, r2: root } : { r1: root, r2: zero },
+		};
+	}
+	const { value: disc, scaleExponent } = scaledDiscriminant(a2, a1, a0);
+	if (disc === 0) {
+		const r = -b / 2;
 		return {
 			order: 2,
 			a2,
@@ -96,20 +244,20 @@ export function solveCharacteristicEquation(
 			rootType: "repeated_real",
 		};
 	} else if (disc > 0) {
-		const sqrtDisc = Math.sqrt(disc);
-		const r1 = (-a1 + sqrtDisc) / (2 * a2);
-		const r2 = (-a1 - sqrtDisc) / (2 * a2);
+		const magnitude = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
+		if (!Number.isFinite(magnitude + Math.abs(b)))
+			return solveScaledQuadratic(a2, a1, a0);
 		return {
 			order: 2,
 			a2,
 			a1,
 			a0,
-			roots: { r1, r2 },
+			roots: distinctQuadraticRoots(a2, a0, b, disc, scaleExponent),
 			rootType: "distinct_real",
 		};
 	} else {
-		const sigma = -a1 / (2 * a2);
-		const omega_d = Math.sqrt(-disc) / (2 * Math.abs(a2));
+		const sigma = -b / 2;
+		const omega_d = restoreBinaryScale(Math.sqrt(-disc), scaleExponent - 1);
 		return {
 			order: 2,
 			a2,
@@ -122,7 +270,33 @@ export function solveCharacteristicEquation(
 }
 
 /**
+ * Recovers distinct real roots without subtracting near-equal values or losing half-products.
+ * @param a2 - Original nonzero leading coefficient.
+ * @param a0 - Original constant coefficient.
+ * @param b - Finite normalized linear coefficient.
+ * @param disc - Positive bounded discriminant mantissa.
+ * @param scaleExponent - Binary exponent restoring its square root.
+ * @returns Ordered real roots, with the smaller root recovered from their product.
+ */
+function distinctQuadraticRoots(
+	a2: number,
+	a0: number,
+	b: number,
+	disc: number,
+	scaleExponent: number,
+): { r1: number; r2: number } {
+	const sqrtDisc = restoreBinaryScale(Math.sqrt(disc), scaleExponent);
+	const signedRoot = b >= 0 ? sqrtDisc : -sqrtDisc;
+	// The caller guarantees a finite sum; add before halving to preserve subnormals.
+	const q = -0.5 * (b + signedRoot);
+	const smaller = q === 0 ? q : divideByProduct(a0, a2, q);
+	return { r1: b >= 0 ? smaller : q, r2: b >= 0 ? q : smaller };
+}
+
+/**
  * Computes the particular solution y_p(t) for an ODE: a2*y'' + a1*y' + a0*y = x(t).
+ * Resonance requires exact cancellation of the supplied binary64 coefficients
+ * and forcing exponent or frequency, rather than approximate decimal intent.
  *
  * @param {OdeParams} ode ODE parameters
  * @param {ForcingFunction} forcing Forcing function parameters
@@ -132,184 +306,131 @@ export function computeParticularSolution(
 	ode: OdeParams,
 	forcing: ForcingFunction,
 ): ParticularSolution {
-	const { order, a2, a1, a0 } = ode;
-	const polynomialAt = (s: number) =>
-		order === 1 ? a1 * s + a0 : a2 * s * s + a1 * s + a0;
-	const polynomialDerivativeAt = (s: number) =>
-		order === 1 ? a1 : 2 * a2 * s + a1;
-	const rootMultiplicityAt = (s: number): 0 | 1 | 2 => {
-		if (Math.abs(polynomialAt(s)) >= 1e-8) return 0;
-		if (order === 2 && Math.abs(polynomialDerivativeAt(s)) < 1e-8) return 2;
-		return 1;
-	};
-
+	const coefficients = forcingCoefficients(ode);
 	switch (forcing.type) {
-		case "constant": {
-			const K = forcing.K;
-			const multiplicity = rootMultiplicityAt(0);
-			const Kp =
-				multiplicity === 0
-					? K / a0
-					: multiplicity === 1
-						? K / polynomialDerivativeAt(0)
-						: K / (2 * a2);
-			const power = multiplicity;
-			return {
-				formDescription:
-					power === 0
-						? "y_p(t) = K_p"
-						: power === 1
-							? "y_p(t) = K_p t"
-							: "y_p(t) = K_p t^2",
-				latex:
-					power === 0
-						? `${toFractionLatex(Kp)}`
-						: power === 1
-							? `${toFractionLatex(Kp)} t`
-							: `${toFractionLatex(Kp)} t^2`,
-				eval: (t: number) => Kp * t ** power,
-				evalDeriv: (t: number) =>
-					power === 0 ? 0 : power * Kp * t ** (power - 1),
-				coeffs: { Kp },
-				resonanceMultiplicity: multiplicity,
-			};
-		}
-		case "exponential": {
-			const K = forcing.K;
-			const p = forcing.p ?? -1;
-			const multiplicity = rootMultiplicityAt(p);
-
-			if (multiplicity === 0) {
-				const denom = polynomialAt(p);
-				const Kp = K / denom;
-				return {
-					formDescription: "y_p(t) = K_p e^{p t}",
-					latex:
-						sanitizeLatexMath(
-							formatSignedLinearTerm(
-								toFractionLatex(Kp),
-								formatExpTerm(p),
-								true,
-							),
-						) || "0",
-					eval: (t: number) => Kp * Math.exp(p * t),
-					evalDeriv: (t: number) => Kp * p * Math.exp(p * t),
-					coeffs: { Kp },
-					resonanceMultiplicity: 0,
-				};
-			}
-
-			if (multiplicity === 1) {
-				const denom = polynomialDerivativeAt(p);
-				const Kp = K / denom;
-				return {
-					formDescription: "y_p(t) = K_p t e^{p t}",
-					latex:
-						sanitizeLatexMath(
-							formatSignedLinearTerm(
-								toFractionLatex(Kp),
-								`t ${formatExpTerm(p)}`,
-								true,
-							),
-						) || "0",
-					eval: (t: number) => Kp * t * Math.exp(p * t),
-					evalDeriv: (t: number) =>
-						Kp * (1 + p * t) * Math.exp(p * t),
-					coeffs: { Kp },
-					resonanceMultiplicity: 1,
-				};
-			}
-
-			const Kp = K / (2 * a2);
-			return {
-				formDescription: "y_p(t) = K_p t^2 e^{p t}",
-				latex:
-					sanitizeLatexMath(
-						formatSignedLinearTerm(
-							toFractionLatex(Kp),
-							`t^2 ${formatExpTerm(p)}`,
-							true,
-						),
-					) || "0",
-				eval: (t: number) => Kp * t * t * Math.exp(p * t),
-				evalDeriv: (t: number) =>
-					Kp * (2 * t + p * t * t) * Math.exp(p * t),
-				coeffs: { Kp },
-				resonanceMultiplicity: 2,
-			};
-		}
-		case "sinusoid": {
-			const K = forcing.K;
-			const w = forcing.omega ?? 1;
-
-			// Substitute y_p(t) = A*cos(w*t) + B*sin(w*t) into y_p'' + a1*y_p' + a0*y_p = K*cos(w*t):
-			//   cos(w*t) term:  (a0 - a2*w^2)*A + (a1*w)*B     = K
-			//   sin(w*t) term: -(a1*w)*A        + (a0 - a2*w^2)*B = 0
-			// System matrix: [ m11  m12 ] [ A ] = [ K ]
-			//                [ m21  m22 ] [ B ]   [ 0 ]
-			const m11 = a0 - a2 * w * w;
-			const m12 = a1 * w;
-			const m21 = -a1 * w;
-			const m22 = a0 - a2 * w * w;
-
-			const det = m11 * m22 - m12 * m21;
-			if (Math.abs(det) < 1e-9) {
-				if (
-					order !== 2 ||
-					Math.abs(a1) >= 1e-9 ||
-					Math.abs(a2) < 1e-9
-				) {
-					throw new Error(
-						"Unsupported degenerate sinusoidal resonance",
-					);
-				}
-				const B = K / (2 * a2 * w);
-				return {
-					formDescription:
-						"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
-					latex:
-						sanitizeLatexMath(
-							formatSignedLinearTerm(
-								toFractionLatex(B),
-								`t \\sin(${w}t)`,
-								true,
-							),
-						) || "0",
-					eval: (t: number) => B * t * Math.sin(w * t),
-					evalDeriv: (t: number) =>
-						B * (Math.sin(w * t) + w * t * Math.cos(w * t)),
-					coeffs: { A: 0, B },
-					resonanceMultiplicity: 1,
-				};
-			}
-			const A = (K * m22) / det;
-			const B = (-K * m21) / det;
-
-			const latexA = toFractionLatex(A);
-			const latexB = toFractionLatex(B);
-
-			let latexStr = "";
-			if (Math.abs(A) > 1e-6) latexStr += `${latexA} \\cos(${w}t)`;
-			if (B > 1e-6) latexStr += ` + ${latexB} \\sin(${w}t)`;
-			else if (B < -1e-6)
-				latexStr += ` - ${toFractionLatex(Math.abs(B))} \\sin(${w}t)`;
-			if (!latexStr) latexStr = "0";
-
-			return {
-				formDescription:
-					"y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
-				latex: latexStr,
-				eval: (t: number) => A * Math.cos(w * t) + B * Math.sin(w * t),
-				evalDeriv: (t: number) =>
-					-A * w * Math.sin(w * t) + B * w * Math.cos(w * t),
-				coeffs: { A, B },
-				resonanceMultiplicity: 0,
-			};
-		}
-		default: {
+		case "constant":
+		case "exponential":
+			return computePolynomialParticular(coefficients, forcing);
+		case "sinusoid":
+			return computeSinusoidalParticular(coefficients, forcing);
+		default:
 			throw new Error(`Unhandled forcing function type: ${forcing.type}`);
-		}
 	}
+}
+
+/**
+ * Solves constant and exponential forcing using its root collision multiplicity.
+ * @param coefficients - Working equation and removed forcing scale.
+ * @param forcing - Constant or exponential input.
+ * @returns Particular solution and its analytic first derivative.
+ */
+function computePolynomialParticular(
+	coefficients: NormalizedCoefficients,
+	forcing: ForcingFunction,
+): ParticularSolution {
+	const { scale, a2, a1, a0 } = coefficients;
+	const constant = forcing.type === "constant";
+	const p = constant ? 0 : (forcing.p ?? -1);
+	const { Kp, multiplicity } = computeScaledPolynomialResponse(
+		forcing.K,
+		scale,
+		a2,
+		a1,
+		a0,
+		p,
+	);
+	const suffix = ["", " t", " t^2"][multiplicity]!;
+	const latex = constant
+		? `${toFractionLatex(Kp)}${suffix}`
+		: sanitizeLatexMath(
+				formatSignedLinearTerm(
+					toFractionLatex(Kp),
+					`${suffix.trim()} ${formatExpTerm(p)}`.trim(),
+					true,
+				),
+			) || "0";
+	return {
+		formDescription: `y_p(t) = K_p${suffix}${constant ? "" : " e^{p t}"}`,
+		latex,
+		/** @param t - Evaluation time. @returns The particular response. */
+		eval: (t: number) => evaluateScaledExponential(Kp, p, multiplicity, t),
+		/** @param t - Evaluation time. @returns The particular response derivative. */
+		evalDeriv: (t: number) =>
+			evaluateScaledExponential(Kp, p, multiplicity, t, true),
+		coeffs: { Kp },
+		resonanceMultiplicity: multiplicity,
+	};
+}
+
+/**
+ * Solves harmonic forcing with scaled amplitudes and exact damping detection.
+ * @param coefficients - Working equation and removed forcing scale.
+ * @param forcing - Sinusoidal input.
+ * @returns Particular harmonic or resonant response.
+ */
+function computeSinusoidalParticular(
+	coefficients: NormalizedCoefficients,
+	forcing: ForcingFunction,
+): ParticularSolution {
+	const { scale, a2, a1, a0 } = coefficients;
+	const w = forcing.omega ?? 1;
+	const frequencyLatex = formatHarmonicScalar(w);
+
+	// Substitute y_p(t) = A*cos(w*t) + B*sin(w*t) into y_p'' + a1*y_p' + a0*y_p = K*cos(w*t):
+	//   cos(w*t) term:  (a0 - a2*w^2)*A + (a1*w)*B     = K
+	//   sin(w*t) term: -(a1*w)*A        + (a0 - a2*w^2)*B = 0
+	// System matrix: [ m11  m12 ] [ A ] = [ K ]
+	//                [ m21  m22 ] [ B ]   [ 0 ]
+	const { A, B, multiplicity } = computeScaledHarmonicResponse(
+		forcing.K,
+		scale,
+		a2,
+		a1,
+		a0,
+		w,
+	);
+	if (multiplicity === 1) {
+		return {
+			formDescription:
+				"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
+			latex:
+				sanitizeLatexMath(
+					formatSignedLinearTerm(
+						formatHarmonicScalar(B),
+						`t \\sin(${frequencyLatex}t)`,
+						true,
+					),
+				) || "0",
+			/** @param t - Evaluation time. @returns Resonant particular response. */
+			eval: (t: number) => evaluateScaledResonantHarmonic(B, w, t),
+			/** @param t - Evaluation time. @returns Resonant particular derivative. */
+			evalDeriv: (t: number) =>
+				evaluateScaledResonantHarmonic(B, w, t, true),
+			coeffs: { A: 0, B },
+			resonanceMultiplicity: 1,
+		};
+	}
+	const latexA = formatHarmonicScalar(A);
+	const latexB = formatHarmonicScalar(B);
+
+	let latexStr = "";
+	if (A !== 0) latexStr += `${latexA} \\cos(${frequencyLatex}t)`;
+	if (B > 0)
+		latexStr += `${latexStr ? " + " : ""}${latexB} \\sin(${frequencyLatex}t)`;
+	else if (B < 0)
+		latexStr += `${latexStr ? " - " : "-"}${formatHarmonicScalar(Math.abs(B))} \\sin(${frequencyLatex}t)`;
+	if (!latexStr) latexStr = "0";
+
+	return {
+		formDescription: "y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
+		latex: latexStr,
+		/** @param t - Evaluation time. @returns Harmonic particular response. */
+		eval: (t: number) => evaluateHarmonic(A, B, w, t),
+		/** @param t - Evaluation time. @returns Harmonic particular derivative. */
+		evalDeriv: (t: number) => evaluateHarmonic(A, B, w, t, true),
+		coeffs: { A, B },
+		resonanceMultiplicity: 0,
+	};
 }
 
 /**
@@ -348,8 +469,12 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 + C2 = targetY0
 			//   y_h'(0) = r1*C1 + r2*C2 = targetDY0
 			//           => C2 = (targetDY0 - r1 * targetY0) / (r2 - r1)
-			const C2 = (targetDY0 - r1 * targetY0) / (r2 - r1);
-			const C1 = targetY0 - C2;
+			const [C1, C2] = distinctInitialConstants(
+				r1,
+				r2,
+				targetY0,
+				targetDY0,
+			);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
@@ -380,7 +505,7 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 = targetY0
 			//  y_h'(0)  = r*C1 + C2 = targetDY0 => C2 = targetDY0 - r*C1
 			const C1 = targetY0;
-			const C2 = targetDY0 - r * C1;
+			const C2 = secondInitialConstant(r, C1, targetDY0, 1);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);
@@ -395,7 +520,8 @@ export function solveHomogeneousConstants(
 				latex,
 				C1,
 				C2,
-				eval: (t: number) => (C1 + C2 * t) * Math.exp(r * t),
+				/** @param t - Sampling time. @returns Compensated repeated natural response. */
+				eval: (t: number) => evaluateScaledRepeatedMode(C1, C2, r, t),
 			};
 		}
 		// Complex conjugate: r1 = sigma + j*omega_d
@@ -407,7 +533,7 @@ export function solveHomogeneousConstants(
 			//   y_h(0)  = C1 = targetY0
 			//  y_h'(0)  = sigma*C1 + omega_d*C2 = targetDY0 => C2 = (targetDY0 - sigma*C1) / omega_d
 			const C1 = targetY0;
-			const C2 = (targetDY0 - sigma * C1) / omega_d;
+			const C2 = secondInitialConstant(sigma, C1, targetDY0, omega_d);
 
 			const c1Str = toFractionLatex(C1);
 			const c2Str = toFractionLatex(C2);

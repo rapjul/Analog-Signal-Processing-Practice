@@ -13,7 +13,6 @@ import type {
 	FirstOrderOdeItsStep7,
 	HomogeneousSolution,
 	OdeItsConceptQuestion,
-	OdeItsOption,
 	OdeItsStep7,
 	OdeOrder,
 	OdeProblem,
@@ -21,6 +20,7 @@ import type {
 	SecondOrderOdeItsStep7,
 	SecondOrderRootType,
 } from "../types";
+import { buildResponseChoices } from "./response-options";
 
 /**
  * Concept questions pool for testing fundamental signal processing theory.
@@ -90,7 +90,7 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 				id: "cq3_opt2",
 				latex: String.raw`\displaystyle \lim_{t \to \infty} y_{tr}(t) = y_p(t)`,
 				isCorrect: false,
-				feedback: String.raw`The transient response consists strictly of natural homogeneous modes $e^{rt}$ which decay to $0$ as $t \to \infty$, leaving only the steady-state response.`,
+				feedback: String.raw`Every transient term decays to $0$ as $t \to \infty$, including decaying forced terms such as $t e^{-t}$. Only persistent terms belong to the steady-state response.`,
 			},
 			{
 				id: "cq3_opt3",
@@ -99,7 +99,7 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 				feedback: String.raw`Initial conditions dictate the starting values at $t=0$, not the asymptotic limit at $t \to \infty$.`,
 			},
 		],
-		explanation: String.raw`Because all characteristic roots have negative real parts ($\operatorname{Re}(r_i) < 0$), every term in the natural homogeneous response contains a factor $e^{-\alpha t}$ (where $\alpha > 0$). Hence, $\displaystyle \lim_{t \to \infty} y_{tr}(t) = 0$.`,
+		explanation: String.raw`The natural modes decay because all characteristic roots have negative real parts. Decaying exponential inputs also produce decaying particular terms, even with resonance factors $t$ or $t^2$. All these terms belong to $y_{tr}(t)$, whose limit is $0$.`,
 	},
 	{
 		prompt: String.raw`If the forcing function $x(t)$ is replaced by a different input signal $\tilde{x}(t)$, which response component is guaranteed to remain strictly identical?`,
@@ -156,6 +156,8 @@ export interface BuildStep7Params {
 	homogeneousComplete: HomogeneousSolution;
 	/** Particular solution computation results */
 	particular: ParticularSolution;
+	/** Whether the particular solution decays and therefore belongs to the transient response. */
+	particularDecays: boolean;
 	/** Zero-Input solution LaTeX */
 	ziLatex: string;
 	/** Zero-State solution LaTeX */
@@ -196,8 +198,6 @@ export function buildStep7Data(
 		initialConditions,
 		homogeneousZI,
 		homogeneousZS,
-		homogeneousComplete,
-		particular,
 		ziLatex,
 		zsLatex,
 		y_tr_latex,
@@ -205,49 +205,8 @@ export function buildStep7Data(
 		random,
 	} = params;
 
-	// Transient and Steady-State Options
-	const transientOptions: OdeItsOption[] = [
-		{
-			id: "tr_correct",
-			latex: `y_{tr}(t) = ${y_tr_latex}`,
-			isCorrect: true,
-		},
-		{
-			id: "tr_yp",
-			latex: `y_{tr}(t) = ${particular.latex}`,
-			isCorrect: false,
-			feedback:
-				"Misconception: $y_p(t)$ is the forced response (steady-state for step/sinusoidal inputs), not the decaying transient natural response.",
-		},
-		{
-			id: "tr_zi",
-			latex: `y_{tr}(t) = ${ziLatex}`,
-			isCorrect: false,
-			feedback:
-				"Misconception: $y_{ZI}(t)$ is the zero-input response (which is indeed transient, but only accounts for initial conditions, not the complete transient response of the total system).",
-		},
-	];
-
-	const steadyStateOptions: OdeItsOption[] = [
-		{
-			id: "ss_correct",
-			latex: `y_{ss}(t) = ${y_ss_latex}`,
-			isCorrect: true,
-		},
-		{
-			id: "ss_yh",
-			latex: `y_{ss}(t) = ${homogeneousComplete.latex}`,
-			isCorrect: false,
-			feedback: String.raw`Misconception: The homogeneous solution $y_h(t)$ contains decaying exponential terms that vanish as $t \to \infty$, so it is transient, not steady-state.`,
-		},
-		{
-			id: "ss_zs",
-			latex: `y_{ss}(t) = ${zsLatex}`,
-			isCorrect: false,
-			feedback:
-				"Misconception: $y_{ZS}(t)$ contains both the transient natural modes needed to satisfy zero initial conditions AND the forced steady-state response.",
-		},
-	];
+	const { transientChoices, steadyStateChoices } =
+		buildResponseChoices(params);
 
 	// Pick a concept question
 	const selectedConceptBase = randomChoice(random, CONCEPT_QUESTIONS_POOL);
@@ -297,8 +256,8 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientOptions, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateOptions, random),
+			transientOptions: shuffleWithRandom(transientChoices, random),
+			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -313,8 +272,8 @@ export function buildStep7Data(
 					`$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$ and $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$.`,
 				],
 				tr_ss: [
-					String.raw`Transient response $y_{tr}(t)$ consists of natural homogeneous modes that decay to zero as $t \to \infty$.`,
-					String.raw`Steady-state response $y_{ss}(t)$ is the persistent forced response component matching the input as $t \to \infty$.`,
+					String.raw`Transient response $y_{tr}(t)$ includes all terms that decay to zero, including decaying exponential particular solutions.`,
+					String.raw`Steady-state response $y_{ss}(t)$ contains only persistent terms; it is zero when the entire response decays.`,
 					`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
 				],
 				concept: [
@@ -339,8 +298,8 @@ export function buildStep7Data(
 			},
 			y_tr_latex,
 			y_ss_latex,
-			transientOptions: shuffleWithRandom(transientOptions, random),
-			steadyStateOptions: shuffleWithRandom(steadyStateOptions, random),
+			transientOptions: shuffleWithRandom(transientChoices, random),
+			steadyStateOptions: shuffleWithRandom(steadyStateChoices, random),
 			conceptQuestion: selectedConceptQ,
 			ziSystemLatex,
 			hints: [
@@ -355,8 +314,8 @@ export function buildStep7Data(
 					`$C_{1,ZI}=${toFractionLatex(homogeneousZI.C1)}$, $C_{2,ZI}=${toFractionLatex(homogeneousZI.C2 ?? 0)}$, $C_{1,ZS}=${toFractionLatex(homogeneousZS.C1)}$, and $C_{2,ZS}=${toFractionLatex(homogeneousZS.C2 ?? 0)}$.`,
 				],
 				tr_ss: [
-					String.raw`Transient response $y_{tr}(t)$ consists of natural homogeneous modes that decay to zero as $t \to \infty$.`,
-					String.raw`Steady-state response $y_{ss}(t)$ is the persistent forced response component matching the input as $t \to \infty$.`,
+					String.raw`Transient response $y_{tr}(t)$ includes all terms that decay to zero, including decaying exponential particular solutions.`,
+					String.raw`Steady-state response $y_{ss}(t)$ contains only persistent terms; it is zero when the entire response decays.`,
 					`$y_{tr}(t) = ${y_tr_latex}$ and $y_{ss}(t) = ${y_ss_latex}$.`,
 				],
 				concept: [

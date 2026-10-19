@@ -75,7 +75,7 @@ Configure **Settings → Pages → Source → GitHub Actions** once. Pushes to `
 
 - 🛠️ **[Development & Testing Guide](docs/development-and-testing.md)** — Contributor setup, dual-runtime Vitest architecture (ADR `0025`), Playwright E2E suites, AST math testing, and formatting standards.
 - 📐 **[Terminology & Mathematical Standards](docs/terminology-standards.md)** — Canonical signal processing symbols, operator conventions, and notation rules.
-- 🏛️ **[Architectural Decision Records (ADRs)](docs/adrs/)** — Index of 33 ADRs recording foundational design, mathematical engine, and UI decisions.
+- 🏛️ **[Architectural Decision Records (ADRs)](docs/adrs/)** — Records of foundational design, mathematical engine, and UI decisions.
 - 🤖 **[Workspace Agent Rules](.agents/AGENTS.md)** — Development guidelines for LaTeX math formatting, component styling, and code quality.
 
 ---

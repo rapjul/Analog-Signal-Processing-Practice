@@ -11,7 +11,21 @@ import {
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
 } from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
 import type { OdeParams } from "./types";
+
+/**
+ * Formats a harmonic scalar without erasing finite nonzero values or emitting raw exponent syntax.
+ * @param value - Harmonic amplitude or angular frequency.
+ * @returns Existing fraction format, or round-trip scientific LaTeX when required.
+ */
+export function formatHarmonicScalar(value: number): string {
+	const ordinary = toFractionLatex(value);
+	if (!Number.isFinite(value) || value === 0) return ordinary;
+	if (ordinary !== "0" && !/[eE][+-]?\d/.test(ordinary)) return ordinary;
+	const [mantissa, exponent] = value.toExponential().split("e");
+	return `${mantissa} \\times 10^{${Number(exponent)}}`;
+}
 
 /**
  * Formats the natural homogeneous response y_h(t) LaTeX string for given integration constants and ODE parameters.
