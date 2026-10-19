@@ -4,6 +4,11 @@ import {
 	convolutionExpressionsMatch,
 	verifyConvolutionExpression,
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
+import {
+	normalizeCanonicalInterval,
+	UNSUPPORTED_FORM_MESSAGE,
+} from "$lib/math-engine/canonical-transform";
+import { parseStrictLatex } from "$lib/math-engine/evaluator";
 
 describe("convolution expression equivalence", () => {
 	/** Specific limits remain actionable rather than being replaced with form guidance. */
@@ -42,6 +47,14 @@ describe("convolution expression equivalence", () => {
 	});
 	/** Unsupported forms keep tutor guidance, while invalid mathematics keeps its own explanation. */
 	it("retains form guidance and invalid-expression diagnostics", () => {
+		expect(
+			/** Canonical unsupported syntax exposes the shared diagnostic before tutor translation. */
+			() =>
+				normalizeCanonicalInterval(parseStrictLatex("sqrt(t)"), {
+					min: -Infinity,
+					max: Infinity,
+				}),
+		).toThrow(UNSUPPORTED_FORM_MESSAGE);
 		for (const answer of ["sqrt(t)", "t^{17}"]) {
 			expect(verifyConvolutionExpression(answer, "t")).toEqual({
 				status: "unsupported",

@@ -31,6 +31,10 @@ import {
 } from "$lib/math-engine/canonical-algebra";
 import { Complex } from "$lib/math-engine/complex";
 
+/** Shared default unsupported-form diagnostic for domain-specific guidance. */
+export const UNSUPPORTED_FORM_MESSAGE =
+	"This expression is outside the supported answer forms. Use the standard transform form.";
+
 /** Rational coefficient multiplying an exponential of a polynomial. */
 export interface CanonicalTerm {
 	/** Reduced rational factor. */ factor: Factor;
@@ -76,10 +80,7 @@ function empty(): CanonicalSpectrum {
 
 /** @returns Accessible failure for operations outside the verification language. */
 function unsupported(): CanonicalError {
-	return new CanonicalError(
-		"unsupported",
-		"This expression is outside the supported answer forms. Use the standard transform form.",
-	);
+	return new CanonicalError("unsupported", UNSUPPORTED_FORM_MESSAGE);
 }
 
 /**

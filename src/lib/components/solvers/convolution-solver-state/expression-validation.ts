@@ -5,6 +5,7 @@ import {
 	type CanonicalInterval,
 	canonicalTransformsMatch,
 	normalizeCanonicalInterval,
+	UNSUPPORTED_FORM_MESSAGE,
 } from "$lib/math-engine/canonical-transform";
 import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import { parseNumericInput } from "$lib/math-engine/fraction";
@@ -80,8 +81,7 @@ export function verifyConvolutionExpression(
 					status: error.status,
 					message:
 						error.status === "unsupported" &&
-						error.message ===
-							"This expression is outside the supported answer forms. Use the standard transform form."
+						error.message === UNSUPPORTED_FORM_MESSAGE
 							? "This form cannot be verified. Use a polynomial or a sum of polynomial-times-exponential terms with support constant throughout this interval."
 							: error.message,
 				}
