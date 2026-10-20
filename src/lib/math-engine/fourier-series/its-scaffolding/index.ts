@@ -64,7 +64,7 @@ export function generateFourierSeriesItsData(
 	const step2 = buildStep2Data(coeffs);
 
 	// Step 3: Vanishing Coefficients
-	const step3 = buildStep3Data(originParity);
+	const step3 = buildStep3Data(originParity, coeffs.hasHalfWaveSymmetry);
 
 	// Step 4: Representation Form
 	const step4 = buildStep4Data(originParity, primaryForm);
@@ -79,6 +79,7 @@ export function generateFourierSeriesItsData(
 		coeffs.originParity,
 		derivation,
 		random,
+		coeffs.hasHalfWaveSymmetry,
 	);
 
 	// Step 6: Harmonic Coefficient Evaluation
@@ -87,6 +88,7 @@ export function generateFourierSeriesItsData(
 		coeffs.originParity,
 		derivation,
 		random,
+		coeffs.hasHalfWaveSymmetry,
 	);
 
 	// Step 7: Final series in the selected primary representation

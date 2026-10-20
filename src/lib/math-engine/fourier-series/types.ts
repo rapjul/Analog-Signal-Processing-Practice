@@ -287,6 +287,8 @@ export interface FourierSeriesProblem {
 
 /** Optional controls for deterministic Fourier problem generation. */
 export interface FourierSeriesGenerationOptions {
+	/** Explicit guided representation; symmetry supplies the default recommendation. */
+	primaryForm?: FourierSeriesPrimaryForm;
 	/** Explicit pseudo-random number generator seed. */
 	seed?: number;
 	/** Fixed amplitude override used by tests and authored examples. */

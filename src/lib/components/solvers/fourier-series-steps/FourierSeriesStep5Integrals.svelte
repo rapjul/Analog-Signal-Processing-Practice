@@ -61,7 +61,7 @@
 	title="Integral Setup Formulation"
 	{status}
 	{headerExtra}
-	summaryLatex={"\\text{Integral Form: Validated}"}
+	summaryLatex="Integral Form: Validated"
 >
 	<div class="step-body">
 		{#each problem.itsData.step5.parts.slice(0, activeStep5Index) as prevPart, idx}

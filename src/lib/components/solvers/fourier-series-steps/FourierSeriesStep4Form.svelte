@@ -37,9 +37,9 @@
 
 {#snippet summarySnippet()}
 	<span>
-		Optimal Form:
+		Recommended Form:
 		<strong>
-			{#if problem.coeffs.originParity !== "none"}
+			{#if problem.itsData.step4.correctForm === "trig"}
 				Trigonometric Form
 			{:else}
 				Exponential Form
@@ -50,14 +50,14 @@
 
 <StepCard
 	stepNumber={4}
-	title="Optimal Representation Form"
+	title="Recommended Representation Form"
 	{status}
 	{summarySnippet}
 >
 	<div class="step-body">
 		<p class="step-prompt">
-			Which Fourier series representation is most efficient to calculate
-			for this waveform?
+			Which representation follows this problem's recommended derivation
+			path? Both Trigonometric and Exponential forms are valid.
 		</p>
 		<div class="button-grid-taxonomic">
 			<button

@@ -81,7 +81,9 @@ export function buildStep7Data(
 			random,
 		),
 		hints: [
-			"Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
+			correctForm === "exp"
+				? "Insert the evaluated exponential coefficients, including $F_0$, into the exponential synthesis sum."
+				: "Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
 			"Keep only harmonic indices whose evaluated coefficients are non-zero.",
 			correctForm === "exp"
 				? "Synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n \\omega_0 t}$."

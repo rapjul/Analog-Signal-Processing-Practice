@@ -6,7 +6,7 @@
  * and dynamic problem resetting.
  */
 
-import { cleanup, fireEvent, render } from "@testing-library/svelte";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import FourierSeriesStepSolver from "$lib/components/solvers/FourierSeriesStepSolver.svelte";
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
@@ -14,11 +14,58 @@ import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/in
 describe("FourierSeriesStepSolver", () => {
 	afterEach(() => cleanup());
 
+	/** Moves keyboard focus after passing a question and resets for a fresh instance with the same ID. */
+	it("announces progress, focuses the active question, and resets identical IDs", async () => {
+		const problem = generateFourierSeriesProblem("square", {
+			seed: 1,
+			T0: 2,
+		});
+		const view = render(FourierSeriesStepSolver, { problem });
+		await fireEvent.input(
+			view.container.querySelector("#fourier-period-input")!,
+			{ target: { value: "2" } },
+		);
+		await fireEvent.input(
+			view.container.querySelector("#fourier-freq-input")!,
+			{ target: { value: "pi" } },
+		);
+		await fireEvent.keyDown(
+			view.container.querySelector("#fourier-freq-input")!,
+			{ key: "Enter" },
+		);
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				view.container.querySelector(
+					".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading]",
+				),
+			),
+		);
+		expect(
+			view.container.querySelector('[role="status"]')?.textContent,
+		).toContain("Step 2 of 7");
+		const replacement = generateFourierSeriesProblem("square", {
+			seed: 1,
+			T0: 2,
+		});
+		expect(replacement.id).toBe(problem.id);
+		await view.rerender({ problem: replacement });
+		expect(
+			(
+				view.container.querySelector(
+					"#fourier-period-input",
+				) as HTMLInputElement
+			).value,
+		).toBe("");
+		expect(
+			view.container.querySelector('[role="status"]')?.textContent,
+		).toContain("Step 1 of 7");
+	});
+
 	/**
 	 * Tests complete end-to-end traversal from Step 1 through Step 7 to trigger onComplete.
 	 */
 	it("renders and completes all 7 steps from period extraction to final series synthesis", async () => {
-		const problem = generateFourierSeriesProblem("square_even", {
+		const problem = generateFourierSeriesProblem("full_wave_sine", {
 			seed: 10,
 			A: 5,
 			T0: 2,
@@ -80,7 +127,7 @@ describe("FourierSeriesStepSolver", () => {
 		const halfWaveOptions = view.getByTestId(
 			"fourier-step2-half-wave-options",
 		);
-		const halfWaveButton = halfWaveOptions.querySelectorAll("button")[0];
+		const halfWaveButton = halfWaveOptions.querySelectorAll("button")[1];
 		expect(halfWaveButton).toBeTruthy();
 		if (halfWaveButton) {
 			await fireEvent.click(halfWaveButton);

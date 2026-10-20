@@ -61,7 +61,7 @@
 	title="Harmonic Coefficient Evaluation"
 	{status}
 	{headerExtra}
-	summaryLatex={"\\text{Harmonic Coefficients Evaluated}"}
+	summaryLatex="Harmonic Coefficients Evaluated"
 >
 	<div class="step-body">
 		{#each problem.itsData.step6.parts.slice(0, activeStep6Index) as prevPart, idx}

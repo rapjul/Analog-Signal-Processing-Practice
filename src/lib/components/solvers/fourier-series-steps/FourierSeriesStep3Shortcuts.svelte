@@ -45,9 +45,14 @@
 				text={String.raw`$a_0 = 0, \; a_n = 0 \implies$ Sine harmonics only`}
 			/>
 		{:else}
-			All coefficients active
+			Neither entire family vanishes by origin parity
 		{/if}
 	</span>
+	{#if problem.coeffs.hasHalfWaveSymmetry}
+		<MathText
+			text={String.raw`Half-wave symmetry also gives $a_0=0$ and zero even harmonics.`}
+		/>
+	{/if}
 {/snippet}
 
 <StepCard
@@ -91,12 +96,19 @@
 				class:selected={solver.step3.selected === "none"}
 				onclick={() => solver.checkStep3("none")}
 			>
-				<strong>No Coefficients Vanish</strong>
+				<strong
+					>Neither entire coefficient family vanishes by origin parity</strong
+				>
 				<span class="choice-sub">
 					<MathText text={"Must compute both $a_n$ and $b_n$"} />
 				</span>
 			</button>
 		</div>
+		{#if problem.coeffs.hasHalfWaveSymmetry}
+			<MathText
+				text={String.raw`Half-wave symmetry additionally gives $a_0=0$ and $a_{2k}=b_{2k}=F_{2k}=0$ for positive integers $k$.`}
+			/>
+		{/if}
 
 		<!-- Feedback & Progressive Hints -->
 		<StepFeedback {solver} />

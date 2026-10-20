@@ -81,6 +81,7 @@ export function buildEvaluationOptions(
  * @param {OriginParity} originParity Waveform origin parity
  * @param {FourierSymbolicDerivation} derivation Pre-computed symbolic derivations
  * @param {RandomSource} random PRNG source for distractor shuffling
+ * @param hasHalfWaveSymmetry - Independent half-wave symmetry flag.
  * @returns {FourierItsStep6} Step 6 coefficient evaluation metadata
  */
 export function buildStep6Data(
@@ -88,8 +89,13 @@ export function buildStep6Data(
 	originParity: OriginParity,
 	derivation: FourierSymbolicDerivation,
 	random: RandomSource,
+	hasHalfWaveSymmetry = false,
 ): FourierItsStep6 {
-	const targets = getPrimaryCoefficientTargets(form, originParity);
+	const targets = getPrimaryCoefficientTargets(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 	const resultByTarget: Record<FourierCoefficientTarget, string> = {
 		a0: derivation.a0Latex,
 		an: derivation.anLatex,
@@ -115,12 +121,18 @@ export function buildStep6Data(
 		),
 		hints: [
 			"Apply the antiderivative at every piecewise boundary.",
-			"Simplify parity and harmonic-index factors after combining all terms.",
+			target === "Fn"
+				? "Evaluate $F_0=a_0/2$ separately. For a rectified sine, also handle $n=1$ and $n=-1$ before simplifying the general formula."
+				: "Simplify parity and harmonic-index factors after combining all terms.",
 			`The evaluated coefficient is $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
 		],
 	}));
 
-	const carriedCoefficients = buildCarriedCoefficients(form, originParity);
+	const carriedCoefficients = buildCarriedCoefficients(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 
 	return {
 		parts,
