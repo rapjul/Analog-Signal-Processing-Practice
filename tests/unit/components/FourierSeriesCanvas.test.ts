@@ -54,6 +54,69 @@ describe("FourierSeriesCanvas", () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	/** Keeps scientific power values mathematically meaningful inside rendered LaTeX. */
+	it("formats extreme power scales as base-ten LaTeX", () => {
+		const coefficients = computeFourierSeriesCoefficients("square", {
+			A: 1e-150,
+		});
+		const view = render(FourierSeriesCanvas, { coefficients });
+		const annotations = Array.from(
+			view.container.querySelectorAll(".power-stat annotation"),
+			(node) => node.textContent ?? "",
+		);
+		expect(
+			annotations.some((latex) => latex.includes("\\times 10^{-300}")),
+		).toBe(true);
+		for (const latex of annotations) expect(latex).not.toMatch(/\de[+-]\d/);
+	});
+
+	/** Provides exact DC-through-N values and disables animation for reduced-motion users. */
+	it("shows a complete accessible spectrum without reduced-motion animation", async () => {
+		const addEventListener = vi.fn();
+		const removeEventListener = vi.fn();
+		vi.stubGlobal(
+			"matchMedia",
+			vi.fn(() => ({
+				matches: true,
+				addEventListener,
+				removeEventListener,
+			})),
+		);
+		const frame = vi.spyOn(window, "requestAnimationFrame");
+		const coefficients = computeFourierSeriesCoefficients(
+			"full_wave_sine",
+			{ A: 2, T0: 4 },
+		);
+		const view = render(FourierSeriesCanvas, {
+			coefficients,
+			harmonicCount: 50,
+		});
+		expect(view.container.querySelectorAll("tbody tr")).toHaveLength(51);
+		expect(view.container.querySelector("tbody tr th")?.textContent).toBe(
+			"0 (DC)",
+		);
+		expect(
+			view.container.querySelector("tbody tr:last-child th")?.textContent,
+		).toBe("50");
+		expect(
+			view.container.querySelector(".spectrum-description")?.textContent,
+		).toContain("positive-index exponential magnitudes");
+		expect(frame).not.toHaveBeenCalled();
+		await view.rerender({
+			coefficients: computeFourierSeriesCoefficients("square"),
+			harmonicCount: 2,
+		});
+		expect(
+			view.container.querySelector("tbody tr:last-child")?.textContent,
+		).toContain("—");
+		view.unmount();
+		expect(removeEventListener).toHaveBeenCalledWith(
+			"change",
+			expect.any(Function),
+		);
 	});
 
 	/**

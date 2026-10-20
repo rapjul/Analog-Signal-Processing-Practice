@@ -48,6 +48,13 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 	});
 
 	describe("computeTargetMagnitudes", () => {
+		/** Includes nonzero DC and every selected harmonic through the slider maximum. */
+		it("includes rectified DC and harmonic fifty", () => {
+			const c = computeFourierSeriesCoefficients("full_wave_sine");
+			const magnitudes = computeTargetMagnitudes(c, 50);
+			expect(magnitudes[0]).toBeCloseTo(2 / Math.PI, 12);
+			expect(magnitudes[50]).toBeCloseTo(Math.abs(c.Fn(50).re), 12);
+		});
 		it("evaluates complex magnitudes for harmonics up to targetDisplayN", () => {
 			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 2,
@@ -78,8 +85,30 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				lineTo: vi.fn(),
 				stroke: vi.fn(),
 				setLineDash: vi.fn(),
+				fillText: vi.fn(),
 			} as unknown as CanvasRenderingContext2D;
 		};
+		/** Reuses numerical samples during resize and theme redraws. */
+		it("resamples only when the harmonic limit changes", () => {
+			const c = computeFourierSeriesCoefficients("square");
+			const an = vi.fn(c.an);
+			const cached = { ...c, an };
+			const ctx = mockContext();
+			const theme = {
+				background: "#000",
+				borderColor: "#fff",
+				textSecondary: "#aaa",
+			};
+			drawFourierTimeDomain(ctx, 400, 200, cached, 5, theme);
+			const calls = an.mock.calls.length;
+			drawFourierTimeDomain(ctx, 600, 300, cached, 5, {
+				...theme,
+				background: "#333",
+			});
+			expect(an).toHaveBeenCalledTimes(calls);
+			drawFourierTimeDomain(ctx, 600, 300, cached, 6, theme);
+			expect(an.mock.calls.length).toBeGreaterThan(calls);
+		});
 
 		it("renders time-domain partial sum and ideal waveform for jump discontinuities", () => {
 			const ctx = mockContext();
