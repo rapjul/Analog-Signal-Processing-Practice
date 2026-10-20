@@ -68,6 +68,12 @@ function derivativeChoices(
 	trial: TrialTerm[],
 ): OdeItsOption[] {
 	const prefix = derivative === 1 ? "y_p'(t)" : "y_p''(t)";
+	const constantTrial =
+		rate === 0 &&
+		trial.every(
+			/** Identifies a constant basis. @param term - Trial term. */
+			(term) => term.power === 0 && term.harmonic === "plain",
+		);
 	const candidates = [
 		{
 			id: `d${derivative}_correct`,
@@ -96,13 +102,13 @@ function derivativeChoices(
 				{
 					coefficient: 1,
 					symbol: "K_p" as const,
-					power: 0,
+					power: constantTrial ? derivative : 0,
 					harmonic: "plain" as const,
 				},
 			],
 			isCorrect: false,
 			feedback:
-				"An extra constant-coefficient term has been introduced. Differentiate each term separately.",
+				"An extra term has been introduced. Differentiate each term separately.",
 		},
 	];
 	// Trigonometric trials use A and B throughout; do not invent a third unknown.
@@ -253,63 +259,57 @@ function formatCoefficientSystem(equation: TrialTerm[]): string {
 }
 
 /**
+ * Formats and signs a coefficient-system choice from one shared set of terms.
+ * @param id - Stable choice identifier.
+ * @param terms - Equation terms with the input moved to the left.
+ * @param isCorrect - Whether this is the original substituted equation.
+ * @param feedback - Explanation for an incorrect equation.
+ * @returns Display and mathematical signature derived from identical terms.
+ */
+function coefficientSystemChoice(
+	id: string,
+	terms: TrialTerm[],
+	isCorrect: boolean,
+	feedback?: string,
+): OdeItsOption {
+	return {
+		id,
+		latex: formatCoefficientSystem(terms),
+		isCorrect,
+		...(feedback === undefined ? {} : { feedback }),
+		coefficients: trialSignature(terms, true),
+	};
+}
+
+/**
  * Builds distinct coefficient-matching choices from the same trial equation.
  * @param context - Normalized trial and substituted equation.
- * @param systemLatex - Rendered correct coefficient system.
  * @returns Shuffled mathematical choices with a single correct answer.
  */
 function buildSystemChoices(
 	context: ReturnType<typeof buildTrialContext>,
-	systemLatex: string,
 ): OdeItsOption[] {
-	const {
-		forcing,
-		rate,
-		frequency,
-		trial,
-		a0,
-		substituted,
-		rhs,
-		equation,
-		random,
-	} = context;
+	const { forcing, trial, a0, substituted, rhs, equation, random } = context;
 	const systemCandidates: OdeItsOption[] = [
-		{
-			id: "sys_correct",
-			latex: systemLatex,
-			isCorrect: true,
-			coefficients: trialSignature(equation, true),
-		},
-		{
-			id: "sys_wrong_target",
-			latex: `${formatTrial(substituted, rate, frequency)} = ${toFractionLatex(-forcing.K)}${forcing.type === "exponential" ? ` e^{${rate}t}` : forcing.type === "sinusoid" ? ` \\cos(${frequency}t)` : ""}`,
-			isCorrect: false,
-			feedback:
-				"Match the sign and amplitude of the original forcing input.",
-			coefficients: trialSignature(
-				[...substituted, { ...rhs, coefficient: forcing.K }],
-				true,
-			),
-		},
-		{
-			id: "sys_missing_derivatives",
-			latex: `${formatTrial(scaleTrial(trial, a0), rate, frequency)} = ${forcing.latex}`,
-			isCorrect: false,
-			feedback:
-				"Include the contributions of all derivatives in the original ODE.",
-			coefficients: trialSignature([...scaleTrial(trial, a0), rhs], true),
-		},
-		{
-			id: "sys_extra_input",
-			latex: `${formatTrial(substituted, rate, frequency)} = ${toFractionLatex(forcing.K + 1)}${forcing.type === "exponential" ? ` e^{${rate}t}` : forcing.type === "sinusoid" ? ` \\cos(${frequency}t)` : ""}`,
-			isCorrect: false,
-			feedback:
-				"The coefficient on the right must match the original forcing amplitude.",
-			coefficients: trialSignature(
-				[...substituted, { ...rhs, coefficient: -(forcing.K + 1) }],
-				true,
-			),
-		},
+		coefficientSystemChoice("sys_correct", equation, true),
+		coefficientSystemChoice(
+			"sys_wrong_target",
+			[...substituted, { ...rhs, coefficient: forcing.K }],
+			false,
+			"Match the sign and amplitude of the original forcing input.",
+		),
+		coefficientSystemChoice(
+			"sys_missing_derivatives",
+			[...scaleTrial(trial, a0), rhs],
+			false,
+			"Include the contributions of all derivatives in the original ODE.",
+		),
+		coefficientSystemChoice(
+			"sys_extra_input",
+			[...substituted, { ...rhs, coefficient: -(forcing.K + 1) }],
+			false,
+			"The coefficient on the right must match the original forcing amplitude.",
+		),
 	];
 	// Keep the existing five-choice harmonic layout without reintroducing equivalent equations.
 	for (
@@ -318,17 +318,14 @@ function buildSystemChoices(
 		offset++
 	) {
 		const amplitude = forcing.K + offset;
-		systemCandidates.push({
-			id: `sys_amplitude_${offset}`,
-			latex: `${formatTrial(substituted, rate, frequency)} = ${toFractionLatex(amplitude)}${forcing.type === "exponential" ? ` e^{${rate}t}` : forcing.type === "sinusoid" ? ` \\cos(${frequency}t)` : ""}`,
-			isCorrect: false,
-			feedback:
-				"Match the original forcing amplitude when equating coefficients.",
-			coefficients: trialSignature(
+		systemCandidates.push(
+			coefficientSystemChoice(
+				`sys_amplitude_${offset}`,
 				[...substituted, { ...rhs, coefficient: -amplitude }],
-				true,
+				false,
+				"Match the original forcing amplitude when equating coefficients.",
 			),
-		});
+		);
 	}
 	return shuffleWithRandom(
 		uniqueOdeOptions(systemCandidates).slice(0, 5),
@@ -371,7 +368,7 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 		derivativeChoices(second, rate, frequency, 2, trial),
 		random,
 	);
-	const systemOptions = buildSystemChoices(context, systemLatex);
+	const systemOptions = buildSystemChoices(context);
 	const solved =
 		forcing.type === "sinusoid"
 			? `$A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \\quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`

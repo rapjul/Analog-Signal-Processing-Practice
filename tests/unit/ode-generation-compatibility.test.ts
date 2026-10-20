@@ -7,6 +7,7 @@ describe("ODE seeded generation compatibility", () => {
 	/** Compares all public data and response decomposition over the original 3,072-case matrix. */
 	it("pins deterministic equations and the revised teaching metadata", () => {
 		const hash = createHash("sha256");
+		const solutionHash = createHash("sha256");
 		for (const seed of [0, 3, 17, 991])
 			for (const order of [1, 2, "random"] as const)
 				for (const rootType of [
@@ -42,8 +43,24 @@ describe("ODE seeded generation compatibility", () => {
 									leadingCoefficient,
 								});
 								hash.update(JSON.stringify(problem));
+								solutionHash.update(
+									JSON.stringify({
+										params: problem.params,
+										forcing: problem.forcing,
+										initialConditions:
+											problem.initialConditions,
+										solutions: problem.solutions,
+									}),
+								);
 								for (const t of [0, 0.25, 2]) {
 									const complete = problem.evalComplete(t);
+									solutionHash.update(
+										JSON.stringify([
+											complete,
+											problem.evalZI(t),
+											problem.evalZS(t),
+										]),
+									);
 									expect(Number.isFinite(complete)).toBe(
 										true,
 									);
@@ -58,9 +75,13 @@ describe("ODE seeded generation compatibility", () => {
 									);
 								}
 							}
-		// Updated for structural choices, decompositionMode, and explicit-filter precedence.
+		// Captured before review fixes: teaching changes must preserve every solved problem.
+		expect(solutionHash.digest("hex")).toBe(
+			"4454088bb1308a082bf7d64cf76b91b1ec1c0495ce5fd102a11baf9c4c61bcb5",
+		);
+		// Reviewed teaching changes: matched systems, three constant choices, and signed offsets.
 		expect(hash.digest("hex")).toBe(
-			"971d822729a289a17159794b0c1f19998fa95383ee29fe86da36fc1b21cf2a78",
+			"f9fd9db13b01f6c813d9ce6d66ffcb3a5ca824cda8b5fb92ad30cfc68e4fe28b",
 		);
 	});
 });

@@ -326,13 +326,15 @@ function buildResponseChoices(params: BuildStep7Params) {
 		},
 	];
 	// A deliberately shifted coefficient supplies a distractor even when all responses vanish.
+	// Match the existing coefficient's sign so the added mode cannot cancel it.
+	const naturalModeOffset = homogeneousComplete.C1 < 0 ? -1 : 1;
 	transientOptions.push({
 		id: "tr_offset",
-		latex: `${firstSymbol}(t) = (${firstResponse}) + ${firstBasis}`,
+		latex: `${firstSymbol}(t) = (${firstResponse}) ${formatSignedLinearTerm(naturalModeOffset, firstBasis, false)}`,
 		isCorrect: false,
 		coefficients: {
 			...signature(homogeneousComplete, transientParticularScale),
-			C1: homogeneousComplete.C1 + 1,
+			C1: homogeneousComplete.C1 + naturalModeOffset,
 		},
 		feedback:
 			"This adds an extra natural mode and changes the required initial conditions.",

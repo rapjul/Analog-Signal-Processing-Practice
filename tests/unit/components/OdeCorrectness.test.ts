@@ -11,6 +11,51 @@ import { generateOdeProblem } from "$lib/math-engine/odes/generator";
 afterEach(cleanup);
 
 describe("ODE course-aligned explanations", () => {
+	/** Checks uniform rendered systems and grading through actual selection controls. */
+	it("renders all sinusoidal coefficient choices alike and grades their selections", async () => {
+		const problem = generateOdeProblem({
+			order: 2,
+			forcingType: "sinusoid",
+			seed: 4,
+		});
+		const solver = new OdeStepSolverState(
+			/** Supplies the harmonic fixture. */ () => problem,
+		);
+		solver.currentStep = 5;
+		solver.step5.subSteps.first_deriv.isValid = true;
+		solver.step5.subSteps.second_deriv.isValid = true;
+		solver.step5.activeSubStepId = "system_setup";
+		const view = render(OdeStep5Coefficients, { problem, solver });
+		const buttons = view.container.querySelectorAll<HTMLButtonElement>(
+			'[data-option-id^="sys_"]',
+		);
+		expect(buttons).toHaveLength(5);
+		for (const button of buttons) {
+			const source = button.querySelector(
+				'annotation[encoding="application/x-tex"]',
+			)?.textContent;
+			expect(source).toMatch(/^\\begin\{cases\}/);
+			expect(source).not.toMatch(/\\(?:cos|sin)/);
+		}
+		for (const option of problem.itsData.step5.systemOptions ?? []) {
+			if (option.isCorrect) continue;
+			const button = view.container.querySelector<HTMLButtonElement>(
+				`[data-option-id="${option.id}"]`,
+			);
+			expect(button).not.toBeNull();
+			await fireEvent.click(button as HTMLButtonElement);
+			expect(solver.step5.subSteps.system_setup.isValid).toBe(false);
+		}
+		await fireEvent.click(
+			view.container.querySelector(
+				'[data-option-id="sys_correct"]',
+			) as HTMLButtonElement,
+		);
+		expect(solver.step5.subSteps.system_setup.isValid).toBe(true);
+		expect(solver.step5.activeSubStepId).toBe("solve");
+		expect(view.container.querySelector(".katex-error")).toBeNull();
+	});
+
 	/** Verifies exponential questions use the algebraic split and real answer selection. */
 	it("grades homogeneous and particular choices through the rendered form", async () => {
 		const problem = generateOdeProblem({
