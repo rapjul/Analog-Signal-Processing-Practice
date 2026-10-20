@@ -4,7 +4,7 @@
 	 *
 	 * Step 7 Part 7B: Transient ($y_{tr}$) & Steady-State ($y_{ss}$) Identification.
 	 *
-	 * Guides students through classifying all decaying terms and persistent responses.
+	 * Guides students through classifying natural decaying modes vs persistent forced responses.
 	 */
 
 	import MathText from "$lib/components/math/MathText.svelte";
@@ -23,25 +23,32 @@
 	}
 
 	let { problem, solver }: Props = $props();
+	const isAlgebraic = $derived(
+		problem.itsData.step7.decompositionMode === "homogeneous_particular",
+	);
+	const firstName = $derived(isAlgebraic ? "Homogeneous" : "Transient");
+	const secondName = $derived(isAlgebraic ? "Particular" : "Steady-State");
+	const firstSymbol = $derived(isAlgebraic ? "y_h" : "y_{tr}");
+	const secondSymbol = $derived(isAlgebraic ? "y_p" : "y_{ss}");
 </script>
 
 <SubStepBlock
 	badge="Part 7B"
-	title={"Transient ($y_{tr}$) & Steady-State ($y_{ss}$) Identification"}
+	title={`${firstName} ($${firstSymbol}$) & ${secondName} ($${secondSymbol}$) Identification`}
 	isCompleted={solver.step7.trSsPassed}
 >
 	{#snippet summarySnippet()}
 		<div class="substep-verified-line">
 			<div class="verified-item">
-				<span class="verified-label">Transient:</span>
+				<span class="verified-label">{firstName}:</span>
 				<MathText
-					text={`$y_{tr}(t) = ${problem.solutions.y_tr_latex}$`}
+					text={`$${firstSymbol}(t) = ${isAlgebraic ? problem.solutions.y_h_latex : problem.solutions.y_tr_latex}$`}
 				/>
 			</div>
 			<div class="verified-item">
-				<span class="verified-label">Steady-State:</span>
+				<span class="verified-label">{secondName}:</span>
 				<MathText
-					text={`$y_{ss}(t) = ${problem.solutions.y_ss_latex}$`}
+					text={`$${secondSymbol}(t) = ${isAlgebraic ? problem.solutions.y_p_latex : problem.solutions.y_ss_latex}$`}
 				/>
 			</div>
 		</div>
@@ -49,19 +56,24 @@
 
 	<p class="step-prompt">
 		<MathText
-			text={String.raw`Identify the Transient Response $y_{tr}(t)$ (all terms decaying as $t \to \infty$, including decaying forced terms) and the Steady-State Response $y_{ss}(t)$ (persistent terms, or zero if the entire response decays):`}
+			text={isAlgebraic
+				? "Identify the homogeneous contribution $y_h(t)$ and particular solution $y_p(t)$ in the total response. Both decay for this stable system and decaying exponential input: the entire response is transient and $y_{ss}(t)=0$."
+				: String.raw`Identify the Transient Response $y_{tr}(t)$ (the component tending to zero) and the Steady-State Response $y_{ss}(t)$ (what remains after the transient decays):`}
 		/>
 	</p>
 
 	<div class="classification-group">
 		<span class="classification-step-label">
-			<MathText text={"1. Select Transient Response $y_{tr}(t)$:"} />
+			<MathText
+				text={`1. Select ${firstName} ${isAlgebraic ? "Contribution" : "Response"} $${firstSymbol}(t)$:`}
+			/>
 		</span>
 		<div class="mcq-cards-grid">
 			{#each problem.itsData.step7.transientOptions as option}
 				<button
 					type="button"
 					class="mcq-card"
+					data-option-id={option.id}
 					class:selected={solver.step7.selectedTransient ===
 						option.id}
 					onclick={() => {
@@ -77,13 +89,16 @@
 
 	<div class="classification-group">
 		<span class="classification-step-label">
-			<MathText text={"2. Select Steady-State Response $y_{ss}(t)$:"} />
+			<MathText
+				text={`2. Select ${secondName} ${isAlgebraic ? "Solution" : "Response"} $${secondSymbol}(t)$:`}
+			/>
 		</span>
 		<div class="mcq-cards-grid">
 			{#each problem.itsData.step7.steadyStateOptions as option}
 				<button
 					type="button"
 					class="mcq-card"
+					data-option-id={option.id}
 					class:selected={solver.step7.selectedSteadyState ===
 						option.id}
 					onclick={() => {
@@ -103,7 +118,7 @@
 			class="btn btn-primary"
 			onclick={() => solver.checkStep7TrSS()}
 		>
-			Verify Transient & Steady-State →
+			Verify {firstName} & {secondName} →
 		</button>
 	</div>
 </SubStepBlock>

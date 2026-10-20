@@ -68,7 +68,7 @@
 
 				<p class="step-prompt">
 					<MathText
-						text={`Given the particular ansatz $y_p(t) = ${solver.correctAnsatz}$, select the correct first derivative $y_p'(t)$:`}
+						text={`Given the particular ansatz $${solver.correctAnsatz}$, select the correct first derivative $y_p'(t)$:`}
 					/>
 				</p>
 				<div class="mcq-cards-grid">
@@ -76,6 +76,7 @@
 						<button
 							type="button"
 							class="mcq-card"
+							data-option-id={opt.id}
 							class:selected={solver.step5.selectedFirstDeriv ===
 								opt.id}
 							onclick={() => solver.checkStep5FirstDeriv(opt)}
@@ -115,6 +116,7 @@
 							<button
 								type="button"
 								class="mcq-card"
+								data-option-id={opt.id}
 								class:selected={solver.step5
 									.selectedSecondDeriv === opt.id}
 								onclick={() =>
@@ -159,6 +161,7 @@
 						<button
 							type="button"
 							class="mcq-card"
+							data-option-id={opt.id}
 							class:selected={solver.step5.selectedSystem ===
 								opt.id}
 							onclick={() => solver.checkStep5System(opt)}
@@ -186,6 +189,22 @@
 						text={"Solve the algebraic equation(s) for the undetermined coefficient value(s):"}
 					/>
 				</p>
+				{#if problem.forcing.type !== "sinusoid"}
+					<p class="step-prompt">
+						Substitute the trial and its derivatives into the
+						original ODE, then match coefficients:
+					</p>
+					<MathBlock
+						math={problem.itsData.step5.substitutionLatex ?? ""}
+						compact={true}
+						hideHeader={true}
+					/>
+					<MathBlock
+						math={problem.itsData.step5.systemLatex ?? ""}
+						compact={true}
+						hideHeader={true}
+					/>
+				{/if}
 
 				{#if problem.forcing.type === "sinusoid"}
 					<div class="input-row-grid">

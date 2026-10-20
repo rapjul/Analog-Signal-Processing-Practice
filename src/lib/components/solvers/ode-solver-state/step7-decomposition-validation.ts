@@ -31,8 +31,9 @@ export function validateStep7ZIConstants(
 	if (Number.isNaN(vC1) || Number.isNaN(vC2)) {
 		return {
 			kind: "validation",
-			message:
-				"Please enter numeric values or fractions for both Zero-Input constants: $C_{1,ZI}$ and $C_{2,ZI}$.",
+			message: isFirstOrder
+				? "Please enter a numeric value or fraction for $C_{1,ZI}$."
+				: "Please enter numeric values or fractions for both Zero-Input constants: $C_{1,ZI}$ and $C_{2,ZI}$.",
 		};
 	}
 
@@ -59,7 +60,9 @@ export function validateStep7ZIConstants(
 
 	return {
 		kind: "incorrect",
-		message: `Incorrect Zero-Input constants. Solve the homogeneous initial conditions with $y_h(0) = y(0^-) = ${problem.initialConditions.y0}$ and $y_h'(0) = y'(0^-) = ${problem.initialConditions.dy0}$.`,
+		message: isFirstOrder
+			? `Incorrect Zero-Input constant. Use $C_{1,ZI}=y(0^-)=${problem.initialConditions.y0}$.`
+			: `Incorrect Zero-Input constants. Solve the homogeneous initial conditions with $y_h(0) = y(0^-) = ${problem.initialConditions.y0}$ and $y_h'(0) = y'(0^-) = ${problem.initialConditions.dy0}$.`,
 	};
 }
 
@@ -75,11 +78,13 @@ export function validateStep7TransientSteadyState(
 	problem: OdeProblem,
 ): StepValidationResult {
 	const s7Data = problem.itsData.step7;
+	const isAlgebraic = s7Data.decompositionMode === "homogeneous_particular";
 	if (!step7.selectedTransient || !step7.selectedSteadyState) {
 		return {
 			kind: "validation",
-			message:
-				"Please select both the transient response and the steady-state response options.",
+			message: isAlgebraic
+				? "Please select both the homogeneous and particular solution options."
+				: "Please select both the transient response and the steady-state response options.",
 		};
 	}
 
@@ -101,7 +106,9 @@ export function validateStep7TransientSteadyState(
 			kind: "misconception",
 			message:
 				chosenOpt?.feedback ??
-				"Incorrect transient response. Transient components must decay asymptotically to $0$ as $t \\to \\infty$.",
+				(isAlgebraic
+					? "Select the homogeneous contribution to the total response."
+					: "Select the complete transient response for this input."),
 		};
 	}
 
@@ -112,7 +119,9 @@ export function validateStep7TransientSteadyState(
 		kind: "misconception",
 		message:
 			chosenOpt?.feedback ??
-			"Incorrect steady-state response. Steady-state response persists indefinitely as $t \\to \\infty$.",
+			(isAlgebraic
+				? "Select the particular solution matching the input."
+				: "Select the persistent steady-state component for this input."),
 	};
 }
 

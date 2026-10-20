@@ -5,11 +5,15 @@
  * and misconception explanations for constant, exponential, and sinusoidal forcing functions.
  */
 
+import {
+	finiteOdeValue,
+	normalizeOdeForcing,
+} from "$lib/math-engine/odes/numerics";
 import type {
 	ForcingFunction,
 	OdeItsOption,
 	ParticularSolution,
-} from "../types";
+} from "$lib/math-engine/odes/types";
 
 /**
  * Parameters required to build Step 4 ITS data.
@@ -40,18 +44,26 @@ export interface Step4ScaffoldingResult {
 export function buildStep4Data(
 	params: BuildStep4Params,
 ): Step4ScaffoldingResult {
-	const { forcing, particular } = params;
+	const { particular } = params;
+	const forcing = normalizeOdeForcing(params.forcing);
 
 	let step4Options: OdeItsOption[];
 	switch (forcing.type) {
 		case "constant": {
+			const power = particular.resonanceMultiplicity;
+			const multiplier = power === 0 ? "" : power === 1 ? " t" : " t^2";
+			const wrongMultiplier = power === 0 ? " t" : "";
 			step4Options = [
-				{ id: "c1", latex: "y_p(t) = K_p", isCorrect: true },
+				{
+					id: "c1",
+					latex: `y_p(t) = K_p${multiplier}`,
+					isCorrect: true,
+				},
 				{
 					id: "d1",
-					latex: "y_p(t) = K_p t",
+					latex: `y_p(t) = K_p${wrongMultiplier}`,
 					isCorrect: false,
-					feedback: String.raw`Resonance Multiplier Error: The factor of $t$ is only necessary if $s=0$ is a characteristic root ($a_0 = 0$). Here $a_0 \neq 0$.`,
+					feedback: `Resonance Multiplier Error: The zero root has multiplicity ${power}, so use exactly ${power} factors of $t$.`,
 				},
 				{
 					id: "d2",
@@ -71,7 +83,10 @@ export function buildStep4Data(
 			break;
 		}
 		case "exponential": {
-			const p = forcing.p ?? 0;
+			const p = finiteOdeValue(
+				forcing.p ?? Number.NaN,
+				"Exponential rate",
+			);
 			const multiplier =
 				particular.resonanceMultiplicity === 0
 					? ""
@@ -115,14 +130,23 @@ export function buildStep4Data(
 			step4Options = [
 				{
 					id: "c1",
-					latex: String.raw`y_p(t) = A \cos(${w}t) + B \sin(${w}t)`,
+					latex:
+						particular.resonanceMultiplicity === 0
+							? String.raw`y_p(t) = A \cos(${w}t) + B \sin(${w}t)`
+							: String.raw`y_p(t) = t[A \cos(${w}t) + B \sin(${w}t)]`,
 					isCorrect: true,
 				},
 				{
 					id: "d1",
-					latex: String.raw`y_p(t) = A \cos(${w}t)`,
+					latex:
+						particular.resonanceMultiplicity === 0
+							? String.raw`y_p(t) = A \cos(${2 * w}t) + B \sin(${2 * w}t)`
+							: String.raw`y_p(t) = A \cos(${w}t) + B \sin(${w}t)`,
 					isCorrect: false,
-					feedback: String.raw`Missing Sine Component: Derivatives of cosine generate sine terms ($y_p' \propto \sin$), so both $A \cos(${w}t)$ and $B \sin(${w}t)$ are required.`,
+					feedback:
+						particular.resonanceMultiplicity === 0
+							? "Match the frequency of the forcing input."
+							: "Resonance requires one factor of $t$ multiplying the trigonometric pair.",
 				},
 				{
 					id: "d2",

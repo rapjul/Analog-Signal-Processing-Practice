@@ -14,16 +14,16 @@
 	 * - Step 7: Dual Response Decomposition & Conceptual Mastery (OdeStep7Decomposition)
 	 */
 
+	import OdeStep1CharEq from "$lib/components/solvers/ode-steps/OdeStep1CharEq.svelte";
+	import OdeStep2Roots from "$lib/components/solvers/ode-steps/OdeStep2Roots.svelte";
+	import OdeStep3Homogeneous from "$lib/components/solvers/ode-steps/OdeStep3Homogeneous.svelte";
+	import OdeStep4Ansatz from "$lib/components/solvers/ode-steps/OdeStep4Ansatz.svelte";
+	import OdeStep5Coefficients from "$lib/components/solvers/ode-steps/OdeStep5Coefficients.svelte";
+	import OdeStep6InitialConditions from "$lib/components/solvers/ode-steps/OdeStep6InitialConditions.svelte";
+	import OdeStep7Decomposition from "$lib/components/solvers/ode-steps/OdeStep7Decomposition.svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
 	import { OdeStepSolverState } from "./ode-step-solver.svelte";
-	import OdeStep1CharEq from "./ode-steps/OdeStep1CharEq.svelte";
-	import OdeStep2Roots from "./ode-steps/OdeStep2Roots.svelte";
-	import OdeStep3Homogeneous from "./ode-steps/OdeStep3Homogeneous.svelte";
-	import OdeStep4Ansatz from "./ode-steps/OdeStep4Ansatz.svelte";
-	import OdeStep5Coefficients from "./ode-steps/OdeStep5Coefficients.svelte";
-	import OdeStep6InitialConditions from "./ode-steps/OdeStep6InitialConditions.svelte";
-	import OdeStep7Decomposition from "./ode-steps/OdeStep7Decomposition.svelte";
 
 	interface Props {
 		/** Active ODE problem instance */
@@ -41,10 +41,10 @@
 	);
 
 	// Reset state when problem instance changes
-	let lastProblemId = "";
+	let lastProblem: OdeProblem | undefined;
 	$effect(() => {
-		if (problem.id !== lastProblemId) {
-			lastProblemId = problem.id;
+		if (problem !== lastProblem) {
+			lastProblem = problem;
 			solver.reset();
 		}
 	});

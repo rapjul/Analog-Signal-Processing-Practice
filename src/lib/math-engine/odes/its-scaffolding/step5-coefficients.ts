@@ -1,500 +1,430 @@
-/**
- * Step 5 Undetermined Coefficients ITS Scaffolding Builder.
- *
- * Formulates first and second derivative multiple-choice options, harmonic linear system setups,
- * and solved coefficient evaluations ($K_p$, $A$, $B$).
- */
-
-import { toFractionLatex } from "../../fraction";
-import { shuffleWithRandom } from "../../random";
+/** Step 5 derivatives and coefficient matching derived from structured trial functions. */
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import {
+	finiteOdeValue,
+	normalizeOdeForcing,
+} from "$lib/math-engine/odes/numerics";
 import type {
-	FirstOrderOdeItsStep5,
 	ForcingFunction,
 	OdeItsOption,
 	OdeItsStep5,
 	OdeOrder,
 	ParticularSolution,
-	SecondOrderOdeItsStep5,
-} from "../types";
+} from "$lib/math-engine/odes/types";
+import { shuffleWithRandom } from "$lib/math-engine/random";
+import {
+	combineTrialTerms,
+	differentiateTrial,
+	formatTrial,
+	type TrialTerm,
+	trialSignature,
+	uniqueOdeOptions,
+} from "./trial-algebra";
 
-/**
- * Parameters required to build Step 5 ITS data.
- */
+/** Inputs for the undetermined-coefficient teaching pipeline. */
 export interface BuildStep5Params {
-	/** Differential equation order (1 or 2) */
+	/** Differential order. */
 	resolvedOrder: OdeOrder;
-	/** Second-derivative coefficient $a_2$ */
+	/** Second derivative coefficient. */
 	a2: number;
-	/** First-derivative coefficient $a_1$ */
+	/** First derivative coefficient. */
 	a1: number;
-	/** Zero-derivative coefficient $a_0$ */
+	/** Zero derivative coefficient. */
 	a0: number;
-	/** Forcing function descriptor */
+	/** Input descriptor. */
 	forcing: ForcingFunction;
-	/** Particular solution computation results */
+	/** Analytical particular solution. */
 	particular: ParticularSolution;
-	/** Seeded random number generator */
+	/** Seeded random source. */
 	random: () => number;
 }
 
 /**
- * Builds the Step 5 (Undetermined Coefficients) ITS metadata.
- *
- * @param {BuildStep5Params} params Configuration parameters for Step 5
- * @returns {OdeItsStep5} First- or second-order Step 5 problem data, derivative choices, and hints
+ * Scales a structured expression without modifying its basis.
+ * @param terms - Original expression.
+ * @param scale - Multiplier.
+ * @returns Scaled terms.
+ */
+function scaleTrial(terms: TrialTerm[], scale: number): TrialTerm[] {
+	return terms.map(
+		/** Scales one term. @param term - Original term. */ (term) => ({
+			...term,
+			coefficient: term.coefficient * scale,
+		}),
+	);
+}
+
+/**
+ * Builds choices by applying algebraic mistakes to a correct derivative.
+ * @param terms - Correct derivative.
+ * @param rate - Exponential rate.
+ * @param frequency - Angular frequency.
+ * @param derivative - Derivative order for labels and identifiers.
+ * @param trial - Original trial for missing-rule distractors.
+ * @returns Distinct symbolic derivative choices.
+ */
+function derivativeChoices(
+	terms: TrialTerm[],
+	rate: number,
+	frequency: number,
+	derivative: 1 | 2,
+	trial: TrialTerm[],
+): OdeItsOption[] {
+	const prefix = derivative === 1 ? "y_p'(t)" : "y_p''(t)";
+	const constantTrial =
+		rate === 0 &&
+		trial.every(
+			/** Identifies a constant basis. @param term - Trial term. */
+			(term) => term.power === 0 && term.harmonic === "plain",
+		);
+	const candidates = [
+		{
+			id: `d${derivative}_correct`,
+			terms,
+			isCorrect: true,
+			feedback: undefined,
+		},
+		{
+			id: `d${derivative}_sign`,
+			terms: scaleTrial(terms, -1),
+			isCorrect: false,
+			feedback:
+				"Check the derivative signs, including the product and chain rules.",
+		},
+		{
+			id: `d${derivative}_missing_factor`,
+			terms: trial,
+			isCorrect: false,
+			feedback:
+				"Differentiate the trial function; retain every product-rule and chain-rule contribution.",
+		},
+		{
+			id: `d${derivative}_extra_term`,
+			terms: [
+				...terms,
+				{
+					coefficient: 1,
+					symbol: "K_p" as const,
+					power: constantTrial ? derivative : 0,
+					harmonic: "plain" as const,
+				},
+			],
+			isCorrect: false,
+			feedback:
+				"An extra term has been introduced. Differentiate each term separately.",
+		},
+	];
+	// Trigonometric trials use A and B throughout; do not invent a third unknown.
+	const extraCandidate = candidates[3];
+	if (
+		extraCandidate &&
+		trial.some(
+			/** Detects the harmonic trial. @param term - Trial term. */ (
+				term,
+			) => term.harmonic !== "plain",
+		)
+	)
+		extraCandidate.terms = [
+			...terms,
+			{ coefficient: 1, symbol: "A", power: 0, harmonic: "cos" },
+		];
+	return uniqueOdeOptions(
+		// Supply a distinct sign mistake even when an omitted factor happens to equal one.
+		[
+			...candidates,
+			{
+				id: `d${derivative}_partial_sign`,
+				terms: terms.map(
+					/** Flips only the first unknown's terms. @param term - Derivative term. */ (
+						term,
+					) => ({
+						...term,
+						coefficient:
+							term.coefficient * (term.symbol === "A" ? -1 : 1),
+					}),
+				),
+				isCorrect: false,
+				feedback:
+					"Check the signs of every differentiated trigonometric term.",
+			},
+		].map(
+			/** Formats a structured candidate. @param candidate - Derivative choice. */ (
+				candidate,
+			) => ({
+				id: candidate.id,
+				isCorrect: candidate.isCorrect,
+				feedback: candidate.feedback,
+				latex: `${prefix} = ${formatTrial(candidate.terms, rate, frequency)}`,
+				coefficients: trialSignature(candidate.terms),
+			}),
+		),
+	).slice(0, 4);
+}
+
+/**
+ * Derives the normalized trial and original-equation substitution.
+ * @param params - ODE coefficients, normalized input, and solved particular response.
+ * @returns Shared mathematical expressions for rendering and grading.
+ */
+function buildTrialContext(params: BuildStep5Params) {
+	const { resolvedOrder, a2, a1, a0, particular } = params;
+	const forcing = normalizeOdeForcing(params.forcing);
+	const rate =
+		forcing.type === "exponential"
+			? finiteOdeValue(forcing.p ?? Number.NaN, "Exponential rate")
+			: 0;
+	const frequency =
+		forcing.type === "sinusoid"
+			? finiteOdeValue(
+					forcing.omega ?? Number.NaN,
+					"Sinusoidal frequency",
+				)
+			: 1;
+	const power = particular.resonanceMultiplicity;
+	const trial: TrialTerm[] =
+		forcing.type === "sinusoid"
+			? [
+					{ coefficient: 1, symbol: "A", power, harmonic: "cos" },
+					{ coefficient: 1, symbol: "B", power, harmonic: "sin" },
+				]
+			: [{ coefficient: 1, symbol: "K_p", power, harmonic: "plain" }];
+	const first = differentiateTrial(trial, rate, frequency);
+	const second = differentiateTrial(first, rate, frequency);
+	const substituted = combineTrialTerms([
+		...scaleTrial(trial, a0),
+		...scaleTrial(first, a1),
+		...scaleTrial(second, resolvedOrder === 2 ? a2 : 0),
+	]);
+	const rhs: TrialTerm = {
+		coefficient: -forcing.K,
+		symbol: "input",
+		power: 0,
+		harmonic: forcing.type === "sinusoid" ? "cos" : "plain",
+	};
+	const equation = [...substituted, rhs];
+	return {
+		...params,
+		forcing,
+		rate,
+		frequency,
+		power,
+		trial,
+		first,
+		second,
+		substituted,
+		rhs,
+		equation,
+	};
+}
+
+/**
+ * Matches the independent basis functions in a substituted trial equation.
+ * @param equation - Structured terms with the forcing moved to the left.
+ * @returns Scalar equation or simultaneous system in LaTeX.
+ */
+function formatCoefficientSystem(equation: TrialTerm[]): string {
+	const rows = new Map<string, TrialTerm[]>();
+	for (const term of equation) {
+		const key = `${term.harmonic}:${term.power}`;
+		rows.set(key, [...(rows.get(key) ?? []), term]);
+	}
+	const equations: string[] = [];
+	for (const terms of rows.values()) {
+		const left = terms
+			.filter(
+				/** Selects unknown coefficients. @param term - Equation term. */ (
+					term,
+				) => term.symbol !== "input",
+			)
+			.map(
+				/** Removes the matched basis function. @param term - Unknown coefficient. */ (
+					term,
+				) => ({ ...term, power: 0, harmonic: "plain" as const }),
+			);
+		const target = -terms
+			.filter(
+				/** Selects the input amplitude. @param term - Equation term. */ (
+					term,
+				) => term.symbol === "input",
+			)
+			.reduce(
+				/** Adds known terms. @param sum - Accumulator. @param term - Input term. */ (
+					sum,
+					term,
+				) => sum + term.coefficient,
+				0,
+			);
+		equations.push(`${formatTrial(left)} = ${toFractionLatex(target)}`);
+	}
+	return equations.length === 1
+		? equations.join("")
+		: `\\begin{cases} ${equations.join(" \\\\ ")} \\end{cases}`;
+}
+
+/**
+ * Formats and signs a coefficient-system choice from one shared set of terms.
+ * @param id - Stable choice identifier.
+ * @param terms - Equation terms with the input moved to the left.
+ * @param isCorrect - Whether this is the original substituted equation.
+ * @param feedback - Explanation for an incorrect equation.
+ * @returns Display and mathematical signature derived from identical terms.
+ */
+function coefficientSystemChoice(
+	id: string,
+	terms: TrialTerm[],
+	isCorrect: boolean,
+	feedback?: string,
+): OdeItsOption {
+	return {
+		id,
+		latex: formatCoefficientSystem(terms),
+		isCorrect,
+		...(feedback === undefined ? {} : { feedback }),
+		coefficients: trialSignature(terms, true),
+	};
+}
+
+/**
+ * Builds distinct coefficient-matching choices from the same trial equation.
+ * @param context - Normalized trial and substituted equation.
+ * @returns Shuffled mathematical choices with a single correct answer.
+ */
+function buildSystemChoices(
+	context: ReturnType<typeof buildTrialContext>,
+): OdeItsOption[] {
+	const { forcing, trial, a0, substituted, rhs, equation, random } = context;
+	const systemCandidates: OdeItsOption[] = [
+		coefficientSystemChoice("sys_correct", equation, true),
+		coefficientSystemChoice(
+			"sys_wrong_target",
+			[...substituted, { ...rhs, coefficient: forcing.K }],
+			false,
+			"Match the sign and amplitude of the original forcing input.",
+		),
+		coefficientSystemChoice(
+			"sys_missing_derivatives",
+			[...scaleTrial(trial, a0), rhs],
+			false,
+			"Include the contributions of all derivatives in the original ODE.",
+		),
+		coefficientSystemChoice(
+			"sys_extra_input",
+			[...substituted, { ...rhs, coefficient: -(forcing.K + 1) }],
+			false,
+			"The coefficient on the right must match the original forcing amplitude.",
+		),
+	];
+	// Keep the existing five-choice harmonic layout without reintroducing equivalent equations.
+	for (
+		let offset = 2;
+		offset <= 5 && uniqueOdeOptions(systemCandidates).length < 5;
+		offset++
+	) {
+		const amplitude = forcing.K + offset;
+		systemCandidates.push(
+			coefficientSystemChoice(
+				`sys_amplitude_${offset}`,
+				[...substituted, { ...rhs, coefficient: -amplitude }],
+				false,
+				"Match the original forcing amplitude when equating coefficients.",
+			),
+		);
+	}
+	return shuffleWithRandom(
+		uniqueOdeOptions(systemCandidates).slice(0, 5),
+		random,
+	);
+}
+
+/**
+ * Builds derivatives, substitution equations, hints, and unambiguous choices.
+ * @param params - ODE coefficients, input, and solved particular response.
+ * @returns Order-specific teaching metadata.
  */
 export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
-	const { resolvedOrder, a2, a1, a0, forcing, particular, random } = params;
-
-	const polynomialAt = (s: number) =>
-		resolvedOrder === 1 ? a1 * s + a0 : a2 * s * s + a1 * s + a0;
-	const derivativeAt = (s: number) =>
-		resolvedOrder === 1 ? a1 : 2 * a2 * s + a1;
-
-	let step5FirstDerivLatex = "";
-	let step5SecondDerivLatex = "";
-	let step5DerivLatex = "";
-	let step5SysLatex = "";
-	let step5FirstDerivOptions: OdeItsOption[] = [];
-	let step5SecondDerivOptions: OdeItsOption[] = [];
-	let step5DerivativeOptions: OdeItsOption[] = [];
-	let step5SystemOptions: OdeItsOption[] = [];
-
-	if (forcing.type === "sinusoid") {
-		const w = forcing.omega ?? 1;
-		const w2 = w * w;
-		const m11 = a0 - a2 * w2;
-		const m12 = a1 * w;
-		const m21 = -a1 * w;
-		const m22 = a0 - a2 * w2;
-
-		step5FirstDerivLatex = String.raw`y_p'(t) = -${w}A \sin(${w}t) + ${w}B \cos(${w}t)`;
-		step5SecondDerivLatex = String.raw`y_p''(t) = -${w2}A \cos(${w}t) - ${w2}B \sin(${w}t)`;
-		step5DerivLatex = String.raw`${step5FirstDerivLatex}, \quad ${step5SecondDerivLatex}`;
-		step5SysLatex = String.raw`\begin{cases} (${m11})A + (${m12})B = ${forcing.K} \\ (${m21})A + (${m22})B = 0 \end{cases}`;
-
-		step5FirstDerivOptions = [
-			{
-				id: "d1_correct",
-				latex: step5FirstDerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "d1_sign_cos",
-				latex: String.raw`y_p'(t) = ${w}A \sin(${w}t) + ${w}B \cos(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Trig Sign Error: $\frac{d}{dt}\cos(${w}t) = -${w}\sin(${w}t)$, which introduces a negative sign on the sine term.`,
-			},
-			{
-				id: "d1_sign_sin",
-				latex: String.raw`y_p'(t) = -${w}A \sin(${w}t) - ${w}B \cos(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Trig Sign Error: $\frac{d}{dt}\sin(${w}t) = +${w}\cos(${w}t)$, maintaining a positive sign on the cosine term.`,
-			},
-			{
-				id: "d1_missing_factor",
-				latex:
-					w === 1
-						? String.raw`y_p'(t) = -2A \sin(${w}t) + 2B \cos(${w}t)`
-						: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Chain Rule Error: The inner derivative is $${w}$, so each term must have exactly that factor.`,
-			},
-		];
-
-		step5SecondDerivOptions = [
-			{
-				id: "d2_correct",
-				latex: step5SecondDerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "d2_positive_signs",
-				latex: String.raw`y_p''(t) = ${w2}A \cos(${w}t) + ${w2}B \sin(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Sign Error: Differentiating $\sin(${w}t)$ yields $+${w}\cos(${w}t)$ (preserving the preceding negative sign), and differentiating $\cos(${w}t)$ introduces another negative sign.`,
-			},
-			{
-				id: "d2_missing_square",
-				latex: String.raw`y_p''(t) = -${w === 1 ? 2 : w}A \cos(${w}t) - ${w === 1 ? 2 : w}B \sin(${w}t)`,
-				isCorrect: false,
-				feedback: `Chain Rule Error: Differentiating twice accumulates an inner factor of $(${w})^2 = ${w2}$.`,
-			},
-			{
-				id: "d2_sign_sin_term",
-				latex: String.raw`y_p''(t) = -${w2}A \cos(${w}t) + ${w2}B \sin(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Sign Error: The second derivative of $B\sin(${w}t)$ is $-${w2}B\sin(${w}t)$.`,
-			},
-		];
-
-		step5DerivativeOptions = [
-			{
-				id: "deriv_correct",
-				latex: step5DerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "deriv_sign_err",
-				latex: String.raw`y_p'(t) = ${w}A \sin(${w}t) - ${w}B \cos(${w}t), \quad y_p''(t) = ${w2}A \cos(${w}t) + ${w2}B \sin(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Sign Error in Derivatives: $\frac{d}{dt}\cos(${w}t) = -${w}\sin(${w}t)$ and $\frac{d}{dt}\sin(${w}t) = ${w}\cos(${w}t)$.`,
-			},
-			{
-				id: "deriv_missing_omega",
-				latex:
-					w === 1
-						? String.raw`y_p'(t) = -2A \sin(${w}t) + 2B \cos(${w}t), \quad y_p''(t) = -2A \cos(${w}t) - 2B \sin(${w}t)`
-						: String.raw`y_p'(t) = -A \sin(${w}t) + B \cos(${w}t), \quad y_p''(t) = -A \cos(${w}t) - B \sin(${w}t)`,
-				isCorrect: false,
-				feedback: String.raw`Chain Rule Error: The first derivative has a factor of $${w}$ and the second has a factor of $${w2}$.`,
-			},
-		];
-
-		step5SystemOptions = [
-			{
-				id: "sys_correct",
-				latex: step5SysLatex,
-				isCorrect: true,
-			},
-			{
-				id: "sys_sign_err",
-				latex: String.raw`\begin{cases} (${m11})A - (${m12})B = ${forcing.K} \\ (${m12})A + (${m22})B = 0 \end{cases}`,
-				isCorrect: false,
-				feedback: `Sign Error: Substituting $y_p', y_p''$ into $${a2}y'' + ${a1}y' + ${a0}y$ yields $(${m21})A + (${m22})B = 0$ for the sine equation.`,
-			},
-			{
-				id: "sys_missing_factor",
-				latex: String.raw`\begin{cases} (${m11})A + (${w === 1 ? 2 * a1 : a1})B = ${forcing.K} \\ (${-(w === 1 ? 2 * a1 : a1)})A + (${m22})B = 0 \end{cases}`,
-				isCorrect: false,
-				feedback: String.raw`Incorrect Inner Factor: The first derivative term contributes exactly $a_1 \cdot ${w} = ${m12}$.`,
-			},
-			{
-				id: "sys_uncoupled",
-				latex: String.raw`\begin{cases} (${a0})A = ${forcing.K} \\ (${a0})B = 0 \end{cases}`,
-				isCorrect: false,
-				feedback: String.raw`Missing Derivatives: You must include contributions from $y_p''$ ($-${w2}$) and $y_p'$ ($a_1 \cdot ${w} = ${m12}$) in the grouped harmonic terms.`,
-			},
-			{
-				id: "sys_wrong_target",
-				latex: String.raw`\begin{cases} (${m11})A + (${m12})B = 0 \\ (${m21})A + (${m22})B = ${forcing.K} \end{cases}`,
-				isCorrect: false,
-				feedback: String.raw`Target Forcing Error: The input $x(t) = ${forcing.K}\cos(${w}t)$ is pure cosine, so the cosine sum equates to $${forcing.K}$ and the sine sum equates to $0$.`,
-			},
-		];
-	} else if (forcing.type === "constant") {
-		step5FirstDerivLatex = "y_p'(t) = 0";
-		step5SecondDerivLatex = "y_p''(t) = 0";
-		step5DerivLatex = String.raw`y_p'(t) = 0, \quad y_p''(t) = 0`;
-		step5SysLatex = `${a0} K_p = ${forcing.K}`;
-
-		step5FirstDerivOptions = [
-			{ id: "d1_const_correct", latex: "y_p'(t) = 0", isCorrect: true },
-			{
-				id: "d1_const_err",
-				latex: "y_p'(t) = K_p",
-				isCorrect: false,
-				feedback:
-					"The derivative of a constant $K_p$ with respect to time $t$ is strictly 0.",
-			},
-			{
-				id: "d1_const_t",
-				latex: "y_p'(t) = t K_p",
-				isCorrect: false,
-				feedback: "A constant $K_p$ does not depend on time.",
-			},
-		];
-		step5SecondDerivOptions = [
-			{ id: "d2_const_correct", latex: "y_p''(t) = 0", isCorrect: true },
-			{
-				id: "d2_const_err",
-				latex: "y_p''(t) = K_p",
-				isCorrect: false,
-				feedback:
-					"The second derivative of a constant $K_p$ with respect to time $t$ is strictly 0.",
-			},
-			{
-				id: "d2_const_t",
-				latex: "y_p''(t) = t^2 K_p",
-				isCorrect: false,
-				feedback: "A constant $K_p$ does not depend on time.",
-			},
-		];
-		step5DerivativeOptions = [
-			{
-				id: "deriv_correct",
-				latex: step5DerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "deriv_nonzero",
-				latex: String.raw`y_p'(t) = K_p, \quad y_p''(t) = K_p`,
-				isCorrect: false,
-				feedback:
-					"Derivative of a constant: The derivative of any constant $K_p$ with respect to time is strictly zero.",
-			},
-		];
-		step5SystemOptions = [
-			{
-				id: "sys_correct",
-				latex: step5SysLatex,
-				isCorrect: true,
-			},
-			{
-				id: "sys_nonzero_deriv",
-				latex: `(1 + ${a1} + ${a0}) K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback:
-					"Derivatives of the constant $y_p(t) = K_p$ vanish: $y_p' = 0$ and $y_p'' = 0$.",
-			},
-			{
-				id: "sys_missing_a0",
-				latex: `K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `You must multiply $y_p(t) = K_p$ by the coefficient $a_0 = ${a0}$ in the ODE.`,
-			},
-			{
-				id: "sys_sign_err",
-				latex: `-${a0} K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `Sign Error: Maintain the positive coefficient $a_0 = ${a0}$.`,
-			},
-		];
-	} else {
-		const p = forcing.p ?? 0;
-		const multiplicity = particular.resonanceMultiplicity;
-		const polyAtP = polynomialAt(p);
-		const systemCoefficient =
-			multiplicity === 0
-				? polyAtP
-				: multiplicity === 1
-					? derivativeAt(p)
-					: 2 * a2;
-		step5FirstDerivLatex =
-			multiplicity === 0
-				? `y_p'(t) = ${p} K_p e^{${p}t}`
-				: multiplicity === 1
-					? `y_p'(t) = K_p(1 + ${p}t)e^{${p}t}`
-					: `y_p'(t) = K_p(2t + ${p}t^2)e^{${p}t}`;
-		step5SecondDerivLatex =
-			multiplicity === 0
-				? `y_p''(t) = ${p * p} K_p e^{${p}t}`
-				: multiplicity === 1
-					? `y_p''(t) = K_p(${2 * p} + ${p * p}t)e^{${p}t}`
-					: `y_p''(t) = K_p(2 + ${4 * p}t + ${p * p}t^2)e^{${p}t}`;
-		step5DerivLatex = String.raw`${step5FirstDerivLatex}, \quad ${step5SecondDerivLatex}`;
-		step5SysLatex = `${systemCoefficient} K_p = ${forcing.K}`;
-
-		step5FirstDerivOptions = [
-			{
-				id: "d1_exp_correct",
-				latex: step5FirstDerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "d1_exp_sign",
-				latex: `y_p'(t) = ${-p} K_p e^{${p}t}`,
-				isCorrect: false,
-				feedback: `Chain Rule Sign: Differentiating $e^{${p}t}$ brings down $+${p}$, not $${-p}$.`,
-			},
-			{
-				id: "d1_exp_nofactor",
-				latex: `y_p'(t) = K_p e^{${p}t}`,
-				isCorrect: false,
-				feedback: `Chain Rule Error: Differentiating $e^{${p}t}$ pulls down an inner factor of $p = ${p}$.`,
-			},
-		];
-		step5SecondDerivOptions = [
-			{
-				id: "d2_exp_correct",
-				latex: step5SecondDerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "d2_exp_linear",
-				latex: `y_p''(t) = ${p} K_p e^{${p}t}`,
-				isCorrect: false,
-				feedback: `Chain Rule Error: Differentiating twice squares the factor: $(${p})^2 = ${p * p}$.`,
-			},
-			{
-				id: "d2_exp_neg",
-				latex: `y_p''(t) = -${p * p} K_p e^{${p}t}`,
-				isCorrect: false,
-				feedback: `Sign Error: Squaring $(${p})^2$ is strictly positive ($${p * p}$).`,
-			},
-		];
-		step5DerivativeOptions = [
-			{
-				id: "deriv_correct",
-				latex: step5DerivLatex,
-				isCorrect: true,
-			},
-			{
-				id: "deriv_missing_p",
-				latex: String.raw`y_p'(t) = K_p e^{${p}t}, \quad y_p''(t) = K_p e^{${p}t}`,
-				isCorrect: false,
-				feedback: String.raw`Chain Rule Error: $\frac{d}{dt} e^{${p}t} = ${p} e^{${p}t}$ and $\frac{d^2}{dt^2} e^{${p}t} = ${p * p} e^{${p}t}$.`,
-			},
-		];
-		step5SystemOptions = [
-			{
-				id: "sys_correct",
-				latex: step5SysLatex,
-				isCorrect: true,
-			},
-			{
-				id: "sys_sign_lin",
-				latex: `${p * p - a1 * p + a0} K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `Sign Error: The linear term $+${a1} y'$ contributes $+${a1}(${p}) = +${a1 * p}$, not $-${a1 * p}$.`,
-			},
-			{
-				id: "sys_no_chain",
-				latex: `${1 + a1 + a0} K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `Missing Chain Rule Factors: $y_p''$ produces $(${p})^2 = ${p * p}$ and $y_p'$ produces $${p}$.`,
-			},
-			{
-				id: "sys_missing_second_power",
-				latex: `${p + a1 * p + a0} K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `Power Error: The second derivative contributes $p^2 = ${p * p}$, not $p = ${p}$.`,
-			},
-			{
-				id: "sys_missing_a0",
-				latex: `${p * p + a1 * p + 1} K_p = ${forcing.K}`,
-				isCorrect: false,
-				feedback: `Coefficient Error: The zero-derivative term is $a_0 y = ${a0} y$, contributing $+${a0}$.`,
-			},
-		];
-	}
-
-	if (resolvedOrder === 1) {
-		const step5FirstOrder: FirstOrderOdeItsStep5 = {
-			expectedKp: particular.coeffs.Kp,
-			expectedA: particular.coeffs.A,
-			expectedB: particular.coeffs.B,
-			derivativeOptions: shuffleWithRandom(
-				step5DerivativeOptions,
-				random,
-			),
-			firstDerivativeOptions: shuffleWithRandom(
-				step5FirstDerivOptions,
-				random,
-			),
-			systemOptions: shuffleWithRandom(step5SystemOptions, random),
-			derivativesLatex: step5DerivLatex,
-			firstDerivLatex: step5FirstDerivLatex,
-			systemLatex: step5SysLatex,
-			hints: [
-				"Find $y_p'(t)$ and substitute $y_p$, $y_p'$ into the ODE.",
-				"Collect like terms and equate coefficients with the right-hand side forcing input $x(t)$.",
-				forcing.type === "constant"
-					? `Solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
-					: forcing.type === "exponential"
-						? `After substitution, solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
-						: String.raw`Set up the $2\times 2$ system for $A$ and $B$ and solve.`,
-			],
-			subStepHints: {
-				first_deriv: [
-					"Apply differentiation rules to your trial ansatz $y_p(t)$.",
-					forcing.type === "sinusoid"
-						? String.raw`For $y_p(t) = A\cos(${forcing.omega}t) + B\sin(${forcing.omega}t)$, apply $\frac{d}{dt}\cos(${forcing.omega}t) = -${forcing.omega}\sin(${forcing.omega}t)$ and $\frac{d}{dt}\sin(${forcing.omega}t) = +${forcing.omega}\cos(${forcing.omega}t)$.`
-						: forcing.type === "exponential"
-							? particular.resonanceMultiplicity === 0
-								? `For $y_p(t)=K_pe^{${forcing.p}t}$, bring down $p=${forcing.p}$.`
-								: "Apply the product rule to the resonance multiplier and the exponential."
-							: "The derivative of a constant is strictly zero.",
-					`$${step5FirstDerivLatex}$`,
-				],
-				system_setup: [
-					`Substitute $y_p$ and $y_p'$ into $${a1}y' + ${a0}y=x(t)$.`,
-					"Collect like functional terms on the left-hand side and equate their coefficients to the right-hand side forcing input.",
-					`Linear system: $${step5SysLatex}$`,
-				],
-				solve: [
-					forcing.type === "sinusoid"
-						? String.raw`Solve the $2\times 2$ linear system for coefficients $A$ and $B$.`
-						: "Solve the linear algebraic equation for the undetermined scale factor $K_p$.",
-					forcing.type === "sinusoid"
-						? `From the system, substitute or eliminate to obtain $A$ (cos term) and $B$ (sin term).`
-						: `Divide the forcing amplitude by the evaluated polynomial value.`,
-					forcing.type === "sinusoid"
-						? String.raw`Coefficients: $A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
-						: `Coefficient: $K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`,
-				],
-			},
-		};
-		return step5FirstOrder;
-	}
-
-	const step5SecondOrder: SecondOrderOdeItsStep5 = {
+	const context = buildTrialContext(params);
+	const {
+		resolvedOrder,
+		a2,
+		a1,
+		a0,
+		particular,
+		random,
+		forcing,
+		rate,
+		frequency,
+		power,
+		trial,
+		first,
+		second,
+		equation,
+	} = context;
+	const systemLatex = formatCoefficientSystem(equation);
+	const firstDerivLatex = `y_p'(t) = ${formatTrial(first, rate, frequency)}`;
+	const substitutionLatex = `${resolvedOrder === 2 ? `${toFractionLatex(a2)}\\left(${formatTrial(second, rate, frequency)}\\right) + ` : ""}${toFractionLatex(a1)}\\left(${formatTrial(first, rate, frequency)}\\right) + ${toFractionLatex(a0)}\\left(${formatTrial(trial, rate, frequency)}\\right) = ${forcing.latex}`;
+	const secondDerivLatex = `y_p''(t) = ${formatTrial(second, rate, frequency)}`;
+	const firstDerivativeOptions = shuffleWithRandom(
+		derivativeChoices(first, rate, frequency, 1, trial),
+		random,
+	);
+	const secondDerivativeOptions = shuffleWithRandom(
+		derivativeChoices(second, rate, frequency, 2, trial),
+		random,
+	);
+	const systemOptions = buildSystemChoices(context);
+	const solved =
+		forcing.type === "sinusoid"
+			? `$A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \\quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
+			: `$K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`;
+	const derivativeHint =
+		power > 0
+			? "Apply the product rule to the resonance multiplier and every remaining factor."
+			: forcing.type === "constant"
+				? "The derivative of a constant is zero."
+				: "Apply the chain rule, retaining the input rate or angular frequency.";
+	const common = {
 		expectedKp: particular.coeffs.Kp,
 		expectedA: particular.coeffs.A,
 		expectedB: particular.coeffs.B,
-		derivativeOptions: shuffleWithRandom(step5DerivativeOptions, random),
-		firstDerivativeOptions: shuffleWithRandom(
-			step5FirstDerivOptions,
-			random,
-		),
-		secondDerivativeOptions: shuffleWithRandom(
-			step5SecondDerivOptions,
-			random,
-		),
-		systemOptions: shuffleWithRandom(step5SystemOptions, random),
-		derivativesLatex: step5DerivLatex,
-		firstDerivLatex: step5FirstDerivLatex,
-		secondDerivLatex: step5SecondDerivLatex,
-		systemLatex: step5SysLatex,
+		firstDerivativeOptions,
+		derivativeOptions: firstDerivativeOptions,
+		systemOptions,
+		firstDerivLatex,
+		derivativesLatex:
+			resolvedOrder === 1
+				? firstDerivLatex
+				: `${firstDerivLatex}, \\quad ${secondDerivLatex}`,
+		systemLatex,
+		substitutionLatex,
 		hints: [
-			"Find $y_p'(t)$ and $y_p''(t)$ and substitute them into the ODE.",
-			"Collect like terms and equate coefficients with the right-hand side forcing input $x(t)$.",
-			forcing.type === "constant"
-				? `Solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
-				: forcing.type === "exponential"
-					? `After substitution, solve $${step5SysLatex}$ to get $K_p=${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`
-					: String.raw`Set up the $2\times 2$ system for $A$ and $B$ and solve.`,
+			"Differentiate the trial solution before substituting into the original ODE.",
+			`Match coefficients: $${systemLatex}$.`,
+			`Solve the resulting equation(s): ${solved}`,
 		],
 		subStepHints: {
 			first_deriv: [
-				"Apply differentiation rules to your trial ansatz $y_p(t)$.",
-				forcing.type === "sinusoid"
-					? String.raw`For $y_p(t) = A\cos(${forcing.omega}t) + B\sin(${forcing.omega}t)$, apply $\frac{d}{dt}\cos(${forcing.omega}t) = -${forcing.omega}\sin(${forcing.omega}t)$ and $\frac{d}{dt}\sin(${forcing.omega}t) = +${forcing.omega}\cos(${forcing.omega}t)$.`
-					: forcing.type === "exponential"
-						? particular.resonanceMultiplicity === 0
-							? `For $y_p(t)=K_pe^{${forcing.p}t}$, bring down $p=${forcing.p}$.`
-							: "Apply the product rule to the resonance multiplier and the exponential."
-						: "The derivative of a constant is strictly zero.",
-				`$${step5FirstDerivLatex}$`,
+				"Differentiate the trial solution once.",
+				derivativeHint,
+				`$${firstDerivLatex}$`,
 			],
 			second_deriv: [
-				"Differentiate the first derivative $y_p'(t)$ one more time.",
-				forcing.type === "sinusoid"
-					? `Differentiating again multiplies each term by an additional factor of ${forcing.omega}, resulting in $(${forcing.omega})^2 = ${(forcing.omega ?? 1) ** 2}$.`
-					: forcing.type === "exponential"
-						? particular.resonanceMultiplicity === 0
-							? `Differentiating again produces $p^2=${(forcing.p ?? 0) ** 2}$.`
-							: "Apply the product rule again, retaining every polynomial-in-$t$ term."
-						: "The second derivative of a constant is strictly zero.",
-				`$${step5SecondDerivLatex}$`,
+				"Differentiate the first derivative once more.",
+				derivativeHint,
+				`$${secondDerivLatex}$`,
 			],
 			system_setup: [
-				`Substitute $y_p$, $y_p'$, and $y_p''$ into $${a2}y'' + ${a1}y' + ${a0}y=x(t)$.`,
-				"Collect like functional terms on the left-hand side and equate their coefficients to the right-hand side forcing input.",
-				`Linear system: $${step5SysLatex}$`,
+				"Substitute the trial and its derivatives, retaining the ODE coefficients.",
+				"Match coefficients of each independent basis function.",
+				`$${systemLatex}$`,
 			],
 			solve: [
-				forcing.type === "sinusoid"
-					? String.raw`Solve the $2\times 2$ linear system for coefficients $A$ and $B$.`
-					: "Solve the linear algebraic equation for the undetermined scale factor $K_p$.",
-				forcing.type === "sinusoid"
-					? `From the system, substitute or eliminate to obtain $A$ (cos term) and $B$ (sin term).`
-					: `Divide the forcing amplitude by the evaluated polynomial value.`,
-				forcing.type === "sinusoid"
-					? String.raw`Coefficients: $A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
-					: `Coefficient: $K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`,
+				"Solve the coefficient-matching equation(s).",
+				`Use $${systemLatex}$.`,
+				`Coefficients: ${solved}`,
 			],
 		},
 	};
-	return step5SecondOrder;
+	return resolvedOrder === 1
+		? common
+		: { ...common, secondDerivativeOptions, secondDerivLatex };
 }

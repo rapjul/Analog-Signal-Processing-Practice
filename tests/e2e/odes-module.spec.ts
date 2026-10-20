@@ -9,8 +9,8 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("LCC ODEs Practice Module", () => {
-	/** Verifies a decaying forced response is accepted as transient with zero steady-state. @param fixtures - Browser fixtures. */
-	test("grades decaying resonance as transient with zero steady-state @dev-harness", async ({
+	/** Verifies the algebraic split and the explanation of zero steady-state for decaying forcing. @param fixtures - Browser fixtures. */
+	test("grades decaying resonance through homogeneous and particular choices @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto(
@@ -34,6 +34,7 @@ test.describe("LCC ODEs Practice Module", () => {
 				),
 		);
 		const active = page.locator(".step-card.active");
+		await expect(active).toContainText("entire response is transient");
 		const transient = active.locator(".classification-group").first();
 		const steady = active.locator(".classification-group").last();
 		await expect(transient.locator(".mcq-card annotation")).toHaveCount(3);
@@ -46,17 +47,18 @@ test.describe("LCC ODEs Practice Module", () => {
 			.allTextContents();
 		expect(new Set(transientFormulas).size).toBe(3);
 		expect(new Set(steadyFormulas).size).toBe(3);
-		const complete = transientFormulas.findIndex(
-			/** @param formula - Candidate transient equation. */
-			(formula) => formula.includes("4 t e^{-t}"),
-		);
+		const complete = transientFormulas.indexOf("y_h(t) = 0");
 		expect(complete).toBeGreaterThanOrEqual(0);
 		await transient.locator(".mcq-card").nth(complete).click();
-		const zeroSteady = steadyFormulas.indexOf("y_{ss}(t) = 0");
+		const zeroSteady = steadyFormulas.findIndex(
+			/** Finds the resonant particular contribution. @param formula - Candidate particular equation. */ (
+				formula,
+			) => formula.includes("4 t e^{-t}"),
+		);
 		expect(zeroSteady).toBeGreaterThanOrEqual(0);
 		await steady.locator(".mcq-card").nth(zeroSteady).click();
 		await active
-			.getByRole("button", { name: "Verify Transient & Steady-State" })
+			.getByRole("button", { name: /Verify Homogeneous & Particular/ })
 			.click();
 		await expect(
 			active.getByText("Targeted Conceptual Mastery Check"),
@@ -90,22 +92,15 @@ test.describe("LCC ODEs Practice Module", () => {
 		const choices = first.locator(".mcq-card");
 		await expect(choices).toHaveCount(4);
 		const formulas = await choices.locator("annotation").allTextContents();
-		const correct = formulas.indexOf(
-			String.raw`y_p'(t) = -1A \sin(1t) + 1B \cos(1t)`,
-		);
-		expect(correct).toBeGreaterThanOrEqual(0);
-		await choices.nth(correct).click();
+		expect(new Set(formulas).size).toBe(4);
+		await first.locator('[data-option-id="d1_correct"]').click();
 		await expect(first).toHaveClass(/subpart-done/);
 		const second = active.locator(".subpart-block").nth(1);
 		const secondFormulas = await second
 			.locator(".mcq-card annotation")
 			.allTextContents();
 		expect(new Set(secondFormulas).size).toBe(4);
-		const secondCorrect = secondFormulas.indexOf(
-			String.raw`y_p''(t) = -1A \cos(1t) - 1B \sin(1t)`,
-		);
-		expect(secondCorrect).toBeGreaterThanOrEqual(0);
-		await second.locator(".mcq-card").nth(secondCorrect).click();
+		await second.locator('[data-option-id="d2_correct"]').click();
 		await expect(second).toHaveClass(/subpart-done/);
 	});
 
