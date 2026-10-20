@@ -69,7 +69,8 @@ export const isFourierWaveformType = isFourierSeriesWaveformType;
  * @returns {number} Equivalent sample in [-T0/2, T0/2)
  */
 function wrapCenteredTime(t: number, T0: number): number {
-	return ((((t + T0 / 2) % T0) + T0) % T0) - T0 / 2;
+	const phase = (t % T0) / T0;
+	return (phase >= 0.5 ? phase - 1 : phase < -0.5 ? phase + 1 : phase) * T0;
 }
 
 /**
@@ -97,6 +98,16 @@ export function computeFourierSeriesCoefficients(
 		);
 	}
 	const w0 = (2 * Math.PI) / T0;
+	if (!Number.isFinite(w0) || T0 / 4 === 0) {
+		throw new RangeError(
+			"Fourier period must produce a finite frequency and nonzero quarter-period.",
+		);
+	}
+	if (!Number.isFinite(A * A) || (A * A) / 4 === 0) {
+		throw new RangeError(
+			"Fourier amplitude must produce representable signal power.",
+		);
+	}
 
 	/**
 	 * Completes a real trigonometric coefficient definition with exponential
@@ -120,12 +131,29 @@ export function computeFourierSeriesCoefficients(
 		hasJumpDiscontinuities: boolean;
 	}): FourierSeriesCoefficients {
 		/**
+		 * Validates a trigonometric harmonic before evaluating its coefficient.
+		 * @param evaluate - Waveform-specific coefficient evaluator.
+		 * @param n - Positive safe integer harmonic index.
+		 * @returns The evaluated real coefficient.
+		 */
+		function evaluateHarmonic(
+			evaluate: (n: number) => number,
+			n: number,
+		): number {
+			if (!Number.isSafeInteger(n) || n < 1) {
+				throw new RangeError(
+					"Trigonometric harmonic index must be a positive safe integer.",
+				);
+			}
+			return evaluate(n);
+		}
+		/**
 		 * Evaluates the exponential coefficient for an integer harmonic index.
 		 * @param {number} n Integer harmonic index
 		 * @returns {ComplexCoefficient} Exponential Fourier coefficient F_n
 		 */
 		const Fn = (n: number): ComplexCoefficient => {
-			if (!Number.isInteger(n)) {
+			if (!Number.isSafeInteger(n)) {
 				throw new RangeError(
 					"Fourier harmonic index n must be an integer.",
 				);
@@ -147,8 +175,10 @@ export function computeFourierSeriesCoefficients(
 			originParity: definition.originParity,
 			hasHalfWaveSymmetry: definition.hasHalfWaveSymmetry,
 			hasJumpDiscontinuities: definition.hasJumpDiscontinuities,
-			an: definition.an,
-			bn: definition.bn,
+			/** @param n - Positive harmonic index. @returns Cosine coefficient. */
+			an: (n: number): number => evaluateHarmonic(definition.an, n),
+			/** @param n - Positive harmonic index. @returns Sine coefficient. */
+			bn: (n: number): number => evaluateHarmonic(definition.bn, n),
 			Fn,
 		};
 	}
@@ -309,24 +339,23 @@ export function evaluateFourierSeriesWaveform(
 		case "square_odd":
 			return centered >= 0 ? A : -A;
 		case "square_even":
-			return Math.abs(centered) < T0 / 4 ? A : -A;
+			return centered >= -T0 / 4 && centered < T0 / 4 ? A : -A;
 		case "triangle":
 		case "triangle_even":
-			return A * (1 - (4 * Math.abs(centered)) / T0);
+			return A * (1 - 4 * (Math.abs(centered) / T0));
 		case "triangle_odd": {
 			const shifted = wrapCenteredTime(centered - T0 / 4, T0);
-			return A * (1 - (4 * Math.abs(shifted)) / T0);
+			return A * (1 - 4 * (Math.abs(shifted) / T0));
 		}
 		case "sawtooth":
-			return (2 * A * centered) / T0;
+			return 2 * A * (centered / T0);
 		case "half_wave_sine": {
-			const positivePeriod = ((t % T0) + T0) % T0;
-			return positivePeriod < T0 / 2
-				? A * Math.sin(coeffs.w0 * positivePeriod)
-				: 0;
+			const remainder = (t % T0) / T0;
+			const phase = remainder < 0 ? remainder + 1 : remainder;
+			return phase < 0.5 ? A * Math.sin(2 * Math.PI * phase) : 0;
 		}
 		case "full_wave_sine":
-			return A * Math.abs(Math.sin((Math.PI * centered) / T0));
+			return A * Math.abs(Math.sin(Math.PI * (centered / T0)));
 		default: {
 			const _exhaustiveCheck: never = waveformType;
 			throw new Error(
@@ -351,7 +380,7 @@ export function computePartialSum(
 	N: number,
 	t: number,
 ): number {
-	if (!Number.isInteger(N) || N < 0) {
+	if (!Number.isSafeInteger(N) || N < 0) {
 		throw new RangeError(
 			"Fourier harmonic count N must be a non-negative integer.",
 		);
@@ -360,21 +389,21 @@ export function computePartialSum(
 		throw new RangeError("Fourier partial-sum time t must be finite.");
 	}
 	let sum = coeffs.a0 / 2;
+	const phase = 2 * Math.PI * ((t % coeffs.T0) / coeffs.T0);
 	for (let n = 1; n <= N; n++) {
 		const anVal = coeffs.an(n);
 		const bnVal = coeffs.bn(n);
 		if (anVal !== 0) {
-			sum += anVal * Math.cos(n * coeffs.w0 * t);
+			sum += anVal * Math.cos(n * phase);
 		}
 		if (bnVal !== 0) {
-			sum += bnVal * Math.sin(n * coeffs.w0 * t);
+			sum += bnVal * Math.sin(n * phase);
 		}
 	}
 	return sum;
 }
 
 /**
- * /**
  * Computes total signal power and power in first N harmonics via Parseval's Theorem.
  * @param {FourierSeriesCoefficients} coeffs Waveform coefficients
  * @param {number} N Harmonic limit
@@ -384,7 +413,7 @@ export function computeSignalPower(
 	coeffs: FourierSeriesCoefficients,
 	N: number,
 ): SignalPower {
-	if (!Number.isInteger(N) || N < 0) {
+	if (!Number.isSafeInteger(N) || N < 0) {
 		throw new RangeError(
 			"Fourier harmonic count N must be a non-negative integer.",
 		);
@@ -418,20 +447,35 @@ export function computeSignalPower(
 		}
 	}
 
-	let harmonicPower = (coeffs.a0 * coeffs.a0) / 4;
+	let normalizedPower = (coeffs.a0 / coeffs.A / 2) ** 2;
 	for (let n = 1; n <= N; n++) {
-		const an = coeffs.an(n);
-		const bn = coeffs.bn(n);
+		const an = coeffs.an(n) / coeffs.A;
+		const bn = coeffs.bn(n) / coeffs.A;
 		// Parseval: P = a0^2/4 + 1/2 sum (an^2 + bn^2)
-		harmonicPower += 0.5 * (an * an + bn * bn);
+		normalizedPower += 0.5 * (an * an + bn * bn);
 	}
 
-	const powerRatio = totalPower > 0 ? harmonicPower / totalPower : 0;
+	const unitPower = computeUnitSignalPower(coeffs.waveformType);
+	const powerRatio = normalizedPower / unitPower;
 	return {
 		totalPower,
-		harmonicPower,
+		harmonicPower: coeffs.A * coeffs.A * normalizedPower,
 		powerRatio: Math.min(1.0, powerRatio),
 	};
+}
+
+/**
+ * Returns average power for a waveform of unit amplitude.
+ * @param waveformType - Supported waveform family.
+ * @returns The amplitude-independent average power.
+ */
+function computeUnitSignalPower(
+	waveformType: FourierSeriesWaveformType,
+): number {
+	if (waveformType === "half_wave_sine") return 1 / 4;
+	if (waveformType === "full_wave_sine") return 1 / 2;
+	if (waveformType.startsWith("square")) return 1;
+	return 1 / 3;
 }
 
 /**
@@ -446,22 +490,22 @@ export function computeHarmonicPowerThresholds(
 	coeffs: FourierSeriesCoefficients,
 	maxHarmonics = 100_000,
 ): HarmonicPowerThresholds {
-	if (!Number.isInteger(maxHarmonics) || maxHarmonics < 1) {
+	if (!Number.isSafeInteger(maxHarmonics) || maxHarmonics < 1) {
 		throw new RangeError(
 			"Fourier threshold search limit must be a positive integer.",
 		);
 	}
 
-	const totalPower = computeSignalPower(coeffs, 0).totalPower;
-	let cumulativePower = (coeffs.a0 * coeffs.a0) / 4;
+	const totalPower = computeUnitSignalPower(coeffs.waveformType);
+	let cumulativePower = (coeffs.a0 / coeffs.A / 2) ** 2;
 	let n90: number | undefined;
 	let n95: number | undefined;
 	let n99: number | undefined;
 
 	for (let n = 0; n <= maxHarmonics; n += 1) {
 		if (n > 0) {
-			const an = coeffs.an(n);
-			const bn = coeffs.bn(n);
+			const an = coeffs.an(n) / coeffs.A;
+			const bn = coeffs.bn(n) / coeffs.A;
 			cumulativePower += 0.5 * (an * an + bn * bn);
 		}
 		const ratio = totalPower > 0 ? cumulativePower / totalPower : 0;
