@@ -5,12 +5,15 @@
  * and misconception explanations for constant, exponential, and sinusoidal forcing functions.
  */
 
-import { finiteOdeValue, normalizeOdeForcing } from "../numerics";
+import {
+	finiteOdeValue,
+	normalizeOdeForcing,
+} from "$lib/math-engine/odes/numerics";
 import type {
 	ForcingFunction,
 	OdeItsOption,
 	ParticularSolution,
-} from "../types";
+} from "$lib/math-engine/odes/types";
 
 /**
  * Parameters required to build Step 4 ITS data.

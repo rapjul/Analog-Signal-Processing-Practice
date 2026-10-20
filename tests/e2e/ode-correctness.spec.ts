@@ -1,11 +1,11 @@
 /** Real-form regressions for scalar, harmonic, and resonant ODE practice. */
 import { expect, type Page, test } from "@playwright/test";
-import { generateOdeProblem } from "../../src/lib/math-engine/odes/generator";
+import { generateOdeProblem } from "$lib/math-engine/odes/generator";
 import type {
 	OdeGenerationOptions,
 	OdeProblem,
-} from "../../src/lib/math-engine/odes/types";
-import { parseOdeFilters } from "../../src/lib/problems/ode-filters";
+} from "$lib/math-engine/odes/types";
+import { parseOdeFilters } from "$lib/problems/ode-filters";
 
 /**
  * Solves all seven checkpoints through visible controls, without developer shortcuts.

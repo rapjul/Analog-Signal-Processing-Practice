@@ -5,7 +5,11 @@
  * and ITS step data contracts for 1st- and 2nd-order Linear Constant-Coefficient ODEs.
  */
 
-import type { BaseItsStep, ItsOption, WithRandom } from "../types";
+import type {
+	BaseItsStep,
+	ItsOption,
+	WithRandom,
+} from "$lib/math-engine/types";
 
 /**
  * Classification of characteristic polynomial roots for first-order differential equations.

@@ -3,10 +3,10 @@ import {
 	formatExpTerm,
 	formatSignedLinearTerm,
 	sanitizeLatexMath,
-} from "../../formatting";
-import { toFractionLatex } from "../../fraction";
-import { isOdeRoundoffZero } from "../numerics";
-import type { OdeItsOption } from "../types";
+} from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import { isOdeRoundoffZero } from "$lib/math-engine/odes/numerics";
+import type { OdeItsOption } from "$lib/math-engine/odes/types";
 
 /** One coefficient of an undetermined-constant trial function. */
 export interface TrialTerm {

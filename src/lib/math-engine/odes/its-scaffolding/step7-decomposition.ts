@@ -6,9 +6,11 @@
  * and randomized conceptual mastery question pools.
  */
 
-import { formatExpTerm, formatSignedLinearTerm } from "../../formatting";
-import { toFractionLatex } from "../../fraction";
-import { randomChoice, shuffleWithRandom } from "../../random";
+import {
+	formatExpTerm,
+	formatSignedLinearTerm,
+} from "$lib/math-engine/formatting";
+import { toFractionLatex } from "$lib/math-engine/fraction";
 import type {
 	FirstOrderOdeItsStep7,
 	HomogeneousSolution,
@@ -21,7 +23,8 @@ import type {
 	ParticularSolution,
 	SecondOrderOdeItsStep7,
 	SecondOrderRootType,
-} from "../types";
+} from "$lib/math-engine/odes/types";
+import { randomChoice, shuffleWithRandom } from "$lib/math-engine/random";
 import { uniqueOdeOptions } from "./trial-algebra";
 
 /**

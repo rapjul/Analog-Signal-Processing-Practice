@@ -6,6 +6,15 @@
  */
 
 import { formatOdeLhs, sanitizeLatexMath } from "$lib/math-engine/formatting";
+import {
+	buildStep1Data,
+	buildStep2Data,
+	buildStep3Data,
+	buildStep4Data,
+	buildStep5Data,
+	buildStep6Data,
+	buildStep7Data,
+} from "$lib/math-engine/odes/its-scaffolding";
 import { createSeededPrng } from "$lib/math-engine/random";
 import {
 	generateEquation,
@@ -16,15 +25,6 @@ import {
 	resolveGenerationParameters,
 	resolveGenerationSeed,
 } from "./generation-parameters";
-import {
-	buildStep1Data,
-	buildStep2Data,
-	buildStep3Data,
-	buildStep4Data,
-	buildStep5Data,
-	buildStep6Data,
-	buildStep7Data,
-} from "./its-scaffolding";
 import { classifyResponseDecomposition } from "./response-decomposition";
 import { computeParticularSolution, solveHomogeneousConstants } from "./solver";
 import type {

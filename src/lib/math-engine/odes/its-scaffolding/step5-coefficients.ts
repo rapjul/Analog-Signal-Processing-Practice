@@ -1,14 +1,17 @@
 /** Step 5 derivatives and coefficient matching derived from structured trial functions. */
-import { toFractionLatex } from "../../fraction";
-import { shuffleWithRandom } from "../../random";
-import { finiteOdeValue, normalizeOdeForcing } from "../numerics";
+import { toFractionLatex } from "$lib/math-engine/fraction";
+import {
+	finiteOdeValue,
+	normalizeOdeForcing,
+} from "$lib/math-engine/odes/numerics";
 import type {
 	ForcingFunction,
 	OdeItsOption,
 	OdeItsStep5,
 	OdeOrder,
 	ParticularSolution,
-} from "../types";
+} from "$lib/math-engine/odes/types";
+import { shuffleWithRandom } from "$lib/math-engine/random";
 import {
 	combineTrialTerms,
 	differentiateTrial,
