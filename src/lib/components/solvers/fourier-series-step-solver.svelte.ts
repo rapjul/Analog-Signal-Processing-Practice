@@ -242,6 +242,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * Validates Step 1 (Period & Frequency).
 	 */
 	checkStep1(): void {
+		if (this.isCompleted || this.currentStep !== 1) return;
 		const s1Data = this.problem.itsData.step1;
 		const pTrimmed = this.step1.period.trim().toLowerCase();
 		const fTrimmed = this.step1.freq.trim().toLowerCase();
@@ -293,6 +294,12 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		originParity: OriginParity | null = this.step2.subSteps["origin-parity"]
 			.selected,
 	): void {
+		if (
+			this.isCompleted ||
+			this.currentStep !== 2 ||
+			this.step2.activeSubStepId !== "origin-parity"
+		)
+			return;
 		const s2Data = this.problem.itsData.step2;
 		this.step2.subSteps["origin-parity"].selected = originParity;
 		if (originParity === null) {
@@ -323,6 +330,13 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		hasHalfWaveSymmetry: boolean | null = this.step2.subSteps["half-wave"]
 			.selected,
 	): void {
+		if (
+			this.isCompleted ||
+			this.currentStep !== 2 ||
+			this.step2.activeSubStepId !== "half-wave" ||
+			!this.step2.subSteps["origin-parity"].isValid
+		)
+			return;
 		const s2Data = this.problem.itsData.step2;
 		this.step2.subSteps["half-wave"].selected = hasHalfWaveSymmetry;
 		if (hasHalfWaveSymmetry === null) {
@@ -349,6 +363,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * @param {string} choice Selected vanishing choice
 	 */
 	checkStep3(choice: string): void {
+		if (this.isCompleted || this.currentStep !== 3) return;
 		const s3Data = this.problem.itsData.step3;
 		this.checkChoiceStep(
 			this.step3,
@@ -366,6 +381,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * @param {string} form Selected representation form
 	 */
 	checkStep4(form: string): void {
+		if (this.isCompleted || this.currentStep !== 4) return;
 		const s4Data = this.problem.itsData.step4;
 		this.checkChoiceStep(
 			this.step4,
