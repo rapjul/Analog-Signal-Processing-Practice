@@ -90,6 +90,21 @@ describe("FourierSeriesCanvas", () => {
 		}
 	});
 
+	/** Keeps the accessible paired-power cell consistent at the smallest representable scale. */
+	it("does not display a harmonic power larger than the subnormal total", () => {
+		const coefficients = computeFourierSeriesCoefficients("triangle", {
+			A: 4e-162,
+		});
+		const view = render(FourierSeriesCanvas, {
+			coefficients,
+			harmonicCount: 1,
+		});
+		const cell = view.container
+			.querySelectorAll("tbody tr")[1]!
+			.querySelector("td:last-child")!;
+		expect(Number(cell.textContent)).toBe(Number.MIN_VALUE);
+	});
+
 	/** Keeps scientific power values mathematically meaningful inside rendered LaTeX. */
 	it("formats extreme power scales as base-ten LaTeX", () => {
 		const coefficients = computeFourierSeriesCoefficients("square", {

@@ -12,14 +12,21 @@
 	import { formatFourierNumber } from "$lib/math-engine/fourier-series/frequency";
 	import {
 		computeFourierSeriesCoefficients,
+		computeHarmonicPowerContribution,
 		computeHarmonicPowerThresholds,
 		computeSignalPower,
+		FOURIER_POWER_TARGETS,
 		type FourierSeriesCoefficients,
 		type FourierSeriesWaveformType,
 		formatPowerCapturePercent,
 	} from "$lib/math-engine/fourier-series/index";
 	import MathInline from "../math/MathInline.svelte";
 	import MathText from "../math/MathText.svelte";
+	import {
+		FOURIER_DISPLAY_DEFAULT_HARMONIC,
+		FOURIER_DISPLAY_MAX_HARMONIC,
+		FOURIER_DISPLAY_MIN_HARMONIC,
+	} from "./fourier-series-display";
 	import {
 		computeTargetMagnitudes,
 		drawFourierHarmonicSpectrum,
@@ -43,7 +50,7 @@
 	let {
 		coefficients,
 		waveformType = "square",
-		harmonicCount = 5,
+		harmonicCount = FOURIER_DISPLAY_DEFAULT_HARMONIC,
 		title = "Fourier Series Partial Sum & Harmonic Spectrum",
 	}: Props = $props();
 	const instanceId = $props.id();
@@ -64,7 +71,13 @@
 	});
 
 	let currentN = $derived(
-		Math.max(1, Math.min(50, Math.round(Number(N) || 5))),
+		Math.max(
+			FOURIER_DISPLAY_MIN_HARMONIC,
+			Math.min(
+				FOURIER_DISPLAY_MAX_HARMONIC,
+				Math.round(Number(N) || FOURIER_DISPLAY_DEFAULT_HARMONIC),
+			),
+		),
 	);
 
 	let canvasUpperEl = $state<HTMLCanvasElement | null>(null);
@@ -93,7 +106,7 @@
 					im,
 					magnitude,
 					phase: magnitude === 0 ? null : Math.atan2(im, re),
-					power: (n === 0 ? 1 : 2) * magnitude ** 2,
+					power: computeHarmonicPowerContribution(coeffs, n),
 				};
 			},
 		),
@@ -174,8 +187,11 @@
 	});
 
 	// Keep animation positions persistent across renders
-	let currentDisplayN = 5;
-	let animatedMags = Array.from({ length: 51 }, () => 0);
+	let currentDisplayN = FOURIER_DISPLAY_DEFAULT_HARMONIC;
+	let animatedMags = Array.from(
+		{ length: FOURIER_DISPLAY_MAX_HARMONIC + 1 },
+		() => 0,
+	);
 	/** Tracks backing-store scale even when CSS size and pixel ratio change together. */
 	const canvasPixelRatios = new WeakMap<HTMLCanvasElement, number>();
 
@@ -267,7 +283,7 @@
 
 			// Smoothly lerp animatedMags toward targetMags
 			let maxMagDiff = 0;
-			for (let n = 0; n <= 50; n++) {
+			for (let n = 0; n <= FOURIER_DISPLAY_MAX_HARMONIC; n++) {
 				const target = targetMags[n] ?? 0;
 				const current = animatedMags[n] ?? 0;
 				const diff = target - current;
@@ -334,8 +350,8 @@
 			<input
 				id={harmonicSliderId}
 				type="range"
-				min="1"
-				max="50"
+				min={FOURIER_DISPLAY_MIN_HARMONIC}
+				max={FOURIER_DISPLAY_MAX_HARMONIC}
 				step="1"
 				bind:value={N}
 				class="range-input"
@@ -522,7 +538,7 @@
 
 		<div class="power-threshold-summary">
 			<MathText
-				text={String.raw`Minimum highest-harmonic limits: $N_{90\%}=${powerThresholds.n90}$; $N_{95\%}=${powerThresholds.n95}$; $N_{99\%}=${powerThresholds.n99}$. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
+				text={`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => `$N_{${percent}\\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
 			/>
 		</div>
 	</section>

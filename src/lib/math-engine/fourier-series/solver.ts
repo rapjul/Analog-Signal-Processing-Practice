@@ -5,6 +5,13 @@
  * waveform reconstruction, partial sum approximations, and Parseval power distribution.
  */
 
+import {
+	computeFourierTotalPower,
+	computeFourierUnitPower,
+	computeNormalizedHarmonicPower,
+	FOURIER_POWER_TARGETS,
+	scaleFourierPower,
+} from "./power";
 import type {
 	ComplexCoefficient,
 	FourierSeriesCoefficients,
@@ -29,12 +36,11 @@ export function formatPowerCapturePercent(powerRatio: number): string {
 		throw new RangeError("Fourier power ratio must be finite.");
 	}
 	const percent = Math.max(0, Math.min(1, powerRatio)) * 100;
-	const thresholds = [90, 95, 99];
 	for (let decimals = 2; decimals <= 8; decimals += 1) {
 		const formatted = percent.toFixed(decimals);
 		const rounded = Number(formatted);
-		const crossesThreshold = thresholds.some(
-			(target) =>
+		const crossesThreshold = FOURIER_POWER_TARGETS.some(
+			({ percent: target }) =>
 				(percent < target && rounded >= target) ||
 				(percent >= target && rounded < target),
 		);
@@ -103,7 +109,8 @@ export function computeFourierSeriesCoefficients(
 			"Fourier period must produce a finite frequency and nonzero quarter-period.",
 		);
 	}
-	if (!Number.isFinite(A * A) || (A * A) / 4 === 0) {
+	const totalPower = computeFourierTotalPower(waveformType, A);
+	if (!Number.isFinite(totalPower) || totalPower === 0) {
 		throw new RangeError(
 			"Fourier amplitude must produce representable signal power.",
 		);
@@ -418,64 +425,22 @@ export function computeSignalPower(
 			"Fourier harmonic count N must be a non-negative integer.",
 		);
 	}
-	let totalPower = 0;
-	switch (coeffs.waveformType) {
-		case "square":
-		case "square_odd":
-		case "square_even":
-			totalPower = coeffs.A * coeffs.A;
-			break;
-		case "triangle":
-		case "triangle_odd":
-		case "triangle_even":
-			totalPower = (coeffs.A * coeffs.A) / 3;
-			break;
-		case "sawtooth":
-			totalPower = (coeffs.A * coeffs.A) / 3;
-			break;
-		case "half_wave_sine":
-			totalPower = (coeffs.A * coeffs.A) / 4;
-			break;
-		case "full_wave_sine":
-			totalPower = (coeffs.A * coeffs.A) / 2;
-			break;
-		default: {
-			const _exhaustiveCheck: never = coeffs.waveformType;
-			throw new Error(
-				`Unsupported waveform type: ${String(_exhaustiveCheck)}`,
-			);
-		}
-	}
-
-	let normalizedPower = (coeffs.a0 / coeffs.A / 2) ** 2;
+	const totalPower = computeFourierTotalPower(coeffs.waveformType, coeffs.A);
+	let normalizedPower = computeNormalizedHarmonicPower(coeffs, 0);
 	for (let n = 1; n <= N; n++) {
-		const an = coeffs.an(n) / coeffs.A;
-		const bn = coeffs.bn(n) / coeffs.A;
-		// Parseval: P = a0^2/4 + 1/2 sum (an^2 + bn^2)
-		normalizedPower += 0.5 * (an * an + bn * bn);
+		normalizedPower += computeNormalizedHarmonicPower(coeffs, n);
 	}
 
-	const unitPower = computeUnitSignalPower(coeffs.waveformType);
+	const unitPower = computeFourierUnitPower(coeffs.waveformType);
 	const powerRatio = normalizedPower / unitPower;
 	return {
 		totalPower,
-		harmonicPower: coeffs.A * coeffs.A * normalizedPower,
+		harmonicPower: Math.min(
+			totalPower,
+			scaleFourierPower(coeffs.A, normalizedPower),
+		),
 		powerRatio: Math.min(1.0, powerRatio),
 	};
-}
-
-/**
- * Returns average power for a waveform of unit amplitude.
- * @param waveformType - Supported waveform family.
- * @returns The amplitude-independent average power.
- */
-function computeUnitSignalPower(
-	waveformType: FourierSeriesWaveformType,
-): number {
-	if (waveformType === "half_wave_sine") return 1 / 4;
-	if (waveformType === "full_wave_sine") return 1 / 2;
-	if (waveformType.startsWith("square")) return 1;
-	return 1 / 3;
 }
 
 /**
@@ -496,24 +461,23 @@ export function computeHarmonicPowerThresholds(
 		);
 	}
 
-	const totalPower = computeUnitSignalPower(coeffs.waveformType);
-	let cumulativePower = (coeffs.a0 / coeffs.A / 2) ** 2;
-	let n90: number | undefined;
-	let n95: number | undefined;
-	let n99: number | undefined;
+	const totalPower = computeFourierUnitPower(coeffs.waveformType);
+	let cumulativePower = computeNormalizedHarmonicPower(coeffs, 0);
+	const limits: Partial<HarmonicPowerThresholds> = {};
 
 	for (let n = 0; n <= maxHarmonics; n += 1) {
 		if (n > 0) {
-			const an = coeffs.an(n) / coeffs.A;
-			const bn = coeffs.bn(n) / coeffs.A;
-			cumulativePower += 0.5 * (an * an + bn * bn);
+			cumulativePower += computeNormalizedHarmonicPower(coeffs, n);
 		}
 		const ratio = totalPower > 0 ? cumulativePower / totalPower : 0;
-		if (n90 === undefined && ratio >= 0.9) n90 = n;
-		if (n95 === undefined && ratio >= 0.95) n95 = n;
-		if (n99 === undefined && ratio >= 0.99) n99 = n;
-		if (n90 !== undefined && n95 !== undefined && n99 !== undefined) {
-			return { n90, n95, n99 };
+		for (const { key, percent } of FOURIER_POWER_TARGETS) {
+			if (limits[key] === undefined && ratio >= percent / 100)
+				limits[key] = n;
+		}
+		if (
+			FOURIER_POWER_TARGETS.every(({ key }) => limits[key] !== undefined)
+		) {
+			return limits as HarmonicPowerThresholds;
 		}
 	}
 
