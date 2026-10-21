@@ -122,9 +122,11 @@ export function buildStep6Data(
 		hints: [
 			"Apply the antiderivative at every piecewise boundary.",
 			target === "Fn"
-				? "Evaluate $F_0=a_0/2$ separately. For a rectified sine, also handle $n=1$ and $n=-1$ before simplifying the general formula."
+				? "Evaluate $F_0$ separately. If a denominator vanishes at an integer index, evaluate that integral directly before simplifying the general formula."
 				: "Simplify parity and harmonic-index factors after combining all terms.",
-			`The evaluated coefficient is $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
+			target === "Fn"
+				? `The exponential integral evaluates to $${derivation.expEvaluationLatex ?? `F_n=${derivation.FnLatex}`}$.`
+				: `The evaluated coefficient is $${target === "a0" ? "a_0" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
 		],
 	}));
 
@@ -140,7 +142,9 @@ export function buildStep6Data(
 		hints: [
 			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
 			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",
-			`The evaluated result is $${derivation.evaluationLatex}$. Then use $F_n=(a_n-jb_n)/2$.`,
+			form === "exp"
+				? `The exponential integral evaluates to $${derivation.expEvaluationLatex ?? `F_n=${derivation.FnLatex}`}$.`
+				: `The evaluated result is $${derivation.evaluationLatex}$.`,
 		],
 	};
 }

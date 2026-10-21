@@ -4,11 +4,30 @@ import { renderToString } from "katex";
 import { describe, expect, it, vi } from "vitest";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
 import {
+	buildFourierSeriesSymbolicDerivation,
+	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
 	getPrimaryCoefficientTargets,
 } from "$lib/math-engine/fourier-series/index";
+import { buildStep6Data } from "$lib/math-engine/fourier-series/its-scaffolding/step6-evaluation";
 
 describe("Fourier tutor contracts", () => {
+	/** Keeps legacy derivation objects usable without routing exponential hints through trig formulas. */
+	it("falls back to the signed coefficient result for legacy derivations", () => {
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 1,
+		});
+		const derivation = buildFourierSeriesSymbolicDerivation(
+			problem.coeffs,
+			"\\pi",
+		);
+		delete derivation.expEvaluationLatex;
+		const step = buildStep6Data("exp", "even", derivation, Math.random);
+		expect(step.hints[2]).toContain(`F_n=${derivation.FnLatex}`);
+		expect(step.hints[2]).not.toContain("a_n=");
+		expect(step.parts[0]!.hints[2]).toBe(step.hints[2]);
+	});
+
 	/** Preserves old helper calls while carrying half-wave DC in generated problems. */
 	it("uses independent half-wave shortcuts without changing helper defaults", () => {
 		expect(getPrimaryCoefficientTargets("trig", "even")).toEqual([
@@ -34,7 +53,7 @@ describe("Fourier tutor contracts", () => {
 	it.each(["trig", "exp"] as const)(
 		"keeps assigned %s metadata and solution consistent",
 		(primaryForm) => {
-			for (const waveform of ["square_even", "half_wave_sine"] as const) {
+			for (const waveform of FOURIER_SERIES_WAVEFORM_TYPES) {
 				const p = generateFourierSeriesProblem(waveform, {
 					seed: 1,
 					primaryForm,
@@ -46,6 +65,12 @@ describe("Fourier tutor contracts", () => {
 					expect(p.solutionSteps[4]?.latex).not.toContain("F_n=");
 				} else {
 					expect(p.solutionSteps[3]?.latex).toContain("F_n=");
+					expect(p.solutionSteps[4]?.latex).toContain("F_n=");
+					expect(p.solutionSteps[4]?.latex).not.toMatch(/[ab]_n=/);
+					expect(p.itsData.step6.hints[2]).not.toMatch(/[ab]_n=/);
+					expect(p.itsData.step6.hints[2]).toContain(
+						p.solutionSteps[4]!.latex,
+					);
 				}
 				for (const { latex } of p.solutionSteps) {
 					if (latex === undefined)

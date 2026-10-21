@@ -279,10 +279,60 @@ export function buildFourierSeriesSymbolicDerivation(
 		bnIntegralLatex,
 		integralLatex,
 		expIntegralLatex,
+		expEvaluationLatex: buildExponentialEvaluation(coeffs, FnLatex),
 		evaluationLatex,
 		finalTrigLatex,
 		finalExpLatex,
 	};
+}
+
+/**
+ * Evaluates the exponential setup directly, retaining boundary and resonant terms.
+ * @param coeffs - Waveform parameters and symmetry metadata.
+ * @param result - Signed exponential coefficient definition.
+ * @returns Evaluation valid for all integer indices, with DC handled separately.
+ */
+function buildExponentialEvaluation(
+	coeffs: FourierSeriesCoefficients,
+	result: string,
+): string {
+	const A = `(${formatFourierNumber(coeffs.A)})`;
+	const k = "n\\omega_0";
+	const sinePrimitive = `-\\frac{\\cos(n\\omega_0t)}{${k}}`;
+	const cosinePrimitive = `\\frac{\\sin(n\\omega_0t)}{${k}}`;
+	let evaluation: string;
+	let dc = "0";
+	let dcEvaluation = `\\frac{1}{2}\\left(${buildFullPeriodIntegral(coeffs, "a0").split("=")[1]}\\right)`;
+	switch (coeffs.waveformType) {
+		case "square":
+		case "square_odd":
+			evaluation = `-\\frac{2j${A}}{T_0}\\left[${sinePrimitive}\\right]_0^{T_0/2}`;
+			break;
+		case "square_even":
+			evaluation = `\\frac{2${A}}{T_0}\\left(\\left[${cosinePrimitive}\\right]_0^{T_0/4}-\\left[${cosinePrimitive}\\right]_{T_0/4}^{T_0/2}\\right)`;
+			break;
+		case "triangle":
+		case "triangle_even":
+			evaluation = `\\frac{2${A}}{T_0}\\left[\\frac{(1-4t/T_0)\\sin(n\\omega_0t)}{${k}}-\\frac{4\\cos(n\\omega_0t)}{T_0n^2\\omega_0^2}\\right]_0^{T_0/2}`;
+			break;
+		case "triangle_odd":
+			evaluation = `-\\frac{2j${A}}{T_0}\\left(\\left[-\\frac{4t\\cos(n\\omega_0t)}{T_0${k}}+\\frac{4\\sin(n\\omega_0t)}{T_0n^2\\omega_0^2}\\right]_0^{T_0/4}+\\left[-\\frac{(2-4t/T_0)\\cos(n\\omega_0t)}{${k}}-\\frac{4\\sin(n\\omega_0t)}{T_0n^2\\omega_0^2}\\right]_{T_0/4}^{T_0/2}\\right)`;
+			break;
+		case "sawtooth":
+			evaluation = `-\\frac{4j${A}}{T_0^2}\\left[-\\frac{t\\cos(n\\omega_0t)}{${k}}+\\frac{\\sin(n\\omega_0t)}{n^2\\omega_0^2}\\right]_0^{T_0/2}`;
+			break;
+		case "half_wave_sine":
+			dc = `\\frac{${A}}{\\pi}`;
+			dcEvaluation = `\\frac{${A}}{T_0}\\left[-\\frac{\\cos(\\omega_0t)}{\\omega_0}\\right]_0^{T_0/2}`;
+			evaluation = `\\frac{${A}}{2jT_0}\\left[\\frac{e^{-j(n-1)\\omega_0t}}{-j(n-1)\\omega_0}-\\frac{e^{-j(n+1)\\omega_0t}}{-j(n+1)\\omega_0}\\right]_0^{T_0/2}`;
+			return `\\begin{gathered}F_n=${evaluation}\\quad(n\\ne0,\\pm1)\\\\F_0=${dcEvaluation}=${dc}\\\\F_1=\\frac{${A}}{2jT_0}\\left[t-\\frac{e^{-2j\\omega_0t}}{-2j\\omega_0}\\right]_0^{T_0/2}=-j\\frac{${A}}{4}\\\\F_{-1}=\\frac{${A}}{2jT_0}\\left[\\frac{e^{2j\\omega_0t}}{2j\\omega_0}-t\\right]_0^{T_0/2}=j\\frac{${A}}{4}\\\\F_n=${result}\\end{gathered}`;
+		case "full_wave_sine":
+			dc = `\\frac{2${A}}{\\pi}`;
+			dcEvaluation = `\\frac{2${A}}{T_0}\\left[-\\frac{\\cos(\\pi t/T_0)}{\\pi/T_0}\\right]_0^{T_0/2}`;
+			evaluation = `-\\frac{${A}}{T_0}\\left[\\frac{\\cos((1+2n)\\pi t/T_0)}{(1+2n)\\pi/T_0}+\\frac{\\cos((1-2n)\\pi t/T_0)}{(1-2n)\\pi/T_0}\\right]_0^{T_0/2}`;
+			break;
+	}
+	return `\\begin{gathered}F_n=${evaluation}\\quad(n\\ne0)\\\\F_0=${dcEvaluation}=${dc}\\\\F_n=${result}\\end{gathered}`;
 }
 
 /**

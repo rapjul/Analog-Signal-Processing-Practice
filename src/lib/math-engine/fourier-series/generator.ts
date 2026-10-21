@@ -85,10 +85,6 @@ export function generateFourierSeriesProblem(
 	const primaryName = formNames[itsData.step4.correctForm];
 	const alternateName = formNames[alternateForm];
 	const compactLatex = buildCompactSeriesLatex(coeffs, w0Latex);
-	const exponentialEvaluation =
-		waveformType === "half_wave_sine"
-			? `F_n=\\frac{${formatFourierNumber(A)}}{2jT_0}\\int_0^{T_0/2}\\left[e^{-j(n-1)\\omega_0t}-e^{-j(n+1)\\omega_0t}\\right]\\,dt,\\quad F_0=\\frac{${formatFourierNumber(A)}}{\\pi},\\quad F_1=-j\\frac{${formatFourierNumber(A)}}{4},\\quad F_{-1}=j\\frac{${formatFourierNumber(A)}}{4}`
-			: derivation.evaluationLatex;
 	const conversionChallenge: FourierSeriesConversionChallenge = {
 		parts: [
 			{
@@ -163,7 +159,8 @@ export function generateFourierSeriesProblem(
 				"Apply the bounds and simplify parity factors such as $(-1)^n$ and $\\sin(n\\pi/2)$.",
 			latex:
 				itsData.step4.correctForm === "exp"
-					? `\\begin{gathered}${exponentialEvaluation}\\\\F_0=\\frac{a_0}{2},\\qquad F_n=\\frac{a_n-jb_n}{2}\\ (n>0),\\qquad F_{-n}=F_n^*\\\\F_n=${derivation.FnLatex}\\end{gathered}`
+					? (derivation.expEvaluationLatex ??
+						`F_n=${derivation.FnLatex}`)
 					: derivation.evaluationLatex,
 		},
 		{

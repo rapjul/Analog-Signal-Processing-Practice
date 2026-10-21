@@ -165,6 +165,38 @@ function evaluateOperation(operator: unknown, values: Complex[]): Complex {
 }
 
 /**
+ * Evaluates displayed antiderivative bounds independently of coefficient results.
+ * @param latex - Boundary-substitution expression from a worked derivation.
+ * @param sample - Parameters and signed harmonic index.
+ * @returns Numerical complex boundary difference including outer factors.
+ */
+export function sampleFourierBoundaryExpression(
+	latex: string,
+	sample: Sample,
+): Complex {
+	const expanded = latex.replace(
+		/\\left\[(.*?)\\right\]_(?:\{([^{}]*)\}|(0))\^\{([^{}]*)\}/g,
+		/** @param _ - Complete boundary notation. @param expression - Primitive. @param lower - Braced lower bound. @param zero - Unbraced zero. @param upper - Upper bound. @returns Explicit numerical difference. */
+		(
+			_,
+			expression: string,
+			lower: string | undefined,
+			zero: string | undefined,
+			upper: string,
+		): string => {
+			const lo = sampleFourierExpression(lower ?? zero!, sample).re;
+			const hi = sampleFourierExpression(upper, sample).re;
+			const difference = sampleFourierExpression(expression, {
+				...sample,
+				t: hi,
+			}).sub(sampleFourierExpression(expression, { ...sample, t: lo }));
+			return `(${difference.re}+j(${difference.im}))`;
+		},
+	);
+	return sampleFourierExpression(expanded, sample);
+}
+
+/**
  * Samples a displayed RHS using explicit coefficient bindings and numerical integrals.
  * @param latex - Formula RHS without coefficient definitions.
  * @param sample - Waveform, time, harmonic, and optional coefficient value.

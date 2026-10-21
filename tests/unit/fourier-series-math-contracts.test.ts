@@ -1,4 +1,5 @@
 /** Independent mathematical contracts for displayed Fourier formulas. */
+import { renderToString } from "katex";
 import { describe, expect, it } from "vitest";
 import {
 	buildCompactSeriesLatex,
@@ -12,6 +13,7 @@ import {
 	generateFourierSeriesProblem,
 } from "$lib/math-engine/fourier-series/index";
 import {
+	sampleFourierBoundaryExpression,
 	sampleFourierDefinition,
 	sampleFourierExpression,
 } from "./fourier-expression-oracle";
@@ -19,6 +21,58 @@ import {
 describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 	"%s mathematical contracts",
 	(waveform) => {
+		/** Checks the actual exponential primitives, including resonance, against independent quadrature. */
+		it.each([
+			{ A: 3, T0: 4 },
+			{ A: 1e-7, T0: 1e-7 },
+			{ A: 1e7, T0: 1e7 },
+		])(
+			"evaluates exponential boundaries at amplitude $A and period $T0",
+			/** @param parameters - Ordinary or scientific amplitude and period. */
+			({ A, T0 }) => {
+				const coeffs = computeFourierSeriesCoefficients(waveform, {
+					A,
+					T0,
+				});
+				const d = buildFourierSeriesSymbolicDerivation(
+					coeffs,
+					"\\pi/2",
+				);
+				const latex = d.expEvaluationLatex!;
+				/** Confirms scientific parameters also remain valid in the rendered worked evaluation. */
+				expect(() =>
+					renderToString(latex, { throwOnError: true }),
+				).not.toThrow();
+				for (const n of [-5, -2, -1, 0, 1, 2, 5]) {
+					const sample = { coeffs, n, t: 0 };
+					const row =
+						n === 0
+							? latex.split("F_0=")[1]!.split("\\\\")[0]!
+							: waveform === "half_wave_sine" && Math.abs(n) === 1
+								? latex
+										.split(
+											`${n === 1 ? "F_1" : "F_{-1}"}=`,
+										)[1]!
+										.split("\\\\")[0]!
+								: latex.split("F_n=")[1]!.split("\\quad")[0]!;
+					const displayed = sampleFourierBoundaryExpression(
+						row.split("=")[0]!,
+						sample,
+					);
+					let re = 0;
+					let im = 0;
+					for (let k = 0; k < 8192; k++) {
+						const t = ((k + 0.5) / 8192 - 0.5) * coeffs.T0;
+						const x = evaluateFourierSeriesWaveform(coeffs, t) / A;
+						re += (x * Math.cos(n * coeffs.w0 * t)) / 8192;
+						im -= (x * Math.sin(n * coeffs.w0 * t)) / 8192;
+					}
+					expect(displayed.re / A).toBeCloseTo(re, 6);
+					expect(displayed.im / A).toBeCloseTo(im, 6);
+				}
+			},
+		);
+
 		/** Numerically integrates the displayed integrals rather than substituting their results. */
 		it("labels and evaluates every trigonometric setup correctly", () => {
 			const coeffs = computeFourierSeriesCoefficients(waveform, {

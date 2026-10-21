@@ -244,6 +244,8 @@ export interface FourierSeriesSymbolicDerivation {
 	bnIntegralLatex: string;
 	integralLatex: string;
 	expIntegralLatex: string;
+	/** Direct exponential-integral evaluation; optional for existing callers. */
+	expEvaluationLatex?: string;
 	evaluationLatex: string;
 	finalTrigLatex: string;
 	finalExpLatex: string;
