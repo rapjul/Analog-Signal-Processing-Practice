@@ -88,6 +88,30 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				fillText: vi.fn(),
 			} as unknown as CanvasRenderingContext2D;
 		};
+		/** Confirms endpoints, midpoint, and both curves use the same uniform sampling grid. */
+		it("aligns all 1001 samples with the three time-axis ticks", () => {
+			const ctx = mockContext();
+			const c = computeFourierSeriesCoefficients("triangle", {
+				A: 2,
+				T0: 4,
+			});
+			drawFourierTimeDomain(ctx, 400, 200, c, 5, {
+				background: "#000",
+				borderColor: "#fff",
+				textSecondary: "#aaa",
+			});
+			expect(ctx.lineTo).toHaveBeenCalledTimes(2001);
+			expect(ctx.fillText).toHaveBeenCalledWith("−T₀", 35, 195);
+			expect(ctx.fillText).toHaveBeenCalledWith("0", 200, 195);
+			expect(ctx.fillText).toHaveBeenCalledWith("T₀", 365, 195);
+			const partial = vi.mocked(ctx.lineTo).mock.calls.slice(-1000);
+			for (let i = 0; i < partial.length; i++)
+				expect(partial[i]![0]).toBeCloseTo(
+					35 + ((i + 1) * 330) / 1000,
+					10,
+				);
+		});
+
 		/** Reuses numerical samples during resize and theme redraws. */
 		it("resamples only when the harmonic limit changes", () => {
 			const c = computeFourierSeriesCoefficients("square");

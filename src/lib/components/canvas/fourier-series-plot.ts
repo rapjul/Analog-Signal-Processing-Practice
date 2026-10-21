@@ -10,6 +10,10 @@ import {
 	evaluateFourierSeriesWaveform,
 	type FourierSeriesCoefficients,
 } from "$lib/math-engine/fourier-series/index";
+import {
+	FOURIER_DISPLAY_MAX_HARMONIC,
+	FOURIER_DISPLAY_MIN_HARMONIC,
+} from "./fourier-series-display";
 
 /** Theme colors consumed by the Fourier Series canvas renderers. */
 export interface FourierPlotTheme {
@@ -39,6 +43,9 @@ interface FourierTimeSamples {
 	partial: number[];
 }
 
+/** Number of uniform intervals across the sampled range [-T₀, T₀]. */
+const TIME_SAMPLE_INTERVALS = 1000;
+
 /** Sampling cache released when its coefficient model is no longer referenced. */
 const timeSamples = new WeakMap<
 	FourierSeriesCoefficients,
@@ -63,8 +70,8 @@ function sampleTimeDomain(
 	const existing = cache.get(N);
 	if (existing) return existing;
 	const samples: FourierTimeSamples = { ideal: [], partial: [] };
-	for (let i = 0; i <= 1000; i++) {
-		const t = (i / 500 - 1) * coeffs.T0;
+	for (let i = 0; i <= TIME_SAMPLE_INTERVALS; i++) {
+		const t = ((2 * i) / TIME_SAMPLE_INTERVALS - 1) * coeffs.T0;
 		samples.ideal.push(evaluateFourierSeriesWaveform(coeffs, t));
 		samples.partial.push(computePartialSum(coeffs, N, t));
 	}
@@ -114,8 +121,11 @@ export function computeTargetMagnitudes(
 	coeffs: FourierSeriesCoefficients,
 	targetDisplayN: number,
 ): number[] {
-	const targetMags = Array.from({ length: 51 }, () => 0);
-	for (let n = 0; n <= 50; n++) {
+	const targetMags = Array.from(
+		{ length: FOURIER_DISPLAY_MAX_HARMONIC + 1 },
+		() => 0,
+	);
+	for (let n = 0; n <= FOURIER_DISPLAY_MAX_HARMONIC; n++) {
 		if (n <= targetDisplayN) {
 			const { re, im } = coeffs.Fn(n);
 			targetMags[n] = Math.hypot(re, im);
@@ -151,7 +161,7 @@ export function drawFourierTimeDomain(
 	const padding = 35;
 	/** @param i - Uniform sample index. @returns Horizontal pixel coordinate. */
 	const toX = (i: number): number =>
-		padding + (i / 1000) * (width - padding * 2);
+		padding + (i / TIME_SAMPLE_INTERVALS) * (width - padding * 2);
 
 	const p1ZeroY = height / 2;
 	const p1ScaleY = (height - 40) / (2.6 * coeffs.A);
@@ -165,7 +175,7 @@ export function drawFourierTimeDomain(
 	ctx.stroke();
 
 	// High-resolution sampling density for smooth waveform curves & sharp Gibbs overshoot
-	const numSamples = 1000;
+	const numSamples = TIME_SAMPLE_INTERVALS;
 	const samples = sampleTimeDomain(coeffs, currentN);
 
 	// Ideal waveform reference, segmented at jump discontinuities
@@ -214,8 +224,8 @@ export function drawFourierTimeDomain(
 	ctx.textAlign = "center";
 	for (const [index, label] of [
 		[0, "−T₀"],
-		[500, "0"],
-		[1000, "T₀"],
+		[TIME_SAMPLE_INTERVALS / 2, "0"],
+		[TIME_SAMPLE_INTERVALS, "T₀"],
 	] as const)
 		ctx.fillText(label, toX(index), height - 5);
 	ctx.fillText("Time t (s)", width / 2, height - 20);
@@ -258,9 +268,12 @@ export function drawFourierHarmonicSpectrum(
 	const padX = width < 500 ? 15 : 30;
 
 	// Cap max stepX spacing to 36px per harmonic on wide screens
-	const rawStepX = (width - padX * 2) / (Math.max(1, currentDisplayN) + 1);
+	const rawStepX =
+		(width - padX * 2) /
+		(Math.max(FOURIER_DISPLAY_MIN_HARMONIC, currentDisplayN) + 1);
 	const stepX = Math.min(36, rawStepX);
-	const spectrumContentW = stepX * (Math.max(1, currentDisplayN) + 1);
+	const spectrumContentW =
+		stepX * (Math.max(FOURIER_DISPLAY_MIN_HARMONIC, currentDisplayN) + 1);
 	// Center the spectrum plot horizontally if stepX was capped
 	const startX = padX + (width - padX * 2 - spectrumContentW) / 2;
 
@@ -277,7 +290,10 @@ export function drawFourierHarmonicSpectrum(
 	ctx.lineTo(axisRightX, p2ZeroY);
 	ctx.stroke();
 
-	const displayN = Math.max(1, Math.round(currentDisplayN));
+	const displayN = Math.max(
+		FOURIER_DISPLAY_MIN_HARMONIC,
+		Math.round(currentDisplayN),
+	);
 
 	const harmonicsByMag: { n: number; mag: number }[] = [];
 	let maxCnMag = 0;
