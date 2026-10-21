@@ -485,7 +485,7 @@ test.describe("Fourier Series Module", () => {
 		await page.waitForLoadState("networkidle");
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
 		const visualizer = page.locator(".fourier-canvas-wrapper");
-		const slider = visualizer.locator("#harmonic-slider");
+		const slider = visualizer.getByLabel("Harmonic Limit:");
 		await slider.evaluate((element) => {
 			const input = element as HTMLInputElement;
 			input.value = "39";

@@ -69,6 +69,12 @@ describe("Fourier Series review UI regressions", () => {
 				.querySelector(".step-card")
 				?.classList.contains("completed"),
 		).toBe(true);
+		const summary = view.container.querySelector(
+			".step-card .step-summary",
+		);
+		const math = summary?.querySelector("annotation")?.textContent ?? "";
+		expect(math.match(/T_0\s*=/g)).toHaveLength(1);
+		expect(math.match(/\\omega_0\s*=/g)).toHaveLength(1);
 	});
 
 	/** Confirms symmetry carries zero DC and the remaining question permits completion. */

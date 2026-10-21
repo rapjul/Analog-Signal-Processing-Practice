@@ -46,6 +46,11 @@
 		harmonicCount = 5,
 		title = "Fourier Series Partial Sum & Harmonic Spectrum",
 	}: Props = $props();
+	const instanceId = $props.id();
+	const harmonicSliderId = `${instanceId}-harmonic-slider`;
+	const convergenceId = `${instanceId}-convergence-description`;
+	const spectrumId = `${instanceId}-spectrum-description`;
+	const powerTitleId = `${instanceId}-power-title`;
 
 	// Interactive local harmonic count N state
 	let N = $state(untrack(() => harmonicCount));
@@ -321,13 +326,13 @@
 	<div class="controls-bar">
 		<div class="slider-group">
 			<label
-				for="harmonic-slider"
+				for={harmonicSliderId}
 				class="slider-label"
 			>
 				Harmonic Limit:
 			</label>
 			<input
-				id="harmonic-slider"
+				id={harmonicSliderId}
 				type="range"
 				min="1"
 				max="50"
@@ -359,7 +364,7 @@
 				bind:this={canvasUpperEl}
 				class="fourier-canvas"
 				aria-label="Time-Domain Partial Sum Canvas"
-				aria-describedby="fourier-convergence-description"
+				aria-describedby={convergenceId}
 			></canvas>
 			<div class="plot-legend">
 				<div class="legend-item">
@@ -386,7 +391,7 @@
 				bind:this={canvasLowerEl}
 				class="fourier-canvas"
 				aria-label="Harmonic Spectrum Magnitude Canvas"
-				aria-describedby="fourier-spectrum-description"
+				aria-describedby={spectrumId}
 			></canvas>
 			<div class="plot-legend">
 				<div class="legend-item">
@@ -402,7 +407,7 @@
 	{#if coeffs.hasJumpDiscontinuities}
 		<div
 			class="gibbs-hint"
-			id="fourier-convergence-description"
+			id={convergenceId}
 		>
 			💡 Notice the Gibbs phenomenon overshoot near jump discontinuities
 			as
@@ -413,14 +418,14 @@
 	{:else}
 		<div
 			class="gibbs-hint"
-			id="fourier-convergence-description"
+			id={convergenceId}
 		>
 			Compare the partial sum with the dashed ideal waveform as
 			<MathInline math={"N"} /> increases.
 		</div>
 	{/if}
 	<p
-		id="fourier-spectrum-description"
+		id={spectrumId}
 		class="spectrum-description"
 	>
 		The spectrum shows DC and positive-index exponential magnitudes. For a
@@ -475,11 +480,11 @@
 
 	<section
 		class="power-card"
-		aria-labelledby="parseval-power-title"
+		aria-labelledby={powerTitleId}
 	>
 		<div class="power-heading-row">
 			<div>
-				<h3 id="parseval-power-title">Parseval Power Distribution</h3>
+				<h3 id={powerTitleId}>Parseval Power Distribution</h3>
 				<p>
 					Power captured by the DC term and harmonics through
 					<MathInline math={`N=${currentN}`} />.

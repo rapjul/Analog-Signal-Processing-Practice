@@ -7,12 +7,60 @@
  */
 
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/svelte";
+import { tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import FourierSeriesStepSolver from "$lib/components/solvers/FourierSeriesStepSolver.svelte";
 import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 
 describe("FourierSeriesStepSolver", () => {
 	afterEach(() => cleanup());
+
+	/** Leaves the waveform control focused when replacing either an initial or progressed problem. */
+	it("preserves external focus on replacement problems, including repeated IDs", async () => {
+		const original = generateFourierSeriesProblem("square", {
+			seed: 1,
+			T0: 2,
+		});
+		const view = render(FourierSeriesStepSolver, { problem: original });
+		const selector = document.createElement("select");
+		document.body.append(selector);
+		selector.focus();
+		await view.rerender({
+			problem: generateFourierSeriesProblem("triangle", {
+				seed: 1,
+				T0: 2,
+			}),
+		});
+		await tick();
+		expect(document.activeElement).toBe(selector);
+		await fireEvent.input(
+			view.container.querySelector("#fourier-period-input")!,
+			{ target: { value: "2" } },
+		);
+		await fireEvent.input(
+			view.container.querySelector("#fourier-freq-input")!,
+			{ target: { value: "pi" } },
+		);
+		await fireEvent.keyDown(
+			view.container.querySelector("#fourier-freq-input")!,
+			{ key: "Enter" },
+		);
+		await tick();
+		expect(document.activeElement).not.toBe(selector);
+		selector.focus();
+		await view.rerender({
+			problem: generateFourierSeriesProblem("triangle", {
+				seed: 1,
+				T0: 2,
+			}),
+		});
+		await tick();
+		expect(document.activeElement).toBe(selector);
+		expect(
+			view.container.querySelector('[role="status"]')?.textContent,
+		).toContain("Step 1 of 7");
+		selector.remove();
+	});
 
 	/** Moves keyboard focus after passing a question and resets for a fresh instance with the same ID. */
 	it("announces progress, focuses the active question, and resets identical IDs", async () => {

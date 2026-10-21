@@ -57,6 +57,39 @@ describe("FourierSeriesCanvas", () => {
 		vi.unstubAllGlobals();
 	});
 
+	/** Keeps labels and descriptions attached to their own canvas when instances coexist. */
+	it("scopes every accessibility target to its component instance", () => {
+		const first = render(FourierSeriesCanvas, { waveformType: "square" });
+		const second = render(FourierSeriesCanvas, {
+			waveformType: "full_wave_sine",
+		});
+		const ids = [
+			...first.container.querySelectorAll("[id]"),
+			...second.container.querySelectorAll("[id]"),
+		].map((element) => element.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		for (const view of [first, second]) {
+			const slider = view.container.querySelector<HTMLInputElement>(
+				'input[type="range"]',
+			)!;
+			expect(view.container.querySelector("label")?.htmlFor).toBe(
+				slider.id,
+			);
+			for (const element of view.container.querySelectorAll(
+				"[aria-describedby], [aria-labelledby]",
+			)) {
+				const targets =
+					element.getAttribute("aria-describedby") ??
+					element.getAttribute("aria-labelledby")!;
+				for (const id of targets.split(" ")) {
+					expect(
+						view.container.contains(document.getElementById(id)),
+					).toBe(true);
+				}
+			}
+		}
+	});
+
 	/** Keeps scientific power values mathematically meaningful inside rendered LaTeX. */
 	it("formats extreme power scales as base-ten LaTeX", () => {
 		const coefficients = computeFourierSeriesCoefficients("square", {

@@ -60,11 +60,15 @@
 			: `Step ${solver.currentStep} of 7. ${solver.currentStep === 2 ? solver.step2Progress.label : solver.currentStep === 5 ? solver.step5Progress.label : solver.currentStep === 6 ? solver.step6Progress.label : ""}`,
 	);
 	let previousQuestion = "";
+	let previousQuestionProblem: FourierSeriesProblem | undefined;
 	$effect(() => {
 		const nextQuestion = questionKey;
 		const shouldFocus =
-			previousQuestion !== "" && previousQuestion !== nextQuestion;
+			previousQuestionProblem === problem &&
+			previousQuestion !== "" &&
+			previousQuestion !== nextQuestion;
 		previousQuestion = nextQuestion;
+		previousQuestionProblem = problem;
 		if (shouldFocus) {
 			let cancelled = false;
 			void tick().then(() => {
