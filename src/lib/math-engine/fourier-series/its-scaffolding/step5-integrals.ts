@@ -5,6 +5,7 @@
  */
 
 import { type RandomSource, shuffleWithRandom } from "../../random";
+import { FOURIER_COEFFICIENT_METADATA } from "../coefficient-metadata";
 import type {
 	FourierCarriedCoefficient,
 	FourierCoefficientPart,
@@ -189,18 +190,12 @@ export function buildStep5Data(
 		bn: derivation.bnIntegralLatex,
 		Fn: derivation.expIntegralLatex,
 	};
-	const titleByTarget: Record<FourierCoefficientTarget, string> = {
-		a0: "DC Coefficient",
-		an: "Cosine Coefficients",
-		bn: "Sine Coefficients",
-		Fn: "Exponential Coefficients",
-	};
 
 	const parts: FourierCoefficientPart[] = targets.map((target) => ({
 		id: `setup-${target}`,
 		target,
-		title: `Set Up ${titleByTarget[target]}`,
-		prompt: `Select the integral that computes $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
+		title: `Set Up ${FOURIER_COEFFICIENT_METADATA[target].title}`,
+		prompt: `Select the integral that computes $${FOURIER_COEFFICIENT_METADATA[target].label}$.`,
 		resultLatex: integralByTarget[target],
 		options: shuffleWithRandom(
 			buildIntegralOptions(

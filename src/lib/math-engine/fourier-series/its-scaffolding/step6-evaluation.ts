@@ -5,6 +5,8 @@
  */
 
 import { type RandomSource, shuffleWithRandom } from "../../random";
+import { FOURIER_COEFFICIENT_METADATA } from "../coefficient-metadata";
+import { getExponentialEvaluationLatex } from "../symbolic-derivations";
 import type {
 	FourierCoefficientPart,
 	FourierCoefficientTarget,
@@ -29,8 +31,7 @@ export function buildEvaluationOptions(
 	target: FourierCoefficientTarget,
 	resultLatex: string,
 ): FourierItsOption[] {
-	const label =
-		target === "a0" ? "a_0" : `${target === "Fn" ? "F" : target[0]}_n`;
+	const { label } = FOURIER_COEFFICIENT_METADATA[target];
 	if (resultLatex === "0") {
 		return [0, 1, -1, 2].map((value, index) => ({
 			id: `${target}-${["correct", "scale", "sign", "support"][index]}`,
@@ -102,19 +103,13 @@ export function buildStep6Data(
 		bn: derivation.bnLatex,
 		Fn: derivation.FnLatex,
 	};
-	const titleByTarget: Record<FourierCoefficientTarget, string> = {
-		a0: "DC Coefficient",
-		an: "Cosine Coefficients",
-		bn: "Sine Coefficients",
-		Fn: "Exponential Coefficients",
-	};
 
 	const parts: FourierCoefficientPart[] = targets.map((target) => ({
 		id: `evaluate-${target}`,
 		target,
-		title: `Evaluate ${titleByTarget[target]}`,
-		prompt: `Apply the bounds and simplify $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
-		resultLatex: `${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}`,
+		title: `Evaluate ${FOURIER_COEFFICIENT_METADATA[target].title}`,
+		prompt: `Apply the bounds and simplify $${FOURIER_COEFFICIENT_METADATA[target].label}$.`,
+		resultLatex: `${FOURIER_COEFFICIENT_METADATA[target].label}=${resultByTarget[target]}`,
 		options: shuffleWithRandom(
 			buildEvaluationOptions(target, resultByTarget[target]),
 			random,
@@ -125,8 +120,8 @@ export function buildStep6Data(
 				? "Evaluate $F_0$ separately. If a denominator vanishes at an integer index, evaluate that integral directly before simplifying the general formula."
 				: "Simplify parity and harmonic-index factors after combining all terms.",
 			target === "Fn"
-				? `The exponential integral evaluates to $${derivation.expEvaluationLatex ?? `F_n=${derivation.FnLatex}`}$.`
-				: `The evaluated coefficient is $${target === "a0" ? "a_0" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
+				? `The exponential integral evaluates to $${getExponentialEvaluationLatex(derivation)}$.`
+				: `The evaluated coefficient is $${FOURIER_COEFFICIENT_METADATA[target].label}=${resultByTarget[target]}$.`,
 		],
 	}));
 
@@ -143,7 +138,7 @@ export function buildStep6Data(
 			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
 			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",
 			form === "exp"
-				? `The exponential integral evaluates to $${derivation.expEvaluationLatex ?? `F_n=${derivation.FnLatex}`}$.`
+				? `The exponential integral evaluates to $${getExponentialEvaluationLatex(derivation)}$.`
 				: `The evaluated result is $${derivation.evaluationLatex}$.`,
 		],
 	};

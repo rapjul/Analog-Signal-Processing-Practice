@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`full_wave_sine generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"ad7c0048abf9b72217af13d419a5eb64b832b8c2c985e3dac6481b12e33ea024"`;
+
+exports[`full_wave_sine generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"e88437bca13984bbd18fd9d26e8dcae79e5d9f800fed7c7d1849edb35cb1bd91"`;
+
+exports[`full_wave_sine generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"d44938d3b6528b3fde1321649c174f8ebc20b645c8d7e11f3040325ae4db5b95"`;
+
+exports[`full_wave_sine generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"b1a5f64f6baab2139da813fd62df2308f13bff9c561701efca1be0edb13459e9"`;
+
+exports[`half_wave_sine generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"1eeacbf7332444a21aa2f0c966d105266fb043cbb034a91c3cf0f4dd4e6b11c1"`;
+
+exports[`half_wave_sine generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"d38a7636b44cdee74461551144b2c388b2cf605cdbd68bd1350ef70f47651bb8"`;
+
+exports[`half_wave_sine generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"6fee65f1e3f3224b278ba27d781f062db6baec577ccef2216e1aa4c0da65ed9e"`;
+
+exports[`half_wave_sine generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"45b8e1b29f585bcf09f3dff2589f30bb3d39db900fa456f154192767e896af13"`;
+
+exports[`sawtooth generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"f20ea7b47b396f0580805e263d405e1d02b6e62171f02aa57fe18d4575dfe438"`;
+
+exports[`sawtooth generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"740ae6e11afe0d20fc8671e8fe843c64fbf7ce57a1d2315d57a55e2188a6cbf7"`;
+
+exports[`sawtooth generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"a32a2b448ec57a4998cb6a4e3cb76978186bb702ee2519fd023f3e9f46489579"`;
+
+exports[`sawtooth generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"c6350a23edb1edf91a5df3cc66c195de30276cf50629ab91254fd0d402bb7783"`;
+
+exports[`square generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"810e7433931ac1c22e15d0b47454ab6530cb9dae62bb49f7fb76a286782a480e"`;
+
+exports[`square generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"11f6ffbe5f3e776e79004f5c49c6aade00b1a49eaab2c5c62b02bc32e9c7fba6"`;
+
+exports[`square generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"3092d187b858efe98ef4506ecacf368c1380cfc5855fe1b070e673fb11dfa8e1"`;
+
+exports[`square generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"d3aa3883195feb6dda3d8a7611bc430063bc676e3f694743b70fe1cc70b7ab89"`;
+
+exports[`square_even generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"bdb488ad074d14ae11835b1a8df426c7333b11d8e6d4ddacbb45460dc33c1326"`;
+
+exports[`square_even generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"c49bc55b572267494c4a0e4a295ef43ccdc924e84fbc7c644e613c5c18f59ff8"`;
+
+exports[`square_even generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"a1c6c5957eba396e4ea753ded8b28919a2fc69d044cddd1b392cfd4bc4914f11"`;
+
+exports[`square_even generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"08fda7e05d113843c4d544620efba0cbd412e0f51d95ea055bcd0c79f59a8e9d"`;
+
+exports[`square_odd generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"ddef7d0a3c01f8b78c92a0367d0cbff41da4a4831736afa5a9b3da679f4ca0c9"`;
+
+exports[`square_odd generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"837d36a40a34402605b6487633ea1a7d5c2d38b4da2cc90302f2ed7e52e53b3d"`;
+
+exports[`square_odd generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"a5b181636ffd973f933ef352024d5f5992cc230dfb0c45eadca19d43d2c81f03"`;
+
+exports[`square_odd generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"528ae8bb9d622f99bfa435c5916ed63abd01831f4f2d461cdbabaccaa7f39678"`;
+
+exports[`triangle generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"30e5c36c5d6ec9800863f51e70cbed6a8838558fc2b4c2a93d98577d634b014b"`;
+
+exports[`triangle generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"fd7ca77535c9f9c5cdce8383cc2fc33756539b42cdd34f7cfac8fbbc90f609ff"`;
+
+exports[`triangle generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"50ed9ea56de4b8d123bd9f11dac5df8b8df0856b57ffef1abf0901e1f4b4a05c"`;
+
+exports[`triangle generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"a82161dde36f39196e3ac68a0241bccceeb8f0b53fbedaaf21a1ab135659213d"`;
+
+exports[`triangle_even generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"20bd8f6d56d7004a79c8bda7f99989d86e7a67fa16e96e05ecd5dfa76eefb046"`;
+
+exports[`triangle_even generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"e9bdf7d65aca8e9e99f9acaf93e1fb1552ac4178138bc236e5d9f1f7f5832d85"`;
+
+exports[`triangle_even generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"1bcd2ebe318447bfad8be9228cfee00caa99303358aebbe42306bb24737d5417"`;
+
+exports[`triangle_even generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"2e4d5e05772368c36f43928a067be848275ab68c8aae53ca281d3d6e53501de1"`;
+
+exports[`triangle_odd generation compatibility > preserves the seeded exp problem > seed 1 1`] = `"2df9e369f91f76af351922587fe99198c7ea9767e68ccf7fb978b57dbd118718"`;
+
+exports[`triangle_odd generation compatibility > preserves the seeded exp problem > seed 19 1`] = `"d0e4ff43bc073d465b777172b66f4f8c10e0f7a96cc395772cf24b1cc3523713"`;
+
+exports[`triangle_odd generation compatibility > preserves the seeded trig problem > seed 1 1`] = `"8f41a0c5e0dc8b24aacf8f30b9208718ff561241aefae764e1544f5570e15aee"`;
+
+exports[`triangle_odd generation compatibility > preserves the seeded trig problem > seed 19 1`] = `"2cbd67097237e9c4e92af91b245509371cf4c52a0b371d8711b8e180f314a370"`;

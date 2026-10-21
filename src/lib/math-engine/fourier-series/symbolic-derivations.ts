@@ -6,6 +6,7 @@
  * continuous-time Fourier series waveform archetypes.
  */
 
+import { FOURIER_COEFFICIENT_METADATA } from "./coefficient-metadata";
 import { formatFourierNumber } from "./frequency";
 import type {
 	FourierSeriesCoefficients,
@@ -352,7 +353,7 @@ function buildFullPeriodIntegral(
 			: target === "an"
 				? "\\cos(n\\omega_0t)"
 				: "\\sin(n\\omega_0t)";
-	const label = target === "a0" ? "a_0" : target === "an" ? "a_n" : "b_n";
+	const { label } = FOURIER_COEFFICIENT_METADATA[target];
 	let pieces: [string, string, string][];
 	switch (coeffs.waveformType) {
 		case "square":
@@ -397,6 +398,17 @@ function buildFullPeriodIntegral(
 			`\\int_{${lower}}^{${upper}}\\left(${signal}\\right)${kernel}\\,dt`,
 	);
 	return `${label}=\\frac{2}{T_0}\\left[${integrals.join("+")}\\right]`;
+}
+
+/**
+ * Resolves exponential evaluation metadata consistently for generated and legacy derivations.
+ * @param derivation - Current or legacy symbolic derivation.
+ * @returns Direct evaluation when supplied, otherwise the signed coefficient definition.
+ */
+export function getExponentialEvaluationLatex(
+	derivation: FourierSeriesSymbolicDerivation,
+): string {
+	return derivation.expEvaluationLatex ?? `F_n=${derivation.FnLatex}`;
 }
 
 // Alias for compatibility

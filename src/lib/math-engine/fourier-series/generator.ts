@@ -12,17 +12,15 @@ import {
 	shuffleWithRandom,
 } from "../random";
 import type { SolutionStep } from "../types";
-import { formatFourierFrequency, formatFourierNumber } from "./frequency";
-import {
-	buildPrimarySeriesOptions,
-	generateFourierSeriesItsData,
-} from "./its-scaffolding/index";
+import { formatFourierNumber } from "./frequency";
+import { assembleFourierSeriesData } from "./its-scaffolding/assembly";
+import { buildPrimarySeriesOptions } from "./its-scaffolding/index";
 import {
 	buildCompactSeriesLatex,
-	buildFourierSeriesSymbolicDerivation,
 	buildSignalLatex,
 	computeFourierSeriesCoefficients,
 } from "./solver";
+import { getExponentialEvaluationLatex } from "./symbolic-derivations";
 import type {
 	FourierSeriesConversionChallenge,
 	FourierSeriesGenerationOptions,
@@ -68,14 +66,12 @@ export function generateFourierSeriesProblem(
 
 	const coeffs = computeFourierSeriesCoefficients(waveformType, { A, T0 });
 	const id = `fs_${waveformType}_${seed}`;
-	const itsData = generateFourierSeriesItsData(
+	const { itsData, w0Latex, derivation } = assembleFourierSeriesData(
 		coeffs,
 		random,
 		options.primaryForm,
 	);
-	const w0Latex = formatFourierFrequency(T0);
 	const periodLatex = formatFourierNumber(T0);
-	const derivation = buildFourierSeriesSymbolicDerivation(coeffs, w0Latex);
 	const alternateForm: FourierSeriesPrimaryForm =
 		itsData.step4.correctForm === "trig" ? "exp" : "trig";
 	const alternateLatex =
@@ -159,8 +155,7 @@ export function generateFourierSeriesProblem(
 				"Apply the bounds and simplify parity factors such as $(-1)^n$ and $\\sin(n\\pi/2)$.",
 			latex:
 				itsData.step4.correctForm === "exp"
-					? (derivation.expEvaluationLatex ??
-						`F_n=${derivation.FnLatex}`)
+					? getExponentialEvaluationLatex(derivation)
 					: derivation.evaluationLatex,
 		},
 		{

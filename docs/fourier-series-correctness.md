@@ -12,6 +12,7 @@ convention in [MIT's coefficient definitions](https://ocw.mit.edu/courses/18-03s
 - Partial sums and power calculations accept nonnegative safe integer limits.
 - Amplitude and period must be positive and finite. Parameters producing unrepresentable power, a nonfinite angular frequency, or a zero quarter-period are rejected.
 - Power ratios and harmonic thresholds use amplitude-normalized coefficients to avoid dependence on the signal's amplitude scale.
+- Physical power is scaled only after normalization when intermediate squares would overflow or become subnormal. Validation uses the selected waveform's actual total power, and coefficient-table contributions share the Parseval definition.
 - Period and frequency inputs are evaluated as constant expressions before unit conversion and tolerance checks. Use `pi/2` or `(1/2)*pi` for half of pi; `1/2pi` is evaluated as a reciprocal expression.
 
 ## Guided derivation
@@ -32,6 +33,10 @@ Only options belonging to the active question are graded. Fresh problem or
 conversion objects reset progress even when they reproduce the same identifiers
 and formulas. Completion is emitted once per solved attempt.
 
+Every grading entry point also checks its active parent step and completion state;
+symmetry submissions must match the active sub-step. Stale submissions cannot
+skip a question or rewind a completed derivation.
+
 ## Reconstruction and accessible spectrum
 
 The spectrum includes DC and every positive harmonic through the selected limit,
@@ -45,6 +50,12 @@ to the midpoint of the left and right limits at a jump. Gibbs overshoot persists
 near jumps while its spatial width shrinks. Sampled curves are cached separately
 from canvas dimensions and spectrum animation; reduced-motion users receive the
 final spectrum without animation.
+
+The time grid uses one interval count for sampling, pixel coordinates, and ticks.
+Shared display constants define the slider and spectrum bounds. Waveform identifiers
+and selector labels come from one ordered registry; generated ITS data and worked
+solutions reuse one symbolic derivation per invocation. Power targets and coefficient
+labels are shared definitions, while numerical quadrature tests remain independent.
 
 ## Automated verification
 
