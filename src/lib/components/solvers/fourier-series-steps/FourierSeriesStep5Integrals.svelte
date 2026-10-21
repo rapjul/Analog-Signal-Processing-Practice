@@ -107,6 +107,7 @@
 			<div
 				class="mcq-cards-grid"
 				data-testid="fourier-step5-options"
+				data-part-index={String(activeStep5Index)}
 			>
 				{#each activeStep5Part?.options ?? [] as opt}
 					<button

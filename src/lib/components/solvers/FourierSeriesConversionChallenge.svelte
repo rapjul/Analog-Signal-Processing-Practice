@@ -151,6 +151,7 @@
 			<div
 				class="conversion-options"
 				data-testid="fourier-conversion-options"
+				data-part-index={String(challenge.parts.indexOf(activePart))}
 			>
 				{#each activePart.options as option}
 					<button
