@@ -78,6 +78,42 @@
 	);
 
 	let challengeRoot = $state<HTMLDetailsElement | null>(null);
+	let previousFocusChallenge: FourierSeriesConversionChallenge | undefined;
+	let previousFocusPart: ConversionId | undefined;
+	/** Moves focus only after successful progression within the same challenge. */
+	$effect(() => {
+		const currentChallenge = challenge;
+		const currentState = challengeState;
+		const currentPart = currentState.activeSubStepId;
+		const completed = currentState.completed;
+		const shouldFocus =
+			previousFocusChallenge === currentChallenge &&
+			previousFocusPart !== undefined &&
+			previousFocusPart !== currentPart &&
+			!completed;
+		previousFocusChallenge = currentChallenge;
+		previousFocusPart = currentPart;
+		if (!shouldFocus) return;
+
+		let cancelled = false;
+		void tick().then(() => {
+			if (
+				!cancelled &&
+				challenge === currentChallenge &&
+				challengeState === currentState &&
+				currentState.activeSubStepId === currentPart &&
+				!currentState.completed
+			) {
+				challengeRoot
+					?.querySelector<HTMLElement>(".part-heading strong")
+					?.focus();
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
+
 	/** @param option - A choice from the active conversion. */
 	function checkOption(option: FourierSeriesItsOption): void {
 		if (challengeState.completed) return;
@@ -103,11 +139,6 @@
 		const nextId = challengeState.subStepOrder[index + 1];
 		if (nextId) {
 			challengeState.activeSubStepId = nextId;
-			void tick().then(() =>
-				challengeRoot
-					?.querySelector<HTMLElement>(".part-heading strong")
-					?.focus(),
-			);
 			return;
 		}
 		challengeState.completed = true;
