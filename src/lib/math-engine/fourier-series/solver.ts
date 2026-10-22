@@ -46,7 +46,8 @@ export function formatPowerCapturePercent(powerRatio: number): string {
 		);
 		if (!crossesThreshold) return formatted;
 	}
-	return percent.toFixed(8);
+	// Preserve the actual percentage when fixed decimals would cross a target.
+	return percent.toString();
 }
 
 /**

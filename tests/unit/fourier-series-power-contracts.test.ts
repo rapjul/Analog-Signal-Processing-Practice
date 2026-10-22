@@ -11,6 +11,39 @@ import {
 } from "$lib/math-engine/fourier-series/index";
 
 describe("Fourier power contracts", () => {
+	/** Prevents even the nearest representable values below a target from being labeled as reaching it. */
+	it.each([90, 95, 99])(
+		"keeps percentage labels on the correct side of %s percent",
+		/** @param percent - Independently specified power-capture boundary. */
+		(percent) => {
+			const ratio = percent / 100;
+			for (const delta of [1e-6, 1e-10, Number.EPSILON / 2]) {
+				expect(
+					Number(formatPowerCapturePercent(ratio - delta)),
+				).toBeLessThan(percent);
+				expect(
+					Number(formatPowerCapturePercent(ratio + delta)),
+				).toBeGreaterThanOrEqual(percent);
+			}
+			expect(formatPowerCapturePercent(ratio)).toBe(`${percent}.00`);
+		},
+	);
+
+	/** Preserves ordinary two-decimal labels and existing clamping behavior. */
+	it.each([
+		[0, "0.00"],
+		[1, "100.00"],
+		[0.875, "87.50"],
+		[-1, "0.00"],
+		[2, "100.00"],
+	] as const)(
+		"formats ordinary ratio %s as %s",
+		/** @param ratio - Existing input case. @param expected - Unchanged display text. */
+		(ratio, expected) => {
+			expect(formatPowerCapturePercent(ratio)).toBe(expected);
+		},
+	);
+
 	/** Verifies total power against closed-form waveform averages, independently of production metadata. */
 	it.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 		"preserves total and paired power for %s",
