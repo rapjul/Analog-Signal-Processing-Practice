@@ -100,10 +100,12 @@
 						<p>
 							The first possible overlap occurs when the two start
 							times add. The final possible overlap occurs when
-							the two end times add.
+							the two end times add. Signed contributions can
+							cancel within this span, so these are bounds on
+							overlap, not a guarantee of nonzero output.
 						</p>
 						<MathBlock
-							math={String.raw`t_{y,\mathrm{start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\qquad t_{y,\mathrm{end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
+							math={String.raw`t_{\mathrm{overlap,start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\qquad t_{\mathrm{overlap,end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
 							compact={true}
 							hideHeader={true}
 							responsive={true}
@@ -116,7 +118,7 @@
 							<div
 								class="span-diagram"
 								role="img"
-								aria-label="Three aligned number lines for the x signal, h signal, and convolution output. The output start is the two input starts added, and the output end is the two input ends added."
+								aria-label="Three aligned number lines for the x signal, h signal, and possible overlap span. The overlap bounds are the input starts added and the input ends added."
 							>
 								{#each timingParts as part}
 									<div class="span-row">
@@ -137,7 +139,7 @@
 								{/each}
 							</div>
 							<MathBlock
-								math={String.raw`W_y=W_x+W_h`}
+								math={String.raw`W_{\mathrm{overlap}}=W_x+W_h`}
 								compact={true}
 								hideHeader={true}
 								responsive={true}
@@ -147,7 +149,9 @@
 				{/if}
 				<p class="part-prompt">
 					<MathText
-						text={`Enter the start time, end time, and ${activePart.id !== "y" && problem.itsData.step3.sectionsBySignal[activePart.id].length > 1 ? "overall span width" : "signal width"} for $${activePart.signalLatex}$.`}
+						text={activePart.id === "y"
+							? "Enter the start time, end time, and width of the possible overlap span."
+							: `Enter the start time, end time, and ${problem.itsData.step3.sectionsBySignal[activePart.id].length > 1 ? "overall span width" : "signal width"} for $${activePart.signalLatex}$.`}
 					/>
 				</p>
 				<form
@@ -176,12 +180,13 @@
 						</label>
 						<label>
 							<span
-								>{activePart.id !== "y" &&
-								problem.itsData.step3.sectionsBySignal[
-									activePart.id
-								].length > 1
-									? "Overall span width"
-									: "Signal width"}</span
+								>{activePart.id === "y"
+									? "Overlap span width"
+									: problem.itsData.step3.sectionsBySignal[
+												activePart.id
+										  ].length > 1
+										? "Overall span width"
+										: "Signal width"}</span
 							>
 							<input
 								type="text"

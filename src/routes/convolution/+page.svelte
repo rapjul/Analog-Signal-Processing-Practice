@@ -126,6 +126,8 @@
 				return "Multiple Rectangular Pulses";
 			case "exponential":
 				return "Causal Exponential Decay";
+			case "step":
+				return "Unit Step";
 			default:
 				return "Unknown";
 		}
@@ -220,6 +222,7 @@
 								<option value="exponential">
 									Causal Exponential Decay
 								</option>
+								<option value="step">Unit Step</option>
 							</select>
 							<p class="resolved-type">
 								Current problem: {signalTypeName(
@@ -227,25 +230,27 @@
 								)}
 							</p>
 
-							<label for={`${signal}-parameter`}>
-								{resolved?.kind === "exponential"
-									? "Decay Rate"
-									: resolved?.kind === "multi_rect"
-										? "Component Pulse Width"
-										: "Width"}
-							</label>
-							<select
-								id={`${signal}-parameter`}
-								bind:value={selection[signal].parameterMode}
-								onchange={handleCustomSelection}
-							>
-								<option value="default">
-									Default ({resolved?.kind === "triangle"
-										? 2
-										: 1})
-								</option>
-								<option value="random">Random (1–3)</option>
-							</select>
+							{#if resolved?.kind !== "step"}
+								<label for={`${signal}-parameter`}>
+									{resolved?.kind === "exponential"
+										? "Decay Rate"
+										: resolved?.kind === "multi_rect"
+											? "Component Pulse Width"
+											: "Width"}
+								</label>
+								<select
+									id={`${signal}-parameter`}
+									bind:value={selection[signal].parameterMode}
+									onchange={handleCustomSelection}
+								>
+									<option value="default">
+										Default ({resolved?.kind === "triangle"
+											? 2
+											: 1})
+									</option>
+									<option value="random">Random (1–3)</option>
+								</select>
+							{/if}
 
 							{#if resolved?.kind === "multi_rect"}
 								{#each [0, 1] as component}

@@ -5,6 +5,22 @@ Matching numerical samples cannot mark an answer correct. Steps 3–4 require
 global identities; Steps 5–7 compare expressions on the active open output
 interval. Infinite limits remain explicit scalar boundary sentinels.
 
+## Configured signals and overlap
+
+The configured engine supports rectangles, triangles, multiple rectangles,
+causal exponentials, and signed translated unit steps. Unit steps are explicitly
+selectable; Random problems use the original four families. Shared selections
+retain version `2`, including unit-step choices.
+
+Step 1 computes the possible overlap span by adding input support bounds.
+Geometric overlap does not guarantee a nonzero output. For example, integrating
+equal positive and negative pulses against a step gives a cancelling tail even
+while overlap continues. Such intervals require evaluation and final assembly;
+only proven no-overlap zeros are carried automatically.
+
+Step 4 contact formulations retain all four verification outcomes. Malformed
+or unsupported mathematics receives validation feedback and does not advance.
+
 ## Supported answers
 
 - Polynomial arithmetic, fractions, factored expressions, and finite sums of

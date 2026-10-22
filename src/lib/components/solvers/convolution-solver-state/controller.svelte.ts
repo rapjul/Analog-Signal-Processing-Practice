@@ -17,11 +17,11 @@ import type {
 	ConvolutionTransitionStepState,
 } from "$lib/components/solvers/convolution-solver-state/convolution-step-types";
 import {
-	convolutionContactEquationMatches,
 	convolutionContactSolveMatches,
 	convolutionExpressionsMatch,
 	convolutionScalarMatches,
 	parseConvolutionScalarInput,
+	verifyConvolutionContactEquation,
 	verifyConvolutionExpression,
 } from "$lib/components/solvers/convolution-solver-state/expression-validation";
 import {
@@ -550,13 +550,19 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			({ id: contactId }) => id.startsWith(contactId),
 		);
 		if (contact && id.endsWith("-form")) {
+			const result = verifyConvolutionContactEquation(
+				state.input,
+				contact.fixed,
+				contact.transformedLatex,
+			);
 			if (
-				!convolutionContactEquationMatches(
-					state.input,
-					contact.fixed,
-					contact.transformedLatex,
-				)
+				result.status === "invalid" ||
+				result.status === "unsupported"
 			) {
+				this.setSubStepValidation(this.step4, id, result.message);
+				return;
+			}
+			if (result.status !== "correct") {
 				this.setSubStepIncorrect(
 					this.step4,
 					id,
