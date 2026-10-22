@@ -10,13 +10,21 @@ import {
 } from "$lib/math-engine/random";
 import type { WithRandom } from "$lib/math-engine/types";
 import { formatRectPulseLatex } from "./pulse-formatting";
+import { resolveStepSignal } from "./step-signal";
 import type { ConvolutionSignalSection } from "./types";
 
-export const CONVOLUTION_SIGNAL_TYPES = [
+/** Signal families included in beginner Random problems. */
+export const CONVOLUTION_RANDOM_SIGNAL_TYPES = [
 	"rect",
 	"triangle",
 	"multi_rect",
 	"exponential",
+] as const;
+
+/** All explicitly selectable signal families. */
+export const CONVOLUTION_SIGNAL_TYPES = [
+	...CONVOLUTION_RANDOM_SIGNAL_TYPES,
+	"step",
 ] as const;
 
 export type ConvolutionSignalType = (typeof CONVOLUTION_SIGNAL_TYPES)[number];
@@ -197,11 +205,11 @@ export function resolveConvolutionSignal(
 		selection.type === "random"
 			? randomChoice(
 					fieldRandom(seed, `${key}:type`),
-					CONVOLUTION_SIGNAL_TYPES,
+					CONVOLUTION_RANDOM_SIGNAL_TYPES,
 				)
 			: selection.type;
 	const parameter =
-		selection.parameterMode === "default"
+		kind === "step" || selection.parameterMode === "default"
 			? kind === "triangle"
 				? 2
 				: 1
@@ -213,6 +221,7 @@ export function resolveConvolutionSignal(
 		`${key}:amplitude`,
 	);
 	const argument = formatShiftedArgument(shift);
+	if (kind === "step") return resolveStepSignal(amplitude, shift, key);
 
 	if (kind === "exponential") {
 		const latex = scaleLatex(

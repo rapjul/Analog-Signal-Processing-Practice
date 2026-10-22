@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	CONVOLUTION_RANDOM_SIGNAL_TYPES,
 	CONVOLUTION_SIGNAL_TYPES,
 	type ConvolutionProblemSelection,
 	type ConvolutionSignalSelection,
@@ -199,7 +200,7 @@ describe("independently configured convolution signals", () => {
 			seenTypes.add(first.kind);
 			seenSigns.add(Math.sign(first.amplitude));
 		}
-		expect(seenTypes).toEqual(new Set(CONVOLUTION_SIGNAL_TYPES));
+		expect(seenTypes).toEqual(new Set(CONVOLUTION_RANDOM_SIGNAL_TYPES));
 		expect(seenSigns).toEqual(new Set([-1, 1]));
 	});
 

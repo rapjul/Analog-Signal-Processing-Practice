@@ -67,6 +67,7 @@ export type {
 } from "./configuration";
 export {
 	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION,
+	CONVOLUTION_RANDOM_SIGNAL_TYPES,
 	CONVOLUTION_SIGNAL_TYPES,
 	DEFAULT_CONVOLUTION_SELECTION,
 	DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
@@ -310,6 +311,8 @@ function configuredSignalName(
 			return "Multiple Rectangular Pulses";
 		case "exponential":
 			return "Causal Exponential";
+		case "step":
+			return "Unit Step";
 	}
 }
 
