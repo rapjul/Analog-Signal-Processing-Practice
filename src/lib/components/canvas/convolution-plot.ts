@@ -253,7 +253,7 @@ export function sampleConvolutionPlot(
 	const currentOutput = finiteValue(evalY(shift));
 	const lowerMaximum = Math.max(
 		1,
-		Math.abs(currentOutput),
+		shift >= minimum && shift <= maximum ? Math.abs(currentOutput) : 0,
 		...samples.map(({ y }) => Math.abs(y)),
 	);
 	return {

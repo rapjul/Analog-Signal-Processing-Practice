@@ -11,6 +11,47 @@ import {
 	submitConvolutionForm as submit,
 } from "./convolution-tutor";
 
+/** Replacing a scrubbed step preview keeps the new problem's position visible. */
+test("convolution clamps a scrubbed preview when the problem range shrinks", async ({
+	page,
+}) => {
+	const step = {
+		...base,
+		type: "step" as const,
+		shiftState: "shifted" as const,
+		shiftValue: "2" as const,
+	};
+	await page.goto(
+		`/convolution?${serializeConvolutionFilters({
+			selection: { x: { ...step, amplitude: "-2" }, h: step },
+			seed: 41,
+		})}`,
+	);
+	const preview = page.locator("details.early-visual-disclosure");
+	await preview.locator("summary").click();
+	const slider = preview.locator('input[type="range"]');
+	const speed = preview.getByLabel("Animation speed");
+	await speed.selectOption("1.1");
+	const oldMaximum = Number(await slider.getAttribute("max"));
+	await slider.focus();
+	await slider.press("End");
+	await expect(slider).toHaveValue(String(oldMaximum));
+	await page.locator(".drill-summary").click();
+	await page.getByRole("button", { name: "Textbook Example" }).click();
+	await expect
+		.poll(async () => Number(await slider.getAttribute("max")))
+		.toBeLessThan(oldMaximum);
+	const newMaximum = await slider.getAttribute("max");
+	await expect(slider).toHaveValue(String(newMaximum));
+	await expect(speed).toHaveValue("1.1");
+	await expect(
+		preview.getByRole("button", { name: "Animate shift" }),
+	).toBeVisible();
+	await expect(preview.locator(".plot-readout")).toContainText(
+		Number(newMaximum).toFixed(2),
+	);
+});
+
 for (const moving of ["x", "h"] as const) {
 	/** Sharing, signed steps, all seven stages, and replacement work without a dev harness. */
 	test(`convolution completes signed shifted steps with ${moving} moving`, async ({

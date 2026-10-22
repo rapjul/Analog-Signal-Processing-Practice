@@ -178,6 +178,46 @@ describe("convolution plot model", () => {
 		expect(frame.currentOutput).toBe(4);
 	});
 
+	it.each([-100, 100])(
+		"ignores off-screen signed output at shift %s when scaling visible curves",
+		/** @param shift - Position outside the visible range. */
+		(shift) => {
+			const frame = sampleConvolutionPlot(
+				/** @returns Unit fixed signal. */
+				() => 1,
+				/** @returns Unit moving signal. */
+				() => 1,
+				/** @param time - Output time. @returns Signed growing output. */
+				(time) => time * 2,
+				shift,
+				[-1, 3],
+				4,
+			);
+			expect(frame.currentOutput).toBe(shift * 2);
+			expect(frame.lowerAmplitude).toBeCloseTo(6 * 1.12);
+		},
+	);
+
+	it.each([-1, 0.25, 1])(
+		"fits an exact visible peak at shift %s including range endpoints",
+		/** @param shift - Visible position of the exact output peak. */
+		(shift) => {
+			const frame = sampleConvolutionPlot(
+				/** @returns Unit fixed signal. */
+				() => 1,
+				/** @returns Unit moving signal. */
+				() => 1,
+				/** @param time - Output time. @returns A narrow negative peak. */
+				(time) => (time === shift ? -12 : 1),
+				shift,
+				[-1, 1],
+				4,
+			);
+			expect(frame.currentOutput).toBe(-12);
+			expect(frame.lowerAmplitude).toBeCloseTo(12 * 1.12);
+		},
+	);
+
 	it("sanitizes invalid evaluator values and undersized sample counts", () => {
 		const frame = sampleConvolutionPlot(
 			() => Number.NaN,
