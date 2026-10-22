@@ -30,7 +30,13 @@ function uniqueSplitPoints(
 		});
 }
 
-/** Builds one exact path-specific overlap setup from connected sections. */
+/**
+ * Builds one path-specific overlap setup from connected sections.
+ * @param interval - Output region. @param movingSignal - Selected reflected operand.
+ * @param fixedSections - Fixed supports. @param movingSections - Original moving supports.
+ * @param fixedBreakpoints - Fixed formula changes. @param movingBreakpoints - Moving formula changes.
+ * @returns Concrete candidate bounds and interior splits.
+ */
 function buildPathSetup(
 	interval: ConvolutionInterval,
 	movingSignal: ConvolutionMovingSignal,
@@ -39,10 +45,7 @@ function buildPathSetup(
 	fixedBreakpoints: number[],
 	movingBreakpoints: number[],
 ): ConvolutionIntegralPathSetup {
-	const forceNoOverlap =
-		interval.hasGeometricOverlap === false ||
-		(interval.hasGeometricOverlap === undefined &&
-			interval.exprLatex === "0");
+	const forceNoOverlap = interval.hasGeometricOverlap === false;
 	const time = representativeTime(interval);
 	const fixedInterior = fixedBreakpoints.slice(1, -1);
 	const movingInterior = movingBreakpoints.slice(1, -1);
@@ -187,8 +190,7 @@ export function buildSetupPart(
 		id: `setup-${String(index + 1).padStart(2, "0")}`,
 		title: `Determine Bounds for Region ${index + 1}`,
 		intervalLatex: interval.labelLatex,
-		resultLatex:
-			interval.integralSetupLatex ?? setupBySignal.h.integralLatex,
+		resultLatex: setupBySignal.h.integralLatex,
 		options: [],
 		setupBySignal,
 		hints: hintsBySignal.h,
@@ -196,44 +198,19 @@ export function buildSetupPart(
 	};
 }
 
-/** Builds one typed Step 6 evaluation part. */
+/**
+ * Builds Step 6 work using exact integral terms, without guessed primitives.
+ * @param interval - Output region. @param index - Region position.
+ * @param context - Concrete signal formulas. @param setupPart - Verified geometry.
+ * @returns Exact per-path evaluation metadata and hints.
+ */
 export function buildEvaluationPart(
 	interval: ConvolutionInterval,
 	index: number,
 	context: ConvolutionItsBuildContext,
-	setupPart?: ConvolutionItsIntervalPart,
+	setupPart: ConvolutionItsIntervalPart,
 ): ConvolutionItsIntervalPart {
-	const carriedZero =
-		interval.exprLatex === "0" && interval.hasGeometricOverlap !== true;
-	const primitiveFor = (setup: string): string => {
-		if (setup.includes("e^"))
-			return String.raw`\int e^{-a\tau}\,d\tau=-\frac{1}{a}e^{-a\tau}`;
-		const triangleFactors =
-			setup.match(/\\operatorname\{tri\}/g)?.length ?? 0;
-		if (triangleFactors >= 2)
-			return String.raw`\int(a\tau+b)(c\tau+d)\,d\tau=\frac{ac}{3}\tau^3+\frac{ad+bc}{2}\tau^2+bd\tau`;
-		if (
-			triangleFactors === 1 ||
-			setup.includes(String.raw`1+\frac{\tau}{2}`) ||
-			setup.includes(String.raw`1-\frac{\tau}{2}`) ||
-			setup.includes(String.raw`1+\frac{t-\tau}{2}`) ||
-			setup.includes(String.raw`1-\frac{t-\tau}{2}`)
-		)
-			return String.raw`\int(a\tau+b)\,d\tau=\frac{a}{2}\tau^2+b\tau`;
-		return String.raw`F(\tau)=A_xA_h\tau`;
-	};
-	const primitiveBySignal = {
-		h: primitiveFor(
-			interval.integralSetupLatex ??
-				setupPart?.setupBySignal?.h.integralLatex ??
-				"",
-		),
-		x: primitiveFor(
-			interval.flipXIntegralSetupLatex ??
-				setupPart?.setupBySignal?.x.integralLatex ??
-				"",
-		),
-	};
+	const carriedZero = interval.hasGeometricOverlap === false;
 	const evaluationBySignal = {
 		h: buildEvaluationTerms(
 			interval,
@@ -247,6 +224,22 @@ export function buildEvaluationPart(
 			context,
 			"x",
 		),
+	};
+	const primitiveBySignal = {
+		h: evaluationBySignal.h
+			.map(
+				/** @param term - Exact term. @returns Its primitive. */ (
+					term,
+				) => term.primitiveLatex,
+			)
+			.join(String.raw`\\`),
+		x: evaluationBySignal.x
+			.map(
+				/** @param term - Exact term. @returns Its primitive. */ (
+					term,
+				) => term.primitiveLatex,
+			)
+			.join(String.raw`\\`),
 	};
 	return {
 		id: `interval-${String(index + 1).padStart(2, "0")}`,

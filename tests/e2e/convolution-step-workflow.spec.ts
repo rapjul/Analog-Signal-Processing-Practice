@@ -1,32 +1,15 @@
 /** Production step workflows exercised entirely through learner controls. */
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
 	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION as base,
 	generateConfiguredConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
 import { serializeConvolutionFilters } from "$lib/problems/convolution-filters";
 
-/**
- * Submits the visible form and waits for its next stage or feedback.
- * @param page - Production browser page.
- * @param values - Visible field values in order.
- */
-async function submit(page: Page, values: string[]): Promise<void> {
-	const active = page.locator(".step-card.active");
-	const form = active.locator("form");
-	const fields = form.locator("input:not([readonly])");
-	await expect(fields).toHaveCount(values.length);
-	for (const [index, value] of values.entries())
-		await fields.nth(index).fill(value);
-	const before = await active.textContent();
-	await form.locator('button[type="submit"]').click();
-	await expect
-		.poll(
-			/** Returns the updated visible tutor. */ () =>
-				active.textContent(),
-		)
-		.not.toBe(before);
-}
+import {
+	observeConvolutionFocus,
+	submitConvolutionForm as submit,
+} from "./convolution-tutor";
 
 for (const moving of ["x", "h"] as const) {
 	/** Sharing, signed steps, all seven stages, and replacement work without a dev harness. */
@@ -34,6 +17,7 @@ for (const moving of ["x", "h"] as const) {
 		page,
 	}) => {
 		test.setTimeout(90_000);
+		await observeConvolutionFocus(page);
 		const selection = {
 			x: {
 				...base,

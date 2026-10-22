@@ -110,7 +110,11 @@ function buildTransitionGroups(
 	);
 }
 
-/** Builds one exact Step 1 timing part. */
+/**
+ * Builds input timing or possible-overlap timing for Step 1.
+ * @param id - Input identifier or overlap task. @param start - Span start. @param end - Span end.
+ * @returns Typed timing task with support-aware hints.
+ */
 function timingPart(
 	id: ConvolutionTimingPart["id"],
 	start: number,
@@ -147,20 +151,20 @@ function timingPart(
 	};
 }
 
-/** Builds the complete guided convolution tutoring dataset. */
+/**
+ * Builds the complete guided convolution tutoring dataset.
+ * @param context - Analytical intervals and concrete resolved signals.
+ * @returns Seven consistent teaching steps for both moving paths.
+ */
 export function buildConvolutionItsData(
 	context: ConvolutionItsBuildContext,
 ): ConvolutionItsData {
-	const outputIntervals = context.intervals.filter(
-		({ exprLatex, hasGeometricOverlap }) =>
-			hasGeometricOverlap ?? exprLatex !== "0",
-	);
 	const xStart = context.xSections[0]?.start ?? Number.NEGATIVE_INFINITY;
 	const xEnd = context.xSections.at(-1)?.end ?? Number.POSITIVE_INFINITY;
 	const hStart = context.hSections[0]?.start ?? Number.NEGATIVE_INFINITY;
 	const hEnd = context.hSections.at(-1)?.end ?? Number.POSITIVE_INFINITY;
-	const yStart = outputIntervals[0]?.min ?? Number.NEGATIVE_INFINITY;
-	const yEnd = outputIntervals.at(-1)?.max ?? Number.POSITIVE_INFINITY;
+	const yStart = xStart + hStart;
+	const yEnd = xEnd + hEnd;
 	const transitionGroups = buildTransitionGroups(context);
 	const intervalBoundaries = transitionGroups.map(({ time }) => time);
 	const finalLatex = formatConvolutionPiecewiseLatex(context.intervals);
@@ -344,7 +348,7 @@ export function buildConvolutionItsData(
 					interval,
 					index,
 					context,
-					setupParts[index],
+					setupParts[index]!,
 				),
 			),
 		},

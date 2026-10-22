@@ -27,6 +27,7 @@ export const CONVOLUTION_SIGNAL_TYPES = [
 	"step",
 ] as const;
 
+/** One explicitly supported continuous-time signal family. */
 export type ConvolutionSignalType = (typeof CONVOLUTION_SIGNAL_TYPES)[number];
 export type ConvolutionSignalTypeSelection = WithRandom<ConvolutionSignalType>;
 export type ConvolutionParameterMode = WithRandom<"default">;
@@ -133,10 +134,6 @@ export const DEFAULT_CONVOLUTION_SELECTION: ConvolutionProblemSelection = {
 	},
 };
 
-/** Backward-compatible alias for callers expecting the default signal constant. */
-export const DEFAULT_CONVOLUTION_SIGNAL_SELECTION =
-	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION;
-
 function derivedSeed(seed: number, key: string): number {
 	let hash = seed >>> 0;
 	for (const character of key) {
@@ -196,6 +193,13 @@ function section(
 	return { id, start, end, startIncluded: true, endIncluded: false };
 }
 
+/**
+ * Resolves one explicitly selected or randomized signal.
+ * @param selection - Signal family, amplitude, translation, and parameter choices.
+ * @param seed - Reproducible random seed.
+ * @param key - Independent signal identifier for random fields.
+ * @returns Concrete signal support, pieces, evaluator, and notation.
+ */
 export function resolveConvolutionSignal(
 	selection: ConvolutionSignalSelection,
 	seed: number,

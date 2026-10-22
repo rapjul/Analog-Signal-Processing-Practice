@@ -13,9 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ConvolutionPracticeCard from "$lib/components/ui/ConvolutionPracticeCard.svelte";
 import {
 	generateConfiguredConvolutionProblem,
-	generateConvolutionProblem,
 	TEXTBOOK_CONVOLUTION_SELECTION,
 } from "$lib/math-engine/convolution/index";
+import { convolutionProblem } from "../../helpers/convolution";
 
 describe("ConvolutionPracticeCard", () => {
 	/** Each new problem must notify and lock the same verified moving choice. */
@@ -98,7 +98,7 @@ describe("ConvolutionPracticeCard", () => {
 	});
 
 	it("keeps the early animation disclosed by choice and defers completion artifacts", async () => {
-		const problem = generateConvolutionProblem("rect_shifted_rect");
+		const problem = convolutionProblem();
 		const onNextProblem = vi.fn();
 		const view = render(ConvolutionPracticeCard, {
 			problem,
@@ -139,7 +139,7 @@ describe("ConvolutionPracticeCard", () => {
 	});
 
 	it("hides completion artifacts again when the problem changes", async () => {
-		const firstProblem = generateConvolutionProblem("rect_exp");
+		const firstProblem = convolutionProblem("rect", "exponential");
 		const view = render(ConvolutionPracticeCard, {
 			problem: firstProblem,
 			onNextProblem: vi.fn(),
@@ -150,7 +150,7 @@ describe("ConvolutionPracticeCard", () => {
 		);
 
 		const replacement = {
-			...generateConvolutionProblem("exp_exp"),
+			...convolutionProblem("exponential", "exponential"),
 			id: `${firstProblem.id}-replacement`,
 		};
 		await view.rerender({ problem: replacement, onNextProblem: vi.fn() });

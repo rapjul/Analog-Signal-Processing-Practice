@@ -238,9 +238,7 @@ function createPiecewiseState(
 ): ConvolutionPiecewiseStepState {
 	return createStepState({
 		rows: problem.intervals.map((interval) => {
-			const isLocked =
-				interval.exprLatex === "0" &&
-				interval.hasGeometricOverlap !== true;
+			const isLocked = interval.hasGeometricOverlap === false;
 			return {
 				input: isLocked ? "0" : "",
 				isValid: isLocked,
@@ -406,7 +404,9 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
-				"The start time is not the first point where this signal can be non-zero.",
+				id === "y"
+					? "The possible overlap span starts at the sum of the input start times."
+					: "The start time is not the first point where this signal can be non-zero.",
 			);
 			return;
 		}
@@ -414,7 +414,9 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepIncorrect(
 				this.step1,
 				id,
-				"The end time is not the last point where this signal can be non-zero.",
+				id === "y"
+					? "The possible overlap span ends at the sum of the input end times. Signed contributions may cancel earlier."
+					: "The end time is not the last point where this signal can be non-zero.",
 			);
 			return;
 		}
@@ -422,7 +424,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 			this.setSubStepMisconception(
 				this.step1,
 				id,
-				"Width is the overall end time minus the start time; convolution widths add for finite connected spans.",
+				"Width is the overall end time minus the start time. For the possible overlap span, add the input span widths.",
 			);
 			return;
 		}

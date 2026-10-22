@@ -116,6 +116,7 @@
 		}
 	}
 
+	/** @param kind - Resolved signal family. @returns Its learner-facing name. */
 	function signalTypeName(kind: string | undefined): string {
 		switch (kind) {
 			case "rect":

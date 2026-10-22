@@ -43,7 +43,7 @@
 	<div class="step-body">
 		<p>
 			<MathText
-				text={String.raw`Copy each verified Step 6 expression for $y(t)$ into its matching interval row below. Exterior no-overlap rows are pre-filled and locked.`}
+				text={String.raw`Copy each verified Step 6 expression for $y(t)$ into its matching interval row below. Verified no-overlap rows are pre-filled and locked.`}
 			/>
 		</p>
 		<details class="verified-reference">

@@ -217,11 +217,17 @@ describe("convolution plot model", () => {
 		const fillStyles: string[] = [];
 		Object.defineProperty(context, "strokeStyle", {
 			get: () => strokeStyles.at(-1) ?? "",
-			set: (value: string) => strokeStyles.push(value),
+			/** @param value - Stroke color recorded by the mock. */
+			set: (value: string): void => {
+				strokeStyles.push(value);
+			},
 		});
 		Object.defineProperty(context, "fillStyle", {
 			get: () => fillStyles.at(-1) ?? "",
-			set: (value: string) => fillStyles.push(value),
+			/** @param value - Fill color recorded by the mock. */
+			set: (value: string): void => {
+				fillStyles.push(value);
+			},
 		});
 		const frame = sampleConvolutionPlot(
 			(time) => (time >= 0 && time <= 1 ? 1 : 0),
@@ -328,7 +334,10 @@ describe("convolution plot model", () => {
 		const fillStyles: string[] = [];
 		Object.defineProperty(context, "fillStyle", {
 			get: () => fillStyles.at(-1) ?? "",
-			set: (value: string) => fillStyles.push(value),
+			/** @param value - Negative fill color recorded by the mock. */
+			set: (value: string): void => {
+				fillStyles.push(value);
+			},
 		});
 		const frame = sampleConvolutionPlot(
 			() => 2,

@@ -125,6 +125,13 @@ export function validateEvaluationStage(
 	maximum: number,
 ): EvaluationValidationResult {
 	const domain = { min: minimum, max: maximum };
+	const terms = part.evaluationBySignal?.[movingSignal] ?? [];
+	if (!part.carriedZero && terms.length === 0)
+		return {
+			kind: "malformed",
+			message:
+				"This interval is missing its integral details. Generate a new problem.",
+		};
 	if (state.stage === "combined") {
 		return validateExpressionField(
 			state.input,
@@ -135,15 +142,19 @@ export function validateEvaluationStage(
 		);
 	}
 
-	const terms = part.evaluationBySignal?.[movingSignal] ?? [];
 	const term = terms[state.activeTermIndex];
 	const input = state.termInputs[state.activeTermIndex];
-	if (!term || !input) return { kind: "valid", nextStage: "combined" };
+	if (!term || !input)
+		return {
+			kind: "malformed",
+			message:
+				"This interval is missing its integral details. Generate a new problem.",
+		};
 	const checks = {
 		"geometry-amplitude": {
 			value: input.amplitudeProduct,
 			expected: term.geometry?.amplitudeProductLatex ?? "",
-			blank: "Enter the product of the two active rectangular amplitudes.",
+			blank: "Enter the product of the two active constant amplitudes.",
 			wrong: "Multiply the signed amplitudes of the two active pieces.",
 		},
 		"geometry-width": {

@@ -284,7 +284,7 @@ function activePolynomialPiece(
  * @param time - Interior output-time sample.
  * @param lowerLatex - Lower integration limit.
  * @param upperLatex - Upper integration limit.
- * @returns Concrete evaluation work, or null for missing geometry.
+ * @returns Concrete evaluation work; incomplete metadata throws during construction.
  */
 function buildConnectedTerm(
 	id: string,
@@ -293,15 +293,33 @@ function buildConnectedTerm(
 	time: number,
 	lowerLatex: string,
 	upperLatex: string,
-): ConvolutionEvaluationTerm | null {
+): ConvolutionEvaluationTerm {
+	if (typeof lowerLatex !== "string" || typeof upperLatex !== "string")
+		throw new Error(
+			"Configured convolution requires explicit integration limits.",
+		);
 	const lower = tryEvaluateLatexAt(lowerLatex, time);
 	const upper = tryEvaluateLatexAt(upperLatex, time);
-	if (lower === null || upper === null) return null;
+	if (
+		lower === null ||
+		upper === null ||
+		!Number.isFinite(lower) ||
+		!Number.isFinite(upper) ||
+		lower >= upper
+	)
+		throw new Error(
+			"Configured convolution requires finite ordered integration limits.",
+		);
 	const tau = (lower + upper) / 2;
 	const fixedPiece = activePolynomialPiece(fixed, tau);
 	const movingPiece = activePolynomialPiece(moving, time - tau);
-	if (fixed.kind !== "exponential" && !fixedPiece) return null;
-	if (moving.kind !== "exponential" && !movingPiece) return null;
+	if (
+		(fixed.kind !== "exponential" && !fixedPiece) ||
+		(moving.kind !== "exponential" && !movingPiece)
+	)
+		throw new Error(
+			"Configured convolution requires an active polynomial piece.",
+		);
 	if (fixed.kind === "exponential" || moving.kind === "exponential")
 		return exponentialEvaluationTerm(
 			id,
@@ -314,8 +332,8 @@ function buildConnectedTerm(
 		);
 	return polynomialEvaluationTerm(
 		id,
-		fixedPiece?.coefficients ?? [0, 0],
-		movingPiece?.coefficients ?? [0, 0],
+		fixedPiece!.coefficients,
+		movingPiece!.coefficients,
 		lowerLatex,
 		upperLatex,
 	);
@@ -336,7 +354,9 @@ export function buildEvaluationTerms(
 	movingSignal: ConvolutionMovingSignal,
 ): ConvolutionEvaluationTerm[] {
 	const resolved = context.resolvedSignals;
-	if (!resolved || !setup?.hasOverlap) return [];
+	if (!setup)
+		throw new Error("Configured convolution requires an overlap setup.");
+	if (!setup.hasOverlap) return [];
 	const fixed = resolved[movingSignal === "h" ? "x" : "h"];
 	const moving = resolved[movingSignal];
 	const time = representativeTime(interval);
@@ -348,8 +368,8 @@ export function buildEvaluationTerms(
 			overlap.upperLatex,
 		];
 		for (let index = 0; index < boundaries.length - 1; index += 1) {
-			const lowerLatex = boundaries[index] ?? "0";
-			const upperLatex = boundaries[index + 1] ?? "0";
+			const lowerLatex = boundaries[index]!;
+			const upperLatex = boundaries[index + 1]!;
 			const term = buildConnectedTerm(
 				`term-${terms.length + 1}`,
 				fixed,
@@ -358,7 +378,7 @@ export function buildEvaluationTerms(
 				lowerLatex,
 				upperLatex,
 			);
-			if (term) terms.push(term);
+			terms.push(term);
 		}
 	}
 	return terms;

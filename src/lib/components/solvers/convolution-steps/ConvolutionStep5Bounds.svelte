@@ -10,7 +10,10 @@
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
-	import type { ConvolutionProblem } from "$lib/math-engine/convolution/index";
+	import {
+		type ConvolutionProblem,
+		formatConvolutionScalar,
+	} from "$lib/math-engine/convolution/index";
 
 	interface Props {
 		/** Active exact convolution problem. */
@@ -297,12 +300,12 @@
 										<div class="evaluated-summary-recap">
 											<p>
 												<MathText
-													text={String.raw`At $t=${overlap.representativeTime}$, lower candidates evaluate to $${overlap.lowerCandidatesLatex[0]}=${overlap.lowerCandidateValues[0]}$ and $${overlap.lowerCandidatesLatex[1] ?? ""}=${overlap.lowerCandidateValues[1] ?? ""}$. Since $\max$ picks the larger value, $L(t)=${overlap.lowerLatex}$.`}
+													text={String.raw`At $t=${overlap.representativeTime}$, lower candidates evaluate to $${overlap.lowerCandidatesLatex[0]}=${formatConvolutionScalar(overlap.lowerCandidateValues[0])}$ and $${overlap.lowerCandidatesLatex[1]}=${formatConvolutionScalar(overlap.lowerCandidateValues[1])}$. Since $\max$ picks the larger value, $L(t)=${overlap.lowerLatex}$.`}
 												/>
 											</p>
 											<p>
 												<MathText
-													text={String.raw`At $t=${overlap.representativeTime}$, upper candidates evaluate to $${overlap.upperCandidatesLatex[0]}=${overlap.upperCandidateValues[0]}$ and $${overlap.upperCandidatesLatex[1] ?? ""}=${overlap.upperCandidateValues[1] ?? ""}$. Since $\min$ picks the smaller value, $U(t)=${overlap.upperLatex}$.`}
+													text={String.raw`At $t=${overlap.representativeTime}$, upper candidates evaluate to $${overlap.upperCandidatesLatex[0]}=${formatConvolutionScalar(overlap.upperCandidateValues[0])}$ and $${overlap.upperCandidatesLatex[1]}=${formatConvolutionScalar(overlap.upperCandidateValues[1])}$. Since $\min$ picks the smaller value, $U(t)=${overlap.upperLatex}$.`}
 												/>
 											</p>
 										</div>
