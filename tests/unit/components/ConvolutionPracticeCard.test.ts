@@ -15,7 +15,7 @@ import {
 	generateConfiguredConvolutionProblem,
 	TEXTBOOK_CONVOLUTION_SELECTION,
 } from "$lib/math-engine/convolution/index";
-import { convolutionProblem } from "../../helpers/convolution";
+import { convolutionProblem } from "$lib/testing/convolution";
 
 describe("ConvolutionPracticeCard", () => {
 	/** Each new problem must notify and lock the same verified moving choice. */

@@ -10,7 +10,7 @@ import {
 	type ConvolutionMovingSignal,
 	type ConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
-import { convolutionProblem } from "../helpers/convolution";
+import { convolutionProblem } from "$lib/testing/convolution";
 
 /** Finds the guided contact represented by one Step 4 substep identifier. */
 function contactFor(
