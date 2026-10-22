@@ -250,12 +250,17 @@ export function sampleConvolutionPlot(
 			Math.abs(product),
 		]),
 	);
-	const lowerMaximum = Math.max(1, ...samples.map(({ y }) => Math.abs(y)));
+	const currentOutput = finiteValue(evalY(shift));
+	const lowerMaximum = Math.max(
+		1,
+		Math.abs(currentOutput),
+		...samples.map(({ y }) => Math.abs(y)),
+	);
 	return {
 		samples,
 		upperAmplitude: upperMaximum * 1.12,
 		lowerAmplitude: lowerMaximum * 1.12,
-		currentOutput: finiteValue(evalY(shift)),
+		currentOutput,
 	};
 }
 
@@ -271,9 +276,10 @@ export function createConvolutionPlotGeometry(
 	height: number,
 ): ConvolutionPlotGeometry {
 	const paddingX = width < 420 ? 28 : 40;
-	const paddingY = 34;
-	const gap = 42;
-	const panelHeight = Math.max(64, (height - paddingY * 2 - gap) / 2);
+	const visibleHeight = Math.max(1, finiteValue(height));
+	const paddingY = Math.min(34, visibleHeight * 0.1);
+	const gap = Math.min(42, visibleHeight * 0.1);
+	const panelHeight = (visibleHeight - paddingY * 2 - gap) / 2;
 	const upperTop = paddingY;
 	const upperBottom = upperTop + panelHeight;
 	const lowerTop = upperBottom + gap;
@@ -283,12 +289,12 @@ export function createConvolutionPlotGeometry(
 		upper: {
 			top: upperTop,
 			bottom: upperBottom,
-			zeroY: upperBottom - 16,
+			zeroY: (upperTop + upperBottom) / 2,
 		},
 		lower: {
 			top: lowerTop,
 			bottom: lowerBottom,
-			zeroY: lowerBottom - 16,
+			zeroY: (lowerTop + lowerBottom) / 2,
 		},
 	};
 }
@@ -439,7 +445,8 @@ function drawOverlapPanel(
 ): void {
 	const { frame } = options;
 	const scaleY =
-		(geometry.upper.zeroY - geometry.upper.top - 8) / frame.upperAmplitude;
+		Math.max(0, geometry.upper.zeroY - geometry.upper.top - 8) /
+		frame.upperAmplitude;
 	for (let index = 1; index < frame.samples.length; index += 1) {
 		const previous = frame.samples[index - 1];
 		const sample = frame.samples[index];
@@ -506,7 +513,8 @@ function drawOutputPanel(
 ): void {
 	const { frame, shift, transitionTimes, timeRange } = options;
 	const scaleY =
-		(geometry.lower.zeroY - geometry.lower.top - 8) / frame.lowerAmplitude;
+		Math.max(0, geometry.lower.zeroY - geometry.lower.top - 8) /
+		frame.lowerAmplitude;
 	context.strokeStyle = "rgba(6, 182, 212, 0.3)";
 	context.setLineDash([5, 5]);
 	for (const transition of getVisibleConvolutionTransitions(
@@ -588,6 +596,20 @@ export function drawConvolutionPlot(
 	context.fillStyle = options.theme.background;
 	context.fillRect(0, 0, options.width, options.height);
 	drawAxes(context, options, geometry, toX);
-	drawOverlapPanel(context, options, geometry, toX);
-	drawOutputPanel(context, options, geometry, toX);
+	for (const [panel, draw] of [
+		[geometry.upper, drawOverlapPanel],
+		[geometry.lower, drawOutputPanel],
+	] as const) {
+		context.save();
+		context.beginPath();
+		context.rect(
+			geometry.paddingX,
+			panel.top,
+			Math.max(0, options.width - 2 * geometry.paddingX),
+			panel.bottom - panel.top,
+		);
+		context.clip();
+		draw(context, options, geometry, toX);
+		context.restore();
+	}
 }

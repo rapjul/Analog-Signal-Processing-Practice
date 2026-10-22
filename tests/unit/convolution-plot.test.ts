@@ -17,6 +17,10 @@ function createMockContext(): CanvasRenderingContext2D {
 		arc: vi.fn(),
 		beginPath: vi.fn(),
 		closePath: vi.fn(),
+		clip: vi.fn(),
+		rect: vi.fn(),
+		save: vi.fn(),
+		restore: vi.fn(),
 		fill: vi.fn(),
 		fillRect: vi.fn(),
 		fillText: vi.fn(),
@@ -33,6 +37,69 @@ function createMockContext(): CanvasRenderingContext2D {
 }
 
 describe("convolution plot model", () => {
+	/** Every signed curve is contained by the panel being rendered, even on short canvases. */
+	it.each([100, 160, 360])(
+		"keeps signed curves and the current output inside panels at height %s",
+		/** @param height - Canvas height in CSS pixels. */ (height) => {
+			const context = createMockContext();
+			let bounds: [number, number] | undefined;
+			vi.mocked(context.rect).mockImplementation(
+				/** @param x - Clip origin. @param y - Clip top. @param width - Clip width. @param size - Clip height. */ (
+					x,
+					y,
+					width,
+					size,
+				) => {
+					bounds = [y, y + size];
+				},
+			);
+			vi.mocked(context.restore).mockImplementation(
+				/** Clears the active panel clip. */ () => {
+					bounds = undefined;
+				},
+			);
+			for (const method of [context.moveTo, context.lineTo, context.arc])
+				vi.mocked(method).mockImplementation(
+					/** @param x - Drawing coordinate. @param y - Drawing height. */ (
+						x,
+						y,
+					) => {
+						if (!bounds) return;
+						expect(y).toBeGreaterThanOrEqual(bounds[0]);
+						expect(y).toBeLessThanOrEqual(bounds[1]);
+					},
+				);
+			const frame = sampleConvolutionPlot(
+				/** @param t - Time. @returns Signed input. */ (t) => t * 3,
+				/** @param t - Time. @returns Opposite-signed input. */ (t) =>
+					-t * 2,
+				/** @param t - Time. @returns Output with a narrow peak. */ (
+					t,
+				) => (t === 0.13 ? -100 : t),
+				0.13,
+				[-1, 1],
+				8,
+			);
+			expect(frame.lowerAmplitude).toBeCloseTo(112);
+			drawConvolutionPlot(context, {
+				width: 320,
+				height,
+				timeRange: [-1, 1],
+				shift: 0.13,
+				transitionTimes: [-0.5, 0.5],
+				frame,
+				theme: {
+					background: "black",
+					axis: "gray",
+					muted: "gray",
+					text: "white",
+				},
+			});
+			expect(context.clip).toHaveBeenCalledTimes(2);
+			expect(context.save).toHaveBeenCalledTimes(2);
+			expect(context.restore).toHaveBeenCalledTimes(2);
+		},
+	);
 	it("defines a slower instructional default with ordered speed presets", () => {
 		expect(CONVOLUTION_SPEED_PRESETS.map(({ id }) => id)).toEqual([
 			"slow",
@@ -137,7 +204,11 @@ describe("convolution plot model", () => {
 		expect(narrow.paddingX).toBe(28);
 		expect(wide.paddingX).toBe(40);
 		expect(narrow.lower.top).toBeGreaterThan(narrow.upper.bottom);
-		expect(short.upper.bottom - short.upper.top).toBe(64);
+		expect(short.upper.top).toBeGreaterThanOrEqual(0);
+		expect(short.lower.bottom).toBeLessThan(100);
+		expect(short.upper.zeroY).toBe(
+			(short.upper.top + short.upper.bottom) / 2,
+		);
 	});
 
 	it("draws axes, overlap, full response, reveal, markers, and current point", () => {
