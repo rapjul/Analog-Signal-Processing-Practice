@@ -5,12 +5,7 @@
  */
 
 import { sanitizeLatexMath } from "$lib/math-engine/formatting";
-import {
-	createRandomSeed,
-	createSeededPrng,
-	randomChoice,
-	randomInt,
-} from "$lib/math-engine/random";
+import { createRandomSeed } from "$lib/math-engine/random";
 import type { SolutionStep } from "$lib/math-engine/types";
 import {
 	type ConvolutionProblemSelection,
@@ -19,38 +14,13 @@ import {
 	resolveConvolutionSelection,
 } from "./configuration";
 import { solveConfiguredConvolution } from "./configured-solver";
-import { evalExpDecay, evalRect, evalTri } from "./evaluators";
-import {
-	solveExpExpConvolution,
-	solveRectExpConvolution,
-} from "./exponential-solvers";
 import {
 	buildConvolutionItsData,
 	type ConvolutionItsData,
-	type ConvolutionSignalSection,
 } from "./its-scaffolding/index";
-import { generateLegacyConvolutionProblem } from "./problem-generator";
-import { formatRectPulseLatex } from "./pulse-formatting";
-import {
-	solveMultiRectConvolution,
-	solveRectRectConvolution,
-	solveShiftedRectConvolution,
-} from "./rect-solvers";
-import {
-	solveStepExpConvolution,
-	solveStepRectConvolution,
-} from "./step-solvers";
-import {
-	solveShiftedTriTriConvolution,
-	solveTriRectConvolution,
-} from "./triangle-solvers";
 import type {
 	ConvolutionGenerationOptions,
 	ConvolutionInterval,
-	ConvolutionPairType,
-	ConvolutionResult,
-	ExpSignal,
-	RectSignal,
 } from "./types";
 
 export type {
@@ -67,54 +37,15 @@ export type {
 } from "./configuration";
 export {
 	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION,
+	CONVOLUTION_RANDOM_SIGNAL_TYPES,
 	CONVOLUTION_SIGNAL_TYPES,
 	DEFAULT_CONVOLUTION_SELECTION,
-	DEFAULT_CONVOLUTION_SIGNAL_SELECTION,
 	resolveConvolutionSelection,
 	resolveConvolutionSignal,
 	TEXTBOOK_CONVOLUTION_SELECTION,
 	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION,
 } from "./configuration";
 export { solveConfiguredConvolution } from "./configured-solver";
-export { evalExpDecay, evalRect, evalTri } from "./evaluators";
-export {
-	solveExpExpConvolution,
-	solveRectExpConvolution,
-} from "./exponential-solvers";
-export {
-	solveMultiRectConvolution,
-	solveRectRectConvolution,
-	solveShiftedRectConvolution,
-} from "./rect-solvers";
-export {
-	solveStepExpConvolution,
-	solveStepRectConvolution,
-} from "./step-solvers";
-export {
-	solveShiftedTriTriConvolution,
-	solveTriRectConvolution,
-} from "./triangle-solvers";
-export type {
-	ConvolutionGenerationOptions,
-	ConvolutionInterval,
-	ConvolutionPairType,
-	ConvolutionResult,
-	ConvolutionSignalSection,
-	ExpSignal,
-	RectSignal,
-} from "./types";
-
-/** Generates a seeded practice problem from the legacy category catalog. */
-export function generateConvolutionProblem(
-	pairType: ConvolutionPairType = "rect_rect",
-	options: ConvolutionGenerationOptions = {},
-): ConvolutionProblem {
-	return generateLegacyConvolutionProblem(
-		pairType,
-		options,
-		withConvolutionItsData,
-	);
-}
 export type {
 	ConvolutionBreakpointContact,
 	ConvolutionBreakpointPart,
@@ -135,6 +66,12 @@ export {
 	formatConvolutionScalar,
 	getFiniteConvolutionTransitionTimes,
 } from "./its-scaffolding/index";
+export type {
+	ConvolutionGenerationOptions,
+	ConvolutionInterval,
+	ConvolutionResult,
+	ConvolutionSignalSection,
+} from "./types";
 
 /** Convolution problem metadata and evaluation */
 export interface ConvolutionProblem {
@@ -161,33 +98,30 @@ export interface ConvolutionProblem {
 	/** Evaluator function for impulse response h(tau) */
 	evalH: (tau: number) => number;
 	/** Support edges and interior breakpoints for the input signal. */
-	xBreakpoints?: number[] | undefined;
+	xBreakpoints: number[];
 	/** Support edges and interior breakpoints for the impulse response. */
-	hBreakpoints?: number[] | undefined;
+	hBreakpoints: number[];
 	/** Start and end edges for every connected input-signal section. */
 	xSupportEdges: number[];
 	/** Start and end edges for every connected impulse-response section. */
 	hSupportEdges: number[];
 	/** Time range [min, max] for visualization */
-	timeRange?: [number, number] | undefined;
+	timeRange: [number, number];
 	/** Structured seven-step Intelligent Tutoring System data. */
 	itsData: ConvolutionItsData;
 	/** Independent selections used by the configured generator. */
-	selection?: ConvolutionProblemSelection | undefined;
+	selection: ConvolutionProblemSelection;
 	/** Concrete resolved signals used by the configured generator. */
-	resolvedSignals?: ResolvedConvolutionSelection | undefined;
+	resolvedSignals: ResolvedConvolutionSelection;
 	/** Number of finite transition regions shown before tutoring begins. */
-	regionCount?: number | undefined;
+	regionCount: number;
 }
 
 /** Convolution problem before its standardized tutor scaffold is attached. */
 export type ConvolutionProblemSource = Omit<
 	ConvolutionProblem,
 	"itsData" | "xSupportEdges" | "hSupportEdges"
-> & {
-	xSections?: ConvolutionSignalSection[];
-	hSections?: ConvolutionSignalSection[];
-};
+>;
 
 /**
  * Attaches deterministic tutoring data to an exact convolution problem.
@@ -202,83 +136,10 @@ export function withConvolutionItsData(
 		...interval,
 		labelLatex: sanitizeLatexMath(interval.labelLatex),
 		exprLatex: sanitizeLatexMath(interval.exprLatex),
-		supportIntersectionLatex: interval.supportIntersectionLatex
-			? sanitizeLatexMath(interval.supportIntersectionLatex)
-			: undefined,
-		integralSetupLatex: interval.integralSetupLatex
-			? sanitizeLatexMath(interval.integralSetupLatex)
-			: undefined,
-		flipXSupportIntersectionLatex: interval.flipXSupportIntersectionLatex
-			? sanitizeLatexMath(interval.flipXSupportIntersectionLatex)
-			: undefined,
-		flipXIntegralSetupLatex: interval.flipXIntegralSetupLatex
-			? sanitizeLatexMath(interval.flipXIntegralSetupLatex)
-			: undefined,
 	}));
-	const section = (
-		id: string,
-		start: number,
-		end: number,
-		startIncluded = true,
-		endIncluded = false,
-	) => ({ id, start, end, startIncluded, endIncluded });
-	const xBreakpoints = problem.xBreakpoints ?? [0];
-	const hBreakpoints = problem.hBreakpoints ?? [0];
-	let xSections = problem.xSections ?? [
-		section(
-			"x-1",
-			xBreakpoints[0] ?? 0,
-			xBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
-		),
-	];
-	let hSections = problem.hSections ?? [
-		section(
-			"h-1",
-			hBreakpoints[0] ?? 0,
-			hBreakpoints.at(-1) ?? Number.POSITIVE_INFINITY,
-		),
-	];
-	if (!problem.xSections || !problem.hSections)
-		switch (problem.pairType) {
-			case "multi_rect":
-				xSections = [section("x-1", 0, 1), section("x-2", 3, 4)];
-				hSections = [section("h-1", 0, 2)];
-				break;
-			case "rect_exp":
-				hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
-				break;
-			case "exp_exp":
-			case "step_exp":
-				xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
-				hSections = [section("h-1", 0, Number.POSITIVE_INFINITY)];
-				break;
-			case "step_rect":
-				xSections = [section("x-1", 0, Number.POSITIVE_INFINITY)];
-				break;
-			case "tri_rect":
-				xSections = [section("x-1", -2, 2, false, false)];
-				hSections = [section("h-1", -1, 1)];
-				break;
-			case "tri_shifted_tri":
-				xSections = [section("x-1", -2, 2, false, false)];
-				hSections = [
-					section(
-						"h-1",
-						hBreakpoints[0] ?? -2,
-						hBreakpoints.at(-1) ?? 2,
-						false,
-						false,
-					),
-				];
-				break;
-			case "rect_rect":
-			case "rect_shifted_rect":
-			case "rect_both_shifted":
-			case "bilateral_exp_rect":
-				break;
-			default:
-				break;
-		}
+	const { x, h } = problem.resolvedSignals;
+	const xSections = x.sections;
+	const hSections = h.sections;
 	return {
 		...problem,
 		xLatex: sanitizeLatexMath(problem.xLatex),
@@ -291,13 +152,14 @@ export function withConvolutionItsData(
 			intervals,
 			xSections,
 			hSections,
-			xBreakpoints,
-			hBreakpoints,
+			xBreakpoints: x.breakpoints,
+			hBreakpoints: h.breakpoints,
 			resolvedSignals: problem.resolvedSignals,
 		}),
 	};
 }
 
+/** @param kind - Resolved family. @returns Its learner-facing name. */
 function configuredSignalName(
 	kind: ResolvedConvolutionSelection["x"]["kind"],
 ): string {
@@ -310,6 +172,8 @@ function configuredSignalName(
 			return "Multiple Rectangular Pulses";
 		case "exponential":
 			return "Causal Exponential";
+		case "step":
+			return "Unit Step";
 	}
 }
 
@@ -383,8 +247,6 @@ export function generateConfiguredConvolutionProblem(
 		evalH: result.evalH,
 		xBreakpoints: resolvedSignals.x.breakpoints,
 		hBreakpoints: resolvedSignals.h.breakpoints,
-		xSections: resolvedSignals.x.sections,
-		hSections: resolvedSignals.h.sections,
 		timeRange: [minimum - 2, maximum + 4],
 		selection,
 		resolvedSignals,

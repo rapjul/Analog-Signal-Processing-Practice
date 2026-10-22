@@ -18,6 +18,10 @@ function createMockContext() {
 		arc: vi.fn(),
 		beginPath: vi.fn(),
 		closePath: vi.fn(),
+		clip: vi.fn(),
+		rect: vi.fn(),
+		save: vi.fn(),
+		restore: vi.fn(),
 		fill: vi.fn(),
 		fillRect: vi.fn(),
 		fillText: vi.fn(),
@@ -174,6 +178,74 @@ describe("ConvolutionCanvas", () => {
 		expect(cancelAnimationFrame).toHaveBeenCalled();
 		expect(mockContext.fillText).toHaveBeenCalled();
 	});
+
+	for (const playing of [false, true]) {
+		it.each([
+			["smaller upper bound", 10, [-2, 3], 3],
+			["smaller lower bound", -10, [-2, 3], -2],
+			["disjoint later range", 10, [12, 15], 12],
+			["disjoint earlier range", 10, [-12, -8], -8],
+			["reversed range", 10, [3, -2], 3],
+			["valid position", 1, [-2, 3], 1],
+			["equivalent reversed range", 10, [20, -20], 10],
+		] as const)(
+			`preserves controls on replacement with %s while ${playing ? "playing" : "paused"}`,
+			/**
+			 * @param _label - Replacement scenario name.
+			 * @param shift - Scrubbed position in the original range.
+			 * @param timeRange - Replacement bounds, possibly reversed.
+			 * @param expected - Nearest valid position after replacement.
+			 */
+			async (_label, shift, timeRange, expected) => {
+				const view = render(ConvolutionCanvas, {
+					timeRange: [-20, 20],
+					/** @param time - Original output time. @returns A causal ramp. */
+					evalY: (time) => Math.max(0, time),
+				});
+				const slider = view.container.querySelector(
+					"#shift-slider",
+				) as HTMLInputElement;
+				const speed = view.getByLabelText(
+					"Animation speed",
+				) as HTMLSelectElement;
+				await fireEvent.input(slider, {
+					target: { value: String(shift) },
+				});
+				await fireEvent.change(speed, { target: { value: "1.1" } });
+				if (playing)
+					await fireEvent.click(view.getByText("Animate shift"));
+				await view.rerender({
+					timeRange: [...timeRange],
+					/** @param time - Replacement output time. @returns A signed ramp. */
+					evalY: (time) => -2 * Math.max(0, time),
+					animationSpeed: 0.35,
+				});
+				await waitFor(() =>
+					expect(Number(slider.value)).toBe(expected),
+				);
+				expect(speed.value).toBe("1.1");
+				expect(
+					view.getByText(
+						playing ? "Pause animation" : "Animate shift",
+					),
+				).toBeTruthy();
+				expect(view.container.textContent).toContain(
+					(-2 * Math.max(0, expected)).toFixed(3),
+				);
+				if (playing) {
+					await act(() => animationCallbacks.get(1)?.(1000));
+					await act(() => animationCallbacks.get(2)?.(1200));
+					expect(Number(slider.value)).not.toBe(expected);
+					expect(Number(slider.value)).toBeGreaterThanOrEqual(
+						Math.min(...timeRange),
+					);
+					expect(Number(slider.value)).toBeLessThanOrEqual(
+						Math.max(...timeRange),
+					);
+				}
+			},
+		);
+	}
 
 	it("skips drawing when context or measurable bounds are unavailable", () => {
 		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(

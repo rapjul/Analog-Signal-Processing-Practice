@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Convolution practice card with a guided five-step ITS solver.
+	 * Convolution practice card with a guided seven-step ITS solver.
 	 *
 	 * Keeps the problem statement spoiler-free, defers the flip-and-shift canvas
 	 * and worked solution until completion, and mirrors the ODE/Fourier flow.
@@ -81,7 +81,7 @@
 			{
 				title: "Record input and output timing",
 				description:
-					"The support is the time range where a signal can be nonzero. Adding the verified starts and ends gives the output span.",
+					"Adding the input starts and ends bounds the possible overlap span. Signed contributions can cancel even while overlap continues.",
 				latex: problem.itsData.step1.parts
 					.map(({ resultLatex }) => resultLatex)
 					.join("\\\\"),
@@ -132,7 +132,7 @@
 			{
 				title: "Assemble the piecewise response",
 				description:
-					"Combine the interval expressions, including both exterior zero regions.",
+					"Combine all verified interval expressions, including no-overlap zeros and any nonzero or cancelling tail.",
 				latex: problem.itsData.step7.resultLatex,
 				responsive: true,
 			},

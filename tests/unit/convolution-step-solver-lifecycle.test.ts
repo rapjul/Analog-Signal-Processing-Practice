@@ -9,9 +9,8 @@ import {
 	type ConvolutionItsOption,
 	type ConvolutionMovingSignal,
 	type ConvolutionProblem,
-	generateConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
-import { buildConvolutionItsData } from "$lib/math-engine/convolution/its-scaffolding/index";
+import { convolutionProblem } from "$lib/testing/convolution";
 
 /** Finds the guided contact represented by one Step 4 substep identifier. */
 function contactFor(
@@ -73,38 +72,16 @@ function completeFlip(
 	solver.checkStep3Edges();
 }
 
-/** Completes every remaining multipart step through its typed public API. */
+/**
+ * Completes remaining multipart steps through their public typed APIs.
+ * @param solver - Active controller. @param problem - Concrete expected work.
+ */
 function completeTypedRemainder(
 	solver: ConvolutionStepSolverState,
 	problem: ConvolutionProblem,
 ): void {
 	while (solver.currentStep === 4) {
-		const id = solver.step4.activeSubStepId;
-		const state = solver.step4.subSteps[id];
-		if (!state) break;
-		const contact = contactFor(problem, solver.flippedSignal, id);
-		if (id === "interval-builder")
-			state.intervalInputs =
-				problem.itsData.step4.intervalBoundaries.map(String);
-		else if (id === "section-count-x")
-			state.input = String(problem.itsData.step4.sectionCounts.x);
-		else if (id === "section-count-h")
-			state.input = String(problem.itsData.step4.sectionCounts.h);
-		else if (contact)
-			state.input = id.endsWith("-form")
-				? contact.transformedLatex
-				: String(contact.transitionTime);
-		else if (id === "transition-count")
-			state.input = String(problem.itsData.step4.transitionGroups.length);
-		else if (id === "interval-count")
-			state.input = String(problem.itsData.step4.intervalLabels.length);
-		else
-			state.input = String(
-				problem.itsData.step4.breakpointParts.find(
-					(part) => part.id === id,
-				)?.value,
-			);
-		solver.checkStep4();
+		answerActiveTransitionPart(solver, problem);
 	}
 	while (solver.currentStep === 5) {
 		const id = solver.step5.activeSubStepId;
@@ -115,23 +92,6 @@ function completeTypedRemainder(
 		if (!setup) throw new Error("Expected bounds setup.");
 		if (state.stage === "overlap") {
 			solver.chooseStep5Overlap(setup.hasOverlap);
-			continue;
-		}
-		if (state.stage === "evaluate") {
-			state.boundInputs = setup.overlaps.map((overlap) => ({
-				lowerValues: [
-					String(overlap.lowerCandidateValues[0]),
-					String(overlap.lowerCandidateValues[1] ?? ""),
-				],
-				upperValues: [
-					String(overlap.upperCandidateValues[0]),
-					String(overlap.upperCandidateValues[1] ?? ""),
-				],
-				lower: overlap.lowerLatex,
-				upper: overlap.upperLatex,
-				splits: [...overlap.splitPointsLatex],
-			}));
-			solver.checkStep5();
 			continue;
 		}
 		state.boundInputs = setup.overlaps.map((overlap) => ({
@@ -244,9 +204,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	it.each(["x", "h"] as const)(
 		"progresses through all seven steps with %s moving",
 		(signal) => {
-			const problem = generateConvolutionProblem("tri_shifted_tri", {
-				seed: 8,
-			});
+			const problem = convolutionProblem("triangle", "triangle", 8);
 			const onComplete = vi.fn();
 			const solver = new ConvolutionStepSolverState(
 				() => problem,
@@ -264,7 +222,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	);
 
 	it("distinguishes blank and incorrect timing values before parsing fractions and infinity", () => {
-		const problem = generateConvolutionProblem("rect_exp", { seed: 22 });
+		const problem = convolutionProblem("rect", "exponential", 22);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		const state = solver.step1.subSteps.x;
 		if (!state) throw new Error("Expected state");
@@ -295,9 +253,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("targets path mismatch, shifted-only formulas, reversed edges, shifts, and endpoints", () => {
-		const problem = generateConvolutionProblem("rect_shifted_rect", {
-			seed: 3,
-		});
+		const problem = convolutionProblem("rect", "rect", 3);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		completeTiming(solver, problem);
 		solver.checkStep2(option(problem.itsData.step2.options, true));
@@ -335,8 +291,8 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	it("places the seeded Step 3B answer in every option position deterministically", () => {
 		const positions = new Set<number>();
 		for (let seed = 1; seed <= 200 && positions.size < 4; seed += 1) {
-			const first = generateConvolutionProblem("rect_rect", { seed });
-			const second = generateConvolutionProblem("rect_rect", { seed });
+			const first = convolutionProblem("rect", "rect", seed);
+			const second = convolutionProblem("rect", "rect", seed);
 			for (const signal of ["x", "h"] as const) {
 				const firstIds = first.itsData.step3.formulaBySignal[
 					signal
@@ -358,8 +314,8 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	it("places the seeded Step 2 answer in every option position deterministically", () => {
 		const positions = new Set<number>();
 		for (let seed = 0; seed < 4; seed += 1) {
-			const first = generateConvolutionProblem("rect_rect", { seed });
-			const second = generateConvolutionProblem("rect_rect", { seed });
+			const first = convolutionProblem("rect", "rect", seed);
+			const second = convolutionProblem("rect", "rect", seed);
 			expect(first.itsData.step2.options.map(({ id }) => id)).toEqual(
 				second.itsData.step2.options.map(({ id }) => id),
 			);
@@ -373,7 +329,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("guides contact formulation and solving as separate typed sub-steps", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
 		advanceTransitionUntil(solver, problem, (id) => id.endsWith("-form"));
@@ -407,13 +363,13 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 
 	it("normalizes negative contact substitutions and groups duplicate times", () => {
 		for (const kind of [
-			"rect_rect",
-			"tri_rect",
-			"tri_shifted_tri",
+			"rect",
+			"triangle",
 			"multi_rect",
-			"rect_exp",
+			"exponential",
+			"step",
 		] as const) {
-			const problem = generateConvolutionProblem(kind, { seed: 17 });
+			const problem = convolutionProblem(kind, "triangle", 17);
 			for (const signal of ["x", "h"] as const) {
 				const contacts = problem.itsData.step4.transitionGroups.flatMap(
 					(group) => group.contactsBySignal[signal],
@@ -428,61 +384,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 				}
 			}
 		}
-		const duplicateData = buildConvolutionItsData({
-			seed: 12,
-			intervals: [
-				{
-					min: Number.NEGATIVE_INFINITY,
-					max: 0,
-					exprLatex: "0",
-					labelLatex: "t<0",
-					eval: () => 0,
-				},
-				{
-					min: 0,
-					max: 1,
-					exprLatex: "t",
-					labelLatex: "0\\le t<1",
-					hasGeometricOverlap: true,
-					eval: () => 0,
-				},
-				{
-					min: 1,
-					max: 2,
-					exprLatex: "2-t",
-					labelLatex: "1\\le t<2",
-					hasGeometricOverlap: true,
-					eval: () => 0,
-				},
-				{
-					min: 2,
-					max: Number.POSITIVE_INFINITY,
-					exprLatex: "0",
-					labelLatex: "t\\ge2",
-					eval: () => 0,
-				},
-			],
-			xSections: [
-				{
-					id: "x-1",
-					start: 0,
-					end: 1,
-					startIncluded: true,
-					endIncluded: false,
-				},
-			],
-			hSections: [
-				{
-					id: "h-1",
-					start: 0,
-					end: 1,
-					startIncluded: true,
-					endIncluded: false,
-				},
-			],
-			xBreakpoints: [0, 1],
-			hBreakpoints: [0, 1],
-		});
+		const duplicateData = convolutionProblem().itsData;
 		const grouped = duplicateData.step4.transitionGroups.flatMap((group) =>
 			group.contactsBySignal.h.filter((contact) => contact.duplicateOf),
 		);
@@ -498,7 +400,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("rejects incorrect transition and interval counts before boundary entry", () => {
-		const problem = generateConvolutionProblem("tri_rect", { seed: 18 });
+		const problem = convolutionProblem("triangle", "rect", 18);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
 		advanceTransitionUntil(
@@ -521,7 +423,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("accepts full equations as well as bare expressions for contact parts", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 1 });
+		const problem = convolutionProblem("rect", "rect", 1);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
 		// Advance through section counts
@@ -550,7 +452,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("rejects missing, duplicate, and unsorted transition boundaries", () => {
-		const problem = generateConvolutionProblem("multi_rect", { seed: 4 });
+		const problem = convolutionProblem("multi_rect", "rect", 4);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 3; step += 1) solver.devAutoFillStep(step);
 		while (
@@ -606,7 +508,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("validates overlap decisions and strict expressions", () => {
-		const problem = generateConvolutionProblem("tri_rect", { seed: 5 });
+		const problem = convolutionProblem("triangle", "rect", 5);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 4; step += 1) solver.devAutoFillStep(step);
 		const boundsState = solver.step5.subSteps[solver.step5.activeSubStepId];
@@ -619,6 +521,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		solver.devAutoFillStep(5);
 		const expressionState =
 			solver.step6.subSteps[solver.step6.activeSubStepId];
+		if (expressionState) expressionState.stage = "combined";
 		solver.checkStep6();
 		expect(solver.currentFeedbackType).toBe("validation");
 		if (expressionState) expressionState.input = "not valid math";
@@ -632,7 +535,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("checks Step 5 overlap choices immediately and validates each typed bound", () => {
-		const problem = generateConvolutionProblem("tri_rect", { seed: 5 });
+		const problem = convolutionProblem("triangle", "rect", 5);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 4; step += 1) solver.devAutoFillStep(step);
 		const firstId = solver.step5.activeSubStepId;
@@ -708,9 +611,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("rejects an incorrect interior split point", () => {
-		const problem = generateConvolutionProblem("tri_shifted_tri", {
-			seed: 8,
-		});
+		const problem = convolutionProblem("triangle", "triangle", 8);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 4; step += 1) solver.devAutoFillStep(step);
 		const part = problem.itsData.step5.parts.find((candidate) =>
@@ -747,7 +648,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("locks carried zero rows and validates each nonzero piecewise row", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const solver = new ConvolutionStepSolverState(() => problem);
 		for (let step = 1; step <= 6; step += 1) solver.devAutoFillStep(step);
 		const locked = solver.step7.rows.filter(({ isLocked }) => isLocked);
@@ -776,7 +677,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("handles defensive missing-state and developer-harness branches", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const solver = new ConvolutionStepSolverState(() => problem);
 		delete solver.step1.subSteps.x;
 		solver.checkStep1();
@@ -829,7 +730,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("covers sparse scaffold fallbacks and unbounded expression sampling", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const sparseProblem = {
 			...problem,
 			itsData: {
@@ -875,7 +776,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("returns false when a visual substep has no compatible current state", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		class MissingCurrentStateSolver extends ConvolutionStepSolverState {
 			override get currentStepState(): undefined {
 				return undefined;
@@ -888,7 +789,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	});
 
 	it("guards malformed developer metadata without advancing", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const noIncorrect = {
 			...problem,
 			itsData: {
@@ -926,9 +827,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		const unknown = new UnknownSubstepSolver(() => problem);
 		expect(unknown.devGoToVisualState("unknown-substep")).toBe(false);
 
-		const missingTiming = generateConvolutionProblem("rect_rect", {
-			seed: 13,
-		});
+		const missingTiming = convolutionProblem("rect", "rect", 13);
 		const missingTimingSolver = new ConvolutionStepSolverState(
 			() => missingTiming,
 		);
@@ -936,9 +835,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		missingTimingSolver.devAutoFillStep(1);
 		expect(missingTimingSolver.currentStep).toBe(1);
 
-		const missingSetup = generateConvolutionProblem("rect_rect", {
-			seed: 14,
-		});
+		const missingSetup = convolutionProblem("rect", "rect", 14);
 		const missingSetupSolver = new ConvolutionStepSolverState(
 			() => missingSetup,
 		);
@@ -958,7 +855,11 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		"preserves invalid infinite-edge feedback when moving %s",
 		/** @param moving - Reflected exponential signal. */
 		(moving) => {
-			const problem = generateConvolutionProblem("exp_exp", { seed: 13 });
+			const problem = convolutionProblem(
+				"exponential",
+				"exponential",
+				13,
+			);
 			const solver = new ConvolutionStepSolverState(
 				/** Returns the unbounded regression problem. */ () => problem,
 			);
@@ -1003,7 +904,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 
 	/** Resource limits explain failed validation without advancing or completing the tutor. */
 	it("shows specific resource-limit feedback on final rows without advancing", () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 13 });
+		const problem = convolutionProblem("rect", "rect", 13);
 		const solver = new ConvolutionStepSolverState(
 			/** Returns the fixed regression problem. */ () => problem,
 		);
@@ -1043,9 +944,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		"stops Step %s auto-fill when %s cannot progress",
 		/** @param step - Parent step to exercise. @param method - Real validation entry point. */
 		(step, method) => {
-			const problem = generateConvolutionProblem("rect_rect", {
-				seed: 13,
-			});
+			const problem = convolutionProblem("rect", "rect", 13);
 			const solver = new ConvolutionStepSolverState(() => problem);
 			for (let parent = 1; parent < step; parent++)
 				solver.devAutoFillStep(parent);
@@ -1064,7 +963,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 	);
 
 	it("resets typed state and exposes all parent visual states", () => {
-		const problem = generateConvolutionProblem("multi_rect", { seed: 4 });
+		const problem = convolutionProblem("multi_rect", "rect", 4);
 		const solver = new ConvolutionStepSolverState(() => problem);
 		expect(
 			new Set(solver.devGetVisualStates().map(({ step }) => step)),

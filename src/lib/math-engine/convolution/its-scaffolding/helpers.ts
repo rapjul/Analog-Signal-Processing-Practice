@@ -110,7 +110,11 @@ function buildTransitionGroups(
 	);
 }
 
-/** Builds one exact Step 1 timing part. */
+/**
+ * Builds input timing or possible-overlap timing for Step 1.
+ * @param id - Input identifier or overlap task. @param start - Span start. @param end - Span end.
+ * @returns Typed timing task with support-aware hints.
+ */
 function timingPart(
 	id: ConvolutionTimingPart["id"],
 	start: number,
@@ -120,24 +124,24 @@ function timingPart(
 		Number.isFinite(start) && Number.isFinite(end)
 			? end - start
 			: Number.POSITIVE_INFINITY;
-	const signalLatex = id === "y" ? "y(t)" : `${id}(t)`;
+	const signalLatex = id === "y" ? String.raw`\text{Overlap}` : `${id}(t)`;
 	return {
 		id,
 		title:
 			id === "y"
-				? "Calculate the Convolution Timing"
+				? "Calculate the Possible Overlap Span"
 				: `Read the Timing of $${id}(t)$`,
 		signalLatex,
 		start,
 		end,
 		width,
-		resultLatex: `${id}_{\\mathrm{start}}=${formatConvolutionScalar(start)},\\quad ${id}_{\\mathrm{end}}=${formatConvolutionScalar(end)},\\quad W_${id}=${formatConvolutionScalar(width)}`,
+		resultLatex: `${id}_{\\mathrm{${id === "y" ? "overlap,start" : "start"}}}=${formatConvolutionScalar(start)},\\quad ${id}_{\\mathrm{${id === "y" ? "overlap,end" : "end"}}}=${formatConvolutionScalar(end)},\\quad W_{${id}${id === "y" ? ",\\mathrm{overlap}" : ""}}=${formatConvolutionScalar(width)}`,
 		hints:
 			id === "y"
 				? [
-						"Add the two input start times.",
-						"Add the two input end times.",
-						"For finite spans, the output width is the sum of the input widths.",
+						"Add the two input start times to find when overlap can begin.",
+						"Add the two input end times to bound the possible overlap span.",
+						"The span widths add, but signed contributions may cancel before overlap ends.",
 					]
 				: [
 						"Find the first time where the signal can be nonzero.",
@@ -147,20 +151,20 @@ function timingPart(
 	};
 }
 
-/** Builds the complete guided convolution tutoring dataset. */
+/**
+ * Builds the complete guided convolution tutoring dataset.
+ * @param context - Analytical intervals and concrete resolved signals.
+ * @returns Seven consistent teaching steps for both moving paths.
+ */
 export function buildConvolutionItsData(
 	context: ConvolutionItsBuildContext,
 ): ConvolutionItsData {
-	const outputIntervals = context.intervals.filter(
-		({ exprLatex, hasGeometricOverlap }) =>
-			hasGeometricOverlap ?? exprLatex !== "0",
-	);
 	const xStart = context.xSections[0]?.start ?? Number.NEGATIVE_INFINITY;
 	const xEnd = context.xSections.at(-1)?.end ?? Number.POSITIVE_INFINITY;
 	const hStart = context.hSections[0]?.start ?? Number.NEGATIVE_INFINITY;
 	const hEnd = context.hSections.at(-1)?.end ?? Number.POSITIVE_INFINITY;
-	const yStart = outputIntervals[0]?.min ?? Number.NEGATIVE_INFINITY;
-	const yEnd = outputIntervals.at(-1)?.max ?? Number.POSITIVE_INFINITY;
+	const yStart = xStart + hStart;
+	const yEnd = xEnd + hEnd;
 	const transitionGroups = buildTransitionGroups(context);
 	const intervalBoundaries = transitionGroups.map(({ time }) => time);
 	const finalLatex = formatConvolutionPiecewiseLatex(context.intervals);
@@ -229,7 +233,7 @@ export function buildConvolutionItsData(
 	);
 	return {
 		step1: {
-			intro: "A signal's support is all times where it can be non-zero. Its start time, end time, and signal width tell us when overlap can begin, when it must end, and how wide the convolution can be. For disconnected signals, the tutor calls the earliest-to-latest measurement the overall span width.",
+			intro: "A signal's support is all times where it can be non-zero. Input start and end times bound the possible overlap span. For disconnected signals, the earliest-to-latest measurement is the overall span width. Overlap permits a contribution but does not guarantee a nonzero output: signed contributions can cancel.",
 			parts: [
 				timingPart("x", xStart, xEnd),
 				timingPart("h", hStart, hEnd),
@@ -344,7 +348,7 @@ export function buildConvolutionItsData(
 					interval,
 					index,
 					context,
-					setupParts[index],
+					setupParts[index]!,
 				),
 			),
 		},

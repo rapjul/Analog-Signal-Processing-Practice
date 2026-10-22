@@ -149,34 +149,78 @@ export function convolutionExpressionsMatch(
  * @param expectedFixed - Fixed signal breakpoint coordinate.
  * @param expectedTransformedLatex - Expected transformed moving breakpoint expression.
  */
+export function verifyConvolutionContactEquation(
+	input: string,
+	expectedFixed: number,
+	expectedTransformedLatex: string,
+): ConvolutionVerificationResult {
+	const trimmed = input.trim();
+	if (input.length > 16384) return verifyConvolutionExpression(input, "0");
+	if (trimmed.includes("=")) {
+		const parts = trimmed.split("=").map((p) => p.trim());
+		if (parts.length !== 2 || parts.some((part) => !part))
+			return {
+				status: "invalid",
+				message:
+					"Enter one contact equation with an expression on each side of the equals sign.",
+			};
+		const left = parts[0];
+		const right = parts[1];
+		const orientations = [
+			[
+				verifyConvolutionExpression(left!, String(expectedFixed)),
+				verifyConvolutionExpression(right!, expectedTransformedLatex),
+			],
+			[
+				verifyConvolutionExpression(left!, expectedTransformedLatex),
+				verifyConvolutionExpression(right!, String(expectedFixed)),
+			],
+		];
+		if (
+			orientations.some((results) =>
+				results.every(({ status }) => status === "correct"),
+			)
+		)
+			return {
+				status: "correct",
+				message:
+					"The contact equation matches the selected moving path.",
+			};
+		return (
+			orientations
+				.flat()
+				.find(
+					({ status }) =>
+						status === "invalid" || status === "unsupported",
+				) ?? {
+				status: "incorrect",
+				message:
+					"Set the fixed breakpoint equal to the reflected moving breakpoint.",
+			}
+		);
+	}
+	return verifyConvolutionExpression(trimmed, expectedTransformedLatex);
+}
+
+/**
+ * Reports whether the supported contact equation is established symbolically.
+ * @param input - Bare transformed expression or contact equation.
+ * @param expectedFixed - Fixed breakpoint coordinate.
+ * @param expectedTransformedLatex - Reflected moving breakpoint expression.
+ * @returns Whether the equation matches in either orientation.
+ */
 export function convolutionContactEquationMatches(
 	input: string,
 	expectedFixed: number,
 	expectedTransformedLatex: string,
 ): boolean {
-	const trimmed = input.trim();
-	if (!trimmed) return false;
-	if (trimmed.includes("=")) {
-		const parts = trimmed.split("=").map((p) => p.trim());
-		if (parts.length !== 2) return false;
-		const left = parts[0];
-		const right = parts[1];
-		if (left === undefined || right === undefined) return false;
-		if (
-			convolutionScalarMatches(left, expectedFixed) &&
-			convolutionExpressionsMatch(right, expectedTransformedLatex)
-		) {
-			return true;
-		}
-		if (
-			convolutionExpressionsMatch(left, expectedTransformedLatex) &&
-			convolutionScalarMatches(right, expectedFixed)
-		) {
-			return true;
-		}
-		return false;
-	}
-	return convolutionExpressionsMatch(trimmed, expectedTransformedLatex);
+	return (
+		verifyConvolutionContactEquation(
+			input,
+			expectedFixed,
+			expectedTransformedLatex,
+		).status === "correct"
+	);
 }
 
 /**

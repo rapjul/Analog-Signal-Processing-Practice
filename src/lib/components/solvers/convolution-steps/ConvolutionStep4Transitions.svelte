@@ -115,7 +115,7 @@
 				{#if fixedPart && movingPart}
 					<p>
 						<MathText
-							text={`In Step 1, you found that the fixed signal $${fixedSignal}(\\tau)$ is non-zero on $[${fixedPart.start}, ${fixedPart.end}]$, and the moving signal $${solver.flippedSignal}(t)$ is non-zero on $[${movingPart.start}, ${movingPart.end}]$.`}
+							text={`In Step 1, you found the overall support spans: $${fixedSignal}(\\tau)$ runs from $${formatConvolutionScalar(fixedPart.start)}$ to $${formatConvolutionScalar(fixedPart.end)}$, and $${solver.flippedSignal}(t)$ runs from $${formatConvolutionScalar(movingPart.start)}$ to $${formatConvolutionScalar(movingPart.end)}$. Disconnected signals can have gaps inside these spans.`}
 						/>
 					</p>
 				{/if}

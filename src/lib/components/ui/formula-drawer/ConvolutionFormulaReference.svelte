@@ -26,9 +26,14 @@
 <div class="ref-section">
 	<h3 class="section-heading">Timing and Contact Equations</h3>
 	<MathBlock
-		math={String.raw`t_{y,\mathrm{start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\quad t_{y,\mathrm{end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
+		math={String.raw`t_{\mathrm{overlap,start}}=t_{x,\mathrm{start}}+t_{h,\mathrm{start}},\quad t_{\mathrm{overlap,end}}=t_{x,\mathrm{end}}+t_{h,\mathrm{end}}`}
 		compact={true}
 	/>
+	<p class="ref-text">
+		These bounds describe the possible overlap span. Signed contributions
+		may cancel inside it; a right-unbounded input does not guarantee a
+		nonzero output tail.
+	</p>
 	<MathBlock
 		math={String.raw`a=t-b\quad\Longrightarrow\quad t=a+b`}
 		compact={true}
@@ -51,7 +56,11 @@
 <div class="ref-section">
 	<h3 class="section-heading">Pulse Definitions and Assembly</h3>
 	<MathBlock
-		math={String.raw`\operatorname{rect}(t)=1\text{ for }-\tfrac12<t<\tfrac12,\quad \operatorname{tri}(t)=\max(1-|t|,0)`}
+		math={String.raw`\operatorname{rect}(t)=1\text{ for }-\tfrac12\le t<\tfrac12,\quad \operatorname{tri}(t)=\max(1-|t|,0)`}
+		compact={true}
+	/>
+	<MathBlock
+		math={String.raw`u(t)=\begin{cases}0&t<0\\1&t\ge0\end{cases},\qquad A u(t-s)=A\text{ for }t\ge s`}
 		compact={true}
 	/>
 	<p class="ref-text">

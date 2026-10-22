@@ -31,6 +31,18 @@ function customSelection(): ConvolutionProblemSelection {
 }
 
 describe("convolution frozen share filters", () => {
+	/** Explicit steps round-trip without changing the sharing format. */
+	it("shares signed shifted steps using the existing version", () => {
+		const selection = customSelection();
+		selection.x.type = "step";
+		const params = serializeConvolutionFilters({ selection, seed: 41 });
+		expect(params.get("v")).toBe("2");
+		expect(parseConvolutionFilters(params, 0)).toEqual({
+			selection,
+			seed: 41,
+			isShared: true,
+		});
+	});
 	it("uses beginner-safe random defaults for bare and stale URLs", () => {
 		for (const query of ["", "pair=tri_rect&seed=12", "share=1&seed=12"]) {
 			expect(

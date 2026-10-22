@@ -13,8 +13,9 @@ import { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
 import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 import {
-	type ConvolutionPairType,
-	generateConvolutionProblem,
+	CONVOLUTION_SIGNAL_TYPES,
+	TEXTBOOK_CONVOLUTION_SIGNAL_SELECTION as convolutionBase,
+	generateConfiguredConvolutionProblem,
 } from "$lib/math-engine/convolution/index";
 import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
@@ -95,28 +96,17 @@ function introspectSolverSteps(solver: BaseStepSolverState): Map<
 }
 
 /**
- * Validates that every step and sub-step of a solver instance is registered in
- * devGetVisualStates() and can be navigated to via devGoToVisualState().
- *
- * Throws an assertion error with an aggregated error list if any step or sub-step
- * is missing, duplicate, or unreachable.
- *
- * @param solver - BaseStepSolverState instance to validate.
- * @param solverName - Human-readable name of the solver under test for error messages.
+ * Validates descriptor uniqueness, labels, kinds, and step numbers.
+ * @param solver - Controller defining the valid step range.
+ * @param visualStates - Registered descriptors.
+ * @param solverName - Diagnostic name. @param errors - Collected contract failures.
  */
-function assertCompleteVisualCoverage(
+function validateVisualDescriptors(
 	solver: BaseStepSolverState,
+	visualStates: SolverVisualStateDescriptor[],
 	solverName: string,
+	errors: string[],
 ): void {
-	const visualStates = solver.devGetVisualStates();
-	const errors: string[] = [];
-
-	if (visualStates.length === 0) {
-		errors.push(
-			`${solverName} registered 0 visual states in devGetVisualStates()`,
-		);
-	}
-
 	// 1. Check ID uniqueness and descriptor structure
 	const ids = new Set<string>();
 	for (const state of visualStates) {
@@ -155,8 +145,19 @@ function assertCompleteVisualCoverage(
 			);
 		}
 	}
+}
 
-	// 2. Introspect all steps and sub-steps from the solver model
+/**
+ * Checks registration of every parent step and active substep.
+ * @param solver - Controller to introspect. @param visualStates - Registered descriptors.
+ * @param solverName - Diagnostic name. @param errors - Collected failures.
+ */
+function validateVisualStepCoverage(
+	solver: BaseStepSolverState,
+	visualStates: SolverVisualStateDescriptor[],
+	solverName: string,
+	errors: string[],
+): void {
 	const stepMap = introspectSolverSteps(solver);
 
 	// Check that every parent step 1..totalSteps is represented
@@ -204,8 +205,19 @@ function assertCompleteVisualCoverage(
 			}
 		}
 	}
+}
 
-	// 3. Test navigation to EVERY registered visual state
+/**
+ * Checks that every registered descriptor navigates to its declared state.
+ * @param solver - Controller to navigate. @param visualStates - Registered descriptors.
+ * @param solverName - Diagnostic name. @param errors - Collected failures.
+ */
+function validateVisualNavigation(
+	solver: BaseStepSolverState,
+	visualStates: SolverVisualStateDescriptor[],
+	solverName: string,
+	errors: string[],
+): void {
 	for (const state of visualStates) {
 		const navigated = solver.devGoToVisualState(state.id);
 		if (!navigated) {
@@ -236,7 +248,25 @@ function assertCompleteVisualCoverage(
 			}
 		}
 	}
+}
 
+/**
+ * Asserts registration and reachability of every solver step and substep.
+ * @param solver - Active controller. @param solverName - Diagnostic name.
+ */
+function assertCompleteVisualCoverage(
+	solver: BaseStepSolverState,
+	solverName: string,
+): void {
+	const visualStates = solver.devGetVisualStates();
+	const errors: string[] = [];
+	if (visualStates.length === 0)
+		errors.push(
+			`${solverName} registered 0 visual states in devGetVisualStates()`,
+		);
+	validateVisualDescriptors(solver, visualStates, solverName, errors);
+	validateVisualStepCoverage(solver, visualStates, solverName, errors);
+	validateVisualNavigation(solver, visualStates, solverName, errors);
 	expect(
 		errors,
 		`Visual coverage errors found:\n${errors.join("\n")}`,
@@ -380,27 +410,26 @@ class SyntheticMockSolver extends BaseStepSolverState {
 
 describe("Universal Solver Visual State Coverage & Future-Proofing", () => {
 	describe("Convolution Solver Full Signal-Pair Matrix", () => {
-		it("ensures every parent step and dynamic interval has visual coverage", () => {
-			const pairTypes: ConvolutionPairType[] = [
-				"rect_rect",
-				"rect_shifted_rect",
-				"rect_both_shifted",
-				"multi_rect",
-				"rect_exp",
-				"exp_exp",
-				"step_exp",
-				"step_rect",
-			];
-
-			for (const pairType of pairTypes) {
-				const problem = generateConvolutionProblem(pairType);
-				const solver = new ConvolutionStepSolverState(() => problem);
-				assertCompleteVisualCoverage(
-					solver,
-					`ConvolutionStepSolverState (${pairType})`,
-				);
+		for (const x of CONVOLUTION_SIGNAL_TYPES)
+			for (const h of CONVOLUTION_SIGNAL_TYPES) {
+				/** Each pair independently verifies all registered interactive states. */
+				it(`covers every parent step and dynamic interval for ${x} * ${h}`, () => {
+					const problem = generateConfiguredConvolutionProblem(
+						{
+							x: { ...convolutionBase, type: x },
+							h: { ...convolutionBase, type: h },
+						},
+						{ seed: 41 },
+					);
+					const solver = new ConvolutionStepSolverState(
+						() => problem,
+					);
+					assertCompleteVisualCoverage(
+						solver,
+						`ConvolutionStepSolverState (${x} * ${h})`,
+					);
+				}, 15_000);
 			}
-		});
 	});
 
 	describe("Fourier Series Solver Full Waveform Matrix", () => {

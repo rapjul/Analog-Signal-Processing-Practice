@@ -5,7 +5,7 @@
 	 * Rendering math lives in convolution-plot.ts so controls and drawing evolve independently.
 	 */
 
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import {
 		advanceConvolutionShift,
 		CONVOLUTION_SPEED_PRESETS,
@@ -118,11 +118,17 @@
 		return { hasPos, hasNeg };
 	});
 
+	/** Keeps replacement problems in range without resetting valid user controls. */
 	$effect(() => {
-		if (hasInitializedControls) return;
-		shiftT = normalizedTimeRange[0];
-		playbackSpeed = animationSpeed;
-		hasInitializedControls = true;
+		const [minimum, maximum] = normalizedTimeRange;
+		if (!hasInitializedControls) {
+			shiftT = minimum;
+			playbackSpeed = untrack(() => animationSpeed);
+			hasInitializedControls = true;
+			return;
+		}
+		const previousShift = untrack(() => shiftT);
+		shiftT = Math.min(maximum, Math.max(minimum, previousShift));
 	});
 
 	/** Stops playback and clears its pending browser frame. */

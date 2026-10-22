@@ -206,7 +206,7 @@
 						{#if activeState.stage === "geometry-amplitude"}
 							<p class="geometry-note">
 								<MathText
-									text={String.raw`Both active pieces are constant (flat rectangles), so the integral reduces to finding the area of a rectangle: $(\text{amplitude product}) \times (\text{overlap width})$.`}
+									text={String.raw`Both active pieces are constant, so the integral reduces to finding the signed area of a rectangle: $(\text{amplitude product}) \times (\text{overlap width})$.`}
 								/>
 							</p>
 						{/if}

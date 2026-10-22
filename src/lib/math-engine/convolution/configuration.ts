@@ -10,15 +10,24 @@ import {
 } from "$lib/math-engine/random";
 import type { WithRandom } from "$lib/math-engine/types";
 import { formatRectPulseLatex } from "./pulse-formatting";
+import { resolveStepSignal } from "./step-signal";
 import type { ConvolutionSignalSection } from "./types";
 
-export const CONVOLUTION_SIGNAL_TYPES = [
+/** Signal families included in beginner Random problems. */
+export const CONVOLUTION_RANDOM_SIGNAL_TYPES = [
 	"rect",
 	"triangle",
 	"multi_rect",
 	"exponential",
 ] as const;
 
+/** All explicitly selectable signal families. */
+export const CONVOLUTION_SIGNAL_TYPES = [
+	...CONVOLUTION_RANDOM_SIGNAL_TYPES,
+	"step",
+] as const;
+
+/** One explicitly supported continuous-time signal family. */
 export type ConvolutionSignalType = (typeof CONVOLUTION_SIGNAL_TYPES)[number];
 export type ConvolutionSignalTypeSelection = WithRandom<ConvolutionSignalType>;
 export type ConvolutionParameterMode = WithRandom<"default">;
@@ -125,10 +134,6 @@ export const DEFAULT_CONVOLUTION_SELECTION: ConvolutionProblemSelection = {
 	},
 };
 
-/** Backward-compatible alias for callers expecting the default signal constant. */
-export const DEFAULT_CONVOLUTION_SIGNAL_SELECTION =
-	BEGINNER_RANDOM_CONVOLUTION_SIGNAL_SELECTION;
-
 function derivedSeed(seed: number, key: string): number {
 	let hash = seed >>> 0;
 	for (const character of key) {
@@ -188,6 +193,13 @@ function section(
 	return { id, start, end, startIncluded: true, endIncluded: false };
 }
 
+/**
+ * Resolves one explicitly selected or randomized signal.
+ * @param selection - Signal family, amplitude, translation, and parameter choices.
+ * @param seed - Reproducible random seed.
+ * @param key - Independent signal identifier for random fields.
+ * @returns Concrete signal support, pieces, evaluator, and notation.
+ */
 export function resolveConvolutionSignal(
 	selection: ConvolutionSignalSelection,
 	seed: number,
@@ -197,11 +209,11 @@ export function resolveConvolutionSignal(
 		selection.type === "random"
 			? randomChoice(
 					fieldRandom(seed, `${key}:type`),
-					CONVOLUTION_SIGNAL_TYPES,
+					CONVOLUTION_RANDOM_SIGNAL_TYPES,
 				)
 			: selection.type;
 	const parameter =
-		selection.parameterMode === "default"
+		kind === "step" || selection.parameterMode === "default"
 			? kind === "triangle"
 				? 2
 				: 1
@@ -213,6 +225,7 @@ export function resolveConvolutionSignal(
 		`${key}:amplitude`,
 	);
 	const argument = formatShiftedArgument(shift);
+	if (kind === "step") return resolveStepSignal(amplitude, shift, key);
 
 	if (kind === "exponential") {
 		const latex = scaleLatex(

@@ -7,13 +7,55 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import ConvolutionStepSolver from "$lib/components/solvers/ConvolutionStepSolver.svelte";
-import { generateConvolutionProblem } from "$lib/math-engine/convolution/index";
+import { convolutionProblem } from "$lib/testing/convolution";
 
 describe("ConvolutionStepSolver", () => {
 	afterEach(() => cleanup());
+	/** Infinite candidate values remain mathematical symbols in the step bounds recap. */
+	it("renders infinite step candidates without spelling Infinity as variables", async () => {
+		const problem = convolutionProblem("step", "step");
+		const view = render(ConvolutionStepSolver, { problem });
+		const part = problem.itsData.step5.parts.find(
+			/** @param candidate - Setup region. @returns Whether it overlaps. */ (
+				candidate,
+			) => candidate.setupBySignal?.h.hasOverlap,
+		);
+		if (!part) throw new Error("Expected the active step overlap.");
+		await act(
+			/** Navigates through the real tutor to the selected overlap region. */ () => {
+				expect(
+					window.__signalLabDev?.goToVisualState(
+						`convolution.step-05.${part.id}`,
+					),
+				).toBe(true);
+			},
+		);
+		await fireEvent.click(
+			view.getByRole("button", { name: "Yes, there is overlap" }),
+		);
+		const overlap = part.setupBySignal?.h.overlaps[0];
+		if (!overlap) throw new Error("Expected concrete candidate values.");
+		const inputs = view.container.querySelectorAll<HTMLInputElement>(
+			".step-card.active form input",
+		);
+		for (const [index, value] of [
+			...overlap.lowerCandidateValues,
+			...overlap.upperCandidateValues,
+		].entries())
+			await fireEvent.input(inputs[index]!, {
+				target: { value: String(value) },
+			});
+		const form = inputs[0]?.closest("form");
+		if (!form) throw new Error("Expected the candidate form.");
+		await fireEvent.submit(form);
+		const recap = view.container.querySelector(".evaluated-summary-recap");
+		expect(recap).toBeTruthy();
+		expect(recap?.textContent).not.toContain("Infinity");
+		expect(recap?.textContent).toContain("\\infty");
+	});
 
 	it("renders seven parent cards and advances each typed timing substep", async () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const view = render(ConvolutionStepSolver, { problem });
 		expect(view.container.querySelectorAll(".step-card")).toHaveLength(7);
 		expect(
@@ -51,7 +93,7 @@ describe("ConvolutionStepSolver", () => {
 	});
 
 	it("shows timing validation and resets when the problem identifier changes", async () => {
-		const first = generateConvolutionProblem("rect_exp", { seed: 1 });
+		const first = convolutionProblem("rect", "exponential", 1);
 		const view = render(ConvolutionStepSolver, { problem: first });
 		await fireEvent.click(
 			view.getByRole("button", { name: "Check timing and width" }),
@@ -66,7 +108,7 @@ describe("ConvolutionStepSolver", () => {
 		if (!input) throw new Error("Expected timing input.");
 		await fireEvent.input(input, { target: { value: "123" } });
 		await view.rerender({
-			problem: generateConvolutionProblem("tri_shifted_tri", { seed: 2 }),
+			problem: convolutionProblem("triangle", "triangle", 2),
 		});
 		await waitFor(() =>
 			expect(
@@ -81,7 +123,7 @@ describe("ConvolutionStepSolver", () => {
 	});
 
 	it("keeps Step 3's signal choice binary and Step 2 at four choices", async () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 9 });
+		const problem = convolutionProblem("rect", "rect", 9);
 		const view = render(ConvolutionStepSolver, { problem });
 		for (const part of problem.itsData.step1.parts) {
 			const inputs =
@@ -117,7 +159,7 @@ describe("ConvolutionStepSolver", () => {
 	});
 
 	it("renders every multipart visual state for the broad multi-pulse problem", async () => {
-		const problem = generateConvolutionProblem("multi_rect", { seed: 15 });
+		const problem = convolutionProblem("multi_rect", "rect", 15);
 		const view = render(ConvolutionStepSolver, { problem });
 		const states = window.__signalLabDev?.getVisualStates() ?? [];
 		let sawBounds = false;
@@ -149,14 +191,16 @@ describe("ConvolutionStepSolver", () => {
 				view.container.textContent?.includes("Connected overlap") ??
 				false;
 			sawEvaluation ||=
-				view.container.textContent?.includes("Live preview") ?? false;
+				view.container.textContent?.includes(
+					"Concrete expanded integrand",
+				) ?? false;
 		}
 		expect(sawBounds).toBe(true);
 		expect(sawEvaluation).toBe(true);
 	}, 20_000);
 
 	it("uses native forms for Enter submission and renders Step 3C transformed edge inputs", async () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 21 });
+		const problem = convolutionProblem("rect", "rect", 21);
 		const view = render(ConvolutionStepSolver, { problem });
 		const firstPart = problem.itsData.step1.parts[0]!;
 		const inputs =
@@ -196,7 +240,7 @@ describe("ConvolutionStepSolver", () => {
 	});
 
 	it("renders one inline t-equals answer and noninteractive static interval math", async () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const view = render(ConvolutionStepSolver, { problem });
 		const solveState = (
 			window.__signalLabDev?.getVisualStates() ?? []
@@ -218,22 +262,22 @@ describe("ConvolutionStepSolver", () => {
 			).toBe(true);
 		});
 		await waitFor(() =>
-			expect(view.container.querySelector(".preview")).toBeTruthy(),
+			expect(
+				view.container.querySelector(".formula-ledger"),
+			).toBeTruthy(),
 		);
 		const activeCard = view.container.querySelector(".step-card.active");
 		expect(activeCard?.querySelectorAll("button.math-inline")).toHaveLength(
 			0,
 		);
-		expect(
-			activeCard?.querySelectorAll(".preview .mspace").length,
-		).toBeGreaterThanOrEqual(2);
+		expect(activeCard?.textContent).toContain("Supplied primitive");
 		expect(
 			activeCard?.querySelector(".evaluation-form button[type='submit']"),
 		).toBeTruthy();
 	});
 
 	it("builds Step 7 from interval-aligned typed rows with announced headings", async () => {
-		const problem = generateConvolutionProblem("rect_rect", { seed: 12 });
+		const problem = convolutionProblem();
 		const view = render(ConvolutionStepSolver, { problem });
 		await act(() => {
 			expect(

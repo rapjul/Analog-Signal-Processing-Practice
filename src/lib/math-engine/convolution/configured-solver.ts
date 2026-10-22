@@ -113,7 +113,12 @@ function representativeTime(min: number, max: number): number {
 	return 0;
 }
 
-function finitePairContribution(
+/**
+ * Integrates polynomial pieces over finite bounds, including causal step pieces.
+ * @param left - Fixed piece. @param right - Moving piece. @param time - Interior output time.
+ * @returns Polynomial contribution and geometric overlap status.
+ */
+function polynomialPairContribution(
 	left: ConvolutionPolynomialPiece,
 	right: ConvolutionPolynomialPiece,
 	time: number,
@@ -151,7 +156,12 @@ function finitePairContribution(
 	return { polynomial: result, overlaps: true };
 }
 
-function solveFiniteSignals(
+/**
+ * Solves finite and right-unbounded polynomial-piece signals.
+ * @param x - Input signal. @param h - Impulse response.
+ * @returns Complete analytical partition and evaluators.
+ */
+function solvePolynomialSignals(
 	x: ResolvedConvolutionSignal,
 	h: ResolvedConvolutionSignal,
 ): ConvolutionResult {
@@ -167,7 +177,11 @@ function solveFiniteSignals(
 		let hasGeometricOverlap = false;
 		for (const left of x.pieces) {
 			for (const right of h.pieces) {
-				const contribution = finitePairContribution(left, right, time);
+				const contribution = polynomialPairContribution(
+					left,
+					right,
+					time,
+				);
 				polynomial = addPolynomial(polynomial, contribution.polynomial);
 				hasGeometricOverlap ||= contribution.overlaps;
 			}
@@ -226,8 +240,14 @@ function formatExponentialExpression(
 	return pieces.join("") || "0";
 }
 
-function solveFiniteExponential(
-	finite: ResolvedConvolutionSignal,
+/**
+ * Integrates polynomial pieces against a causal decaying exponential.
+ * @param polynomialSignal - Finite or step signal. @param exponential - Decaying signal.
+ * @param x - Original input. @param h - Original response.
+ * @returns Complete output retaining its entire right-unbounded tail.
+ */
+function solvePolynomialExponential(
+	polynomialSignal: ResolvedConvolutionSignal,
 	exponential: ResolvedConvolutionSignal,
 	x: ResolvedConvolutionSignal,
 	h: ResolvedConvolutionSignal,
@@ -235,7 +255,7 @@ function solveFiniteExponential(
 	const a = exponential.parameter;
 	const exponentialAmplitude = exponential.amplitude;
 	const boundaries = uniqueSorted(
-		finite.breakpoints.map((point) => point + exponential.shift),
+		polynomialSignal.breakpoints.map((point) => point + exponential.shift),
 	);
 	const ranges = intervalRanges(boundaries);
 	const intervals = ranges.map(([min, max]) => {
@@ -246,7 +266,7 @@ function solveFiniteExponential(
 		let hasGeometricOverlap = false;
 		const addTerm = (origin: number, coefficient: number) =>
 			terms.set(origin, (terms.get(origin) ?? 0) + coefficient);
-		for (const piece of finite.pieces) {
+		for (const piece of polynomialSignal.pieces) {
 			if (cutoff <= piece.start) continue;
 			hasGeometricOverlap = true;
 			const [p0, p1] = piece.coefficients;
@@ -354,13 +374,14 @@ function solveExponentials(
 	};
 }
 
+/** @param selection - Concrete configured operands. @returns Their analytical convolution. */
 export function solveConfiguredConvolution(
 	selection: ResolvedConvolutionSelection,
 ): ConvolutionResult {
 	const { x, h } = selection;
 	if (x.kind === "exponential" && h.kind === "exponential")
 		return solveExponentials(x, h);
-	if (x.kind === "exponential") return solveFiniteExponential(h, x, x, h);
-	if (h.kind === "exponential") return solveFiniteExponential(x, h, x, h);
-	return solveFiniteSignals(x, h);
+	if (x.kind === "exponential") return solvePolynomialExponential(h, x, x, h);
+	if (h.kind === "exponential") return solvePolynomialExponential(x, h, x, h);
+	return solvePolynomialSignals(x, h);
 }

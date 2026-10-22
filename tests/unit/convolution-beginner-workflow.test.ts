@@ -218,22 +218,25 @@ describe("convolution beginner workflow metadata", () => {
 			hBreakpoints: problem.hBreakpoints ?? [],
 			resolvedSignals: problem.resolvedSignals,
 		};
-		expect(buildEvaluationTerms(interval, undefined, context, "h")).toEqual(
-			[],
-		);
+		expect(
+			/** Rejects incomplete setup metadata during construction. */ () =>
+				buildEvaluationTerms(interval, undefined, context, "h"),
+		).toThrow(/overlap setup/);
 
 		const invalidLower = structuredClone(setup);
 		const invLow = invalidLower.overlaps[0];
 		if (invLow) invLow.lowerLatex = "(";
 		expect(
-			buildEvaluationTerms(interval, invalidLower, context, "h"),
-		).toEqual([]);
+			/** Rejects an invalid lower limit. */ () =>
+				buildEvaluationTerms(interval, invalidLower, context, "h"),
+		).toThrow(/integration limits/);
 		const invalidUpper = structuredClone(setup);
 		const invUp = invalidUpper.overlaps[0];
 		if (invUp) invUp.upperLatex = "(";
 		expect(
-			buildEvaluationTerms(interval, invalidUpper, context, "h"),
-		).toEqual([]);
+			/** Rejects an invalid upper limit. */ () =>
+				buildEvaluationTerms(interval, invalidUpper, context, "h"),
+		).toThrow(/integration limits/);
 
 		const missingFixedPiece = {
 			...context,
@@ -243,8 +246,9 @@ describe("convolution beginner workflow metadata", () => {
 			},
 		};
 		expect(
-			buildEvaluationTerms(interval, setup, missingFixedPiece, "h"),
-		).toEqual([]);
+			/** Rejects a missing active fixed piece. */ () =>
+				buildEvaluationTerms(interval, setup, missingFixedPiece, "h"),
+		).toThrow(/active polynomial piece/);
 		const missingMovingPiece = {
 			...context,
 			resolvedSignals: {
@@ -253,21 +257,24 @@ describe("convolution beginner workflow metadata", () => {
 			},
 		};
 		expect(
-			buildEvaluationTerms(interval, setup, missingMovingPiece, "h"),
-		).toEqual([]);
+			/** Rejects a missing active moving piece. */ () =>
+				buildEvaluationTerms(interval, setup, missingMovingPiece, "h"),
+		).toThrow(/active polynomial piece/);
 
 		const fallbackLower = structuredClone(setup);
 		const fbLow = fallbackLower.overlaps[0];
 		if (fbLow) fbLow.lowerLatex = undefined as never;
 		expect(
-			buildEvaluationTerms(interval, fallbackLower, context, "h").length,
-		).toBeGreaterThanOrEqual(0);
+			/** Rejects an omitted lower limit. */ () =>
+				buildEvaluationTerms(interval, fallbackLower, context, "h"),
+		).toThrow(/explicit integration limits/);
 		const fallbackUpper = structuredClone(setup);
 		const fbUp = fallbackUpper.overlaps[0];
 		if (fbUp) fbUp.upperLatex = undefined as never;
 		expect(
-			buildEvaluationTerms(interval, fallbackUpper, context, "h").length,
-		).toBeGreaterThanOrEqual(0);
+			/** Rejects an omitted upper limit. */ () =>
+				buildEvaluationTerms(interval, fallbackUpper, context, "h"),
+		).toThrow(/explicit integration limits/);
 	});
 
 	it("rejects malformed, wrong-bound, and reversed-sign evaluation work", () => {
@@ -407,8 +414,7 @@ describe("convolution beginner workflow metadata", () => {
 		state.stage = "upper";
 		state.activeTermIndex = 99;
 		expect(validate()).toMatchObject({
-			kind: "valid",
-			nextStage: "combined",
+			kind: "malformed",
 		});
 	});
 
@@ -524,7 +530,7 @@ describe("convolution beginner workflow metadata", () => {
 				-1,
 				1,
 			),
-		).toMatchObject({ kind: "valid", nextStage: "combined" });
+		).toMatchObject({ kind: "malformed" });
 	});
 
 	it("parses infinity with Typst oo notation alongside standard formats", () => {

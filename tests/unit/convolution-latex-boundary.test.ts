@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { withConvolutionItsData } from "$lib/math-engine/convolution/index";
+import {
+	generateConfiguredConvolutionProblem,
+	TEXTBOOK_CONVOLUTION_SELECTION,
+	withConvolutionItsData,
+} from "$lib/math-engine/convolution/index";
 
 describe("convolution LaTeX construction boundary", () => {
 	it("sanitizes every student-facing problem and interval expression", () => {
 		const problem = withConvolutionItsData({
+			...generateConfiguredConvolutionProblem(
+				TEXTBOOK_CONVOLUTION_SELECTION,
+				{ seed: 1 },
+			),
 			id: "latex-boundary",
 			seed: 1,
 			pairType: "rect_rect",
@@ -17,10 +25,6 @@ describe("convolution LaTeX construction boundary", () => {
 					min: Number.NEGATIVE_INFINITY,
 					max: 0,
 					exprLatex: "t - - 1",
-					supportIntersectionLatex: String.raw`[0,1] + - [1,2]`,
-					integralSetupLatex: String.raw`y(t)=\int_0^1 1 + - 1\,d\tau`,
-					flipXSupportIntersectionLatex: String.raw`[0,1] + + [1,2]`,
-					flipXIntegralSetupLatex: String.raw`y(t)=\int_0^1 1 - - 1\,d\tau`,
 					eval: () => 0,
 				},
 			],
@@ -29,24 +33,6 @@ describe("convolution LaTeX construction boundary", () => {
 			evalH: () => 1,
 			xBreakpoints: [0, 1],
 			hBreakpoints: [0, 1],
-			xSections: [
-				{
-					id: "x-1",
-					start: 0,
-					end: 1,
-					startIncluded: true,
-					endIncluded: false,
-				},
-			],
-			hSections: [
-				{
-					id: "h-1",
-					start: 0,
-					end: 1,
-					startIncluded: true,
-					endIncluded: false,
-				},
-			],
 		});
 
 		expect(problem.xLatex).toBe(String.raw`\operatorname{rect}(t)`);
@@ -55,10 +41,6 @@ describe("convolution LaTeX construction boundary", () => {
 		);
 		expect(problem.intervals[0]).toMatchObject({
 			exprLatex: "t + 1",
-			supportIntersectionLatex: String.raw`[0,1] - [1,2]`,
-			integralSetupLatex: String.raw`y(t)=\int_0^1 1 - 1\,d\tau`,
-			flipXSupportIntersectionLatex: String.raw`[0,1] + [1,2]`,
-			flipXIntegralSetupLatex: String.raw`y(t)=\int_0^1 1 + 1\,d\tau`,
 		});
 	});
 });

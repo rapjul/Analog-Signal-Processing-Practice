@@ -276,7 +276,7 @@ export interface ConvolutionEvaluationTerm {
 	lowerSubstitutionLatex: string;
 	/** Expected signed upper-minus-lower contribution. */
 	differenceLatex: string;
-	/** Optional rectangle geometry shortcut values. */
+	/** Optional geometry shortcut for constant active pieces. */
 	geometry?:
 		| {
 				/** Product of the two active piece amplitudes. */
@@ -319,6 +319,6 @@ export interface ConvolutionItsBuildContext {
 	xBreakpoints: number[];
 	/** Support edges and interior breakpoints of h. */
 	hBreakpoints: number[];
-	/** Concrete configured signal formulas when available. */
-	resolvedSignals?: ResolvedConvolutionSelection | undefined;
+	/** Concrete configured signal formulas required for exact teaching work. */
+	resolvedSignals: ResolvedConvolutionSelection;
 }
