@@ -7,31 +7,29 @@
 
 import type { BaseItsStep, ItsOption, SolutionStep } from "../types";
 
-/** Supported classic periodic waveform categories for Fourier Series */
+/** Ordered waveform registry shared by public identifiers, seeded drills, and selector labels. */
+export const FOURIER_SERIES_WAVEFORMS = [
+	{ id: "square", label: "Square Wave" },
+	{ id: "square_odd", label: "Odd Square Wave" },
+	{ id: "square_even", label: "Even Square Wave" },
+	{ id: "triangle", label: "Triangle Wave" },
+	{ id: "triangle_odd", label: "Odd Triangle Wave" },
+	{ id: "triangle_even", label: "Even Triangle Wave" },
+	{ id: "sawtooth", label: "Sawtooth Wave" },
+	{ id: "half_wave_sine", label: "Half-Wave Rectified Sine Wave" },
+	{ id: "full_wave_sine", label: "Full-Wave Rectified Sine Wave" },
+] as const;
+
+/** Supported classic waveform categories derived from the registry. */
 export type FourierSeriesWaveformType =
-	| "square" // Standard square wave
-	| "square_odd" // Odd-symmetric square wave
-	| "square_even" // Even-symmetric square wave
-	| "triangle" // Standard triangle wave
-	| "triangle_odd" // Odd-symmetric triangle wave
-	| "triangle_even" // Even-symmetric triangle wave
-	| "sawtooth" // Sawtooth waveform
-	| "half_wave_sine" // Half-wave rectified sine
-	| "full_wave_sine"; // Full-wave rectified sine
+	(typeof FOURIER_SERIES_WAVEFORMS)[number]["id"];
 
 /** Supported waveform identifiers for validation and selector construction. */
 export const FOURIER_SERIES_WAVEFORM_TYPES: readonly FourierSeriesWaveformType[] =
-	[
-		"square",
-		"square_odd",
-		"square_even",
-		"triangle",
-		"triangle_odd",
-		"triangle_even",
-		"sawtooth",
-		"half_wave_sine",
-		"full_wave_sine",
-	] as const;
+	FOURIER_SERIES_WAVEFORMS.map(
+		/** @param waveform - Registry entry. @returns Its stable URL-safe identifier. */
+		(waveform) => waveform.id,
+	);
 
 /** Waveform parity about the time origin. */
 export type OriginParity = "even" | "odd" | "none";
@@ -76,7 +74,7 @@ export interface SignalPower {
 	totalPower: number;
 	/** Harmonic power in first N harmonics */
 	harmonicPower: number;
-	/** Fraction of total power captured (harmonicPower / totalPower) */
+	/** Amplitude-normalized captured fraction before physical-power rounding. */
 	powerRatio: number;
 }
 
@@ -244,6 +242,8 @@ export interface FourierSeriesSymbolicDerivation {
 	bnIntegralLatex: string;
 	integralLatex: string;
 	expIntegralLatex: string;
+	/** Direct exponential-integral evaluation; optional for existing callers. */
+	expEvaluationLatex?: string;
 	evaluationLatex: string;
 	finalTrigLatex: string;
 	finalExpLatex: string;
@@ -287,6 +287,8 @@ export interface FourierSeriesProblem {
 
 /** Optional controls for deterministic Fourier problem generation. */
 export interface FourierSeriesGenerationOptions {
+	/** Explicit guided representation; symmetry supplies the default recommendation. */
+	primaryForm?: FourierSeriesPrimaryForm;
 	/** Explicit pseudo-random number generator seed. */
 	seed?: number;
 	/** Fixed amplitude override used by tests and authored examples. */

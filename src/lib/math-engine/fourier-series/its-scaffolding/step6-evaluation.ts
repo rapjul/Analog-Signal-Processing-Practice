@@ -5,6 +5,8 @@
  */
 
 import { type RandomSource, shuffleWithRandom } from "../../random";
+import { FOURIER_COEFFICIENT_METADATA } from "../coefficient-metadata";
+import { getExponentialEvaluationLatex } from "../symbolic-derivations";
 import type {
 	FourierCoefficientPart,
 	FourierCoefficientTarget,
@@ -29,8 +31,7 @@ export function buildEvaluationOptions(
 	target: FourierCoefficientTarget,
 	resultLatex: string,
 ): FourierItsOption[] {
-	const label =
-		target === "a0" ? "a_0" : `${target === "Fn" ? "F" : target[0]}_n`;
+	const { label } = FOURIER_COEFFICIENT_METADATA[target];
 	if (resultLatex === "0") {
 		return [0, 1, -1, 2].map((value, index) => ({
 			id: `${target}-${["correct", "scale", "sign", "support"][index]}`,
@@ -81,6 +82,7 @@ export function buildEvaluationOptions(
  * @param {OriginParity} originParity Waveform origin parity
  * @param {FourierSymbolicDerivation} derivation Pre-computed symbolic derivations
  * @param {RandomSource} random PRNG source for distractor shuffling
+ * @param hasHalfWaveSymmetry - Independent half-wave symmetry flag.
  * @returns {FourierItsStep6} Step 6 coefficient evaluation metadata
  */
 export function buildStep6Data(
@@ -88,39 +90,46 @@ export function buildStep6Data(
 	originParity: OriginParity,
 	derivation: FourierSymbolicDerivation,
 	random: RandomSource,
+	hasHalfWaveSymmetry = false,
 ): FourierItsStep6 {
-	const targets = getPrimaryCoefficientTargets(form, originParity);
+	const targets = getPrimaryCoefficientTargets(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 	const resultByTarget: Record<FourierCoefficientTarget, string> = {
 		a0: derivation.a0Latex,
 		an: derivation.anLatex,
 		bn: derivation.bnLatex,
 		Fn: derivation.FnLatex,
 	};
-	const titleByTarget: Record<FourierCoefficientTarget, string> = {
-		a0: "DC Coefficient",
-		an: "Cosine Coefficients",
-		bn: "Sine Coefficients",
-		Fn: "Exponential Coefficients",
-	};
 
 	const parts: FourierCoefficientPart[] = targets.map((target) => ({
 		id: `evaluate-${target}`,
 		target,
-		title: `Evaluate ${titleByTarget[target]}`,
-		prompt: `Apply the bounds and simplify $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
-		resultLatex: `${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}`,
+		title: `Evaluate ${FOURIER_COEFFICIENT_METADATA[target].title}`,
+		prompt: `Apply the bounds and simplify $${FOURIER_COEFFICIENT_METADATA[target].label}$.`,
+		resultLatex: `${FOURIER_COEFFICIENT_METADATA[target].label}=${resultByTarget[target]}`,
 		options: shuffleWithRandom(
 			buildEvaluationOptions(target, resultByTarget[target]),
 			random,
 		),
 		hints: [
 			"Apply the antiderivative at every piecewise boundary.",
-			"Simplify parity and harmonic-index factors after combining all terms.",
-			`The evaluated coefficient is $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}=${resultByTarget[target]}$.`,
+			target === "Fn"
+				? "Evaluate $F_0$ separately. If a denominator vanishes at an integer index, evaluate that integral directly before simplifying the general formula."
+				: "Simplify parity and harmonic-index factors after combining all terms.",
+			target === "Fn"
+				? `The exponential integral evaluates to $${getExponentialEvaluationLatex(derivation)}$.`
+				: `The evaluated coefficient is $${FOURIER_COEFFICIENT_METADATA[target].label}=${resultByTarget[target]}$.`,
 		],
 	}));
 
-	const carriedCoefficients = buildCarriedCoefficients(form, originParity);
+	const carriedCoefficients = buildCarriedCoefficients(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 
 	return {
 		parts,
@@ -128,7 +137,9 @@ export function buildStep6Data(
 		hints: [
 			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
 			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",
-			`The evaluated result is $${derivation.evaluationLatex}$. Then use $F_n=(a_n-jb_n)/2$.`,
+			form === "exp"
+				? `The exponential integral evaluates to $${getExponentialEvaluationLatex(derivation)}$.`
+				: `The evaluated result is $${derivation.evaluationLatex}$.`,
 		],
 	};
 }

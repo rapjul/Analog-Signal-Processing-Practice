@@ -26,15 +26,7 @@ export function buildStep1Data(
 		T0 === 2
 			? ["pi", "\\pi", "1pi", "3.14", "3.1415", "3.1416"]
 			: T0 === 4
-				? [
-						"pi/2",
-						"\\pi/2",
-						"0.5pi",
-						"0.5\\pi",
-						"1/2pi",
-						"1.57",
-						"1.5708",
-					]
+				? ["pi/2", "\\pi/2", "0.5pi", "0.5\\pi", "1.57", "1.5708"]
 				: [w0Latex, formatFourierNumber(w0)];
 
 	return {

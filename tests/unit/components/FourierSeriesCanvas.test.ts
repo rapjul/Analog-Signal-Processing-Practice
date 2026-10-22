@@ -54,6 +54,117 @@ describe("FourierSeriesCanvas", () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	/** Keeps labels and descriptions attached to their own canvas when instances coexist. */
+	it("scopes every accessibility target to its component instance", () => {
+		const first = render(FourierSeriesCanvas, { waveformType: "square" });
+		const second = render(FourierSeriesCanvas, {
+			waveformType: "full_wave_sine",
+		});
+		const ids = [
+			...first.container.querySelectorAll("[id]"),
+			...second.container.querySelectorAll("[id]"),
+		].map((element) => element.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		for (const view of [first, second]) {
+			const slider = view.container.querySelector<HTMLInputElement>(
+				'input[type="range"]',
+			)!;
+			expect(view.container.querySelector("label")?.htmlFor).toBe(
+				slider.id,
+			);
+			for (const element of view.container.querySelectorAll(
+				"[aria-describedby], [aria-labelledby]",
+			)) {
+				const targets =
+					element.getAttribute("aria-describedby") ??
+					element.getAttribute("aria-labelledby")!;
+				for (const id of targets.split(" ")) {
+					expect(
+						view.container.contains(document.getElementById(id)),
+					).toBe(true);
+				}
+			}
+		}
+	});
+
+	/** Keeps the accessible paired-power cell consistent at the smallest representable scale. */
+	it("does not display a harmonic power larger than the subnormal total", () => {
+		const coefficients = computeFourierSeriesCoefficients("triangle", {
+			A: 4e-162,
+		});
+		const view = render(FourierSeriesCanvas, {
+			coefficients,
+			harmonicCount: 1,
+		});
+		const cell = view.container
+			.querySelectorAll("tbody tr")[1]!
+			.querySelector("td:last-child")!;
+		expect(Number(cell.textContent)).toBe(Number.MIN_VALUE);
+	});
+
+	/** Keeps scientific power values mathematically meaningful inside rendered LaTeX. */
+	it("formats extreme power scales as base-ten LaTeX", () => {
+		const coefficients = computeFourierSeriesCoefficients("square", {
+			A: 1e-150,
+		});
+		const view = render(FourierSeriesCanvas, { coefficients });
+		const annotations = Array.from(
+			view.container.querySelectorAll(".power-stat annotation"),
+			(node) => node.textContent ?? "",
+		);
+		expect(
+			annotations.some((latex) => latex.includes("\\times 10^{-300}")),
+		).toBe(true);
+		for (const latex of annotations) expect(latex).not.toMatch(/\de[+-]\d/);
+	});
+
+	/** Provides exact DC-through-N values and disables animation for reduced-motion users. */
+	it("shows a complete accessible spectrum without reduced-motion animation", async () => {
+		const addEventListener = vi.fn();
+		const removeEventListener = vi.fn();
+		vi.stubGlobal(
+			"matchMedia",
+			vi.fn(() => ({
+				matches: true,
+				addEventListener,
+				removeEventListener,
+			})),
+		);
+		const frame = vi.spyOn(window, "requestAnimationFrame");
+		const coefficients = computeFourierSeriesCoefficients(
+			"full_wave_sine",
+			{ A: 2, T0: 4 },
+		);
+		const view = render(FourierSeriesCanvas, {
+			coefficients,
+			harmonicCount: 50,
+		});
+		expect(view.container.querySelectorAll("tbody tr")).toHaveLength(51);
+		expect(view.container.querySelector("tbody tr th")?.textContent).toBe(
+			"0 (DC)",
+		);
+		expect(
+			view.container.querySelector("tbody tr:last-child th")?.textContent,
+		).toBe("50");
+		expect(
+			view.container.querySelector(".spectrum-description")?.textContent,
+		).toContain("positive-index exponential magnitudes");
+		expect(frame).not.toHaveBeenCalled();
+		await view.rerender({
+			coefficients: computeFourierSeriesCoefficients("square"),
+			harmonicCount: 2,
+		});
+		expect(
+			view.container.querySelector("tbody tr:last-child")?.textContent,
+		).toContain("—");
+		view.unmount();
+		expect(removeEventListener).toHaveBeenCalledWith(
+			"change",
+			expect.any(Function),
+		);
 	});
 
 	/**

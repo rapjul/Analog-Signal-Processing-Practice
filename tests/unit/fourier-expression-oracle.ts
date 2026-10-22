@@ -34,7 +34,11 @@ function evaluateSymbol(symbol: string, sample: Sample): Complex {
 		j: new Complex(0, 1),
 		F_n: new Complex(fn.re, fn.im),
 		c_0: new Complex(coeffs.a0),
-		c_n: new Complex(Math.hypot(coeffs.an(n), coeffs.bn(n))),
+		c_n: new Complex(
+			n === 0
+				? 0
+				: Math.hypot(coeffs.an(Math.abs(n)), coeffs.bn(Math.abs(n))),
+		),
 		v: sample.v ?? new Complex(Number.NaN),
 	};
 	if (values[symbol]) return values[symbol];
@@ -143,6 +147,8 @@ function evaluateOperation(operator: unknown, values: Complex[]): Complex {
 			return new Complex(Math.sin(first.re));
 		case "Cos":
 			return new Complex(Math.cos(first.re));
+		case "Abs":
+			return new Complex(first.abs());
 		case "Power": {
 			const exponent = values[1]!;
 			if (exponent.im === 0) return new Complex(first.re ** exponent.re);
@@ -159,6 +165,38 @@ function evaluateOperation(operator: unknown, values: Complex[]): Complex {
 }
 
 /**
+ * Evaluates displayed antiderivative bounds independently of coefficient results.
+ * @param latex - Boundary-substitution expression from a worked derivation.
+ * @param sample - Parameters and signed harmonic index.
+ * @returns Numerical complex boundary difference including outer factors.
+ */
+export function sampleFourierBoundaryExpression(
+	latex: string,
+	sample: Sample,
+): Complex {
+	const expanded = latex.replace(
+		/\\left\[(.*?)\\right\]_(?:\{([^{}]*)\}|(0))\^\{([^{}]*)\}/g,
+		/** @param _ - Complete boundary notation. @param expression - Primitive. @param lower - Braced lower bound. @param zero - Unbraced zero. @param upper - Upper bound. @returns Explicit numerical difference. */
+		(
+			_,
+			expression: string,
+			lower: string | undefined,
+			zero: string | undefined,
+			upper: string,
+		): string => {
+			const lo = sampleFourierExpression(lower ?? zero!, sample).re;
+			const hi = sampleFourierExpression(upper, sample).re;
+			const difference = sampleFourierExpression(expression, {
+				...sample,
+				t: hi,
+			}).sub(sampleFourierExpression(expression, { ...sample, t: lo }));
+			return `(${difference.re}+j(${difference.im}))`;
+		},
+	);
+	return sampleFourierExpression(expanded, sample);
+}
+
+/**
  * Samples a displayed RHS using explicit coefficient bindings and numerical integrals.
  * @param latex - Formula RHS without coefficient definitions.
  * @param sample - Waveform, time, harmonic, and optional coefficient value.
@@ -172,4 +210,41 @@ export function sampleFourierExpression(
 		.replaceAll("\\left[", "\\left(")
 		.replaceAll("\\right]", "\\right)");
 	return evaluate(parseStrictLatex(normalized), sample);
+}
+
+/**
+ * Evaluates actual displayed piecewise definitions without coefficient substitution.
+ * @param latex - A scalar or cases expression.
+ * @param sample - Independent numerical assignments.
+ * @returns The first matching branch value.
+ */
+export function sampleFourierDefinition(
+	latex: string,
+	sample: Sample,
+): Complex {
+	if (!latex.startsWith("\\begin{cases}"))
+		return sampleFourierExpression(latex, sample);
+	const rows = latex
+		.replace("\\begin{cases}", "")
+		.replace("\\end{cases}", "")
+		.split("\\\\");
+	for (const row of rows) {
+		const [value, condition = ""] = row.split("&");
+		const n = sample.n;
+		let matches = true;
+		if (condition.includes("odd")) matches &&= Math.abs(n % 2) === 1;
+		if (condition.includes("even")) matches &&= n % 2 === 0;
+		if (condition.includes("|n|>1")) matches &&= Math.abs(n) > 1;
+		const congruence = condition.match(/n\\equiv(\d)\\pmod4/);
+		if (congruence) matches &&= ((n % 4) + 4) % 4 === Number(congruence[1]);
+		const equal = condition.match(/n=(-?\d+)/);
+		if (equal) matches &&= n === Number(equal[1]);
+		const unequal = condition.match(/n\\ne(-?\d+)/);
+		if (unequal) matches &&= n !== Number(unequal[1]);
+		if (matches)
+			return sampleFourierExpression(value!.replace(/,$/, ""), sample);
+	}
+	throw new Error(
+		`No displayed branch matches harmonic ${sample.n}: ${latex}`,
+	);
 }

@@ -11,6 +11,26 @@ describe("Fourier Series review UI regressions", () => {
 	/** Removes component instances after each interaction test. */
 	afterEach(() => cleanup());
 
+	/** Resets conversion progress for a new challenge even if its formulas are identical. */
+	it("resets identical conversion formulas for a fresh challenge", async () => {
+		const p = generateFourierSeriesProblem("square", { seed: 1 });
+		const view = render(FourierSeriesConversionChallenge, {
+			challenge: p.conversionChallenge,
+		});
+		const index = p.conversionChallenge.parts[0].options.findIndex(
+			({ isCorrect }) => isCorrect,
+		);
+		await fireEvent.click(
+			view
+				.getByTestId("fourier-conversion-options")
+				.querySelectorAll("button")[index]!,
+		);
+		expect(view.getByText("Part 2 of 2")).toBeTruthy();
+		const replacement = generateFourierSeriesProblem("square", { seed: 1 });
+		await view.rerender({ challenge: replacement.conversionChallenge });
+		expect(view.getByText("Part 1 of 2")).toBeTruthy();
+	});
+
 	/** Verifies that correcting a period with the displayed scientific expression clears feedback. */
 	it("accepts the displayed scientific period after incorrect feedback", async () => {
 		const problem = generateFourierSeriesProblem("square", {
@@ -49,10 +69,16 @@ describe("Fourier Series review UI regressions", () => {
 				.querySelector(".step-card")
 				?.classList.contains("completed"),
 		).toBe(true);
+		const summary = view.container.querySelector(
+			".step-card .step-summary",
+		);
+		const math = summary?.querySelector("annotation")?.textContent ?? "";
+		expect(math.match(/T_0\s*=/g)).toHaveLength(1);
+		expect(math.match(/\\omega_0\s*=/g)).toHaveLength(1);
 	});
 
-	/** Confirms corrected zero-DC choices reject nonzero answers and permit completion. */
-	it("grades zero DC through the UI, completes once, and resets", async () => {
+	/** Confirms symmetry carries zero DC and the remaining question permits completion. */
+	it("carries zero DC through the UI, completes once, and resets", async () => {
 		const problem = generateFourierSeriesProblem("triangle", {
 			seed: 1,
 			A: 3,
@@ -69,6 +95,13 @@ describe("Fourier Series review UI regressions", () => {
 			solver,
 		});
 		const synthesis = render(FourierSeriesStep7Series, { problem, solver });
+		expect(
+			evaluation.container.querySelector(".carried-coefficients")
+				?.textContent,
+		).toContain("Half-wave symmetry makes the signal average zero.");
+		expect(problem.itsData.step6.parts.map(({ target }) => target)).toEqual(
+			["an"],
+		);
 		for (const part of problem.itsData.step6.parts) {
 			for (const [index, option] of part.options.entries()) {
 				if (option.isCorrect) continue;
@@ -97,7 +130,7 @@ describe("Fourier Series review UI regressions", () => {
 		expect(onComplete).toHaveBeenCalledTimes(1);
 		solver.reset();
 		expect(solver.currentStep).toBe(1);
-		expect(solver.step6.subSteps["evaluate-a0"]?.selected).toBeNull();
+		expect(solver.step6.subSteps["evaluate-an"]?.selected).toBeNull();
 		expect(solver.isCompleted).toBe(false);
 	});
 

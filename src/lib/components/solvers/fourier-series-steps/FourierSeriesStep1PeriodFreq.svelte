@@ -37,7 +37,7 @@
 	stepNumber={1}
 	title="Fundamental Period & Frequency"
 	{status}
-	summaryLatex={String.raw`T_0 = ${problem.periodLatex}, \quad \omega_0 = ${problem.omega0Latex}`}
+	summaryLatex={String.raw`$${problem.periodLatex}, \quad ${problem.omega0Latex}$`}
 >
 	<div class="step-body">
 		<p class="step-prompt">

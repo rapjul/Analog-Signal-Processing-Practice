@@ -10,8 +10,8 @@ import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/in
  */
 
 test.describe("Fourier Series Module", () => {
-	/** Confirms the corrected zero-DC options and final synthesis in a real browser. */
-	test("grades zero DC and finishes corrected synthesis @dev-harness", async ({
+	/** Confirms zero DC is carried by symmetry before the remaining evaluation. */
+	test("carries zero DC and finishes corrected synthesis @dev-harness", async ({
 		page,
 	}) => {
 		const problem = generateFourierSeriesProblem("triangle", { seed: 1 });
@@ -29,9 +29,7 @@ test.describe("Fourier Series Module", () => {
 		const dc = problem.itsData.step6.parts[0]!;
 		const wrongIndex = dc.options.findIndex((option) => !option.isCorrect);
 		await options.nth(wrongIndex).click();
-		await expect(page.locator(".feedback-alert")).toContainText(
-			"average is zero",
-		);
+		await expect(page.locator(".feedback-alert")).toContainText("Error");
 		for (const part of problem.itsData.step6.parts) {
 			await options
 				.nth(part.options.findIndex((option) => option.isCorrect))
@@ -323,7 +321,7 @@ test.describe("Fourier Series Module", () => {
 		}
 	});
 
-	test("advances even-wave coefficient work as separate setup parts @dev-harness", async ({
+	test("carries half-wave DC and advances remaining coefficient work @dev-harness", async ({
 		page,
 	}) => {
 		await page.goto("/fourier-series?waveform=square_even&seed=10");
@@ -337,8 +335,11 @@ test.describe("Fourier Series Module", () => {
 		expect(prepared).toBe(true);
 
 		const step5 = page.locator(".step-card").nth(4);
-		await expect(step5).toContainText("Part 1 of 2");
-		await expect(step5).toContainText("Set Up DC Coefficient");
+		await expect(step5).toContainText("Part 1 of 1");
+		await expect(step5).toContainText("Set Up Cosine Coefficients");
+		await expect(step5.locator(".carried-coefficients")).toContainText(
+			"Half-wave symmetry makes the signal average zero",
+		);
 		await expect(step5.locator(".carried-coefficients")).toContainText(
 			"Even symmetry eliminates every sine coefficient",
 		);
@@ -484,7 +485,7 @@ test.describe("Fourier Series Module", () => {
 		await page.waitForLoadState("networkidle");
 		await page.evaluate(() => window.__signalLabDev?.solveAll());
 		const visualizer = page.locator(".fourier-canvas-wrapper");
-		const slider = visualizer.locator("#harmonic-slider");
+		const slider = visualizer.getByLabel("Harmonic Limit:");
 		await slider.evaluate((element) => {
 			const input = element as HTMLInputElement;
 			input.value = "39";

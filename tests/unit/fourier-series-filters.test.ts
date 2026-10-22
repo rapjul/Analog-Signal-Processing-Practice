@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { FOURIER_SERIES_WAVEFORM_TYPES } from "$lib/math-engine/fourier-series/index";
+import {
+	FOURIER_SERIES_WAVEFORM_TYPES,
+	FOURIER_SERIES_WAVEFORMS,
+	FOURIER_WAVEFORM_TYPES,
+} from "$lib/math-engine/fourier-series/index";
 import {
 	parseFourierSeriesFilters,
 	resolveFourierWaveformSelection,
@@ -7,6 +11,21 @@ import {
 } from "$lib/problems/fourier-series-filters";
 
 describe("Fourier Series URL Filters", () => {
+	/** Preserves public aliases and round trips every registry entry through the URL parser. */
+	it("keeps registry identifiers, legacy aliases, and URL selections aligned", () => {
+		expect(FOURIER_WAVEFORM_TYPES).toBe(FOURIER_SERIES_WAVEFORM_TYPES);
+		expect(new Set(FOURIER_SERIES_WAVEFORM_TYPES).size).toBe(9);
+		for (const { id, label } of FOURIER_SERIES_WAVEFORMS) {
+			expect(label.length).toBeGreaterThan(0);
+			expect(
+				parseFourierSeriesFilters(
+					serializeFourierSeriesFilters({ waveform: id, seed: 42 }),
+					1,
+				),
+			).toEqual({ waveform: id, seed: 42 });
+		}
+	});
+
 	it("parses every supported waveform variant safely", () => {
 		const filters = parseFourierSeriesFilters(
 			new URLSearchParams("waveform=triangle_odd&seed=123"),

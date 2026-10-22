@@ -48,6 +48,13 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 	});
 
 	describe("computeTargetMagnitudes", () => {
+		/** Includes nonzero DC and every selected harmonic through the slider maximum. */
+		it("includes rectified DC and harmonic fifty", () => {
+			const c = computeFourierSeriesCoefficients("full_wave_sine");
+			const magnitudes = computeTargetMagnitudes(c, 50);
+			expect(magnitudes[0]).toBeCloseTo(2 / Math.PI, 12);
+			expect(magnitudes[50]).toBeCloseTo(Math.abs(c.Fn(50).re), 12);
+		});
 		it("evaluates complex magnitudes for harmonics up to targetDisplayN", () => {
 			const coeffs = computeFourierSeriesCoefficients("square", {
 				A: 2,
@@ -78,8 +85,54 @@ describe("Fourier Series Canvas Plotting & Geometry Primitives", () => {
 				lineTo: vi.fn(),
 				stroke: vi.fn(),
 				setLineDash: vi.fn(),
+				fillText: vi.fn(),
 			} as unknown as CanvasRenderingContext2D;
 		};
+		/** Confirms endpoints, midpoint, and both curves use the same uniform sampling grid. */
+		it("aligns all 1001 samples with the three time-axis ticks", () => {
+			const ctx = mockContext();
+			const c = computeFourierSeriesCoefficients("triangle", {
+				A: 2,
+				T0: 4,
+			});
+			drawFourierTimeDomain(ctx, 400, 200, c, 5, {
+				background: "#000",
+				borderColor: "#fff",
+				textSecondary: "#aaa",
+			});
+			expect(ctx.lineTo).toHaveBeenCalledTimes(2001);
+			expect(ctx.fillText).toHaveBeenCalledWith("−T₀", 35, 195);
+			expect(ctx.fillText).toHaveBeenCalledWith("0", 200, 195);
+			expect(ctx.fillText).toHaveBeenCalledWith("T₀", 365, 195);
+			const partial = vi.mocked(ctx.lineTo).mock.calls.slice(-1000);
+			for (let i = 0; i < partial.length; i++)
+				expect(partial[i]![0]).toBeCloseTo(
+					35 + ((i + 1) * 330) / 1000,
+					10,
+				);
+		});
+
+		/** Reuses numerical samples during resize and theme redraws. */
+		it("resamples only when the harmonic limit changes", () => {
+			const c = computeFourierSeriesCoefficients("square");
+			const an = vi.fn(c.an);
+			const cached = { ...c, an };
+			const ctx = mockContext();
+			const theme = {
+				background: "#000",
+				borderColor: "#fff",
+				textSecondary: "#aaa",
+			};
+			drawFourierTimeDomain(ctx, 400, 200, cached, 5, theme);
+			const calls = an.mock.calls.length;
+			drawFourierTimeDomain(ctx, 600, 300, cached, 5, {
+				...theme,
+				background: "#333",
+			});
+			expect(an).toHaveBeenCalledTimes(calls);
+			drawFourierTimeDomain(ctx, 600, 300, cached, 6, theme);
+			expect(an.mock.calls.length).toBeGreaterThan(calls);
+		});
 
 		it("renders time-domain partial sum and ideal waveform for jump discontinuities", () => {
 			const ctx = mockContext();

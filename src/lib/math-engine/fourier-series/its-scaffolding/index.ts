@@ -5,14 +5,13 @@
  * `generateFourierSeriesItsData` for assembling full 7-step ITS scaffolding data.
  */
 
-import { formatFourierFrequency } from "$lib/math-engine/fourier-series/frequency";
-import { buildFourierSeriesSymbolicDerivation } from "$lib/math-engine/fourier-series/solver";
 import type {
 	FourierSeriesCoefficients,
 	FourierSeriesItsData,
 	FourierSeriesPrimaryForm,
 } from "$lib/math-engine/fourier-series/types";
 import type { RandomSource } from "$lib/math-engine/random";
+import { assembleFourierSeriesData } from "./assembly";
 import { buildStep1Data } from "./step1-period-freq";
 import { buildStep2Data } from "./step2-symmetry";
 import { buildStep3Data, getVanishingCoefficients } from "./step3-shortcuts";
@@ -54,57 +53,7 @@ export function generateFourierSeriesItsData(
 	random: RandomSource = Math.random,
 	primaryForm?: FourierSeriesPrimaryForm,
 ): FourierSeriesItsData {
-	const { T0, w0, originParity } = coeffs;
-	const w0Latex = formatFourierFrequency(T0);
-
-	// Step 1: Period and Frequency
-	const step1 = buildStep1Data(T0, w0, w0Latex);
-
-	// Step 2: Symmetry
-	const step2 = buildStep2Data(coeffs);
-
-	// Step 3: Vanishing Coefficients
-	const step3 = buildStep3Data(originParity);
-
-	// Step 4: Representation Form
-	const step4 = buildStep4Data(originParity, primaryForm);
-	const correctForm = step4.correctForm;
-
-	// Pre-compute exact derivations
-	const derivation = buildFourierSeriesSymbolicDerivation(coeffs, w0Latex);
-
-	// Step 5: Piecewise Integral Setup
-	const step5 = buildStep5Data(
-		correctForm,
-		coeffs.originParity,
-		derivation,
-		random,
-	);
-
-	// Step 6: Harmonic Coefficient Evaluation
-	const step6 = buildStep6Data(
-		correctForm,
-		coeffs.originParity,
-		derivation,
-		random,
-	);
-
-	// Step 7: Final series in the selected primary representation
-	const synthesisLatex =
-		correctForm === "trig"
-			? derivation.finalTrigLatex
-			: derivation.finalExpLatex;
-	const step7 = buildStep7Data(correctForm, synthesisLatex, random);
-
-	return {
-		step1,
-		step2,
-		step3,
-		step4,
-		step5,
-		step6,
-		step7,
-	};
+	return assembleFourierSeriesData(coeffs, random, primaryForm).itsData;
 }
 
 // Alias for compatibility

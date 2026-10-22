@@ -6,6 +6,7 @@
  */
 
 import { cleanup, fireEvent, render } from "@testing-library/svelte";
+import { flushSync, tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import FourierSeriesConversionChallenge from "$lib/components/solvers/FourierSeriesConversionChallenge.svelte";
 import type { FourierSeriesConversionChallenge as ChallengeType } from "$lib/math-engine/fourier-series/index";
@@ -13,6 +14,106 @@ import { generateFourierSeriesProblem } from "$lib/math-engine/fourier-series/in
 
 describe("FourierSeriesConversionChallenge", () => {
 	afterEach(() => cleanup());
+
+	/** Cancels queued progression focus when a different or identical-content challenge replaces it. */
+	it.each(["triangle", "square_even"] as const)(
+		"preserves external focus during pending progression and %s replacement",
+		/** @param waveform - Replacement waveform, including the original waveform with identical parameters. */
+		async (waveform) => {
+			const original = generateFourierSeriesProblem("square_even", {
+				seed: 10,
+			});
+			const view = render(FourierSeriesConversionChallenge, {
+				challenge: original.conversionChallenge,
+			});
+			const external = document.createElement("input");
+			document.body.append(external);
+			try {
+				const correctIndex =
+					original.conversionChallenge.parts[0].options.findIndex(
+						(option) => option.isCorrect,
+					);
+				view.getByTestId("fourier-conversion-options")
+					.querySelectorAll("button")
+					[correctIndex]!.click();
+				flushSync();
+				const update = view.rerender({
+					challenge: generateFourierSeriesProblem(waveform, {
+						seed: 10,
+					}).conversionChallenge,
+				});
+				external.focus();
+				await update;
+				await tick();
+				expect(document.activeElement).toBe(external);
+				expect(view.getByText("Part 1 of 2")).toBeTruthy();
+			} finally {
+				external.remove();
+			}
+		},
+	);
+
+	/** Cancels pending progression focus when its component is destroyed. */
+	it("retains external focus after unmount with pending progression", async () => {
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+		});
+		const view = render(FourierSeriesConversionChallenge, {
+			challenge: problem.conversionChallenge,
+		});
+		const external = document.createElement("input");
+		document.body.append(external);
+		try {
+			const correctIndex =
+				problem.conversionChallenge.parts[0].options.findIndex(
+					(option) => option.isCorrect,
+				);
+			view.getByTestId("fourier-conversion-options")
+				.querySelectorAll("button")
+				[correctIndex]!.click();
+			flushSync();
+			view.unmount();
+			external.focus();
+			await tick();
+			expect(document.activeElement).toBe(external);
+		} finally {
+			external.remove();
+		}
+	});
+
+	/** Cancels pending progression focus when the final answer completes the challenge in the same turn. */
+	it("retains external focus on completion with pending progression", async () => {
+		const problem = generateFourierSeriesProblem("square_even", {
+			seed: 10,
+		});
+		const onComplete = vi.fn();
+		const view = render(FourierSeriesConversionChallenge, {
+			challenge: problem.conversionChallenge,
+			onComplete,
+		});
+		const external = document.createElement("input");
+		document.body.append(external);
+		try {
+			for (const part of problem.conversionChallenge.parts) {
+				const correctIndex = part.options.findIndex(
+					(option) => option.isCorrect,
+				);
+				view.getByTestId("fourier-conversion-options")
+					.querySelectorAll("button")
+					[correctIndex]!.click();
+				flushSync();
+			}
+			external.focus();
+			await tick();
+			expect(document.activeElement).toBe(external);
+			expect(onComplete).toHaveBeenCalledTimes(1);
+			expect(
+				view.container.querySelector(".challenge-complete"),
+			).toBeTruthy();
+		} finally {
+			external.remove();
+		}
+	});
 
 	/**
 	 * Tests full multi-part conversion flow, wrong option misconceptions, hints, and onComplete callback.
@@ -76,6 +177,9 @@ describe("FourierSeriesConversionChallenge", () => {
 
 		// Part 2
 		expect(view.getByText("Part 2 of 2")).toBeTruthy();
+		expect(document.activeElement).toBe(
+			view.container.querySelector(".part-heading strong"),
+		);
 		const secondPart = challenge.parts[1]!;
 		const secondOptionsContainer = view.getByTestId(
 			"fourier-conversion-options",

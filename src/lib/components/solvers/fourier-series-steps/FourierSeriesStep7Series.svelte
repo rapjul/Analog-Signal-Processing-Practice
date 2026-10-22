@@ -38,7 +38,7 @@
 	stepNumber={7}
 	title="Final Fourier Series Expression"
 	{status}
-	summaryLatex={"\\text{Fourier Series Synthesized}"}
+	summaryLatex="Fourier Series Synthesized"
 >
 	<div class="step-body">
 		<p class="step-prompt">

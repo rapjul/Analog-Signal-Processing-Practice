@@ -5,6 +5,7 @@
  */
 
 import { type RandomSource, shuffleWithRandom } from "../../random";
+import { FOURIER_COEFFICIENT_METADATA } from "../coefficient-metadata";
 import type {
 	FourierCarriedCoefficient,
 	FourierCoefficientPart,
@@ -91,29 +92,44 @@ export function buildIntegralOptions(
  * Returns the coefficient families that the selected primary form must derive.
  * @param {FourierPrimaryForm} form Primary form
  * @param {OriginParity} originParity Parity about the origin
+ * @param hasHalfWaveSymmetry - Whether half-wave symmetry already proves zero DC.
  * @returns {FourierCoefficientTarget[]} Ordered targets to evaluate
  */
 export function getPrimaryCoefficientTargets(
 	form: FourierPrimaryForm,
 	originParity: OriginParity,
+	hasHalfWaveSymmetry = false,
 ): FourierCoefficientTarget[] {
 	if (form === "exp") return ["Fn"];
-	if (originParity === "even") return ["a0", "an"];
+	if (originParity === "even")
+		return hasHalfWaveSymmetry ? ["an"] : ["a0", "an"];
 	if (originParity === "odd") return ["bn"];
-	return ["a0", "an", "bn"];
+	return hasHalfWaveSymmetry ? ["an", "bn"] : ["a0", "an", "bn"];
 }
 
 /**
  * Returns coefficients that symmetry has already proved to be zero.
  * @param {FourierPrimaryForm} form Primary form
  * @param {OriginParity} originParity Parity about the origin
+ * @param hasHalfWaveSymmetry - Whether half-wave symmetry already proves zero DC.
  * @returns {FourierCarriedCoefficient[]} Carried zero coefficients
  */
 export function buildCarriedCoefficients(
 	form: FourierPrimaryForm,
 	originParity: OriginParity,
+	hasHalfWaveSymmetry = false,
 ): FourierCarriedCoefficient[] {
-	if (form === "exp" || originParity === "none") return [];
+	if (form === "exp") return [];
+	if (originParity === "none")
+		return hasHalfWaveSymmetry
+			? [
+					{
+						id: "a0",
+						latex: "a_0=0",
+						reason: "Half-wave symmetry makes the signal average zero.",
+					},
+				]
+			: [];
 	if (originParity === "odd") {
 		return [
 			{
@@ -129,6 +145,15 @@ export function buildCarriedCoefficients(
 		];
 	}
 	return [
+		...(hasHalfWaveSymmetry
+			? [
+					{
+						id: "a0" as const,
+						latex: "a_0=0",
+						reason: "Half-wave symmetry makes the signal average zero.",
+					},
+				]
+			: []),
 		{
 			id: "bn",
 			latex: "b_n=0",
@@ -144,6 +169,7 @@ export function buildCarriedCoefficients(
  * @param {OriginParity} originParity Waveform origin parity
  * @param {FourierSymbolicDerivation} derivation Pre-computed symbolic derivations
  * @param {RandomSource} random PRNG source for distractor shuffling
+ * @param hasHalfWaveSymmetry - Independent half-wave symmetry flag.
  * @returns {FourierItsStep5} Step 5 integral formulation metadata
  */
 export function buildStep5Data(
@@ -151,26 +177,25 @@ export function buildStep5Data(
 	originParity: OriginParity,
 	derivation: FourierSymbolicDerivation,
 	random: RandomSource,
+	hasHalfWaveSymmetry = false,
 ): FourierItsStep5 {
-	const targets = getPrimaryCoefficientTargets(form, originParity);
+	const targets = getPrimaryCoefficientTargets(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 	const integralByTarget: Record<FourierCoefficientTarget, string> = {
 		a0: derivation.a0IntegralLatex,
 		an: derivation.anIntegralLatex,
 		bn: derivation.bnIntegralLatex,
 		Fn: derivation.expIntegralLatex,
 	};
-	const titleByTarget: Record<FourierCoefficientTarget, string> = {
-		a0: "DC Coefficient",
-		an: "Cosine Coefficients",
-		bn: "Sine Coefficients",
-		Fn: "Exponential Coefficients",
-	};
 
 	const parts: FourierCoefficientPart[] = targets.map((target) => ({
 		id: `setup-${target}`,
 		target,
-		title: `Set Up ${titleByTarget[target]}`,
-		prompt: `Select the integral that computes $${target === "a0" ? "a_0" : target === "Fn" ? "F_n" : `${target[0]}_n`}$.`,
+		title: `Set Up ${FOURIER_COEFFICIENT_METADATA[target].title}`,
+		prompt: `Select the integral that computes $${FOURIER_COEFFICIENT_METADATA[target].label}$.`,
 		resultLatex: integralByTarget[target],
 		options: shuffleWithRandom(
 			buildIntegralOptions(
@@ -186,7 +211,11 @@ export function buildStep5Data(
 		],
 	}));
 
-	const carriedCoefficients = buildCarriedCoefficients(form, originParity);
+	const carriedCoefficients = buildCarriedCoefficients(
+		form,
+		originParity,
+		hasHalfWaveSymmetry,
+	);
 
 	return {
 		successMsg:

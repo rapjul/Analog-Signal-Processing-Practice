@@ -216,15 +216,13 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 		expect(itsData.step3.correctVanishing).toBe("bn_zero");
 		expect(itsData.step4.correctForm).toBe("trig");
 
-		expect(itsData.step5.parts.map(({ target }) => target)).toEqual([
-			"a0",
-			"an",
-		]);
+		expect(itsData.step5.parts.map(({ target }) => target)).toEqual(["an"]);
 		expect(itsData.step5.carriedCoefficients.map(({ id }) => id)).toEqual([
+			"a0",
 			"bn",
 		]);
 		expect(
-			itsData.step5.parts[1]?.options.find((option) => option.isCorrect)
+			itsData.step5.parts[0]?.options.find((option) => option.isCorrect)
 				?.latex,
 		).toContain("a_n=");
 	});
@@ -263,7 +261,9 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 					form === "exp"
 						? ["Fn"]
 						: coeffs.originParity === "even"
-							? ["a0", "an"]
+							? coeffs.hasHalfWaveSymmetry
+								? ["an"]
+								: ["a0", "an"]
 							: coeffs.originParity === "odd"
 								? ["bn"]
 								: ["a0", "an", "bn"];

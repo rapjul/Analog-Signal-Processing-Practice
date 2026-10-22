@@ -242,6 +242,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * Validates Step 1 (Period & Frequency).
 	 */
 	checkStep1(): void {
+		if (this.isCompleted || this.currentStep !== 1) return;
 		const s1Data = this.problem.itsData.step1;
 		const pTrimmed = this.step1.period.trim().toLowerCase();
 		const fTrimmed = this.step1.freq.trim().toLowerCase();
@@ -293,6 +294,12 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		originParity: OriginParity | null = this.step2.subSteps["origin-parity"]
 			.selected,
 	): void {
+		if (
+			this.isCompleted ||
+			this.currentStep !== 2 ||
+			this.step2.activeSubStepId !== "origin-parity"
+		)
+			return;
 		const s2Data = this.problem.itsData.step2;
 		this.step2.subSteps["origin-parity"].selected = originParity;
 		if (originParity === null) {
@@ -323,6 +330,13 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		hasHalfWaveSymmetry: boolean | null = this.step2.subSteps["half-wave"]
 			.selected,
 	): void {
+		if (
+			this.isCompleted ||
+			this.currentStep !== 2 ||
+			this.step2.activeSubStepId !== "half-wave" ||
+			!this.step2.subSteps["origin-parity"].isValid
+		)
+			return;
 		const s2Data = this.problem.itsData.step2;
 		this.step2.subSteps["half-wave"].selected = hasHalfWaveSymmetry;
 		if (hasHalfWaveSymmetry === null) {
@@ -349,6 +363,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * @param {string} choice Selected vanishing choice
 	 */
 	checkStep3(choice: string): void {
+		if (this.isCompleted || this.currentStep !== 3) return;
 		const s3Data = this.problem.itsData.step3;
 		this.checkChoiceStep(
 			this.step3,
@@ -366,6 +381,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * @param {string} form Selected representation form
 	 */
 	checkStep4(form: string): void {
+		if (this.isCompleted || this.currentStep !== 4) return;
 		const s4Data = this.problem.itsData.step4;
 		this.checkChoiceStep(
 			this.step4,
@@ -411,10 +427,18 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		fallbackFeedback: string,
 		nextParentStep: number,
 	): void {
+		if (this.isCompleted || this.currentStep !== nextParentStep - 1) return;
 		const activeId = step.activeSubStepId;
 		const active = step.subSteps[activeId];
 		if (!active) return;
-		if (!opt) {
+		const parts =
+			nextParentStep === 6
+				? this.problem.itsData.step5.parts
+				: this.problem.itsData.step6.parts;
+		const canonical = parts
+			.find(({ id }) => id === activeId)
+			?.options.find((option) => option === opt);
+		if (!canonical) {
 			this.setSubStepValidation(
 				step,
 				activeId,
@@ -422,12 +446,12 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 			);
 			return;
 		}
-		active.selected = opt.id;
-		if (!opt.isCorrect) {
+		active.selected = canonical.id;
+		if (!canonical.isCorrect) {
 			this.setSubStepMisconception(
 				step,
 				activeId,
-				opt.feedback ?? fallbackFeedback,
+				canonical.feedback ?? fallbackFeedback,
 			);
 			return;
 		}
@@ -446,11 +470,16 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 	 * @param {FourierItsOption} opt Selected option
 	 */
 	checkStep7(opt: FourierItsOption): void {
+		if (this.isCompleted || this.currentStep !== 7) return;
+		const canonical =
+			this.problem.itsData.step7.options.find(
+				(option) => option === opt,
+			) ?? null;
 		this.checkOptionCardStep(
 			this.step7,
-			opt,
+			canonical,
 			"Incorrect series synthesis. Check the DC term, normalization, and non-zero harmonic indices.",
-			"Please select the final trigonometric and exponential series.",
+			"Please select the final series from the current question.",
 			8,
 		);
 	}

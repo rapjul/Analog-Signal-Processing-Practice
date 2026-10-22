@@ -8,7 +8,10 @@ import {
 	generateFourierSeriesProblem,
 } from "$lib/math-engine/fourier-series/index";
 import { createSeededPrng } from "$lib/math-engine/random";
-import { sampleFourierExpression } from "./fourier-expression-oracle";
+import {
+	sampleFourierDefinition,
+	sampleFourierExpression,
+} from "./fourier-expression-oracle";
 
 /**
  * Requires each wrong formula to have a numerical counterexample.
@@ -73,9 +76,6 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 							expectUnambiguous(part.options, witnesses);
 						}
 						for (const part of data.step6.parts) {
-							const result = part.resultLatex.slice(
-								part.resultLatex.indexOf("=") + 1,
-							);
 							const witnesses = part.options.map((option) =>
 								[1, 2, 3, 4, 5].map((n) => {
 									const fn = coeffs.Fn(n);
@@ -89,15 +89,25 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 															? coeffs.an(n)
 															: coeffs.bn(n),
 												);
-									const rhs = option.latex
-										.slice(option.latex.indexOf("=") + 1)
-										.replace(result, "v");
-									return sampleFourierExpression(rhs, {
-										coeffs,
-										n,
-										t: 0,
-										v: expected,
-									})
+									const rhs = option.latex.slice(
+										option.latex.indexOf("=") + 1,
+									);
+									const definition = part.resultLatex.slice(
+										part.resultLatex.indexOf("=") + 1,
+									);
+									const actual = sampleFourierDefinition(
+										definition,
+										{ coeffs, n, t: 0 },
+									);
+									return sampleFourierExpression(
+										rhs.replace(definition, "v"),
+										{
+											coeffs,
+											n,
+											t: 0,
+											v: actual,
+										},
+									)
 										.sub(expected)
 										.abs();
 								}),

@@ -32,9 +32,13 @@ export function getVanishingCoefficients(
  * Builds Step 3 vanishing coefficient shortcuts scaffolding.
  *
  * @param {OriginParity} originParity Signal origin parity
+ * @param hasHalfWaveSymmetry - Independent half-wave symmetry property.
  * @returns {FourierItsStep3} Step 3 shortcuts scaffolding metadata
  */
-export function buildStep3Data(originParity: OriginParity): FourierItsStep3 {
+export function buildStep3Data(
+	originParity: OriginParity,
+	hasHalfWaveSymmetry = false,
+): FourierItsStep3 {
 	const correctVanishing = getVanishingCoefficients(originParity);
 
 	return {
@@ -50,7 +54,12 @@ export function buildStep3Data(originParity: OriginParity): FourierItsStep3 {
 				? "Since only cosine terms are needed, all sine coefficients vanish: $b_n = 0$."
 				: originParity === "odd"
 					? "Since only sine terms are needed, all cosine coefficients and DC offset vanish: $a_0 = 0, a_n = 0$."
-					: "No symmetry shortcuts apply: you must compute both $a_n$ and $b_n$ (or use $F_n$).",
+					: "Origin parity does not eliminate either entire family. Individual harmonic coefficients may still vanish.",
+			...(hasHalfWaveSymmetry
+				? [
+						"Half-wave symmetry additionally gives $a_0=0$ and $a_{2k}=b_{2k}=F_{2k}=0$ for positive integers $k$.",
+					]
+				: []),
 		],
 		misconceptions: {
 			an_zero:

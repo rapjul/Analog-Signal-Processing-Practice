@@ -93,6 +93,7 @@ jobs:
         run: >-
           npm run test:e2e:production --
           tests/e2e/practice-correctness.spec.ts
+          tests/e2e/fourier-series-correctness.spec.ts
           tests/e2e/ctft-module.spec.ts
           tests/e2e/laplace-module.spec.ts
           tests/e2e/solver-audit-regressions.spec.ts

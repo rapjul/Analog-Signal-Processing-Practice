@@ -8,16 +8,25 @@
 	 * 2. Frequency Domain: Bar chart spectrum of harmonic magnitudes |F_n| for n = 1 ... N.
 	 * 3. Parseval Analysis: Captured power and harmonic thresholds for the active N.
 	 */
+
+	import { formatFourierNumber } from "$lib/math-engine/fourier-series/frequency";
 	import {
 		computeFourierSeriesCoefficients,
+		computeHarmonicPowerContribution,
 		computeHarmonicPowerThresholds,
 		computeSignalPower,
+		FOURIER_POWER_TARGETS,
 		type FourierSeriesCoefficients,
 		type FourierSeriesWaveformType,
 		formatPowerCapturePercent,
 	} from "$lib/math-engine/fourier-series/index";
 	import MathInline from "../math/MathInline.svelte";
 	import MathText from "../math/MathText.svelte";
+	import {
+		FOURIER_DISPLAY_DEFAULT_HARMONIC,
+		FOURIER_DISPLAY_MAX_HARMONIC,
+		FOURIER_DISPLAY_MIN_HARMONIC,
+	} from "./fourier-series-display";
 	import {
 		computeTargetMagnitudes,
 		drawFourierHarmonicSpectrum,
@@ -41,9 +50,14 @@
 	let {
 		coefficients,
 		waveformType = "square",
-		harmonicCount = 5,
+		harmonicCount = FOURIER_DISPLAY_DEFAULT_HARMONIC,
 		title = "Fourier Series Partial Sum & Harmonic Spectrum",
 	}: Props = $props();
+	const instanceId = $props.id();
+	const harmonicSliderId = `${instanceId}-harmonic-slider`;
+	const convergenceId = `${instanceId}-convergence-description`;
+	const spectrumId = `${instanceId}-spectrum-description`;
+	const powerTitleId = `${instanceId}-power-title`;
 
 	// Interactive local harmonic count N state
 	let N = $state(untrack(() => harmonicCount));
@@ -56,7 +70,15 @@
 		}
 	});
 
-	let currentN = $derived(Math.max(1, Math.min(50, Number(N) || 5)));
+	let currentN = $derived(
+		Math.max(
+			FOURIER_DISPLAY_MIN_HARMONIC,
+			Math.min(
+				FOURIER_DISPLAY_MAX_HARMONIC,
+				Math.round(Number(N) || FOURIER_DISPLAY_DEFAULT_HARMONIC),
+			),
+		),
+	);
 
 	let canvasUpperEl = $state<HTMLCanvasElement | null>(null);
 	let canvasLowerEl = $state<HTMLCanvasElement | null>(null);
@@ -71,19 +93,59 @@
 	let capturedPowerLabel = $derived(
 		formatPowerCapturePercent(signalPower.powerRatio),
 	);
+	const coefficientRows = $derived.by(() =>
+		Array.from(
+			{ length: currentN + 1 },
+			/** @param _ - Unused array element. @param n - Harmonic index. @returns Exact coefficient row. */
+			(_, n) => {
+				const { re, im } = coeffs.Fn(n);
+				const magnitude = Math.hypot(re, im);
+				return {
+					n,
+					re,
+					im,
+					magnitude,
+					phase: magnitude === 0 ? null : Math.atan2(im, re),
+					power: computeHarmonicPowerContribution(coeffs, n),
+				};
+			},
+		),
+	);
 
 	/** Formats power values without hiding small non-zero results. */
 	function formatPower(value: number): string {
-		return value >= 0.001 ? value.toFixed(3) : value.toExponential(2);
+		const formatted =
+			value >= 0.001 ? value.toFixed(3) : value.toExponential(2);
+		return /e/i.test(formatted)
+			? formatFourierNumber(Number(formatted))
+			: formatted;
+	}
+
+	/** @param value - Signed coefficient or power. @returns A readable value preserving small nonzero quantities. */
+	function formatCoefficient(value: number): string {
+		if (value === 0) return "0";
+		return Math.abs(value) < 0.001 || Math.abs(value) >= 100_000
+			? value.toExponential(4)
+			: value.toPrecision(5);
 	}
 
 	let themeVersion = $state(0);
 	let resizeVersion = $state(0);
+	let reducedMotion = $state(false);
 
 	// Smooth animation state for frequency-domain harmonic spectrum bars
 	let animFrameId: number | null = null;
 
 	onMount(() => {
+		const motionPreference = window.matchMedia?.(
+			"(prefers-reduced-motion: reduce)",
+		);
+		/** Synchronizes the operating system's motion preference. */
+		function handleMotionChange(): void {
+			reducedMotion = motionPreference?.matches ?? false;
+		}
+		handleMotionChange();
+		motionPreference?.addEventListener("change", handleMotionChange);
 		/**
 		 * Handles themechange custom events to update themeVersion and trigger canvas re-render.
 		 */
@@ -112,6 +174,7 @@
 		}
 
 		return () => {
+			motionPreference?.removeEventListener("change", handleMotionChange);
 			window.removeEventListener("themechange", handleThemeChange);
 			window.removeEventListener("resize", handleResize);
 			if (resizeObserver) {
@@ -124,12 +187,61 @@
 	});
 
 	// Keep animation positions persistent across renders
-	let currentDisplayN = 5;
-	let animatedMags = Array.from({ length: 51 }, () => 0);
+	let currentDisplayN = FOURIER_DISPLAY_DEFAULT_HARMONIC;
+	let animatedMags = Array.from(
+		{ length: FOURIER_DISPLAY_MAX_HARMONIC + 1 },
+		() => 0,
+	);
+	/** Tracks backing-store scale even when CSS size and pixel ratio change together. */
+	const canvasPixelRatios = new WeakMap<HTMLCanvasElement, number>();
+
+	/**
+	 * Resizes a canvas only when its backing dimensions change.
+	 * @param canvas - Canvas receiving the current display size.
+	 * @param ctx - Its rendering context.
+	 * @returns CSS-pixel dimensions used for drawing.
+	 */
+	function prepareCanvas(
+		canvas: HTMLCanvasElement,
+		ctx: CanvasRenderingContext2D,
+	): DOMRect {
+		const rect = canvas.getBoundingClientRect();
+		const dpr = window.devicePixelRatio || 1;
+		const width = Math.round(rect.width * dpr);
+		const height = Math.round(rect.height * dpr);
+		if (
+			canvas.width !== width ||
+			canvas.height !== height ||
+			canvasPixelRatios.get(canvas) !== dpr
+		) {
+			canvas.width = width;
+			canvas.height = height;
+			ctx.scale(dpr, dpr);
+			canvasPixelRatios.set(canvas, dpr);
+		}
+		return rect;
+	}
 
 	$effect(() => {
-		if (!canvasUpperEl || !canvasLowerEl) return;
-		canvasUpperEl.dataset.visualReady = "false";
+		void themeVersion;
+		void resizeVersion;
+		if (!canvasUpperEl) return;
+		const ctx = canvasUpperEl.getContext("2d");
+		if (!ctx) return;
+		const rect = prepareCanvas(canvasUpperEl, ctx);
+		drawFourierTimeDomain(
+			ctx,
+			rect.width,
+			rect.height,
+			coeffs,
+			currentN,
+			getFourierPlotTheme(getComputedStyle(document.documentElement)),
+		);
+		canvasUpperEl.dataset.visualReady = "true";
+	});
+
+	$effect(() => {
+		if (!canvasLowerEl) return;
 		canvasLowerEl.dataset.visualReady = "false";
 
 		// Track reactive dependencies
@@ -138,16 +250,28 @@
 		const targetN = currentN;
 		const currentCoeffs = coeffs;
 
-		const targetDisplayN = Math.min(targetN, 30);
+		const targetDisplayN = targetN;
 		const targetMags = computeTargetMagnitudes(
 			currentCoeffs,
 			targetDisplayN,
 		);
+		const motionDisabled = reducedMotion;
+		if (motionDisabled) {
+			currentDisplayN = targetDisplayN;
+			animatedMags = [...targetMags];
+		}
+		const theme = getFourierPlotTheme(
+			getComputedStyle(document.documentElement),
+		);
+		const ctxLower = canvasLowerEl.getContext("2d");
+		if (!ctxLower) return;
+		const rectLower = prepareCanvas(canvasLowerEl, ctxLower);
 
 		let isAnimating = true;
 
-		function renderFrame() {
-			if (!canvasUpperEl || !canvasLowerEl || !isAnimating) return;
+		/** Draws one spectrum animation frame without resampling the time-domain plot. */
+		function renderFrame(): void {
+			if (!canvasLowerEl || !isAnimating || !ctxLower) return;
 
 			// Smoothly lerp currentDisplayN toward targetDisplayN
 			const diffN = targetDisplayN - currentDisplayN;
@@ -159,46 +283,22 @@
 
 			// Smoothly lerp animatedMags toward targetMags
 			let maxMagDiff = 0;
-			for (let n = 1; n <= 50; n++) {
+			for (let n = 0; n <= FOURIER_DISPLAY_MAX_HARMONIC; n++) {
 				const target = targetMags[n] ?? 0;
 				const current = animatedMags[n] ?? 0;
 				const diff = target - current;
-				if (Math.abs(diff) > maxMagDiff) maxMagDiff = Math.abs(diff);
+				if (Math.abs(diff) / currentCoeffs.A > maxMagDiff)
+					maxMagDiff = Math.abs(diff) / currentCoeffs.A;
 				animatedMags[n] = current + diff * 0.18;
 			}
 
-			const theme = getFourierPlotTheme(
-				getComputedStyle(document.documentElement),
-			);
-
-			const ctxUpper = canvasUpperEl.getContext("2d");
-			const ctxLower = canvasLowerEl.getContext("2d");
-			if (!ctxUpper || !ctxLower) return;
-
-			// Use native devicePixelRatio for crisp rendering on HiDPI displays
-			const dpr = window.devicePixelRatio || 1;
-
-			// Upper Canvas setup
-			const rectUpper = canvasUpperEl.getBoundingClientRect();
-			canvasUpperEl.width = rectUpper.width * dpr;
-			canvasUpperEl.height = rectUpper.height * dpr;
-			ctxUpper.scale(dpr, dpr);
-
-			// Lower Canvas setup
-			const rectLower = canvasLowerEl.getBoundingClientRect();
-			canvasLowerEl.width = rectLower.width * dpr;
-			canvasLowerEl.height = rectLower.height * dpr;
-			ctxLower.scale(dpr, dpr);
-
-			// Draw time domain and spectrum panels
-			drawFourierTimeDomain(
-				ctxUpper,
-				rectUpper.width,
-				rectUpper.height,
-				currentCoeffs,
-				targetN,
-				theme,
-			);
+			const settled =
+				motionDisabled ||
+				(Math.abs(diffN) < 0.01 && maxMagDiff < 0.001);
+			if (settled) {
+				currentDisplayN = targetDisplayN;
+				animatedMags = [...targetMags];
+			}
 
 			drawFourierHarmonicSpectrum(
 				ctxLower,
@@ -210,11 +310,10 @@
 				theme,
 			);
 
-			if (Math.abs(diffN) >= 0.01 || maxMagDiff >= 0.001) {
+			if (!settled) {
 				animFrameId = requestAnimationFrame(renderFrame);
 			} else {
 				animFrameId = null;
-				canvasUpperEl.dataset.visualReady = "true";
 				canvasLowerEl.dataset.visualReady = "true";
 			}
 		}
@@ -243,16 +342,16 @@
 	<div class="controls-bar">
 		<div class="slider-group">
 			<label
-				for="harmonic-slider"
+				for={harmonicSliderId}
 				class="slider-label"
 			>
 				Harmonic Limit:
 			</label>
 			<input
-				id="harmonic-slider"
+				id={harmonicSliderId}
 				type="range"
-				min="1"
-				max="50"
+				min={FOURIER_DISPLAY_MIN_HARMONIC}
+				max={FOURIER_DISPLAY_MAX_HARMONIC}
 				step="1"
 				bind:value={N}
 				class="range-input"
@@ -281,6 +380,7 @@
 				bind:this={canvasUpperEl}
 				class="fourier-canvas"
 				aria-label="Time-Domain Partial Sum Canvas"
+				aria-describedby={convergenceId}
 			></canvas>
 			<div class="plot-legend">
 				<div class="legend-item">
@@ -300,15 +400,14 @@
 			<div class="panel-header">
 				<span class="panel-title">
 					Harmonic Spectrum Magnitude <MathInline math={"|F_n|"} />
-					<MathInline
-						math={`(n = 1 \\dots ${Math.min(currentN, 30)})`}
-					/>
+					<MathInline math={`(n = 0 \\dots ${currentN})`} />
 				</span>
 			</div>
 			<canvas
 				bind:this={canvasLowerEl}
 				class="fourier-canvas"
 				aria-label="Harmonic Spectrum Magnitude Canvas"
+				aria-describedby={spectrumId}
 			></canvas>
 			<div class="plot-legend">
 				<div class="legend-item">
@@ -322,25 +421,86 @@
 	</div>
 
 	{#if coeffs.hasJumpDiscontinuities}
-		<div class="gibbs-hint">
+		<div
+			class="gibbs-hint"
+			id={convergenceId}
+		>
 			💡 Notice the Gibbs phenomenon overshoot near jump discontinuities
 			as
-			<MathInline math={"N \\to \\infty"} />.
+			<MathInline math={"N \\to \\infty"} />. At a jump, the series
+			converges to the midpoint of the left and right limits. Overshoot
+			persists near the jump while its width shrinks.
 		</div>
 	{:else}
-		<div class="gibbs-hint">
+		<div
+			class="gibbs-hint"
+			id={convergenceId}
+		>
 			Compare the partial sum with the dashed ideal waveform as
 			<MathInline math={"N"} /> increases.
 		</div>
 	{/if}
+	<p
+		id={spectrumId}
+		class="spectrum-description"
+	>
+		The spectrum shows DC and positive-index exponential magnitudes. For a
+		real signal,
+		<MathInline math={"F_{-n}=F_n^*"} />; each nonzero-frequency pair has
+		harmonic amplitude
+		<MathInline math={"c_n=2|F_n|"} /> and power <MathInline
+			math={"2|F_n|^2"}
+		/>. DC contributes <MathInline math={"|F_0|^2"} />.
+	</p>
+	<details class="coefficient-disclosure">
+		<summary>View coefficient values and power contributions</summary>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need focus to scroll the coefficient table.) -->
+		<div
+			class="coefficient-table-scroll"
+			role="region"
+			aria-label="Fourier coefficient values"
+			tabindex="0"
+		>
+			<table>
+				<caption
+					>Exponential coefficients through N={currentN};
+					positive-frequency power includes the conjugate pair.</caption
+				>
+				<thead
+					><tr
+						><th scope="col">n</th><th scope="col">Real</th><th
+							scope="col">Imaginary</th
+						><th scope="col">Magnitude</th><th scope="col"
+							>Phase (rad)</th
+						><th scope="col">Power</th></tr
+					></thead
+				>
+				<tbody>
+					{#each coefficientRows as row (row.n)}
+						<tr
+							><th scope="row"
+								>{row.n === 0 ? "0 (DC)" : row.n}</th
+							><td>{formatCoefficient(row.re)}</td><td
+								>{formatCoefficient(row.im)}</td
+							><td>{formatCoefficient(row.magnitude)}</td><td
+								>{row.phase === null
+									? "—"
+									: formatCoefficient(row.phase)}</td
+							><td>{formatCoefficient(row.power)}</td></tr
+						>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</details>
 
 	<section
 		class="power-card"
-		aria-labelledby="parseval-power-title"
+		aria-labelledby={powerTitleId}
 	>
 		<div class="power-heading-row">
 			<div>
-				<h3 id="parseval-power-title">Parseval Power Distribution</h3>
+				<h3 id={powerTitleId}>Parseval Power Distribution</h3>
 				<p>
 					Power captured by the DC term and harmonics through
 					<MathInline math={`N=${currentN}`} />.
@@ -378,13 +538,49 @@
 
 		<div class="power-threshold-summary">
 			<MathText
-				text={String.raw`Minimum highest-harmonic limits: $N_{90\%}=${powerThresholds.n90}$; $N_{95\%}=${powerThresholds.n95}$; $N_{99\%}=${powerThresholds.n99}$. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
+				text={`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => `$N_{${percent}\\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
 			/>
 		</div>
 	</section>
 </div>
 
 <style>
+	.spectrum-description {
+		color: var(--text-secondary);
+		margin: 0;
+	}
+	.coefficient-disclosure summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+	.coefficient-table-scroll {
+		overflow-x: auto;
+		max-width: 100%;
+		margin-top: 0.75rem;
+	}
+	table {
+		border-collapse: collapse;
+		width: 100%;
+		font-variant-numeric: tabular-nums;
+	}
+	caption {
+		text-align: left;
+		color: var(--text-secondary);
+		padding-bottom: 0.5rem;
+	}
+	th,
+	td {
+		text-align: right;
+		padding: 0.5rem;
+		border-bottom: 1px solid var(--border-color);
+		white-space: nowrap;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.fourier-canvas-wrapper :global(*) {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
 	/* ── Fourier canvas wrapper ────────────────────────────── */
 
 	.fourier-canvas-wrapper {

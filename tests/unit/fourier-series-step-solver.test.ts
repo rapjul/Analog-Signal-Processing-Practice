@@ -149,6 +149,17 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			expect(solver.step1.isValid).toBe(false);
 		},
 	);
+	/** Grades ambiguous shorthand by its parsed value instead of a conflicting alias. */
+	it("rejects reciprocal-pi shorthand for period four", () => {
+		const problem = generateFourierSeriesProblem("square", {
+			seed: 1,
+			T0: 4,
+		});
+		const solver = new FourierSeriesStepSolverState(() => problem);
+		Object.assign(solver.step1, { period: "4", freq: "1/2pi" });
+		solver.checkStep1();
+		expect(solver.step1.isValid).toBe(false);
+	});
 	it("initializes in pristine state on Step 1", () => {
 		const problem = generateFourierSeriesProblem("square");
 		const solver = new FourierSeriesStepSolverState(() => problem);
@@ -474,7 +485,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 	});
 
 	it("advances through each even-wave coefficient part independently", () => {
-		const problem = generateFourierSeriesProblem("square_even", {
+		const problem = generateFourierSeriesProblem("full_wave_sine", {
 			seed: 10,
 			A: 5,
 			T0: 2,
@@ -604,7 +615,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 	});
 
 	it("returns and navigates through all dev visual states deterministically for multi-part and single-part problems", () => {
-		const problemEven = generateFourierSeriesProblem("square_even", {
+		const problemEven = generateFourierSeriesProblem("full_wave_sine", {
 			seed: 10,
 			A: 5,
 			T0: 2,

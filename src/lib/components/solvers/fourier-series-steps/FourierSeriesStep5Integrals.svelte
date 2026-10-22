@@ -61,7 +61,7 @@
 	title="Integral Setup Formulation"
 	{status}
 	{headerExtra}
-	summaryLatex={"\\text{Integral Form: Validated}"}
+	summaryLatex="Integral Form: Validated"
 >
 	<div class="step-body">
 		{#each problem.itsData.step5.parts.slice(0, activeStep5Index) as prevPart, idx}
@@ -107,6 +107,7 @@
 			<div
 				class="mcq-cards-grid"
 				data-testid="fourier-step5-options"
+				data-part-index={String(activeStep5Index)}
 			>
 				{#each activeStep5Part?.options ?? [] as opt}
 					<button

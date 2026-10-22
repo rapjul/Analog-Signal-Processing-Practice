@@ -14,6 +14,7 @@
 	 * - Step 7: Final Fourier Series Expression (FourierStep7Series)
 	 */
 
+	import { tick, untrack } from "svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
 	import type { FourierSeriesProblem } from "$lib/math-engine/fourier-series/index";
 	import { FourierSeriesStepSolverState } from "./fourier-series-step-solver.svelte";
@@ -41,16 +42,67 @@
 	);
 
 	// Reset state when problem instance changes
-	let lastProblemId = "";
+	let lastProblem: FourierSeriesProblem | undefined;
 	$effect(() => {
-		if (problem.id !== lastProblemId) {
-			lastProblemId = problem.id;
-			solver.reset();
+		if (problem !== lastProblem) {
+			lastProblem = problem;
+			untrack(() => solver.reset());
 		}
+	});
+
+	let root = $state<HTMLDivElement | null>(null);
+	const questionKey = $derived(
+		`${solver.currentStep}:${solver.step2.activeSubStepId}:${solver.step5.activeSubStepId}:${solver.step6.activeSubStepId}`,
+	);
+	const announcement = $derived(
+		solver.isCompleted
+			? "Fourier Series derivation completed."
+			: `Step ${solver.currentStep} of 7. ${solver.currentStep === 2 ? solver.step2Progress.label : solver.currentStep === 5 ? solver.step5Progress.label : solver.currentStep === 6 ? solver.step6Progress.label : ""}`,
+	);
+	let previousQuestion = "";
+	let previousQuestionProblem: FourierSeriesProblem | undefined;
+	$effect(() => {
+		const nextQuestion = questionKey;
+		const shouldFocus =
+			previousQuestionProblem === problem &&
+			previousQuestion !== "" &&
+			previousQuestion !== nextQuestion;
+		previousQuestion = nextQuestion;
+		previousQuestionProblem = problem;
+		if (shouldFocus) {
+			let cancelled = false;
+			void tick().then(() => {
+				if (!cancelled) {
+					const heading =
+						root?.querySelector<HTMLElement>(
+							".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading]",
+						) ??
+						root?.querySelector<HTMLElement>(
+							".step-card.active [data-progress-heading]",
+						);
+					heading?.focus();
+				}
+			});
+			return () => {
+				cancelled = true;
+			};
+		}
+		return undefined;
 	});
 </script>
 
-<div class="fourier-step-solver">
+<div
+	class="fourier-step-solver"
+	bind:this={root}
+>
+	<p
+		class="sr-only"
+		role="status"
+		aria-live="polite"
+		aria-atomic="true"
+	>
+		{announcement}
+	</p>
 	<Progress
 		currentStep={solver.currentStep}
 		totalSteps={solver.totalSteps}
@@ -100,6 +152,17 @@
 </div>
 
 <style>
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
 	/* ── Outer solver container ────────────────────────────── */
 
 	.fourier-step-solver {

@@ -13,6 +13,7 @@
 	import FourierSeriesPracticeCard from "$lib/components/ui/FourierSeriesPracticeCard.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import {
+		FOURIER_SERIES_WAVEFORMS,
 		type FourierSeriesProblem,
 		generateFourierSeriesProblem,
 	} from "$lib/math-engine/fourier-series/index";
@@ -115,19 +116,9 @@
 					onchange={handleOptionChange}
 				>
 					<option value="random">Random (All Waveforms)</option>
-					<option value="square">Square Wave</option>
-					<option value="square_odd">Odd Square Wave</option>
-					<option value="square_even">Even Square Wave</option>
-					<option value="triangle">Triangle Wave</option>
-					<option value="triangle_odd">Odd Triangle Wave</option>
-					<option value="triangle_even">Even Triangle Wave</option>
-					<option value="sawtooth">Sawtooth Wave</option>
-					<option value="half_wave_sine">
-						Half-Wave Rectified Sine Wave
-					</option>
-					<option value="full_wave_sine">
-						Full-Wave Rectified Sine Wave
-					</option>
+					{#each FOURIER_SERIES_WAVEFORMS as waveform}
+						<option value={waveform.id}>{waveform.label}</option>
+					{/each}
 				</select>
 			</div>
 		</DrillPanel>

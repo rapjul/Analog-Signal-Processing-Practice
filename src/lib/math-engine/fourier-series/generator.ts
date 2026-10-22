@@ -12,17 +12,15 @@ import {
 	shuffleWithRandom,
 } from "../random";
 import type { SolutionStep } from "../types";
-import { formatFourierFrequency, formatFourierNumber } from "./frequency";
-import {
-	buildPrimarySeriesOptions,
-	generateFourierSeriesItsData,
-} from "./its-scaffolding/index";
+import { formatFourierNumber } from "./frequency";
+import { assembleFourierSeriesData } from "./its-scaffolding/assembly";
+import { buildPrimarySeriesOptions } from "./its-scaffolding/index";
 import {
 	buildCompactSeriesLatex,
-	buildFourierSeriesSymbolicDerivation,
 	buildSignalLatex,
 	computeFourierSeriesCoefficients,
 } from "./solver";
+import { getExponentialEvaluationLatex } from "./symbolic-derivations";
 import type {
 	FourierSeriesConversionChallenge,
 	FourierSeriesGenerationOptions,
@@ -45,7 +43,7 @@ const formNames: Record<FourierSeriesPrimaryForm, string> = {
  * 2. Computes trigonometric coefficients via symmetry rules:
  *    - Even symmetry (x(-t) = x(t)): b_n = 0, a_n = (4/T0) \int_0^{T0/2} x(t) \cos(n w0 t) dt.
  *    - Odd symmetry (x(-t) = -x(t)): a_0 = 0, a_n = 0, b_n = (4/T0) \int_0^{T0/2} x(t) \sin(n w0 t) dt.
- *    - Half-wave / Full-wave rectified sines: DC term a_0 = A / pi, even harmonics a_n = 2A / (pi (1 - n^2)).
+ *    - Half-wave rectification: a_0 = 2A / pi; full-wave rectification: a_0 = 4A / pi.
  * 3. Converts to exponential Fourier series coefficients F_n = (a_n - j b_n) / 2.
  * 4. Synthesizes 7-step ITS metadata for interactive step-by-step guidance.
  *
@@ -68,10 +66,12 @@ export function generateFourierSeriesProblem(
 
 	const coeffs = computeFourierSeriesCoefficients(waveformType, { A, T0 });
 	const id = `fs_${waveformType}_${seed}`;
-	const itsData = generateFourierSeriesItsData(coeffs, random);
-	const w0Latex = formatFourierFrequency(T0);
+	const { itsData, w0Latex, derivation } = assembleFourierSeriesData(
+		coeffs,
+		random,
+		options.primaryForm,
+	);
 	const periodLatex = formatFourierNumber(T0);
-	const derivation = buildFourierSeriesSymbolicDerivation(coeffs, w0Latex);
 	const alternateForm: FourierSeriesPrimaryForm =
 		itsData.step4.correctForm === "trig" ? "exp" : "trig";
 	const alternateLatex =
@@ -132,11 +132,11 @@ export function generateFourierSeriesProblem(
 		{
 			title: "Representation Selection",
 			description:
-				coeffs.originParity === "none"
-					? "Without centered parity, the exponential form evaluates both real and imaginary parts in one integral."
-					: "Centered parity leaves one real coefficient family, so the trigonometric form is most efficient.",
+				itsData.step4.correctForm === "exp"
+					? "The assigned exponential path evaluates both real and imaginary parts in one integral, with DC treated separately."
+					: "The assigned trigonometric path evaluates the real coefficient families remaining after symmetry shortcuts.",
 			latex:
-				coeffs.originParity === "none"
+				itsData.step4.correctForm === "exp"
 					? "F_n=\\frac{1}{T_0}\\int_{T_0}x(t)e^{-jn\\omega_0t}\\,dt"
 					: "x(t)=\\frac{a_0}{2}+\\sum_{n=1}^{\\infty}[a_n\\cos(n\\omega_0t)+b_n\\sin(n\\omega_0t)]",
 		},
@@ -144,13 +144,19 @@ export function generateFourierSeriesProblem(
 			title: "Piecewise Integral Setup",
 			description:
 				"Substitute the waveform on each non-zero interval, retaining the normalization and Fourier kernel.",
-			latex: derivation.integralLatex,
+			latex:
+				itsData.step4.correctForm === "exp"
+					? derivation.expIntegralLatex
+					: `\\begin{gathered}${itsData.step5.parts.map(({ resultLatex }) => resultLatex).join("\\\\")}\\end{gathered}`,
 		},
 		{
 			title: "Definite Integral Evaluation",
 			description:
 				"Apply the bounds and simplify parity factors such as $(-1)^n$ and $\\sin(n\\pi/2)$.",
-			latex: derivation.evaluationLatex,
+			latex:
+				itsData.step4.correctForm === "exp"
+					? getExponentialEvaluationLatex(derivation)
+					: derivation.evaluationLatex,
 		},
 		{
 			title: "DC Offset Derivation",

@@ -23,27 +23,21 @@ export function buildStep4Data(
 ): FourierItsStep4 {
 	const correctForm =
 		primaryForm ?? (originParity !== "none" ? "trig" : "exp");
+	const assignedName =
+		correctForm === "trig" ? "Trigonometric" : "Exponential";
 
 	return {
 		correctForm,
 		hints: [
-			originParity !== "none"
-				? "You already know that half the coefficients are zero. Which form separates sine and cosine terms?"
-				: "Without symmetry, which representation evaluates both real and imaginary parts in a single integral?",
+			`This guided problem uses the ${assignedName} form. Both Trigonometric and Exponential representations are mathematically valid.`,
 			"Trigonometric form separates $a_n$ and $b_n$. Exponential form $F_n$ combines them using $e^{-j n \\omega_0 t}$.",
-			originParity !== "none"
-				? "Since one set of coefficients is zero, the Trigonometric form is the most efficient (requiring only one real-valued integral)."
-				: "Evaluating $F_n$ via the Exponential form evaluates both components in one complex integral.",
+			correctForm === "trig"
+				? "Follow the Trigonometric path by evaluating DC and the real coefficient families not already eliminated by symmetry."
+				: "Follow the Exponential path by evaluating $F_n$, including its DC case separately.",
 		],
 		misconceptions: {
-			trig:
-				originParity === "none"
-					? "Using Trigonometric form without symmetry requires solving two separate integrals ($a_n$ and $b_n$). Exponential form $F_n$ is faster."
-					: "Trigonometric form is preferred here.",
-			exp:
-				originParity !== "none"
-					? "While Exponential form is valid, Trigonometric form is faster because we can directly set the vanishing coefficients to 0."
-					: "Exponential form is preferred here.",
+			trig: `Trigonometric form is valid. Select the assigned ${assignedName} form for this guided derivation.`,
+			exp: `Exponential form is valid. Select the assigned ${assignedName} form for this guided derivation.`,
 			compact:
 				"Compact polar form ($C_n, \\theta_n$) is derived from Trigonometric or Exponential coefficients, not integrated directly.",
 		},

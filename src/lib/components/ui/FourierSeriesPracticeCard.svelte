@@ -158,6 +158,12 @@
 </div>
 
 <style>
+	@media (prefers-reduced-motion: reduce) {
+		.fourier-practice-card :global(*) {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
 	/* ── Practice card container ───────────────────────────── */
 
 	.fourier-practice-card {

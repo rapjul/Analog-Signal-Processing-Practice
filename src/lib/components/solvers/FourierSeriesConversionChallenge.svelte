@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick, untrack } from "svelte";
 	import type {
 		FourierSeriesConversionChallenge,
 		FourierSeriesItsOption,
@@ -12,22 +13,30 @@
 		type MultiPartStepState,
 	} from "./base-step-solver.svelte";
 
+	/** Optional conversion challenge inputs. */
 	interface Props {
+		/** Active problem's conversion questions. */
 		challenge: FourierSeriesConversionChallenge;
+		/** Called once after both conversions are solved. */
 		onComplete?: () => void;
 	}
 
 	let { challenge, onComplete }: Props = $props();
 
+	/** Stable identifiers of the two conversion tasks. */
 	type ConversionId = "alternate" | "compact";
+	/** Per-challenge progress and selected answers. */
 	type ConversionState = MultiPartStepState<ConversionId> & {
+		/** Whether both conversions have been passed. */
 		completed: boolean;
+		/** Independently graded conversion states. */
 		subSteps: Record<
 			ConversionId,
 			BaseSubStepState & { selected: string | null }
 		>;
 	};
 
+	/** @returns Fresh conversion progress for the active challenge. */
 	function createChallengeState(): ConversionState {
 		const order: ConversionId[] = challenge.parts.map(({ id }) => id);
 		const subSteps = Object.fromEntries(
@@ -50,14 +59,11 @@
 	}
 
 	let challengeState: ConversionState = $state(createChallengeState());
-	let problemKey = $state("");
+	let previousChallenge: FourierSeriesConversionChallenge | undefined;
 	$effect(() => {
-		const nextKey = challenge.parts
-			.map(({ resultLatex }) => resultLatex)
-			.join("|");
-		if (nextKey !== problemKey) {
-			problemKey = nextKey;
-			challengeState = createChallengeState();
+		if (challenge !== previousChallenge) {
+			previousChallenge = challenge;
+			challengeState = untrack(createChallengeState);
 		}
 	});
 
@@ -71,12 +77,55 @@
 		`Part ${challengeState.subStepOrder.indexOf(challengeState.activeSubStepId) + 1} of ${challengeState.subStepOrder.length}`,
 	);
 
-	function checkOption(option: FourierSeriesItsOption) {
-		activeState.selected = option.id;
-		if (!option.isCorrect) {
+	let challengeRoot = $state<HTMLDetailsElement | null>(null);
+	let previousFocusChallenge: FourierSeriesConversionChallenge | undefined;
+	let previousFocusPart: ConversionId | undefined;
+	/** Moves focus only after successful progression within the same challenge. */
+	$effect(() => {
+		const currentChallenge = challenge;
+		const currentState = challengeState;
+		const currentPart = currentState.activeSubStepId;
+		const completed = currentState.completed;
+		const shouldFocus =
+			previousFocusChallenge === currentChallenge &&
+			previousFocusPart !== undefined &&
+			previousFocusPart !== currentPart &&
+			!completed;
+		previousFocusChallenge = currentChallenge;
+		previousFocusPart = currentPart;
+		if (!shouldFocus) return;
+
+		let cancelled = false;
+		void tick().then(() => {
+			if (
+				!cancelled &&
+				challenge === currentChallenge &&
+				challengeState === currentState &&
+				currentState.activeSubStepId === currentPart &&
+				!currentState.completed
+			) {
+				challengeRoot
+					?.querySelector<HTMLElement>(".part-heading strong")
+					?.focus();
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	/** @param option - A choice from the active conversion. */
+	function checkOption(option: FourierSeriesItsOption): void {
+		if (challengeState.completed) return;
+		const canonical = activePart?.options.find(
+			(candidate) => candidate === option,
+		);
+		if (!canonical) return;
+		activeState.selected = canonical.id;
+		if (!canonical.isCorrect) {
 			activeState.feedbackType = "misconception";
 			activeState.feedback =
-				option.feedback ??
+				canonical.feedback ??
 				"Recheck the coefficient conversion identities.";
 			return;
 		}
@@ -97,13 +146,17 @@
 		onComplete?.();
 	}
 
-	function revealHint() {
+	/** Reveals the next hint for the active conversion only. */
+	function revealHint(): void {
 		const hintCount = activeState.hints?.length ?? 0;
 		if (activeState.hintTier < hintCount) activeState.hintTier += 1;
 	}
 </script>
 
-<details class="conversion-challenge">
+<details
+	class="conversion-challenge"
+	bind:this={challengeRoot}
+>
 	<summary>
 		<span>Optional Step 8: Convert to the Other Fourier Forms</span>
 		<span class="optional-badge">Optional</span>
@@ -119,13 +172,17 @@
 			</div>
 		{:else if activePart}
 			<div class="part-heading">
-				<strong>{activePart.title}</strong>
-				<span>{progress}</span>
+				<strong tabindex="-1">{activePart.title}</strong>
+				<span
+					role="status"
+					aria-live="polite">{progress}</span
+				>
 			</div>
 			<p><MathText text={activePart.prompt} /></p>
 			<div
 				class="conversion-options"
 				data-testid="fourier-conversion-options"
+				data-part-index={String(challenge.parts.indexOf(activePart))}
 			>
 				{#each activePart.options as option}
 					<button

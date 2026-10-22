@@ -6,5 +6,9 @@
 
 export * from "./generator";
 export * from "./its-scaffolding/index";
+export {
+	computeHarmonicPowerContribution,
+	FOURIER_POWER_TARGETS,
+} from "./power";
 export * from "./solver";
 export * from "./types";
