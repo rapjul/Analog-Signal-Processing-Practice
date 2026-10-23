@@ -10,6 +10,26 @@ test.beforeEach(async ({ page }) => {
 	await page.goto("/fourier-transform");
 });
 
+/** Course controls and recognition expose only the agreed four families in either mode. */
+test("course practice excludes Gaussian choices", async ({ page }) => {
+	await page.locator(".drill-summary").click();
+	await expect(
+		page.getByLabel("Signal Category:").locator("option"),
+	).toHaveText([
+		"Rectangular pulse",
+		"Causal exponential",
+		"Dirac delta",
+		"Cosine",
+	]);
+	for (const mode of ["derivation", "pairs-properties"]) {
+		await page.getByLabel("Teaching Mode:").selectOption(mode);
+		await expect(page.locator(".step-card.active .choice")).toHaveCount(4);
+		await expect(
+			page.getByRole("button", { name: "Gaussian", exact: true }),
+		).toHaveCount(0);
+	}
+});
+
 /** Definitions live in the route-selected drawer while signal math and input aliases remain readable. */
 test("formulas and notation have accessible keyboard controls", async ({
 	page,
@@ -305,7 +325,6 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 	for (const family of [
 		"rect",
 		"exponential",
-		"gaussian",
 		"delta",
 		"cos",
 	] as CtftSignalType[]) {

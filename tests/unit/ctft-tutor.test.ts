@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CtftStepSolverState } from "$lib/components/solvers/ctft-step-solver.svelte";
 import {
 	buildCtftLesson,
+	CTFT_COURSE_FAMILIES,
 	type CtftPracticeMode,
 } from "$lib/math-engine/ctft-lesson";
 import {
@@ -34,6 +35,31 @@ const families: CtftSignalType[] = [
 ];
 /** Both supported lesson sequences. */
 const modes: CtftPracticeMode[] = ["derivation", "pairs-properties"];
+
+/** Keeps course recognition bounded while retaining internal Gaussian lessons. */
+it("uses the four course families in both teaching modes", () => {
+	expect(
+		CTFT_COURSE_FAMILIES.map(
+			/** @param family - Course option. @returns Stable identifier. */
+			(family) => family.id,
+		),
+	).toEqual(["rect", "exponential", "delta", "cos"]);
+	for (const mode of modes) {
+		for (const family of families) {
+			const lesson = buildCtftLesson(
+				createCtftProblem(family, { a: 2, T: 2, w0: 3, t0: 0 }),
+				mode,
+			);
+			const options = lesson.stages[0]!.parts[0]!.choices!;
+			expect(
+				options.some(
+					/** @param option - Recognition choice. @returns Whether Gaussian is offered. */
+					(option) => option.id === "gaussian",
+				),
+			).toBe(family === "gaussian");
+		}
+	}
+});
 
 /**
  * Answers the current task through the same public validation entry point as the UI.

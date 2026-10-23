@@ -1,15 +1,16 @@
 # Guided CTFT Practice
 
-The `/fourier-transform` route teaches five forward-transform families: rectangular
-pulses, causal exponentials, Gaussians, Dirac deltas, and cosines.
+The `/fourier-transform` route teaches four course families: rectangular pulses,
+causal exponentials, Dirac deltas, and cosines. `CTFT_COURSE_FAMILIES` supplies both
+the selector and recognition choices. Gaussian signals remain supported by the
+mathematical engine, validators, and internal lessons, outside course practice.
 
 - **Derivation** has six stages: pair identification, parameter extraction,
   derivation setup, base-transform evaluation, operational-property application,
   and final assembly.
 - Derivation requires intermediate algebra before base-transform assembly:
   rectangular antiderivatives, endpoint subtraction, sine conversion, and the removable limit;
-  exponential antiderivatives and both boundary contributions; Gaussian identity
-  coefficients and exponent substitution; delta sifting and kernel evaluation;
+  exponential antiderivatives and both boundary contributions; delta sifting and exponential evaluation;
   and cosine Euler coefficients, exponential impulse weights, and scaling.
   The completed solution includes the full parameter-derived equation chain.
 - **Pairs & Properties** has five stages. It omits derivation setup, displays the

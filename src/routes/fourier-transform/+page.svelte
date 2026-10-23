@@ -8,7 +8,7 @@
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import ProblemHeader from "$lib/components/ui/ProblemHeader.svelte";
 	import {
-		CTFT_FAMILIES,
+		CTFT_COURSE_FAMILIES,
 		type CtftPracticeMode,
 	} from "$lib/math-engine/ctft-lesson";
 	import {
@@ -52,8 +52,8 @@
 					bind:value={selectedType}
 					onchange={handleGenerateNext}
 				>
-					{#each CTFT_FAMILIES as family}<option value={family.id}
-							>{family.label}</option
+					{#each CTFT_COURSE_FAMILIES as family}<option
+							value={family.id}>{family.label}</option
 						>{/each}
 				</select>
 			</div>

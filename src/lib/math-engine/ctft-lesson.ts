@@ -72,6 +72,12 @@ export const CTFT_FAMILIES: CtftChoice[] = [
 	{ id: "cos", label: "Cosine" },
 ];
 
+/** Course-facing families; Gaussian lessons remain available internally. */
+export const CTFT_COURSE_FAMILIES: CtftChoice[] = CTFT_FAMILIES.filter(
+	/** @param family - Supported mathematical family. @returns Whether course practice includes it. */
+	(family) => family.id !== "gaussian",
+);
+
 /** Symbolic standard pairs with the normalized sinc convention. */
 const STANDARD_PAIRS: Record<CtftSignalType, string> = {
 	rect: String.raw`\operatorname{rect}(t/T)\longleftrightarrow T\operatorname{sinc}(T\omega/(2\pi))`,
@@ -251,7 +257,9 @@ export function buildCtftLesson(
 		type,
 		"Identify the signal before applying its translation.",
 	);
-	pairTask.choices = CTFT_FAMILIES.map(
+	pairTask.choices = (
+		type === "gaussian" ? CTFT_FAMILIES : CTFT_COURSE_FAMILIES
+	).map(
 		/** @param choice - Shared family label. @returns A lesson-owned option. */
 		(choice) => ({ ...choice }),
 	);
