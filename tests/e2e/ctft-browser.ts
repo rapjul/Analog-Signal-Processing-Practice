@@ -104,7 +104,14 @@ export async function prepareCtftFinal(
 	await enterCtftAnswer(page, "Signed time translation", String(params.t0));
 	if (mode === "derivation") {
 		await page
-			.locator('.step-card.active input[type="radio"][value="correct"]')
+			.getByRole("radio", {
+				name:
+					family === "cos"
+						? /Cosine equals half the sum/
+						: family === "delta"
+							? /Sift the kernel at time zero/
+							: /negative imaginary forward-kernel exponent/,
+			})
 			.check();
 		await page
 			.getByRole("button", { name: "Check Answer", exact: true })

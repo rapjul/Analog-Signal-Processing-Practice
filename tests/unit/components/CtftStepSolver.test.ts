@@ -6,6 +6,7 @@ import CtftStepSolver from "$lib/components/solvers/CtftStepSolver.svelte";
 import {
 	buildCtftLesson,
 	type CtftPracticeMode,
+	type CtftStageId,
 } from "$lib/math-engine/ctft-lesson";
 import {
 	type CtftSignalType,
@@ -20,14 +21,17 @@ afterEach(cleanup);
  * @param container - Rendered solver.
  * @param problem - Fixture providing deterministic mathematical expectations.
  * @param mode - Selected path.
+ * @param stopBefore - Optional stage to leave active for targeted accessibility assertions.
  */
 async function complete(
 	container: HTMLElement,
 	problem: GeneratedCtftProblem,
 	mode: CtftPracticeMode,
+	stopBefore?: CtftStageId,
 ): Promise<void> {
 	const lesson = buildCtftLesson(problem, mode);
-	for (const stage of lesson.stages)
+	for (const stage of lesson.stages) {
+		if (stage.id === stopBefore) return;
 		for (const task of stage.parts) {
 			const form = container.querySelector<HTMLFormElement>(
 				".step-card.active form",
@@ -55,9 +59,72 @@ async function complete(
 				container.querySelector('[role="alert"]')?.textContent ?? "",
 			).toBe("");
 		}
+	}
 }
 
 describe("CTFT guided component", () => {
+	for (const family of [
+		"rect",
+		"exponential",
+		"gaussian",
+		"delta",
+		"cos",
+	] as const) {
+		/** Setup options expose distinct spoken mathematical descriptions without nested formula controls. */
+		it(`provides accessible setup options and mathematical parameter labels for ${family}`, async () => {
+			const problem = createCtftProblem(family, {
+				a: 2,
+				T: 4,
+				w0: 3,
+				t0: 0,
+			});
+			const view = render(CtftStepSolver, { problem });
+			await complete(view.container, problem, "derivation", "setup");
+			const radios = [
+				...view.container.querySelectorAll<HTMLInputElement>(
+					'.step-card.active input[type="radio"]',
+				),
+			];
+			const names = radios.map(
+				/** @param radio - Setup option. @returns Its explicit spoken label. */ (
+					radio,
+				) => radio.getAttribute("aria-label"),
+			);
+			expect(new Set(names).size).toBe(2);
+			for (const name of names)
+				expect(name).not.toMatch(/Mathematical formula block|\\/);
+			expect(
+				view.container.querySelector(
+					'.choice [role="button"], .choice button',
+				),
+			).toBeNull();
+			expect(
+				view.container.querySelectorAll(
+					".step-card.active .choice .katex",
+				),
+			).toHaveLength(2);
+			if (
+				family === "rect" ||
+				family === "exponential" ||
+				family === "gaussian"
+			) {
+				const parameterLabels = [
+					...view.container.querySelectorAll(".verified-fields p"),
+				].filter(
+					/** @param label - Verified field label. @returns Whether it names a mathematical parameter. */ (
+						label,
+					) =>
+						/Pulse width|Decay parameter/.test(
+							label.textContent ?? "",
+						),
+				);
+				expect(parameterLabels).toHaveLength(1);
+				expect(
+					parameterLabels[0]!.querySelector(".katex"),
+				).not.toBeNull();
+			}
+		});
+	}
 	/** Plain supported notation previews as mathematical symbols without modifying the input. */
 	it("renders shorthand constants in the live preview", async () => {
 		const view = render(CtftStepSolver, {
@@ -122,6 +189,14 @@ describe("CTFT guided component", () => {
 					view.container.querySelector(".ctft-spectrum"),
 				).toBeNull();
 				await complete(view.container, problem, mode);
+				expect(
+					view.container.querySelector('[role="status"]')
+						?.textContent,
+				).toContain(
+					mode === "derivation"
+						? "CTFT derivation completed."
+						: "CTFT pairs and properties practice completed.",
+				);
 				expect(callback).toHaveBeenCalledTimes(1);
 				expect(
 					view.container.querySelectorAll(".step-card.completed"),

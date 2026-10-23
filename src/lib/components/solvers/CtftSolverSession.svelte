@@ -146,7 +146,9 @@
 		aria-atomic="true"
 	>
 		{solver.isCompleted
-			? "CTFT derivation completed."
+			? mode === "derivation"
+				? "CTFT derivation completed."
+				: "CTFT pairs and properties practice completed."
 			: `Step ${solver.currentStep} of ${solver.totalSteps}. ${solver.partProgress.label}`}
 	</p>
 	<Progress
@@ -175,7 +177,9 @@
 				/>{/if}{/snippet}
 		{#snippet verifiedSummary()}<div class="verified-fields">
 				{#each stage.parts as task}
-					<p>{task.label}:</p>
+					<p>
+						<MathText text={`${task.labelMath ?? task.label}:`} />
+					</p>
 					{#if task.kind === "choice" && !task.mathChoices}<p>
 							{summary(task, stageState.parts[task.id]!)}
 						</p>{:else}<MathBlock
@@ -216,7 +220,7 @@
 				{@const state = stageState.parts[task.id]!}
 				<SubStepBlock
 					badge={`Part ${partIndex + 1}`}
-					title={task.label}
+					title={task.labelMath ?? task.label}
 					isCompleted={state.isValid}
 				>
 					{#snippet summarySnippet()}{#if task.kind === "choice" && !task.mathChoices}<p
@@ -240,22 +244,29 @@
 							/>{/if}
 						{#if task.kind === "choice"}
 							<fieldset>
-								<legend>{task.label}</legend
+								<legend
+									><MathText
+										text={task.labelMath ?? task.label}
+									/></legend
 								>{#each task.choices ?? [] as choice}
 									<label class="choice"
 										><input
 											type="radio"
 											name={`ctft-${stage.id}-${task.id}`}
 											value={choice.id}
+											aria-label={choice.accessibleLabel ??
+												choice.label}
 											bind:group={state.input}
 											onchange={/** Invalidates feedback after selecting a different option. */ () =>
 												edit(state)}
 										/>
-										{#if task.mathChoices}<MathBlock
-												math={choice.label}
-												compact
-												hideHeader
-											/>{:else}<span>{choice.label}</span
+										{#if task.mathChoices}<span
+												class="choice-math"
+												aria-hidden="true"
+												><MathText
+													text={`$${choice.label}$`}
+												/></span
+											>{:else}<span>{choice.label}</span
 											>{/if}
 									</label>
 								{/each}
@@ -267,7 +278,9 @@
 								task.kind === "spectrum"
 									? "ctft-input"
 									: `ctft-${stage.id}-${task.id}`}
-								>{task.label}</label
+								><MathText
+									text={task.labelMath ?? task.label}
+								/></label
 							>
 							<input
 								id={stage.id === "final" &&
@@ -275,6 +288,7 @@
 									? "ctft-input"
 									: `ctft-${stage.id}-${task.id}`}
 								class="math-text-input"
+								aria-label={task.label}
 								type="text"
 								autocomplete="off"
 								spellcheck="false"
@@ -341,7 +355,9 @@
 							/>{/if}
 						{#each stage.parts as task}{@const state =
 								solver.stages[stage.id]!.parts[task.id]!}
-							<p>{task.label}</p>
+							<p>
+								<MathText text={task.labelMath ?? task.label} />
+							</p>
 							{#if task.kind === "choice" && !task.mathChoices}<p>
 									{summary(task, state)}
 								</p>{:else}<MathBlock
@@ -396,9 +412,11 @@
 		min-width: 0;
 		cursor: pointer;
 	}
-	.choice :global(.math-block) {
+	.choice-math {
 		min-width: 0;
 		flex: 1;
+		overflow-x: auto;
+		padding-block: 0.3rem;
 	}
 	input[type="radio"] {
 		flex-shrink: 0;

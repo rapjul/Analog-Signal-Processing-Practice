@@ -26,11 +26,13 @@ export type CtftPartKind =
 export interface CtftChoice {
 	/** Stable selection token. */ id: string;
 	/** Visible mathematical or descriptive label. */ label: string;
+	/** Spoken description for a mathematical recognition option. */ accessibleLabel?: string;
 }
 /** One independently checked learning task. */
 export interface CtftLessonPart {
 	/** Stable task identity. */ id: string;
 	/** Accessible field or task label. */ label: string;
+	/** Mathematical presentation of the label while retaining its stable accessible field name. */ labelMath?: string;
 	/** Input and grading strategy. */ kind: CtftPartKind;
 	/** Correct choice token or parameter-owned intermediate target and development fixture. */ expected: string;
 	/** Owned options for recognition tasks. */ choices?: CtftChoice[];
@@ -113,10 +115,14 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 		return [
 			{
 				id: "correct",
+				accessibleLabel:
+					"Sift the kernel at time zero, giving the exponential of zero",
 				label: String.raw`\int_{-\infty}^{\infty}\delta(t)e^{-j\omega t}\,dt=e^0`,
 			},
 			{
 				id: "wrong",
+				accessibleLabel:
+					"Set the integral of the impulse times the kernel to zero",
 				label: String.raw`\int_{-\infty}^{\infty}\delta(t)e^{-j\omega t}\,dt=0`,
 			},
 		];
@@ -124,10 +130,14 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 		return [
 			{
 				id: "correct",
+				accessibleLabel:
+					"Cosine equals half the sum of the positive and negative complex exponentials",
 				label: String.raw`\cos(${params.w0}t)=\tfrac12(e^{j${params.w0}t}+e^{-j${params.w0}t})`,
 			},
 			{
 				id: "wrong",
+				accessibleLabel:
+					"Cosine equals the unscaled sum of the positive and negative complex exponentials",
 				label: String.raw`\cos(${params.w0}t)=e^{j${params.w0}t}+e^{-j${params.w0}t}`,
 			},
 		];
@@ -147,10 +157,14 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 	return [
 		{
 			id: "correct",
+			accessibleLabel:
+				"Integrate over the signal support with the negative imaginary forward-kernel exponent",
 			label: String.raw`\int_{${bounds[0]}}^{${bounds[1]}}${integrand}e^{-j\omega t}\,dt`,
 		},
 		{
 			id: "wrong",
+			accessibleLabel:
+				"Integrate over the signal support with a positive imaginary kernel exponent",
 			label: String.raw`\int_{${bounds[0]}}^{${bounds[1]}}${integrand}e^{+j\omega t}\,dt`,
 		},
 	];
@@ -220,6 +234,10 @@ export function buildCtftLesson(
 			String.raw`Write the signal as $x_0(t-t_0)$. A plus sign inside the argument means a negative translation.`,
 		),
 	);
+	for (const parameter of parameters) {
+		if (parameter.id === "T") parameter.labelMath = "Pulse width $T$";
+		if (parameter.id === "a") parameter.labelMath = "Decay parameter $a$";
+	}
 	const setup = part(
 		"definition",
 		"Choose the forward-transform setup",
