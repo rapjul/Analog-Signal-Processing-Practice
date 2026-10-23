@@ -1,5 +1,6 @@
 /** Detect stale worktree app shells without relaxing Vite filesystem restrictions. */
 import { expect, test } from "@playwright/test";
+import { loadEnv } from "vite";
 
 /** A clean development browser loads and reloads this worktree without a worker. */
 test("development loads current generated modules without service workers", async ({
@@ -11,7 +12,8 @@ test("development loads current generated modules without service workers", asyn
 		"Development-only loading contract.",
 	);
 	test.skip(
-		process.env.VITE_SIGNALLAB_DEV_PWA === "1",
+		loadEnv("development", process.cwd(), "VITE_")
+			.VITE_SIGNALLAB_DEV_PWA === "1",
 		"Explicit PWA-development mode intentionally registers a worker.",
 	);
 	const errors: string[] = [];

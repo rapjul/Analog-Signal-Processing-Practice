@@ -171,9 +171,14 @@ describe("CTFT guided component", () => {
 				.getByRole("region", { name: "Issues in your expression" })
 				.querySelectorAll("li").length,
 		).toBeGreaterThan(1);
-		expect(view.container.textContent).toContain(
-			"time variable t should disappear",
-		);
+		expect(
+			view.container.querySelector(".feedback-box .katex-html")
+				?.textContent,
+		).toBe("t");
+		expect(
+			view.container.querySelector(".input-errors button .katex-html")
+				?.textContent,
+		).toBeTruthy();
 		expect(view.container.querySelector(".solution-breakdown")).toBeNull();
 		await fireEvent.input(input, {
 			target: { value: "(e^(-2j omega)-e^(2j omega))/(-j omega)" },

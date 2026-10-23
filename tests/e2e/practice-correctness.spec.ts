@@ -62,7 +62,9 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		),
 	]) {
 		await input.fill(answer);
-		await page.getByRole("button", { name: "Check Answer" }).click();
+		await page
+			.getByRole("button", { name: "Check final spectrum →" })
+			.click();
 		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
 			"data-validation",
 			"correct",
@@ -70,7 +72,7 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}
 	await input.fill("3.14");
-	await page.getByRole("button", { name: "Check Answer" }).click();
+	await page.getByRole("button", { name: "Check final spectrum →" }).click();
 	await expect(page.locator(".feedback-box")).toContainText(
 		"If you intended the constant pi, type 'pi' (lowercase)",
 	);

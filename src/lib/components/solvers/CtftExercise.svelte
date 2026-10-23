@@ -178,7 +178,8 @@
 							type="button"
 							onclick={/** Selects this original input range. */ () =>
 								selectIssue(issue)}
-							>{issue.message}
+						>
+							<MathText text={issue.message} />
 							<span class="source-excerpt"
 								><code
 									>{response.input.slice(

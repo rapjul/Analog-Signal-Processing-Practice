@@ -54,7 +54,7 @@ export function withCtftCalculationDiagnostics(
 	return {
 		...result,
 		message:
-			"The time variable t should disappear after endpoint substitution. Use omega for angular frequency and substitute the endpoint for t.",
+			"The time variable $t$ should disappear after endpoint substitution. Use $\\omega$ for angular frequency and substitute the endpoint for $t$.",
 		diagnostics: [
 			...(result.diagnostics ?? []),
 			...times.map(
@@ -63,7 +63,7 @@ export function withCtftCalculationDiagnostics(
 					start: match.index! + match[1]!.length,
 					end: match.index! + match[1]!.length + 1,
 					message:
-						"Substitute the time endpoint here; retain omega as the frequency variable.",
+						"Substitute the time endpoint here; retain $\\omega$ as the frequency variable.",
 				}),
 			),
 		].slice(0, 8),
