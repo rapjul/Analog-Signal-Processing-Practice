@@ -8,6 +8,7 @@ import {
 	type CtftStageId,
 } from "$lib/math-engine/ctft-lesson";
 import {
+	validateCtftCalculation,
 	validateCtftConstant,
 	validateCtftImpulseRows,
 	validateCtftPhase,
@@ -56,13 +57,14 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		mode: CtftPracticeMode,
 		onComplete?: () => void,
 	) {
+		const lesson = buildCtftLesson(problem, mode);
 		super(
-			mode === "derivation" ? 6 : 5,
+			lesson.stages.length,
 			/** @returns This attempt's completion callback. */
 			() => onComplete,
 		);
 		this.problem = problem;
-		this.lesson = buildCtftLesson(problem, mode);
+		this.lesson = lesson;
 		this.reset();
 	}
 
@@ -170,22 +172,10 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		stageId: CtftStageId,
 	): TransformValidationResult {
 		if (task.kind === "choice") {
-			if (
-				!task.choices?.some(
-					/** @param option - Owned lesson choice. @returns Whether the token belongs to this task. */
-					(option) => option.id === input,
-				)
-			)
-				return {
-					status: "invalid",
-					message: "Select one of the options for this question.",
-				};
-			return {
-				status: input === task.expected ? "correct" : "incorrect",
-				message:
-					"Check the signal family, forward kernel, or property.",
-			};
+			return this.gradeChoice(task, input);
 		}
+		if (task.kind === "calculation")
+			return validateCtftCalculation(input, task.expected);
 		if (task.kind === "constant")
 			return validateCtftConstant(input, task.expected, true);
 		if (task.kind === "phase")
@@ -195,46 +185,75 @@ export class CtftStepSolverState extends BaseStepSolverState {
 				input,
 				stageId === "base" ? this.lesson.baseProblem : this.problem,
 			);
+		if (task.kind === "location")
+			return this.gradeLocation(task, input, stageId);
+		return this.gradeWeight(task, input, stageId);
+	}
+
+	/** @param task - Owned recognition task. @param input - Submitted token. @returns Owned-option verification. */
+	private gradeChoice(
+		task: CtftLessonPart,
+		input: string,
+	): TransformValidationResult {
+		if (
+			!task.choices?.some(
+				/** @param option - Owned lesson choice. @returns Whether the token belongs to this task. */
+				(option) => option.id === input,
+			)
+		)
+			return {
+				status: "invalid",
+				message: "Select one of the options for this question.",
+			};
+		return {
+			status: input === task.expected ? "correct" : "incorrect",
+			message: "Check the signal family, forward kernel, or property.",
+		};
+	}
+
+	/** @param task - Owned impulse task. @param input - Coordinate expression. @param stageId - Active spectrum stage. @returns Exact nonduplicate coordinate verification. */
+	private gradeLocation(
+		task: CtftLessonPart,
+		input: string,
+		stageId: CtftStageId,
+	): TransformValidationResult {
 		const stage = this.stages[stageId]!;
 		const row = Number(task.id.split("-")[1]);
-		if (task.kind === "location") {
-			const candidates = [
-				-this.problem.params.w0,
-				this.problem.params.w0,
-			];
-			for (const candidate of candidates) {
-				const result = validateCtftConstant(
-					input,
+		const candidates = [-this.problem.params.w0, this.problem.params.w0];
+		for (const candidate of candidates) {
+			const result = validateCtftConstant(input, String(candidate), true);
+			if (result.status === "invalid" || result.status === "unsupported")
+				return result;
+			if (result.status !== "correct") continue;
+			if (
+				row === 1 &&
+				validateCtftConstant(
+					stage.parts["location-0"]!.input,
 					String(candidate),
 					true,
-				);
-				if (
-					result.status === "invalid" ||
-					result.status === "unsupported"
-				)
-					return result;
-				if (result.status !== "correct") continue;
-				if (
-					row === 1 &&
-					validateCtftConstant(
-						stage.parts["location-0"]!.input,
-						String(candidate),
-						true,
-					).status === "correct"
-				)
-					return {
-						status: "incorrect",
-						message:
-							"The second impulse must occupy the other carrier location.",
-					};
-				return result;
-			}
-			return {
-				status: "incorrect",
-				message:
-					"Place the two impulses at opposite carrier frequencies.",
-			};
+				).status === "correct"
+			)
+				return {
+					status: "incorrect",
+					message:
+						"The second impulse must occupy the other carrier location.",
+				};
+			return result;
 		}
+		return {
+			status: "incorrect",
+			message: "Place the two impulses at opposite carrier frequencies.",
+		};
+	}
+
+	/** @param task - Owned impulse task. @param input - Complex weight. @param stageId - Base or final context. @returns Weight verification at its previously checked coordinate. */
+	private gradeWeight(
+		task: CtftLessonPart,
+		input: string,
+		stageId: CtftStageId,
+	): TransformValidationResult {
+		const stage = this.stages[stageId]!;
+		const row = Number(task.id.split("-")[1]);
 		const locationInput = stage.parts[`location-${row}`]!.input;
 		// Construct the target from the verified carrier coordinate, never student syntax.
 		const location =
@@ -323,14 +342,7 @@ export class CtftStepSolverState extends BaseStepSolverState {
 			const task = this.activePart;
 			const state = this.currentStepState;
 			if (!stage || !task || !state) return;
-			state.input = task.expected;
-			if (task.kind === "weight") {
-				const location =
-					this.stages[stage.id]!.parts[
-						task.id.replace("weight", "location")
-					]!.input;
-				state.input = `\\pi e^{-j(${location})(${stage.id === "base" ? 0 : this.problem.params.t0})}`;
-			}
+			state.input = this.devInputFor(stage.id, task);
 			const before = this.partProgress.current;
 			this.check(stage.id, task.id);
 			if (
@@ -398,15 +410,21 @@ export class CtftStepSolverState extends BaseStepSolverState {
 			const stage = this.activeStage;
 			const state = this.currentStepState;
 			if (!task || !stage || !state) return false;
-			state.input =
-				task.kind === "weight"
-					? `\\pi e^{-j(${this.stages[stage.id]!.parts[task.id.replace("weight", "location")]!.input})(${stage.id === "base" ? 0 : this.problem.params.t0})}`
-					: task.expected;
+			state.input = this.devInputFor(stage.id, task);
 			this.check(stage.id, task.id);
 			if (!state.isValid) return false;
 		}
 		if (descriptor.kind === "hint") this.devRevealAllHints();
 		if (descriptor.kind === "diagnostic") this.devSimulateMisconception();
 		return true;
+	}
+
+	/** @param stageId - Owned development stage. @param task - Current task. @returns Fixture input passed through the real validator. */
+	private devInputFor(stageId: CtftStageId, task: CtftLessonPart): string {
+		if (task.kind !== "weight") return task.expected;
+		const location =
+			this.stages[stageId]!.parts[task.id.replace("weight", "location")]!
+				.input;
+		return `\\pi e^{-j(${location})(${stageId === "base" ? 0 : this.problem.params.t0})}`;
 	}
 }

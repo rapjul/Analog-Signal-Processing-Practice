@@ -110,6 +110,72 @@ export async function prepareCtftFinal(
 			.getByRole("button", { name: "Check Answer", exact: true })
 			.click();
 	}
+	if (mode === "derivation") {
+		if (family === "rect") {
+			await enterCtftAnswer(
+				page,
+				"Kernel antiderivative coefficient",
+				"j/omega",
+			);
+			await enterCtftAnswer(
+				page,
+				"Upper minus lower endpoint expression",
+				`2 sin(${params.T} omega/2)/omega`,
+			);
+			await enterCtftAnswer(
+				page,
+				"Zero-frequency limit",
+				String(params.T),
+			);
+		} else if (family === "exponential") {
+			await enterCtftAnswer(
+				page,
+				"Exponential antiderivative coefficient",
+				`-1/(${params.a}+j omega)`,
+			);
+			await enterCtftAnswer(page, "Infinite-endpoint contribution", "0");
+			await enterCtftAnswer(
+				page,
+				"Lower-endpoint contribution before subtraction",
+				`-1/(${params.a}+j omega)`,
+			);
+		} else if (family === "gaussian") {
+			await enterCtftAnswer(
+				page,
+				"Gaussian identity linear coefficient",
+				"-j omega",
+			);
+			await enterCtftAnswer(
+				page,
+				"Squared linear coefficient",
+				"-omega^2",
+			);
+			await enterCtftAnswer(
+				page,
+				"Gaussian identity exponent",
+				`-omega^2/${4 * params.a}`,
+			);
+		} else if (family === "delta") {
+			await enterCtftAnswer(page, "Sifting evaluation point", "0");
+			await enterCtftAnswer(page, "Sampled forward kernel", "1");
+		} else {
+			await enterCtftAnswer(
+				page,
+				"Euler decomposition coefficient",
+				"1/2",
+			);
+			await enterCtftAnswer(
+				page,
+				"Complex exponential impulse weight",
+				"2 pi",
+			);
+			await enterCtftAnswer(
+				page,
+				"Cosine impulse weight after Euler scaling",
+				"pi",
+			);
+		}
+	}
 	if (family === "cos") await enterImpulses(page, params, 0);
 	else
 		await enterCtftAnswer(

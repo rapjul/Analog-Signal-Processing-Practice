@@ -11,6 +11,7 @@ import {
 	evaluateCtftRegular,
 } from "$lib/math-engine/ctft-spectrum";
 import {
+	validateCtftCalculation,
 	validateCtftConstant,
 	validateCtftImpulseRows,
 } from "$lib/math-engine/ctft-tutor-validation";
@@ -73,6 +74,88 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	/** Intermediate identities accept algebraic alternatives while rejecting sign and endpoint errors. */
+	it("grades derivation algebra independently of the displayed solution", () => {
+		for (const [answer, target] of [
+			["j/omega", "1/(-j omega)"],
+			["2 sin(2 omega)/omega", "(e^{-2j omega}-e^{2j omega})/(-j omega)"],
+			["-1/(2+j omega)", "1/(-2-j omega)"],
+			["(-j omega)^2", "-omega^2"],
+			["-omega^2/8", "(-j omega)^2/(4*2)"],
+			["pi", "(1/2)*(2 pi)"],
+		] as const)
+			expect(validateCtftCalculation(answer, target).status).toBe(
+				"correct",
+			);
+		for (const [answer, target] of [
+			["-j/omega", "j/omega"],
+			["1/(2+j omega)", "-1/(2+j omega)"],
+			["omega^2", "-omega^2"],
+			["2 pi", "pi"],
+		] as const)
+			expect(validateCtftCalculation(answer, target).status).toBe(
+				"incorrect",
+			);
+		expect(validateCtftCalculation("\\frac{", "1").status).toBe("invalid");
+		expect(validateCtftCalculation("sin(omega^2)", "1").status).toBe(
+			"unsupported",
+		);
+	});
+	/** Full-spectrum answers and stale final submissions cannot bypass unfinished integral work. */
+	it("requires intermediate derivation work before a base spectrum", () => {
+		const solver = new CtftStepSolverState(
+			createCtftProblem("rect", { T: 4, a: 2, w0: 3, t0: 0 }),
+			"derivation",
+		);
+		advance(solver, "base");
+		expect(solver.activePart?.id).toBe("primitive");
+		solver.stages.base!.parts.expression!.input = "4 sinc(2 omega/pi)";
+		solver.check("base", "expression");
+		expect(solver.stages.base!.cursor).toBe(0);
+		solver.currentStepState!.input = "4 sinc(2 omega/pi)";
+		solver.check("base", "primitive");
+		expect(solver.currentStepState!.isValid).toBe(false);
+		solver.currentStepState!.input = "j/omega";
+		solver.check("base", "primitive");
+		expect(solver.activePart?.id).toBe("endpoints");
+	});
+	/** Mode-specific paths carry derivations only in Derivation, with recognition hints suited to choices. */
+	it("keeps intermediate algebra and hints consistent with the selected mode", () => {
+		for (const family of families)
+			for (const mode of modes) {
+				const lesson = buildCtftLesson(
+					createCtftProblem(family, { T: 4, a: 2, w0: 3, t0: -1 }),
+					mode,
+				);
+				const base = lesson.stages.find(
+					/** @param stage - Lesson stage. @returns Base-stage identity. */ (
+						stage,
+					) => stage.id === "base",
+				)!;
+				expect(
+					base.parts.some(
+						/** @param task - Lesson task. @returns Whether intermediate algebra is required. */ (
+							task,
+						) => task.kind === "calculation",
+					),
+				).toBe(mode === "derivation");
+				expect(Boolean(base.derivationLatex)).toBe(
+					mode === "derivation",
+				);
+				if (base.derivationLatex)
+					expect(() =>
+						renderToString(base.derivationLatex!, {
+							throwOnError: true,
+						}),
+					).not.toThrow();
+				for (const stage of lesson.stages)
+					for (const task of stage.parts)
+						if (task.kind === "choice")
+							expect(task.hints[1]).not.toContain(
+								"exact constants",
+							);
+			}
+	});
 	for (const mode of modes)
 		for (const family of families)
 			for (const shift of [0, 2, -1]) {
@@ -272,7 +355,7 @@ describe("CTFT tutor", () => {
 		solver.reset();
 		solver.devSolveAll();
 		expect(solver.isCompleted).toBe(true);
-	});
+	}, 20_000);
 });
 
 describe("independent spectrum data", () => {

@@ -6,6 +6,12 @@ pulses, causal exponentials, Gaussians, Dirac deltas, and cosines.
 - **Derivation** has six stages: pair identification, parameter extraction,
   derivation setup, base-transform evaluation, operational-property application,
   and final assembly.
+- Derivation requires intermediate algebra before base-transform assembly:
+  rectangular antiderivatives, endpoint subtraction, and the removable limit;
+  exponential antiderivatives and both boundary contributions; Gaussian identity
+  coefficients and exponent substitution; delta sifting and kernel evaluation;
+  and cosine Euler coefficients, exponential impulse weights, and scaling.
+  The completed solution includes the full parameter-derived equation chain.
 - **Pairs & Properties** has five stages. It omits derivation setup, displays the
   selected symbolic transform pair, and requires parameter substitution.
 - Changing modes preserves the signal and parameters but clears the attempt.
@@ -30,6 +36,11 @@ weights retain the canonical verifier's existing coefficient tolerance. Ordinary
 spectra and phase factors use canonical transform verification. Malformed and
 unsupported expressions cannot advance a task; numerical agreement is not proof.
 See `./transform-answer-verification.md` for the bounded expression language.
+
+Intermediate expressions use the same canonical verification without numerical
+sampling. Pairs & Properties skips these derivation exercises. This follows the
+existing shared-substep and canonical-verification architecture; it introduces no
+new solver lifecycle or mathematical proof policy.
 
 Cosine exercises check each location and complex weight independently, accept
 either row order, reject duplicate locations, and verify the assembled distribution.

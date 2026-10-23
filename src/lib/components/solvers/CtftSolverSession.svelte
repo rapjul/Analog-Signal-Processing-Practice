@@ -176,7 +176,7 @@
 		{#snippet verifiedSummary()}<div class="verified-fields">
 				{#each stage.parts as task}
 					<p>{task.label}:</p>
-					{#if task.kind === "choice" && stage.id !== "setup"}<p>
+					{#if task.kind === "choice" && !task.mathChoices}<p>
 							{summary(task, stageState.parts[task.id]!)}
 						</p>{:else}<MathBlock
 							math={summary(task, stageState.parts[task.id]!)}
@@ -219,7 +219,7 @@
 					title={task.label}
 					isCompleted={state.isValid}
 				>
-					{#snippet summarySnippet()}{#if task.kind === "choice" && stage.id !== "setup"}<p
+					{#snippet summarySnippet()}{#if task.kind === "choice" && !task.mathChoices}<p
 								class="verified-answer"
 							>
 								Verified: {summary(task, state)}
@@ -233,6 +233,11 @@
 							event,
 						) => submit(event, stage.id, task.id)}
 					>
+						{#if task.contextLatex}<MathBlock
+								math={task.contextLatex}
+								compact
+								hideHeader
+							/>{/if}
 						{#if task.kind === "choice"}
 							<fieldset>
 								<legend>{task.label}</legend
@@ -246,7 +251,7 @@
 											onchange={/** Invalidates feedback after selecting a different option. */ () =>
 												edit(state)}
 										/>
-										{#if stage.id === "setup"}<MathBlock
+										{#if task.mathChoices}<MathBlock
 												math={choice.label}
 												compact
 												hideHeader
@@ -330,11 +335,14 @@
 				<summary>View Complete Worked Solution</summary>
 				{#each solver.lesson.stages as stage}<section>
 						<h4>{stage.title}</h4>
+						{#if stage.derivationLatex}<MathBlock
+								math={stage.derivationLatex}
+								responsive
+							/>{/if}
 						{#each stage.parts as task}{@const state =
 								solver.stages[stage.id]!.parts[task.id]!}
 							<p>{task.label}</p>
-							{#if task.kind === "choice" && stage.id !== "setup"}<p
-								>
+							{#if task.kind === "choice" && !task.mathChoices}<p>
 									{summary(task, state)}
 								</p>{:else}<MathBlock
 									math={summary(task, state)}
@@ -356,6 +364,9 @@
 </div>
 
 <style>
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Layout and answer controls
+	   ═══════════════════════════════════════════════════════════════════════ */
 	.ctft-step-solver,
 	form,
 	.verified-fields,
@@ -397,6 +408,9 @@
 		min-width: 0;
 		box-sizing: border-box;
 	}
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Verified work and completed solution
+	   ═══════════════════════════════════════════════════════════════════════ */
 	.verified-fields p,
 	.verified-answer {
 		margin: 0;
@@ -417,6 +431,9 @@
 		cursor: pointer;
 		font-weight: 700;
 	}
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Keyboard focus and screen reader announcements
+	   ═══════════════════════════════════════════════════════════════════════ */
 	:global(.ctft-step-solver :focus-visible) {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 3px;
@@ -430,6 +447,9 @@
 		clip-path: inset(50%);
 		white-space: nowrap;
 	}
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Media: reduced motion
+	   ═══════════════════════════════════════════════════════════════════════ */
 	@media (prefers-reduced-motion: reduce) {
 		.ctft-step-solver :global(*) {
 			animation: none !important;

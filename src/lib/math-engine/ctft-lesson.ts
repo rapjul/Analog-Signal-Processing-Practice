@@ -1,4 +1,6 @@
 /** Parameter-owned teaching paths for continuous-time Fourier transforms. */
+
+import { buildCtftDerivation } from "./ctft-derivation";
 import {
 	type CtftSignalType,
 	createCtftProblem,
@@ -13,7 +15,13 @@ export type CtftStageId =
 	"pair" | "parameters" | "setup" | "base" | "property" | "final";
 /** Supported typed-answer and recognition controls. */
 export type CtftPartKind =
-	"choice" | "constant" | "spectrum" | "phase" | "location" | "weight";
+	| "choice"
+	| "constant"
+	| "calculation"
+	| "spectrum"
+	| "phase"
+	| "location"
+	| "weight";
 /** One recognition option owned by its lesson. */
 export interface CtftChoice {
 	/** Stable selection token. */ id: string;
@@ -24,8 +32,10 @@ export interface CtftLessonPart {
 	/** Stable task identity. */ id: string;
 	/** Accessible field or task label. */ label: string;
 	/** Input and grading strategy. */ kind: CtftPartKind;
-	/** Correct choice token or parameter-owned expression for development fixtures. */ expected: string;
+	/** Correct choice token or parameter-owned intermediate target and development fixture. */ expected: string;
 	/** Owned options for recognition tasks. */ choices?: CtftChoice[];
+	/** Render choice labels with the shared math component. */ mathChoices?: boolean;
+	/** Current equation supplying context without supplying the requested answer. */ contextLatex?: string;
 	/** Progressive conceptual guidance. */ hints: string[];
 }
 /** Sequential group of independently checked tasks. */
@@ -33,6 +43,7 @@ export interface CtftLessonStage {
 	/** Stable mathematical identity. */ id: CtftStageId;
 	/** Visible heading. */ title: string;
 	/** Ordered tasks. */ parts: CtftLessonPart[];
+	/** Parameter-derived algebra unlocked with the completed solution. */ derivationLatex?: string;
 }
 /** Complete mode-specific lesson and parameter-derived presentation. */
 export interface CtftLesson {
@@ -84,7 +95,9 @@ function part(
 		expected,
 		hints: [
 			hint,
-			"Check the transform convention, amplitude factors, and signs. Use exact constants such as pi and fractions.",
+			kind === "choice"
+				? "Compare the available options with the signal family, forward kernel, and applicable property."
+				: "Check the transform convention, amplitude factors, and signs. Use exact constants such as pi and fractions.",
 		],
 	};
 }
@@ -215,6 +228,9 @@ export function buildCtftLesson(
 		String.raw`The forward kernel is $e^{-j\omega t}$. Respect the signal support, sifting, or the factor $1/2$ in Euler's cosine identity.`,
 	);
 	setup.choices = setupChoices(baseProblem);
+	setup.mathChoices = true;
+	const derivation =
+		mode === "derivation" ? buildCtftDerivation(baseProblem) : null;
 	const phase = params.t0 === 0 ? "1" : `e^{${-params.t0}j\\omega}`;
 	const property = part(
 		"operation",
@@ -277,8 +293,10 @@ export function buildCtftLesson(
 				mode === "derivation"
 					? "Derive the Base Transform"
 					: "Substitute into the Transform Pair",
-			parts:
-				type === "cos"
+			...(derivation ? { derivationLatex: derivation.latex } : {}),
+			parts: [
+				...(derivation?.parts ?? []),
+				...(type === "cos"
 					? impulseParts(0)
 					: [
 							part(
@@ -288,7 +306,8 @@ export function buildCtftLesson(
 								baseProblem.referenceAnswerLatex,
 								"Use the unshifted signal parameters. Preserve the normalized sinc scale and Gaussian amplitude.",
 							),
-						],
+						]),
+			],
 		},
 		{
 			id: "property",

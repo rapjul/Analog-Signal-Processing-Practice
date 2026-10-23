@@ -30,6 +30,39 @@ function containsVariable(node: unknown): boolean {
 }
 
 /**
+ * Verifies bounded intermediate algebra with canonical equivalence, without sampling.
+ * @param answer - Learner expression in angular frequency.
+ * @param expected - Independent parameter-derived intermediate expression.
+ * @returns Distinct correct, incorrect, malformed, or unsupported outcome.
+ */
+export function validateCtftCalculation(
+	answer: string,
+	expected: string,
+): TransformValidationResult {
+	try {
+		const target = normalizeCanonicalTransform(
+			parseStrictLatex(normalizeTransformNotation(expected, "omega")),
+			"omega",
+		);
+		return validateTransformAnswer(answer, {
+			variable: "omega",
+			canonicalTarget: target,
+			samples: [],
+			/** @param omega - Frequency requested by the verification interface. @returns Canonical target value. */
+			evaluate: (omega) => evaluateCanonicalRegular(target, omega),
+		});
+	} catch (error) {
+		return error instanceof CanonicalError
+			? { status: error.status, message: error.message }
+			: {
+					status: "invalid",
+					message:
+						"Enter a supported expression in angular frequency.",
+				};
+	}
+}
+
+/**
  * Verifies a constant against an independent symbolic target, optionally exactly.
  * @param answer - Student constant expression.
  * @param expected - Parameter-derived symbolic constant.
