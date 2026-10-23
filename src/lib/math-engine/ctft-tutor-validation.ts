@@ -1,6 +1,15 @@
 /** Strict scalar, phase, and distribution grading for CTFT teaching tasks. */
-import { CanonicalError } from "./canonical-algebra";
 import {
+	CanonicalError,
+	factorAt,
+	type Scalar,
+	scalar,
+	scalarField,
+} from "./canonical-algebra";
+import { createCtftCanonicalTarget } from "./canonical-targets";
+import {
+	type CanonicalImpulse,
+	canonicalTransformsMatch,
 	evaluateCanonicalRegular,
 	normalizeCanonicalTransform,
 } from "./canonical-transform";
@@ -141,6 +150,68 @@ export function validateCtftPhase(
 }
 
 /**
+ * Parses one bounded scalar field without embedding its original text in a formula.
+ * @param answer - Original field input, including any supported equation prefix.
+ * @returns Exact constant after notation, domain, and structural verification.
+ */
+function parseImpulseConstant(answer: string): Scalar {
+	// Retain validateTransformAnswer's per-field bound before parsing or trimming.
+	if (answer.length > 16384)
+		throw new CanonicalError(
+			"unsupported",
+			"Please shorten the answer to 16,384 characters or fewer and use the standard transform form.",
+		);
+	if (!answer.trim())
+		throw new CanonicalError(
+			"invalid",
+			"Please enter an answer before submitting.",
+		);
+	const ast = parseStrictLatex(normalizeTransformNotation(answer, "omega"));
+	const value = normalizeCanonicalTransform(ast, "omega").right;
+	if (containsVariable(ast))
+		throw new CanonicalError(
+			"invalid",
+			"Enter a constant expression without time or frequency variables.",
+		);
+	if (value.impulses.length || value.terms.length > 1)
+		throw new CanonicalError(
+			"unsupported",
+			"Enter a constant complex weight or a real impulse location.",
+		);
+	const term = value.terms[0];
+	if (!term) return scalar(0);
+	if (
+		term.exponent.length ||
+		term.factor.numerator.length > 1 ||
+		term.factor.denominator.length !== 1
+	)
+		throw new CanonicalError(
+			"unsupported",
+			"Enter a constant complex weight or a real impulse location.",
+		);
+	return factorAt(term.factor, scalar(0));
+}
+
+/**
+ * Builds one exact impulse from independent scalar fields.
+ * @param locationInput - Real coordinate expression.
+ * @param weightInput - Complex constant expression.
+ * @returns A parameter-independent submitted impulse.
+ */
+function parseImpulseRow(
+	locationInput: string,
+	weightInput: string,
+): CanonicalImpulse {
+	const location = parseImpulseConstant(locationInput);
+	if (!location.isReal())
+		throw new CanonicalError(
+			"unsupported",
+			"Impulse locations must be real constants.",
+		);
+	return { location, weight: parseImpulseConstant(weightInput) };
+}
+
+/**
  * Assembles checked scalar fields into an independently verified distribution.
  * @param locations - Two constant coordinates.
  * @param weights - Two constant complex weights.
@@ -157,8 +228,41 @@ export function validateCtftImpulseRows(
 			status: "invalid",
 			message: "Enter both impulse locations and weights.",
 		};
-	return validateCtftAnswer(
-		`(${weights[0]})\\delta(\\omega-(${locations[0]}))+(${weights[1]})\\delta(\\omega-(${locations[1]}))`,
-		problem,
-	);
+	try {
+		const impulses: CanonicalImpulse[] = [];
+		for (let row = 0; row < 2; row++) {
+			const impulse = parseImpulseRow(locations[row]!, weights[row]!);
+			const previous = impulses.find(
+				/** @param candidate - Previously submitted impulse. @returns Exact coordinate equality. */
+				(candidate) => candidate.location.equals(impulse.location),
+			);
+			if (previous) previous.weight = previous.weight.add(impulse.weight);
+			else impulses.push(impulse);
+		}
+		const spectrum = {
+			terms: [],
+			impulses: impulses.filter(
+				/** @param impulse - Collected impulse. @returns Whether its exact weight is nonzero. */
+				(impulse) => !scalarField.isZero(impulse.weight),
+			),
+		};
+		const correct = canonicalTransformsMatch(
+			{ variable: "omega", left: spectrum, right: spectrum },
+			createCtftCanonicalTarget(problem.signalType, problem.params),
+		);
+		return {
+			status: correct ? "correct" : "incorrect",
+			message: correct
+				? "Correct! Your supported answer form matches the problem."
+				: "Not yet correct. Check coefficients, signs, shifts, poles, and signal support.",
+		};
+	} catch (error) {
+		return error instanceof CanonicalError
+			? { status: error.status, message: error.message }
+			: {
+					status: "invalid",
+					message:
+						"Check the impulse fields' syntax, matching brackets, and finite constants.",
+				};
+	}
 }

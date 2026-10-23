@@ -1,7 +1,7 @@
 /** Both CTFT teaching paths, exercised without development-only shortcuts. */
 import { expect, test } from "@playwright/test";
 import type { CtftSignalType } from "$lib/math-engine/fourier-transform";
-import { finishCtft, prepareCtftFinal } from "./ctft-browser";
+import { enterCtftAnswer, finishCtft, prepareCtftFinal } from "./ctft-browser";
 
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
@@ -18,6 +18,51 @@ test("CTFT production omits the developer harness", async ({ page }, info) => {
 	);
 	expect(await page.evaluate(() => window.__signalLabDev)).toBeUndefined();
 });
+
+for (const mode of ["derivation", "pairs-properties"] as const)
+	for (const notation of [
+		"padded",
+		"internal-whitespace",
+		"equation-prefix",
+	] as const) {
+		/** Previously accepted fields remain valid when assembling the final distribution through normal controls. */
+		test(`cosine completes with ${notation} fields in ${mode}`, async ({
+			page,
+		}) => {
+			await page.locator(".drill-summary").click();
+			await page.getByLabel("Teaching Mode:").selectOption(mode);
+			await page.getByLabel("Signal Category:").selectOption("cos");
+			await prepareCtftFinal(
+				page,
+				"cos",
+				{ a: 2, T: 1, w0: 3, t0: 1 },
+				mode,
+			);
+			for (const [row, location] of [3, -3].entries()) {
+				const coordinate =
+					notation === "padded"
+						? String(location).padEnd(8200)
+						: notation === "internal-whitespace"
+							? `(${" ".repeat(8200)}${location})`
+							: String(location);
+				await enterCtftAnswer(
+					page,
+					`Impulse ${row + 1} location`,
+					coordinate,
+				);
+				await enterCtftAnswer(
+					page,
+					`Impulse ${row + 1} complex weight`,
+					`${notation === "equation-prefix" ? "X(omega)=" : ""}pi e^{-j(${location})}`,
+				);
+			}
+			await expect(
+				page.getByRole("heading", { name: "CTFT solution verified" }),
+			).toBeVisible();
+			await expect(page.locator(".ctft-spectrum")).toBeVisible();
+			await expect(page.getByRole("textbox")).toHaveCount(0);
+		});
+	}
 
 for (const mode of ["derivation", "pairs-properties"] as const)
 	for (const family of [

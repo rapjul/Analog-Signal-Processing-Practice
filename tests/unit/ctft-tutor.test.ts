@@ -74,6 +74,137 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	for (const mode of modes)
+		for (const shift of [0, 2, -1])
+			for (const notation of [
+				"padded",
+				"internal-whitespace",
+				"equation-prefix",
+			] as const) {
+				/** Accepted scalar notation must survive both cosine assembly stages without reopening verified fields. */
+				it(`assembles ${notation} impulse fields in ${mode}, translation ${shift}`, () => {
+					const problem = createCtftProblem("cos", {
+						a: 2,
+						T: 4,
+						w0: 3,
+						t0: shift,
+					});
+					const callback = vi.fn();
+					const solver = new CtftStepSolverState(
+						{ ...problem, referenceAnswerLatex: "123" },
+						mode,
+						callback,
+					);
+					while (!solver.isCompleted) {
+						const task = solver.activePart!;
+						if (
+							task.kind !== "location" &&
+							task.kind !== "weight"
+						) {
+							answerCurrent(solver);
+							continue;
+						}
+						const location = task.id.endsWith("0") ? 3 : -3;
+						const state = solver.currentStepState!;
+						if (task.kind === "location") {
+							state.input =
+								notation === "padded"
+									? String(location).padEnd(8200)
+									: notation === "internal-whitespace"
+										? `(${" ".repeat(8200)}${location})`
+										: String(location);
+						} else {
+							const translation =
+								solver.activeStage!.id === "base" ? 0 : shift;
+							state.input = `${notation === "equation-prefix" ? "X(omega)=" : ""}pi e^{-j(${location})(${translation})}`;
+						}
+						solver.check(solver.activeStage!.id, task.id);
+						expect(
+							state.isValid,
+							`${task.id}: ${state.result?.message}`,
+						).toBe(true);
+					}
+					expect(callback).toHaveBeenCalledTimes(1);
+					expect(solver.stages.base!.isValid).toBe(true);
+					expect(solver.stages.final!.isValid).toBe(true);
+				});
+			}
+	/** Each input retains its own raw limit; assembly never imposes a second combined text limit. */
+	it("preserves per-field limits and constant-only distribution semantics", () => {
+		const problem = createCtftProblem("cos", { a: 2, T: 4, w0: 3, t0: 0 });
+		expect(
+			validateCtftImpulseRows(
+				["-3", "3"],
+				["pi".padEnd(16384), "pi".padEnd(16384)],
+				problem,
+			).status,
+		).toBe("correct");
+		expect(
+			validateCtftImpulseRows(
+				["-3", "3"],
+				["pi".padEnd(16385), "pi"],
+				problem,
+			).status,
+		).toBe("unsupported");
+		for (const [answer, status] of [
+			["", "invalid"],
+			["\\frac{", "invalid"],
+			["omega-omega+pi", "invalid"],
+			["0/0", "invalid"],
+			["tan(omega)", "unsupported"],
+			["delta(omega)", "unsupported"],
+			["\\delta(omega)", "invalid"],
+		] as const)
+			expect(
+				validateCtftImpulseRows(["-3", "3"], [answer, "pi"], problem)
+					.status,
+			).toBe(status);
+		expect(
+			validateCtftImpulseRows(["j", "3"], ["pi", "pi"], problem).status,
+		).toBe("unsupported");
+		expect(
+			validateCtftImpulseRows(
+				["-3", "3.000000001"],
+				["pi", "pi"],
+				problem,
+			).status,
+		).toBe("incorrect");
+		expect(
+			validateCtftImpulseRows(["-3", "3"], ["pi+1e-10", "pi"], problem)
+				.status,
+		).toBe("correct");
+	});
+	/** Coalescing duplicate coordinates and removing zero weights cannot hide a missing impulse. */
+	it("independently rejects incomplete or altered distributions", () => {
+		const problem = createCtftProblem("cos", { a: 2, T: 4, w0: 3, t0: 0 });
+		for (const [locations, weights] of [
+			[
+				["-3", "-3"],
+				["pi", "pi"],
+			],
+			[
+				["-3", "-3"],
+				["pi", "-pi"],
+			],
+			[
+				["-3", "3"],
+				["0", "pi"],
+			],
+			[
+				["-3", "3"],
+				["2pi", "pi"],
+			],
+		])
+			expect(
+				validateCtftImpulseRows(locations!, weights!, problem).status,
+			).toBe("incorrect");
+		expect(
+			validateCtftImpulseRows(["-3"], ["pi", "pi"], problem).status,
+		).toBe("invalid");
+		expect(
+			validateCtftImpulseRows(["-3", "3"], ["pi"], problem).status,
+		).toBe("invalid");
+	});
 	/** Intermediate identities accept algebraic alternatives while rejecting sign and endpoint errors. */
 	it("grades derivation algebra independently of the displayed solution", () => {
 		for (const [answer, target] of [

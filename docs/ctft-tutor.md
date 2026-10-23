@@ -45,6 +45,11 @@ new solver lifecycle or mathematical proof policy.
 Cosine exercises check each location and complex weight independently, accept
 either row order, reject duplicate locations, and verify the assembled distribution.
 For a time shift, the two weights are evaluated separately at their own locations.
+Assembly parses each scalar field independently and combines its exact mathematical
+value into a canonical distribution. Accepted equation prefixes and whitespace do
+not become embedded syntax or consume a second combined text budget. Each field
+retains the existing input and verification limits; locations remain exact and
+complex weights retain the existing coefficient tolerance.
 
 ## Completed Spectra
 
