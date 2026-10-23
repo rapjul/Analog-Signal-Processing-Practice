@@ -74,6 +74,49 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	/** Pair-only guidance cannot refer to calculations that this teaching path omits. */
+	it("keeps input sizing and guidance consistent with each mode", () => {
+		for (const family of families) {
+			const lesson = buildCtftLesson(
+				createCtftProblem(family, { a: 2, T: 6, w0: 3, t0: 0 }),
+				"pairs-properties",
+			);
+			for (const task of lesson.stages.find(
+				/** @param stage - Lesson stage. @returns Base assembly selection. */ (
+					stage,
+				) => stage.id === "base",
+			)!.parts) {
+				expect(task.hints).toHaveLength(3);
+				expect(task.hints.join(" ")).not.toMatch(
+					/verified endpoint|verified exponent|your sine expression|upper minus lower/,
+				);
+				expect(task.identityLatex ?? "").not.toContain("\\int");
+			}
+		}
+		const derivation = buildCtftLesson(
+			createCtftProblem("rect", { a: 2, T: 6, w0: 3, t0: 0 }),
+			"derivation",
+		);
+		const parts = derivation.stages.find(
+			/** @param stage - Lesson stage. @returns Base calculation selection. */ (
+				stage,
+			) => stage.id === "base",
+		)!.parts;
+		expect(
+			parts.map(
+				/** @param task - Owned calculation. @returns Stable task identity. */ (
+					task,
+				) => task.id,
+			),
+		).toEqual(["primitive", "endpoints", "sine", "limit", "expression"]);
+		expect(
+			parts.find(
+				/** @param task - Owned calculation. @returns Zero-frequency exercise. */ (
+					task,
+				) => task.id === "limit",
+			)?.inputSize,
+		).toBe("scalar");
+	});
 	for (const mode of modes)
 		for (const shift of [0, 2, -1])
 			for (const notation of [
@@ -341,11 +384,15 @@ describe("CTFT tutor", () => {
 		);
 		solver.advanceToStep(7);
 		solver.check("final", "expression");
+		solver.editAnswer("final", "expression", "stale draft");
+		expect(solver.currentStepState?.input).toBe("");
 		expect(solver.currentStep).toBe(1);
 		solver.currentStepState!.input = "forged-option";
 		solver.check("pair", "family");
 		expect(solver.currentStepState?.result?.status).toBe("invalid");
 		answerCurrent(solver);
+		solver.editAnswer("pair", "family", "cos");
+		expect(solver.stages.pair!.parts.family!.input).toBe("rect");
 		solver.check("pair", "family");
 		expect(solver.currentStep).toBe(2);
 		solver.check("parameters", "t0");

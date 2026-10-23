@@ -5,6 +5,7 @@
 	import CtftStepSolver from "$lib/components/solvers/CtftStepSolver.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
+	import ProblemHeader from "$lib/components/ui/ProblemHeader.svelte";
 	import {
 		CTFT_FAMILIES,
 		type CtftPracticeMode,
@@ -76,14 +77,10 @@
 		</DrillPanel>
 	{/snippet}
 	<div class="practice-card">
-		<div class="card-header">
-			<h2>CTFT Transform Problem</h2>
-			<button
-				class="btn btn-secondary"
-				type="button"
-				onclick={handleGenerateNext}>Next Problem</button
-			>
-		</div>
+		<ProblemHeader
+			title="CTFT Transform Problem"
+			onNextProblem={handleGenerateNext}
+		/>
 		<div class="problem-prompt">
 			<MathBlock
 				math={currentProblem.promptLatex}
@@ -109,8 +106,8 @@
 		</details>
 		<p id="ctft-notation">
 			Enter LaTeX or supported notation such as pi, j, omega, fractions,
-			and e^&#123;...&#125;. All intermediate answers must be verified
-			before the worked solution and plots unlock.
+			and e^(...) or e^&#123;...&#125;. All intermediate answers must be
+			verified before the worked solution and plots unlock.
 		</p>
 		<CtftStepSolver
 			problem={currentProblem}
@@ -132,16 +129,6 @@
 		flex-direction: column;
 		gap: 1.25rem;
 		min-width: 0;
-	}
-	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-	}
-	h2 {
-		font-size: var(--text-lg);
 	}
 	p {
 		color: var(--text-secondary);

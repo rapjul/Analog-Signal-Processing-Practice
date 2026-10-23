@@ -93,7 +93,68 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		const current = this.activeStage
 			? (this.stages[this.activeStage.id]?.cursor ?? 0) + 1
 			: 0;
-		return { current, total, label: `Part ${current} of ${total}` };
+		return {
+			current,
+			total,
+			label:
+				total > 1
+					? `Part ${this.currentStep}${String.fromCharCode(64 + current)} · ${current} of ${total}`
+					: "One exercise",
+		};
+	}
+
+	/** @returns Only verified, relevant earlier tasks; never future target expressions. */
+	get contextResults(): { task: CtftLessonPart; state: CtftPartState }[] {
+		const results: { task: CtftLessonPart; state: CtftPartState }[] = [];
+		for (const stage of this.lesson.stages) {
+			if (
+				stage.id !== "parameters" &&
+				stage.id !== this.activeStage?.id &&
+				!(
+					["property", "final"].includes(
+						this.activeStage?.id ?? "",
+					) && stage.id === "base"
+				) &&
+				!(this.activeStage?.id === "final" && stage.id === "property")
+			)
+				continue;
+			for (const task of stage.parts) {
+				if (
+					stage.id === "base" &&
+					this.activeStage?.id !== "base" &&
+					task.id !== "expression" &&
+					task.id !== "kernel" &&
+					task.kind !== "location" &&
+					task.kind !== "weight"
+				)
+					continue;
+				const state = this.stages[stage.id]?.parts[task.id];
+				if (state?.isValid && task.kind !== "choice")
+					results.push({ task, state });
+			}
+		}
+		return results;
+	}
+
+	/**
+	 * Edits only the currently owned response and clears its stale feedback.
+	 * @param stageId - Stage captured by the rendered exercise.
+	 * @param partId - Task captured by the rendered exercise.
+	 * @param input - Original learner text or choice identifier.
+	 */
+	editAnswer(stageId: CtftStageId, partId: string, input: string): void {
+		if (
+			this.isCompleted ||
+			this.activeStage?.id !== stageId ||
+			this.activePart?.id !== partId
+		)
+			return;
+		const state = this.currentStepState;
+		if (!state || state.isValid) return;
+		state.input = input;
+		state.result = null;
+		state.feedback = null;
+		state.feedbackType = null;
 	}
 
 	/**
@@ -113,6 +174,28 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		const state = stage?.parts[partId];
 		if (!stage || !state || state.isValid) return;
 		const result = this.grade(task, state.input, stageId);
+		if (result.status !== "correct" && task.kind === "calculation") {
+			const times = [
+				...state.input.matchAll(/(^|[^a-zA-Z\\])t(?![a-zA-Z])/g),
+			];
+			if (times.length) {
+				result.message =
+					"The time variable t should disappear after endpoint substitution. Use omega for angular frequency and substitute the endpoint for t.";
+				result.diagnostics = [
+					...(result.diagnostics ?? []),
+					...times.map(
+						/** @param match - Original time token. @returns Its source range. */ (
+							match,
+						) => ({
+							start: match.index! + match[1]!.length,
+							end: match.index! + match[1]!.length + 1,
+							message:
+								"Substitute the time endpoint here; retain omega as the frequency variable.",
+						}),
+					),
+				].slice(0, 8);
+			}
+		}
 		state.result = result;
 		if (result.status !== "correct") {
 			if (result.status === "incorrect")
@@ -278,6 +361,8 @@ export class CtftStepSolverState extends BaseStepSolverState {
 	 * @returns Accessible misconception guidance.
 	 */
 	private diagnose(task: CtftLessonPart, fallback: string): string {
+		if (task.id === "endpoints")
+			return String.raw`Substitute both time endpoints, subtract lower from upper, and retain the complete divisor $-j\omega$.`;
 		if (task.kind === "phase")
 			return String.raw`Check the phase sign: a delay uses $e^{-j\omega t_0}$, applied to the entire spectrum.`;
 		if (task.kind === "location")

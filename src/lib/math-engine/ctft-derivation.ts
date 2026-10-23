@@ -45,6 +45,8 @@ export function buildCtftDerivation(
 	problem: GeneratedCtftProblem,
 ): CtftDerivation {
 	const { T, a, w0 } = problem.params;
+	/** Simplified half-width frequency used in endpoint and sine prompts. */
+	const halfFrequency = T === 2 ? String.raw`\omega` : `${T / 2}\\omega`;
 	switch (problem.signalType) {
 		case "rect":
 			return {
@@ -60,16 +62,24 @@ export function buildCtftDerivation(
 					calculation(
 						"endpoints",
 						"Upper minus lower endpoint expression",
-						String.raw`\frac{e^{-j\omega ${T}/2}-e^{j\omega ${T}/2}}{-j\omega}`,
-						String.raw`X_0(\omega)=\left[\frac{e^{-j\omega t}}{-j\omega}\right]_{-${T}/2}^{${T}/2}`,
+						String.raw`\frac{e^{-j${halfFrequency}}-e^{j${halfFrequency}}}{-j\omega}`,
+						String.raw`X_0(\omega)=\left[\frac{e^{-j\omega t}}{-j\omega}\right]_{-${T / 2}}^{${T / 2}}`,
 						"Substitute the upper endpoint first, then subtract the lower endpoint.",
 						String.raw`The lower endpoint reverses the exponential sign. Keep the common divisor $-j\omega$.`,
+					),
+					calculation(
+						"sine",
+						"Equivalent sine expression",
+						String.raw`2\sin(${halfFrequency})/\omega`,
+						String.raw`e^{-j\theta}-e^{j\theta}=-2j\sin\theta,\quad\theta=${T / 2}\omega`,
+						"Replace the difference of exponentials using Euler's sine identity.",
+						"Cancel the common imaginary factor against the denominator; retain the factor two.",
 					),
 					calculation(
 						"limit",
 						"Zero-frequency limit",
 						String(T),
-						String.raw`X_0(0)=\int_{-${T}/2}^{${T}/2}1\,dt`,
+						String.raw`X_0(0)=\int_{-${T / 2}}^{${T / 2}}1\,dt`,
 						"At zero frequency the kernel equals one.",
 						"The integral equals the full pulse width.",
 					),

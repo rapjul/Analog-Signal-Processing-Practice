@@ -1,6 +1,7 @@
 /** Parameter-owned teaching paths for continuous-time Fourier transforms. */
 
 import { buildCtftDerivation } from "./ctft-derivation";
+import { guideCtftLesson } from "./ctft-guidance";
 import {
 	type CtftSignalType,
 	createCtftProblem,
@@ -39,6 +40,12 @@ export interface CtftLessonPart {
 	/** Render choice labels with the shared math component. */ mathChoices?: boolean;
 	/** Current equation supplying context without supplying the requested answer. */ contextLatex?: string;
 	/** Progressive conceptual guidance. */ hints: string[];
+	/** Brief purpose of the current exercise. */ objective?: string;
+	/** Explicit expected input form. */ answerForm?: string;
+	/** Supplied identity, distinct from verified learner work. */ identityLatex?: string;
+	/** Compact scalar versus wider symbolic entry. */ inputSize?:
+		"scalar" | "expression";
+	/** Short visible field label; the full prompt remains its accessible name. */ inputLabel?: string;
 }
 /** Sequential group of independently checked tasks. */
 export interface CtftLessonStage {
@@ -327,15 +334,17 @@ export function buildCtftLesson(
 				...(derivation?.parts ?? []),
 				...(type === "cos"
 					? impulseParts(0)
-					: [
-							part(
-								"expression",
-								"Base spectrum",
-								"spectrum",
-								baseProblem.referenceAnswerLatex,
-								"Use the unshifted signal parameters. Preserve the normalized sinc scale and Gaussian amplitude.",
-							),
-						]),
+					: mode === "derivation" && type === "delta"
+						? []
+						: [
+								part(
+									"expression",
+									"Base spectrum",
+									"spectrum",
+									baseProblem.referenceAnswerLatex,
+									"Use the unshifted signal parameters. Preserve the normalized sinc scale and Gaussian amplitude.",
+								),
+							]),
 			],
 		},
 		{
@@ -369,6 +378,7 @@ export function buildCtftLesson(
 						],
 		},
 	];
+	guideCtftLesson(stages, problem, mode);
 	return {
 		mode,
 		stages,

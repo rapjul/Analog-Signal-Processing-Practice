@@ -87,9 +87,8 @@ export async function prepareCtftFinal(
 	params: CtftParameters,
 	mode: CtftPracticeMode = "derivation",
 ): Promise<void> {
-	await page.getByRole("radio", { name: names[family], exact: true }).check();
 	await page
-		.getByRole("button", { name: "Check Answer", exact: true })
+		.getByRole("button", { name: names[family], exact: true })
 		.click();
 	if (family === "rect")
 		await enterCtftAnswer(page, "Pulse width T", String(params.T));
@@ -104,7 +103,7 @@ export async function prepareCtftFinal(
 	await enterCtftAnswer(page, "Signed time translation", String(params.t0));
 	if (mode === "derivation") {
 		await page
-			.getByRole("radio", {
+			.getByRole("button", {
 				name:
 					family === "cos"
 						? /Cosine equals half the sum/
@@ -112,32 +111,26 @@ export async function prepareCtftFinal(
 							? /Sift the kernel at time zero/
 							: /negative imaginary forward-kernel exponent/,
 			})
-			.check();
-		await page
-			.getByRole("button", { name: "Check Answer", exact: true })
 			.click();
 	}
 	if (mode === "derivation") {
 		await enterDerivation(page, family, params);
 	}
 	if (family === "cos") await enterImpulses(page, params, 0);
-	else
+	else if (!(mode === "derivation" && family === "delta"))
 		await enterCtftAnswer(
 			page,
 			"Base spectrum",
 			ctftBaseAnswer(family, params),
 		);
 	await page
-		.getByRole("radio", {
+		.getByRole("button", {
 			name:
 				params.t0 === 0
 					? "Identity (no translation)"
 					: "Time translation",
 			exact: true,
 		})
-		.check();
-	await page
-		.getByRole("button", { name: "Check Answer", exact: true })
 		.click();
 	await enterCtftAnswer(
 		page,
@@ -164,6 +157,7 @@ async function enterDerivation(
 				"Upper minus lower endpoint expression",
 				`2 sin(${params.T} omega/2)/omega`,
 			],
+			["Equivalent sine expression", `2 sin(${params.T} omega/2)/omega`],
 			["Zero-frequency limit", String(params.T)],
 		],
 		exponential: [

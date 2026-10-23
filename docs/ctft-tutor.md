@@ -7,7 +7,7 @@ pulses, causal exponentials, Gaussians, Dirac deltas, and cosines.
   derivation setup, base-transform evaluation, operational-property application,
   and final assembly.
 - Derivation requires intermediate algebra before base-transform assembly:
-  rectangular antiderivatives, endpoint subtraction, and the removable limit;
+  rectangular antiderivatives, endpoint subtraction, sine conversion, and the removable limit;
   exponential antiderivatives and both boundary contributions; Gaussian identity
   coefficients and exponent substitution; delta sifting and kernel evaluation;
   and cosine Euler coefficients, exponential impulse weights, and scaling.
@@ -15,7 +15,7 @@ pulses, causal exponentials, Gaussians, Dirac deltas, and cosines.
 - **Pairs & Properties** has five stages. It omits derivation setup, displays the
   selected symbolic transform pair, and requires parameter substitution.
 - Changing modes preserves the signal and parameters but clears the attempt.
-  Signal changes, replacement problem objects, and restarting clear all progress,
+  Signal changes and replacement problem objects clear all progress,
   hints, feedback, completed solutions, and spectra.
 - Full worked solutions and spectrum plots are mounted only after every active
   task passes verification. Hints provide conceptual guidance while solving.
@@ -23,6 +23,33 @@ pulses, causal exponentials, Gaussians, Dirac deltas, and cosines.
 The convention is angular frequency in radians per second, forward kernel
 $e^{-j\omega t}$, inverse factor $1/(2\pi)$, and normalized
 $\operatorname{sinc}(z)=\sin(\pi z)/(\pi z)$ with value one at zero.
+
+## Guided Workspace
+
+`GuidedSolverWorkspace` in `../src/lib/components/ui/GuidedSolverWorkspace.svelte`
+accepts typed Svelte snippets for the exercise, optional verified results, and
+optional supplied identities. It owns layout only; the consuming solver owns
+verification and chooses which previously accepted results are relevant.
+“Results so far” contains accepted work, while “Useful identity” contains supplied
+formulas. Context precedes the exercise in reading order, appears beside it on
+wide containers, and stacks above it on mobile. Future answers are never passed
+into the results snippet.
+
+Choice cards check immediately on activation. Typed exercises use the standard
+primary check action; scalar inputs stay compact and do not duplicate simple
+numbers in a preview. Multipart labels use letters such as **Part 4A**; singleton
+stages have no part badge. Accepted rational arithmetic is reduced exactly in
+read-only summaries. Three progressive hints guide each task, including the
+rectangular exponential-to-sine-to-normalized-sinc transition. Delta derivation
+does not require re-entering the sampled kernel as the same base spectrum.
+Cosine builders associate each location and complex weight in an impulse row.
+
+Balanced parenthesized exponents such as `e^(-j omega)` are equivalent to braced
+exponents. Empty exponents stay incomplete. Syntax diagnostics refer to original
+input ranges; activating an issue selects its source text. Independent detectable
+delimiter errors appear together. Parser offsets are used only when source
+positions can be retained; uncertain positions are not guessed. Mathematical
+remediation remains separate from syntax and cannot establish correctness.
 
 ## Validation and State
 

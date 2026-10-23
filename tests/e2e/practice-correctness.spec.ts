@@ -27,12 +27,22 @@ async function reveal(page: Page) {
 /** A known delta input has a scalar spectrum, with no fixture-only production interface. */
 test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", async ({
 	page,
-}) => {
+}, info) => {
 	await page.goto("/fourier-transform");
 	await page.locator(".drill-summary").click();
 	await page.locator("#signal-type-select").selectOption("delta");
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	await prepareCtftFinal(page, "delta", { a: 1, T: 2, w0: 3, t0: 0 });
+	if (info.config.configFile?.endsWith("playwright.production.config.ts")) {
+		await page.evaluate(
+			/** Waits for this fresh production context to finish installing its offline worker. */ async () => {
+				await navigator.serviceWorker.ready;
+			},
+		);
+		await page
+			.getByRole("button", { name: "Dismiss notification" })
+			.click();
+	}
 	const input = page.locator("#ctft-input");
 	for (const answer of [
 		"garbage",
@@ -74,7 +84,7 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		.getByText("View Complete Worked Solution", { exact: true })
 		.click();
 	await expect(page.locator(".assistance-status")).toHaveCount(0);
-	await page.getByRole("button", { name: "Next Problem" }).click();
+	await page.getByRole("button", { name: /Generate Next Problem/ }).click();
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 });
 

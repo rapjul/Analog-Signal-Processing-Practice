@@ -1,24 +1,22 @@
 <script lang="ts">
-	/** Isolated problem-and-mode attempt, remounted by its public keyed wrapper. */
+	/** One keyed problem-and-mode attempt, with solver-independent workspace layout. */
 	import { onDestroy, tick, untrack } from "svelte";
 	import CtftSpectrum from "$lib/components/canvas/CtftSpectrum.svelte";
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import CompletionBanner from "$lib/components/ui/CompletionBanner.svelte";
-	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
+	import GuidedSolverWorkspace from "$lib/components/ui/GuidedSolverWorkspace.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
-	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import type {
 		CtftLessonPart,
 		CtftPracticeMode,
-		CtftStageId,
 	} from "$lib/math-engine/ctft-lesson";
-	import { normalizeMathLatex } from "$lib/math-engine/evaluator";
+	import { summarizeCtftInput } from "$lib/math-engine/ctft-presentation";
 	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
-	import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
+	import CtftExercise from "./CtftExercise.svelte";
 	import {
 		type CtftPartState,
 		CtftStepSolverState,
@@ -33,13 +31,11 @@
 	}
 	let { problem, mode, onComplete }: Props = $props();
 	const solver = untrack(
-		/** Creates one attempt while retaining the latest completion callback. */
-		() =>
+		/** Creates one attempt using the latest callback. */ () =>
 			new CtftStepSolverState(
 				problem,
 				mode,
-				/** Notifies the current parent without capturing its original callback value. */
-				() => onComplete?.(),
+				/** Notifies the current parent. */ () => onComplete?.(),
 			),
 	);
 	let root: HTMLDivElement | undefined = $state();
@@ -48,18 +44,17 @@
 		`${solver.revision}:${solver.currentStep}:${solver.activePart?.id ?? "complete"}`,
 	);
 	$effect(
-		/** Synchronizes keyboard focus with verified progress in this attempt. */ () => {
+		/** Follows verified progress without stealing initial focus. */ () => {
 			const key = progressKey;
 			const shouldFocus = previousKey !== "" && key !== previousKey;
 			previousKey = key;
 			if (!shouldFocus) return;
 			let cancelled = false;
 			void tick().then(
-				/** Focuses the active instructions after verification without stealing initial focus. */
-				() => {
+				/** Focuses the new task after the DOM updates. */ () => {
 					if (cancelled) return;
 					const heading = root?.querySelector<HTMLElement>(
-						".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading], .completion-heading",
+						".step-card.active .subpart-block [data-progress-heading], .completion-heading",
 					);
 					heading?.focus({ preventScroll: true });
 					if (
@@ -78,13 +73,13 @@
 						});
 				},
 			);
-			return /** Cancels focus work after resets or component destruction. */ () => {
+			return /** Cancels pending focus on unmount or another progress change. */ () => {
 				cancelled = true;
 			};
 		},
 	);
 	onDestroy(
-		/** Unregisters only this session's development interface. */ () => {
+		/** Unregisters only this attempt's development interface. */ () => {
 			if (
 				import.meta.env.DEV &&
 				typeof window !== "undefined" &&
@@ -93,44 +88,9 @@
 				delete window.__signalLabDev;
 		},
 	);
-	/** @param state - Editable response. Clears feedback when its input changes. */
-	function edit(state: CtftPartState): void {
-		state.result = null;
-		state.feedback = null;
-		state.feedbackType = null;
-	}
-	/** @param event - Form submission. @param stage - Captured stage. @param task - Captured task. Checks owned work. */
-	function submit(
-		event: SubmitEvent,
-		stage: CtftStageId,
-		task: string,
-	): void {
-		event.preventDefault();
-		solver.check(stage, task);
-	}
-	/** @param task - Owned task. @param state - Verified response. @returns Selected label or typed expression. */
+	/** @param task - Verified task. @param state - Accepted response. @returns Read-only simplified presentation. */
 	function summary(task: CtftLessonPart, state: CtftPartState): string {
-		return task.kind === "choice"
-			? (task.choices?.find(
-					/** @param choice - Owned choice. @returns Selection equality. */
-					(choice) => choice.id === state.input,
-				)?.label ?? "")
-			: displayInput(state.input);
-	}
-	/**
-	 * Formats supported shorthand for presentation without rewriting grading input.
-	 * @param input - Original student answer.
-	 * @returns Display LaTeX, retaining malformed input for visible syntax feedback.
-	 */
-	function displayInput(input: string): string {
-		try {
-			return normalizeMathLatex(
-				normalizeTransformNotation(input, "omega"),
-				false,
-			).replace(/\\operatorname\{DiracDelta\}/g, "\\delta");
-		} catch {
-			return input;
-		}
+		return summarizeCtftInput(task, state.input);
 	}
 </script>
 
@@ -155,16 +115,6 @@
 		currentStep={solver.currentStep}
 		totalSteps={solver.totalSteps}
 	/>
-	{#if mode === "pairs-properties" && solver.stages.pair?.isValid}
-		<div class="standard-pair">
-			<h3>Selected standard transform pair</h3>
-			<MathBlock
-				math={solver.lesson.standardPair}
-				compact
-				hideHeader
-			/>
-		</div>
-	{/if}
 	{#each solver.lesson.stages as stage, index (stage.id)}
 		{@const stageState = solver.stages[stage.id]!}
 		{@const status = stageState.isValid
@@ -175,20 +125,28 @@
 		{#snippet headerExtra()}{#if status === "active" && stage.parts.length > 1}<PartProgressPill
 					progress={solver.partProgress}
 				/>{/if}{/snippet}
-		{#snippet verifiedSummary()}<div class="verified-fields">
-				{#each stage.parts as task}
-					<p>
-						<MathText text={`${task.labelMath ?? task.label}:`} />
-					</p>
-					{#if task.kind === "choice" && !task.mathChoices}<p>
-							{summary(task, stageState.parts[task.id]!)}
-						</p>{:else}<MathBlock
-							math={summary(task, stageState.parts[task.id]!)}
-							compact
-							hideHeader
-						/>{/if}
-				{/each}
-			</div>{/snippet}
+		{#snippet verifiedSummary()}
+			<details class="verified-fields">
+				<summary
+					>{stage.parts.length} verified {stage.parts.length === 1
+						? "exercise"
+						: "exercises"} — review work</summary
+				>
+				<dl>
+					{#each stage.parts as task}<dt>
+							<MathText text={task.labelMath ?? task.label} />
+						</dt>
+						<dd>
+							{#if task.kind === "choice" && !task.mathChoices}{summary(
+									task,
+									stageState.parts[task.id]!,
+								)}{:else}<MathText
+									text={`$${summary(task, stageState.parts[task.id]!)}$`}
+								/>{/if}
+						</dd>{/each}
+				</dl>
+			</details>
+		{/snippet}
 		<StepCard
 			stepNumber={index + 1}
 			title={stage.title}
@@ -196,135 +154,113 @@
 			{headerExtra}
 			summarySnippet={verifiedSummary}
 		>
-			{#if stage.id === "setup" && problem.signalType === "gaussian"}
-				<p>
-					<MathText
-						text={String.raw`Use the Gaussian identity with $b=-j\omega$:`}
-					/>
-				</p>
-				<MathBlock
-					math={String.raw`\int_{-\infty}^{\infty}e^{-at^2+bt}\,dt=\sqrt{\pi/a}e^{b^2/(4a)},\quad a>0`}
-					compact
-					hideHeader
-				/>
-			{/if}
-			{#if stage.id === "property" || stage.id === "final"}<p>
-					Verified base spectrum:
-				</p>
-				<MathBlock
-					math={solver.lesson.baseProblem.referenceAnswerLatex}
-					compact
-					hideHeader
-				/>{/if}
-			{#each stage.parts.slice(0, stageState.cursor + 1) as task, partIndex (task.id)}
+			{#if solver.activePart && status === "active"}
+				{@const task = solver.activePart}
 				{@const state = stageState.parts[task.id]!}
-				<SubStepBlock
-					badge={`Part ${partIndex + 1}`}
-					title={task.labelMath ?? task.label}
-					isCompleted={state.isValid}
-				>
-					{#snippet summarySnippet()}{#if task.kind === "choice" && !task.mathChoices}<p
-								class="verified-answer"
-							>
-								Verified: {summary(task, state)}
-							</p>{:else}<MathBlock
-								math={summary(task, state)}
-								compact
-								hideHeader
-							/>{/if}{/snippet}
-					<form
-						onsubmit={/** @param event - Native submission captured for this task. */ (
-							event,
-						) => submit(event, stage.id, task.id)}
-					>
-						{#if task.contextLatex}<MathBlock
-								math={task.contextLatex}
-								compact
-								hideHeader
-							/>{/if}
-						{#if task.kind === "choice"}
-							<fieldset>
-								<legend
-									><MathText
-										text={task.labelMath ?? task.label}
-									/></legend
-								>{#each task.choices ?? [] as choice}
-									<label class="choice"
-										><input
-											type="radio"
-											name={`ctft-${stage.id}-${task.id}`}
-											value={choice.id}
-											aria-label={choice.accessibleLabel ??
-												choice.label}
-											bind:group={state.input}
-											onchange={/** Invalidates feedback after selecting a different option. */ () =>
-												edit(state)}
-										/>
-										{#if task.mathChoices}<span
-												class="choice-math"
-												aria-hidden="true"
-												><MathText
-													text={`$${choice.label}$`}
-												/></span
-											>{:else}<span>{choice.label}</span
-											>{/if}
-									</label>
-								{/each}
-							</fieldset>
-						{:else}
-							<label
-								class="answer-label"
-								for={stage.id === "final" &&
-								task.kind === "spectrum"
-									? "ctft-input"
-									: `ctft-${stage.id}-${task.id}`}
-								><MathText
-									text={task.labelMath ?? task.label}
-								/></label
-							>
-							<input
-								id={stage.id === "final" &&
-								task.kind === "spectrum"
-									? "ctft-input"
-									: `ctft-${stage.id}-${task.id}`}
-								class="math-text-input"
-								aria-label={task.label}
-								type="text"
-								autocomplete="off"
-								spellcheck="false"
-								maxlength="16384"
-								bind:value={state.input}
-								oninput={/** Invalidates feedback after editing the active answer. */ () =>
-									edit(state)}
-								aria-describedby="ctft-notation"
-							/>
-							{#if state.input.trim()}<div class="answer-preview">
-									<span>Your input:</span><MathBlock
-										math={displayInput(state.input)}
-										compact
-										hideHeader
-									/>
-								</div>{/if}
-						{/if}
-						<button
-							class="btn btn-primary"
-							type="submit">Check Answer</button
+				{#snippet results()}
+					<dl class="context-results">
+						{#each solver.contextResults as result}<dt>
+								<MathText
+									text={result.task.labelMath ??
+										result.task.label}
+								/>
+							</dt>
+							<dd>
+								<MathText
+									text={`$${summary(result.task, result.state)}$`}
+								/>
+							</dd>{/each}
+					</dl>
+				{/snippet}
+				{#snippet identities()}
+					{#if mode === "pairs-properties" && solver.stages.pair?.isValid}<p
+							class="standard-pair"
 						>
-					</form>
-				</SubStepBlock>
-			{/each}
-			<div
-				class="feedback-box"
-				data-validation={solver.currentStepState?.result?.status}
-			>
-				<StepFeedback {solver} />
-			</div>
-			<HintDisclosure
-				hints={solver.activeHints}
-				hintTier={solver.hintTier}
-				onRevealNextHint={/** Reveals the next hint for this task. */ () =>
-					solver.revealNextHint()}
-			/>
+							Selected standard transform pair
+						</p>
+						<MathBlock
+							math={solver.lesson.standardPair}
+							compact
+							hideHeader
+							responsive
+						/>{/if}
+					{#if task.identityLatex}<MathBlock
+							math={task.identityLatex}
+							compact
+							hideHeader
+							responsive
+						/>{/if}
+				{/snippet}
+				<GuidedSolverWorkspace
+					results={solver.contextResults.length ? results : undefined}
+					identities={task.identityLatex ||
+					(mode === "pairs-properties" && solver.stages.pair?.isValid)
+						? identities
+						: undefined}
+				>
+					{#key task.id}
+						<SubStepBlock
+							{...stage.parts.length > 1
+								? {
+										badge: `Part ${index + 1}${String.fromCharCode(65 + stageState.cursor)}`,
+									}
+								: {}}
+							title={task.labelMath ?? task.label}
+						>
+							{#if problem.signalType === "cos" && (stage.id === "base" || stage.id === "final") && (task.kind === "location" || task.kind === "weight")}
+								<div
+									class="impulse-builder"
+									aria-label="Impulse rows"
+								>
+									{#each [0, 1] as row}<div
+											class="impulse-row"
+											class:editing={task.id.endsWith(
+												String(row),
+											)}
+										>
+											<strong>Impulse {row + 1}</strong
+											><span
+												>Location: {#if stageState.parts[`location-${row}`]?.isValid}<MathText
+														text={`$${summary(
+															stage.parts.find(
+																/** @param part - Row field. @returns Coordinate ownership. */
+																(part) =>
+																	part.id ===
+																	`location-${row}`,
+															)!,
+															stageState.parts[
+																`location-${row}`
+															]!,
+														)}$`}
+													/>{:else}pending{/if}</span
+											><span
+												>Weight: {#if stageState.parts[`weight-${row}`]?.isValid}<MathText
+														text={`$${summary(
+															stage.parts.find(
+																/** @param part - Row field. @returns Weight ownership. */
+																(part) =>
+																	part.id ===
+																	`weight-${row}`,
+															)!,
+															stageState.parts[
+																`weight-${row}`
+															]!,
+														)}$`}
+													/>{:else}pending{/if}</span
+											>
+										</div>{/each}
+								</div>
+							{/if}
+							<CtftExercise
+								{solver}
+								stageId={stage.id}
+								{task}
+								response={state}
+							/>
+						</SubStepBlock>
+					{/key}
+				</GuidedSolverWorkspace>
+			{/if}
 		</StepCard>
 	{/each}
 	{#if solver.isCompleted}
@@ -353,105 +289,93 @@
 								math={stage.derivationLatex}
 								responsive
 							/>{/if}
-						{#each stage.parts as task}{@const state =
-								solver.stages[stage.id]!.parts[task.id]!}
-							<p>
+						{#each stage.parts as task}<p>
 								<MathText text={task.labelMath ?? task.label} />
 							</p>
 							{#if task.kind === "choice" && !task.mathChoices}<p>
-									{summary(task, state)}
+									{summary(
+										task,
+										solver.stages[stage.id]!.parts[
+											task.id
+										]!,
+									)}
 								</p>{:else}<MathBlock
-									math={summary(task, state)}
+									math={summary(
+										task,
+										solver.stages[stage.id]!.parts[
+											task.id
+										]!,
+									)}
 									compact
 									hideHeader
-								/>{/if}
-						{/each}
+								/>{/if}{/each}
 					</section>{/each}
 			</details>
 			<CtftSpectrum {problem} />
 		</section>
 	{/if}
-	<button
-		class="btn btn-secondary"
-		type="button"
-		onclick={/** Starts a fresh attempt on the same parameters. */ () =>
-			solver.reset()}>Restart Problem</button
-	>
 </div>
 
 <style>
-	/* ═══════════════════════════════════════════════════════════════════════
-	   Layout and answer controls
-	   ═══════════════════════════════════════════════════════════════════════ */
+	/* ── Verified work, active context, and completion ───────────────────── */
 	.ctft-step-solver,
-	form,
-	.verified-fields,
 	.completion-section {
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
 		min-width: 0;
 	}
-	fieldset {
-		border: 0;
-		padding: 0;
-		min-width: 0;
-		display: grid;
-		gap: 0.6rem;
-	}
-	legend {
-		margin-bottom: 0.5rem;
-	}
-	.choice {
-		display: flex;
-		gap: 0.6rem;
-		align-items: center;
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.65rem;
-		min-width: 0;
-		cursor: pointer;
-	}
-	.choice-math {
-		min-width: 0;
-		flex: 1;
-		overflow-x: auto;
-		padding-block: 0.3rem;
-	}
-	input[type="radio"] {
-		flex-shrink: 0;
-	}
-	input[type="text"] {
-		width: 100%;
-		min-width: 0;
-		box-sizing: border-box;
-	}
-	/* ═══════════════════════════════════════════════════════════════════════
-	   Verified work and completed solution
-	   ═══════════════════════════════════════════════════════════════════════ */
-	.verified-fields p,
-	.verified-answer {
+	dl {
 		margin: 0;
-		overflow-wrap: anywhere;
+		min-width: 0;
 	}
-	.answer-preview,
-	.standard-pair,
+	dt {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		margin-top: 0.6rem;
+	}
+	dd {
+		margin: 0.2rem 0 0;
+		overflow-wrap: anywhere;
+		overflow-x: auto;
+		padding-bottom: 0.25rem;
+	}
+	.standard-pair {
+		font-size: var(--text-sm);
+		margin: 0;
+	}
+	.verified-fields,
 	.solution-breakdown {
 		min-width: 0;
+	}
+	summary {
+		cursor: pointer;
+		font-weight: 600;
 	}
 	.solution-breakdown section {
 		margin-top: 1rem;
 	}
-	.btn {
-		align-self: flex-start;
+	.impulse-builder {
+		display: grid;
+		gap: 0.5rem;
+		margin-bottom: 0.85rem;
 	}
-	summary {
-		cursor: pointer;
-		font-weight: 700;
+	.impulse-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		padding: 0.65rem;
+		min-width: 0;
 	}
-	/* ═══════════════════════════════════════════════════════════════════════
-	   Keyboard focus and screen reader announcements
-	   ═══════════════════════════════════════════════════════════════════════ */
+	.impulse-row.editing {
+		border-color: var(--accent-primary);
+	}
+	.impulse-row span {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
 	:global(.ctft-step-solver :focus-visible) {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 3px;
@@ -465,9 +389,7 @@
 		clip-path: inset(50%);
 		white-space: nowrap;
 	}
-	/* ═══════════════════════════════════════════════════════════════════════
-	   Media: reduced motion
-	   ═══════════════════════════════════════════════════════════════════════ */
+	/* ── Reduced motion ─────────────────────────────────────────────────── */
 	@media (prefers-reduced-motion: reduce) {
 		.ctft-step-solver :global(*) {
 			animation: none !important;

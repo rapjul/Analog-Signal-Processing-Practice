@@ -10,6 +10,91 @@ test.beforeEach(async ({ page }) => {
 	await page.goto("/fourier-transform");
 });
 
+/** Ordinary keyboard controls expose relevant context, original error ranges, and responsive columns. */
+test("workspace guides endpoint algebra and reflows its verified context", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	const family = page.getByRole("button", {
+		name: "Rectangular pulse",
+		exact: true,
+	});
+	await family.focus();
+	await family.press("Enter");
+	await expect(
+		page.locator(".step-card.active .subpart-title"),
+	).toBeFocused();
+	await enterCtftAnswer(page, "Pulse width T", "4/2");
+	const context = page.getByRole("region", { name: "Results so far" });
+	await expect(context).toContainText("Pulse width");
+	await expect(context).not.toContainText("Phase multiplier");
+	const input = page.getByLabel("Signed time translation");
+	const inputBox = await input.boundingBox();
+	expect(inputBox!.width).toBeLessThanOrEqual(220);
+	const side = await page
+		.locator(".step-card.active .workspace-context")
+		.boundingBox();
+	const work = await page
+		.locator(".step-card.active .workspace-exercise")
+		.boundingBox();
+	expect(side!.x).toBeGreaterThan(work!.x);
+	await page.setViewportSize({ width: 320, height: 740 });
+	const mobileSide = await page
+		.locator(".step-card.active .workspace-context")
+		.boundingBox();
+	const mobileWork = await page
+		.locator(".step-card.active .workspace-exercise")
+		.boundingBox();
+	expect(mobileSide!.y + mobileSide!.height).toBeLessThanOrEqual(
+		mobileWork!.y + 1,
+	);
+	await enterCtftAnswer(page, "Signed time translation", "0");
+	await page
+		.getByRole("button", {
+			name: /negative imaginary forward-kernel exponent/,
+		})
+		.click();
+	await enterCtftAnswer(page, "Kernel antiderivative coefficient", "j/omega");
+	const endpoint = page.getByLabel("Upper minus lower endpoint expression");
+	await endpoint.fill("e^{-j t} - e^{j {t}");
+	await endpoint.press("Enter");
+	const issues = page.getByRole("region", {
+		name: "Issues in your expression",
+	});
+	await expect(issues.locator("li")).toHaveCount(3);
+	await expect(endpoint).toBeFocused();
+	expect(
+		await endpoint.evaluate(
+			/** @param element - Active text field. @returns Its selected source token. */ (
+				element,
+			) => {
+				const field = element as HTMLInputElement;
+				return field.value.slice(
+					field.selectionStart!,
+					field.selectionEnd!,
+				);
+			},
+		),
+	).toBe("{");
+	await enterCtftAnswer(
+		page,
+		"Upper minus lower endpoint expression",
+		"(e^(-j omega)-e^(j omega))/(-j omega)",
+	);
+	await expect(page.getByLabel("Equivalent sine expression")).toBeVisible();
+	await expect(
+		page.locator(".solution-breakdown, .ctft-spectrum"),
+	).toHaveCount(0);
+	expect(
+		await page.evaluate(
+			/** Reports horizontal page overflow. */ () =>
+				document.documentElement.scrollWidth <=
+				document.documentElement.clientWidth,
+		),
+	).toBe(true);
+});
+
 /** Production registers no state-selection or answer-autofill interface. */
 test("CTFT production omits the developer harness", async ({ page }, info) => {
 	test.skip(
@@ -102,7 +187,9 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 				mode === "derivation" ? 6 : 5,
 			);
 			await expect(page.locator(".katex-error")).toHaveCount(0);
-			await page.getByRole("button", { name: "Next Problem" }).click();
+			await page
+				.getByRole("button", { name: /Generate Next Problem/ })
+				.click();
 			await expect(page.getByLabel("Teaching Mode:")).toHaveValue(mode);
 			await expect(
 				page.locator(".solution-breakdown, .ctft-spectrum"),
@@ -111,15 +198,14 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 	}
 
 /** Mode switches retain the visible signal but clear progress, hints, and gated content. */
-test("mode changes and restarts isolate attempts", async ({ page }) => {
+test("mode changes and new problems isolate attempts", async ({ page }) => {
 	const prompt = await page
 		.locator(".problem-prompt annotation")
 		.first()
 		.textContent();
 	await page
-		.getByRole("radio", { name: "Rectangular pulse", exact: true })
-		.check();
-	await page.getByRole("button", { name: "Check Answer" }).click();
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
 	await expect(page.getByLabel("Pulse width T")).toBeVisible();
 	await page.locator(".drill-summary").click();
 	await page.getByLabel("Teaching Mode:").selectOption("pairs-properties");
@@ -128,8 +214,8 @@ test("mode changes and restarts isolate attempts", async ({ page }) => {
 	);
 	await expect(page.locator(".step-card.completed")).toHaveCount(0);
 	await expect(
-		page.getByRole("radio", { name: "Rectangular pulse", exact: true }),
-	).not.toBeChecked();
+		page.getByRole("button", { name: "Rectangular pulse", exact: true }),
+	).toHaveAttribute("aria-pressed", "false");
 	await prepareCtftFinal(
 		page,
 		"rect",
@@ -137,7 +223,10 @@ test("mode changes and restarts isolate attempts", async ({ page }) => {
 		"pairs-properties",
 	);
 	await finishCtft(page, "rect", { a: 1, T: 2, w0: 2, t0: 0 });
-	await page.getByRole("button", { name: "Restart Problem" }).click();
+	await expect(
+		page.getByRole("button", { name: "Restart Problem" }),
+	).toHaveCount(0);
+	await page.getByRole("button", { name: /Generate Next Problem/ }).click();
 	await expect(
 		page.locator(".solution-breakdown, .ctft-spectrum"),
 	).toHaveCount(0);

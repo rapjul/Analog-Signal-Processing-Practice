@@ -242,6 +242,47 @@ test.describe("CTFT representative mode spectra @dev-harness", () => {
 		CAPTURE_INITIAL_ONLY,
 		"These captures require the development state-selection harness.",
 	);
+	for (const width of [1280, 320]) {
+		/** Captures actual active controls, accepted context, syntax ranges, and progressive guidance. */
+		test(`CTFT workspace controls ${width}`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 900 });
+			await page.emulateMedia({ reducedMotion: "reduce" });
+			await installDeterministicBrowserState(page, "dark", 3103, 0.2);
+			await page.goto("/fourier-transform");
+			await expect(page.locator(".ctft-step-solver")).toBeVisible();
+			await prepareVisualCapturePage(page, {
+				module: "fourier-transform",
+				archetype: "workspace",
+			});
+			await expect(page.locator(".practice-card")).toHaveScreenshot(
+				`ctft-workspace-choices-${width}.png`,
+				{ animations: "disabled" },
+			);
+			for (const [name, state] of [
+				["scalar", "derivation:parameters:t0:interactive"],
+				["syntax", "derivation:base:endpoints:interactive"],
+				["sinc", "derivation:base:expression:hint"],
+			]) {
+				expect(
+					await page.evaluate(
+						/** @param id - Owned visual state. @returns Real-validation navigation success. */ (
+							id,
+						) => window.__signalLabDev!.goToVisualState(id),
+						state!,
+					),
+				).toBe(true);
+				if (name === "syntax") {
+					await page.getByRole("textbox").fill("e^{-j t} - e^{j {t}");
+					await page.getByRole("textbox").press("Enter");
+				}
+				await expect(
+					page.locator(".step-card.active"),
+				).toHaveScreenshot(`ctft-workspace-${name}-${width}.png`, {
+					animations: "disabled",
+				});
+			}
+		});
+	}
 	for (const mode of ["derivation", "pairs-properties"] as const)
 		for (const family of ["rect", "cos"] as const) {
 			/** Captures completed regular/distribution spectra and both teaching-mode layouts. */

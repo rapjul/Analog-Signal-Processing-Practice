@@ -46,14 +46,14 @@ async function complete(
 			}
 			if (task.kind === "choice")
 				await fireEvent.click(
-					form.querySelector(`input[value="${expected}"]`)!,
+					form.querySelector(`button[value="${expected}"]`)!,
 				);
 			else
 				await fireEvent.input(
 					form.querySelector('input[type="text"]')!,
 					{ target: { value: expected } },
 				);
-			await fireEvent.submit(form);
+			if (task.kind !== "choice") await fireEvent.submit(form);
 			await tick();
 			expect(
 				container.querySelector('[role="alert"]')?.textContent ?? "",
@@ -63,6 +63,69 @@ async function complete(
 }
 
 describe("CTFT guided component", () => {
+	/** Context is earned through real validators, never populated from future targets or edited drafts. */
+	it("shows only accepted work in context and simplifies exact scalar arithmetic", async () => {
+		const problem = createCtftProblem("rect", { a: 2, T: 6, w0: 3, t0: 1 });
+		const view = render(CtftStepSolver, { problem });
+		expect(
+			view.queryByRole("region", { name: "Results so far" }),
+		).toBeNull();
+		expect(view.container.querySelector(".subpart-badge")).toBeNull();
+		await fireEvent.click(
+			view.getByRole("button", { name: "Rectangular pulse" }),
+		);
+		const width = view.getByLabelText("Pulse width T");
+		await fireEvent.input(width, { target: { value: "999" } });
+		await fireEvent.submit(view.container.querySelector("form")!);
+		expect(
+			view.queryByRole("region", { name: "Results so far" }),
+		).toBeNull();
+		await fireEvent.input(width, { target: { value: "12/2" } });
+		await fireEvent.submit(view.container.querySelector("form")!);
+		const context = view.getByRole("region", { name: "Results so far" });
+		expect(context.querySelector("dd annotation")?.textContent).toBe("6");
+		expect(context.textContent).not.toContain("999");
+		expect(context.textContent).not.toContain("Signed time translation");
+		expect(context.textContent).not.toContain("sinc");
+		expect(
+			view.container.querySelector(".subpart-badge")?.textContent,
+		).toBe("Part 2B");
+		expect(view.container.querySelector(".answer-preview")).toBeNull();
+	});
+	/** Malformed algebra reports independent original ranges and keeps all future content locked. */
+	it("selects original syntax errors and diagnoses residual time after substitution", async () => {
+		const problem = createCtftProblem("rect", { a: 2, T: 4, w0: 3, t0: 0 });
+		const view = render(CtftStepSolver, { problem });
+		await complete(view.container, problem, "derivation", "base");
+		let input = view.getByRole("textbox") as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: "j/omega" } });
+		await fireEvent.submit(view.container.querySelector("form")!);
+		input = view.getByRole("textbox") as HTMLInputElement;
+		await fireEvent.input(input, {
+			target: { value: "e^{-j 2t} - e^{j {2t}" },
+		});
+		await fireEvent.submit(view.container.querySelector("form")!);
+		await waitFor(() =>
+			expect(input.selectionEnd! - input.selectionStart!).toBe(1),
+		);
+		expect(
+			view
+				.getByRole("region", { name: "Issues in your expression" })
+				.querySelectorAll("li").length,
+		).toBeGreaterThan(1);
+		expect(view.container.textContent).toContain(
+			"time variable t should disappear",
+		);
+		expect(view.container.querySelector(".solution-breakdown")).toBeNull();
+		await fireEvent.input(input, {
+			target: { value: "(e^(-2j omega)-e^(2j omega))/(-j omega)" },
+		});
+		await fireEvent.submit(view.container.querySelector("form")!);
+		expect(
+			view.queryByRole("region", { name: "Issues in your expression" }),
+		).toBeNull();
+		expect(view.getByLabelText("Equivalent sine expression")).toBeTruthy();
+	});
 	for (const family of [
 		"rect",
 		"exponential",
@@ -82,7 +145,7 @@ describe("CTFT guided component", () => {
 			await complete(view.container, problem, "derivation", "setup");
 			const radios = [
 				...view.container.querySelectorAll<HTMLInputElement>(
-					'.step-card.active input[type="radio"]',
+					".step-card.active button.choice",
 				),
 			];
 			const names = radios.map(
@@ -109,7 +172,7 @@ describe("CTFT guided component", () => {
 				family === "gaussian"
 			) {
 				const parameterLabels = [
-					...view.container.querySelectorAll(".verified-fields p"),
+					...view.container.querySelectorAll(".verified-fields dt"),
 				].filter(
 					/** @param label - Verified field label. @returns Whether it names a mathematical parameter. */ (
 						label,
@@ -126,14 +189,13 @@ describe("CTFT guided component", () => {
 		});
 	}
 	/** Plain supported notation previews as mathematical symbols without modifying the input. */
-	it("renders shorthand constants in the live preview", async () => {
+	it("keeps scalar inputs compact without a duplicate live preview", async () => {
 		const view = render(CtftStepSolver, {
 			problem: createCtftProblem("delta", { a: 1, T: 2, w0: 3, t0: 0 }),
 		});
 		await fireEvent.click(
-			view.container.querySelector('input[value="delta"]')!,
+			view.container.querySelector('button[value="delta"]')!,
 		);
-		await fireEvent.submit(view.container.querySelector("form")!);
 		const input = view.getByLabelText(
 			"Signed time translation",
 		) as HTMLInputElement;
@@ -141,7 +203,7 @@ describe("CTFT guided component", () => {
 		expect(
 			view.container.querySelector(".answer-preview annotation")
 				?.textContent,
-		).toBe("\\pi");
+		).toBeUndefined();
 		expect(input.value).toBe("pi");
 	});
 	/** Parent callback updates do not reset progress or notify a stale callback. */
@@ -230,9 +292,10 @@ describe("CTFT guided component", () => {
 					) => annotation.textContent?.includes("X_0"),
 				);
 				expect(chains.length > 0).toBe(mode === "derivation");
-				await fireEvent.click(
-					view.getByRole("button", { name: "Restart Problem" }),
-				);
+				expect(
+					view.queryByRole("button", { name: "Restart Problem" }),
+				).toBeNull();
+				await view.rerender({ problem: { ...problem }, mode });
 				expect(
 					view.container.querySelector(".solution-breakdown"),
 				).toBeNull();
@@ -246,9 +309,8 @@ describe("CTFT guided component", () => {
 		const problem = createCtftProblem("rect", { a: 2, T: 4, w0: 3, t0: 1 });
 		const view = render(CtftStepSolver, { problem });
 		await fireEvent.click(
-			view.container.querySelector('input[value="rect"]')!,
+			view.container.querySelector('button[value="rect"]')!,
 		);
-		await fireEvent.submit(view.container.querySelector("form")!);
 		await waitFor(() =>
 			expect(document.activeElement).toBe(
 				view.container.querySelector(
@@ -262,15 +324,14 @@ describe("CTFT guided component", () => {
 		await view.rerender({ problem: { ...problem }, mode: "derivation" });
 		expect(document.activeElement).toBe(selector);
 		expect(
-			view.container.querySelector('input[type="radio"]:checked'),
+			view.container.querySelector('button[aria-pressed="true"]'),
 		).toBeNull();
 		await view.rerender({ problem, mode: "pairs-properties" });
 		expect(view.container.querySelectorAll(".step-card")).toHaveLength(5);
 		expect(view.container.querySelector(".standard-pair")).toBeNull();
 		await fireEvent.click(
-			view.container.querySelector('input[value="rect"]')!,
+			view.container.querySelector('button[value="rect"]')!,
 		);
-		await fireEvent.submit(view.container.querySelector("form")!);
 		expect(view.container.querySelector(".standard-pair")).not.toBeNull();
 		selector.remove();
 	});
@@ -280,9 +341,8 @@ describe("CTFT guided component", () => {
 			problem: createCtftProblem("delta", { a: 1, T: 2, w0: 3, t0: 0 }),
 		});
 		await fireEvent.click(
-			view.container.querySelector('input[value="delta"]')!,
+			view.container.querySelector('button[value="delta"]')!,
 		);
-		await fireEvent.submit(view.container.querySelector("form")!);
 		const input = view.getByLabelText("Signed time translation");
 		await fireEvent.input(input, { target: { value: "1/0" } });
 		await fireEvent.submit(
