@@ -176,9 +176,12 @@ describe("CTFT guided component", () => {
 				?.textContent,
 		).toBe("t");
 		expect(
-			view.container.querySelector(".input-errors button .katex-html")
+			view.container.querySelector(".input-errors button annotation")
 				?.textContent,
-		).toBeTruthy();
+		).toBe(String.raw`\omega`);
+		expect(
+			view.container.querySelector(".input-errors")?.textContent,
+		).toContain("Substitute the time endpoint here; retain");
 		expect(view.container.querySelector(".solution-breakdown")).toBeNull();
 		await fireEvent.input(input, {
 			target: { value: "(e^(-2j omega)-e^(2j omega))/(-j omega)" },
