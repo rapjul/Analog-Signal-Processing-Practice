@@ -39,6 +39,38 @@ function containsVariable(node: unknown): boolean {
 }
 
 /**
+ * Adds actionable time-substitution feedback without changing a grading outcome.
+ * @param answer - Original intermediate-calculation input.
+ * @param result - Canonical verifier's authoritative result.
+ * @returns The original result or a copy retaining its status and syntax diagnostics.
+ */
+export function withCtftCalculationDiagnostics(
+	answer: string,
+	result: TransformValidationResult,
+): TransformValidationResult {
+	if (result.status === "correct" || answer.length > 16384) return result;
+	const times = [...answer.matchAll(/(^|[^a-zA-Z\\])t(?![a-zA-Z])/g)];
+	if (!times.length) return result;
+	return {
+		...result,
+		message:
+			"The time variable t should disappear after endpoint substitution. Use omega for angular frequency and substitute the endpoint for t.",
+		diagnostics: [
+			...(result.diagnostics ?? []),
+			...times.map(
+				/** @param match - Original time token. @returns Its source range. */
+				(match) => ({
+					start: match.index! + match[1]!.length,
+					end: match.index! + match[1]!.length + 1,
+					message:
+						"Substitute the time endpoint here; retain omega as the frequency variable.",
+				}),
+			),
+		].slice(0, 8),
+	};
+}
+
+/**
  * Verifies bounded intermediate algebra with canonical equivalence, without sampling.
  * @param answer - Learner expression in angular frequency.
  * @param expected - Independent parameter-derived intermediate expression.

@@ -12,6 +12,7 @@ import {
 	validateCtftConstant,
 	validateCtftImpulseRows,
 	validateCtftPhase,
+	withCtftCalculationDiagnostics,
 } from "$lib/math-engine/ctft-tutor-validation";
 import {
 	type GeneratedCtftProblem,
@@ -174,28 +175,6 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		const state = stage?.parts[partId];
 		if (!stage || !state || state.isValid) return;
 		const result = this.grade(task, state.input, stageId);
-		if (result.status !== "correct" && task.kind === "calculation") {
-			const times = [
-				...state.input.matchAll(/(^|[^a-zA-Z\\])t(?![a-zA-Z])/g),
-			];
-			if (times.length) {
-				result.message =
-					"The time variable t should disappear after endpoint substitution. Use omega for angular frequency and substitute the endpoint for t.";
-				result.diagnostics = [
-					...(result.diagnostics ?? []),
-					...times.map(
-						/** @param match - Original time token. @returns Its source range. */ (
-							match,
-						) => ({
-							start: match.index! + match[1]!.length,
-							end: match.index! + match[1]!.length + 1,
-							message:
-								"Substitute the time endpoint here; retain omega as the frequency variable.",
-						}),
-					),
-				].slice(0, 8);
-			}
-		}
 		state.result = result;
 		if (result.status !== "correct") {
 			if (result.status === "incorrect")
@@ -258,7 +237,10 @@ export class CtftStepSolverState extends BaseStepSolverState {
 			return this.gradeChoice(task, input);
 		}
 		if (task.kind === "calculation")
-			return validateCtftCalculation(input, task.expected);
+			return withCtftCalculationDiagnostics(
+				input,
+				validateCtftCalculation(input, task.expected),
+			);
 		if (task.kind === "constant")
 			return validateCtftConstant(input, task.expected, true);
 		if (task.kind === "phase")

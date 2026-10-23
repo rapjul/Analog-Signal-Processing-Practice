@@ -14,6 +14,7 @@ import {
 	validateCtftCalculation,
 	validateCtftConstant,
 	validateCtftImpulseRows,
+	withCtftCalculationDiagnostics,
 } from "$lib/math-engine/ctft-tutor-validation";
 import {
 	type CtftSignalType,
@@ -74,6 +75,28 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	/** Remediation preserves the canonical outcome and original syntax ranges without mutating its input. */
+	it("adds bounded time-substitution diagnostics without changing verification", () => {
+		const original = {
+			status: "invalid" as const,
+			message: "Unclosed bracket",
+			diagnostics: [{ start: 1, end: 2, message: "Close this bracket" }],
+		};
+		const diagnosed = withCtftCalculationDiagnostics("e^{j t}", original);
+		expect(diagnosed.status).toBe("invalid");
+		expect(diagnosed.diagnostics).toHaveLength(2);
+		expect(diagnosed.diagnostics?.[0]).toEqual(original.diagnostics[0]);
+		expect(diagnosed.diagnostics?.[1]).toMatchObject({ start: 5, end: 6 });
+		expect(original.message).toBe("Unclosed bracket");
+		expect(
+			withCtftCalculationDiagnostics("t".repeat(16385), original),
+		).toBe(original);
+		expect(withCtftCalculationDiagnostics("omega", original)).toBe(
+			original,
+		);
+		const verified = { status: "correct" as const, message: "Verified" };
+		expect(withCtftCalculationDiagnostics("t", verified)).toBe(verified);
+	});
 	/** Pair-only guidance cannot refer to calculations that this teaching path omits. */
 	it("keeps input sizing and guidance consistent with each mode", () => {
 		for (const family of families) {
