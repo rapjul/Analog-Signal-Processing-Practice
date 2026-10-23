@@ -9,6 +9,10 @@ import {
 import type { Complex } from "$lib/math-engine/complex";
 import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
+import {
+	diagnoseTransformSyntax,
+	type TransformDiagnostic,
+} from "./transform-diagnostics";
 
 /** Outcome of checking a supported transform expression. */
 export interface TransformValidationResult {
@@ -18,6 +22,7 @@ export interface TransformValidationResult {
 	message: string;
 	/** Secondary numerical observations never establish correctness. */
 	numericCheck?: "consistent" | "inconclusive" | "mismatch";
+	/** Optional actionable ranges in the original learner input. */ diagnostics?: TransformDiagnostic[];
 }
 
 /** Weighted Dirac impulse used by independently generated plotting diagnostics. */
@@ -48,6 +53,8 @@ function failureFeedback(
 	answer: string,
 	result: TransformValidationResult,
 ): TransformValidationResult {
+	if (result.status === "invalid")
+		result = { ...result, diagnostics: diagnoseTransformSyntax(answer) };
 	if (/(?<![\w.])3\.14\d*(?:…|\.{3})?(?![\d.eE])/.test(answer))
 		return {
 			...result,
