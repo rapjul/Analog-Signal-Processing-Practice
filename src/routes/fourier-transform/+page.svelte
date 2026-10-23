@@ -1,308 +1,152 @@
 <script lang="ts">
-	/**
-	 * Continuous-Time Fourier Transform (CTFT) Practice Module Route (/fourier-transform).
-	 *
-	 * Implements CTFT forward & inverse transform practice, operational properties,
-	 * spectral magnitude/phase plots, and ECE 210 exam formula sheets.
-	 */
-
+	/** Guided forward CTFT derivation and transform-pair practice. */
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import CtftStepSolver from "$lib/components/solvers/CtftStepSolver.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
-	import WorkedSolution from "$lib/components/ui/WorkedSolution.svelte";
+	import {
+		CTFT_FAMILIES,
+		type CtftPracticeMode,
+	} from "$lib/math-engine/ctft-lesson";
 	import {
 		type CtftSignalType,
+		createCtftProblem,
 		generateCtftProblem,
-		validateCtftAnswer,
 	} from "$lib/math-engine/fourier-transform";
-	import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 
 	let selectedType = $state<CtftSignalType>("rect");
-	let currentProblem = $state(generateCtftProblem("rect"));
-	let userAttempt = $state("");
-	let isSubmitted = $state(false);
-	let result = $state<TransformValidationResult | null>(null);
-	let isCorrect = $derived(result?.status === "correct");
-
-	/** Generates a fresh problem and clears its validation state. */
-	function handleGenerateNext() {
+	let mode = $state<CtftPracticeMode>("derivation");
+	let currentProblem = $state(
+		createCtftProblem("rect", { a: 1, T: 2, w0: 2, t0: 0 }),
+	);
+	/** Generates a fresh signal while preserving the teaching mode. */
+	function handleGenerateNext(): void {
 		currentProblem = generateCtftProblem(selectedType);
-		userAttempt = "";
-		isSubmitted = false;
-		result = null;
-	}
-
-	/** Checks the submitted spectrum against independent signal parameters. */
-	function handleCheck() {
-		isSubmitted = true;
-		result = validateCtftAnswer(userAttempt, currentProblem);
-	}
-
-	/** Editing an answer invalidates feedback for the previous submission. */
-	function handleInput() {
-		result = null;
-		isSubmitted = false;
 	}
 </script>
 
 <PageLayout
 	title="Continuous-Time Fourier Transform (CTFT)"
-	subtitleText={String.raw`Master forward & inverse CTFT, operational transform properties, energy density spectra $|X(\omega)|^2$, and 3dB energy bandwidths.`}
-	metaDescription="Practice continuous-time Fourier transforms with operational properties, energy spectra, and step-by-step analytical verification."
+	subtitleText="Practice forward CTFT through guided derivation or transform pairs and time-shift properties."
+	metaDescription="Derive continuous-time Fourier transforms with verified intermediate steps, transform pairs, time-shift properties, and completed spectra."
 	activeRoute="/fourier-transform"
 >
 	{#snippet controls()}
 		<DrillPanel
-			title="Targeted Drill & Signal Category Filters"
-			badge={selectedType === "rect"
-				? "Default (Rect Pulse)"
-				: "Custom Signal Selected"}
+			title="Signal Category & Teaching Mode"
+			badge={mode === "derivation"
+				? "Guided Derivation"
+				: "Pairs & Properties"}
 		>
 			<div class="control-group">
 				<label
 					for="signal-type-select"
-					class="control-label"
+					class="control-label">Signal Category:</label
 				>
-					Signal Category:
-				</label>
 				<select
 					id="signal-type-select"
 					class="select-input"
 					bind:value={selectedType}
 					onchange={handleGenerateNext}
 				>
-					<option value="rect">Rectangular Pulse rect(t/T)</option>
-					<option value="exponential">
-						Exponential Decay e^(-at) u(t)
-					</option>
-					<option value="gaussian">Gaussian e^(-at^2)</option>
-					<option value="delta">Dirac Delta δ(t)</option>
-					<option value="cos">Cosines & Sinusoids</option>
+					{#each CTFT_FAMILIES as family}<option value={family.id}
+							>{family.label}</option
+						>{/each}
 				</select>
+			</div>
+			<div class="control-group">
+				<label
+					for="ctft-mode-select"
+					class="control-label">Teaching Mode:</label
+				>
+				<select
+					id="ctft-mode-select"
+					class="select-input"
+					bind:value={mode}
+					aria-describedby="mode-reset-note"
+					><option value="derivation">Derivation</option><option
+						value="pairs-properties">Pairs & Properties</option
+					></select
+				>
+				<p id="mode-reset-note">
+					Changing modes starts a fresh attempt on the same signal.
+				</p>
 			</div>
 		</DrillPanel>
 	{/snippet}
-
-	<!-- Main Practice Card -->
 	<div class="practice-card">
 		<div class="card-header">
-			<h2 class="card-title">CTFT Transform Problem</h2>
+			<h2>CTFT Transform Problem</h2>
+			<button
+				class="btn btn-secondary"
+				type="button"
+				onclick={handleGenerateNext}>Next Problem</button
+			>
 		</div>
-
 		<div class="problem-prompt">
-			<MathBlock math={currentProblem.promptLatex} />
-		</div>
-
-		<div class="input-section">
-			<label
-				for="ctft-input"
-				class="input-label"
-			>
-				<MathText text={String.raw`Enter $X(\omega)$ in LaTeX:`} />
-			</label>
-			<input
-				id="ctft-input"
-				type="text"
-				class="math-text-input"
-				bind:value={userAttempt}
-				oninput={handleInput}
-				placeholder="Enter LaTeX answer..."
+			<MathBlock
+				math={currentProblem.promptLatex}
+				responsive
 			/>
-
-			<div class="action-bar">
-				<button
-					type="button"
-					class="btn btn-primary"
-					onclick={handleCheck}
-				>
-					Check Answer
-				</button>
-				<button
-					type="button"
-					class="btn btn-secondary"
-					onclick={handleGenerateNext}
-				>
-					Next Problem
-				</button>
-			</div>
 		</div>
-
-		{#if isSubmitted}
-			<div
-				class="feedback-box"
-				class:correct={isCorrect}
-				class:incorrect={!isCorrect}
-				role="status"
-				data-validation={result?.status}
-			>
-				<p class="feedback-status">
-					{result?.message}
-				</p>
-			</div>
-		{/if}
-
-		<!-- Zero-Guesswork Solution Breakdown -->
-		{#key currentProblem}
-			<WorkedSolution verified={isCorrect}>
-				<strong>Reference Answer:</strong>
-				<MathBlock
-					math={currentProblem.referenceAnswerLatex}
-					compact={true}
+		<details class="conventions">
+			<summary>Transform conventions & input notation</summary>
+			<MathBlock
+				math={String.raw`X(\omega)=\int_{-\infty}^{\infty}x(t)e^{-j\omega t}\,dt,\quad x(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty}X(\omega)e^{j\omega t}\,d\omega`}
+				compact
+				responsive
+			/>
+			<MathBlock
+				math={String.raw`\operatorname{sinc}(z)=\frac{\sin(\pi z)}{\pi z},\quad\operatorname{sinc}(0)=1`}
+				compact
+			/>
+			<p>
+				<MathText
+					text={String.raw`$\omega$ is angular frequency in rad/s. $j$ is the imaginary unit. Impulses have complex weights, not finite heights.`}
 				/>
-				<div class="solution-breakdown">
-					<h3 class="solution-title">Solution Breakdown</h3>
-					{#each currentProblem.solutionSteps as step}
-						<div class="step-card">
-							<h4 class="step-heading">{step.title}</h4>
-							<MathBlock
-								math={step.latex}
-								compact={true}
-							/>
-						</div>
-					{/each}
-				</div>
-			</WorkedSolution>
-		{/key}
+			</p>
+		</details>
+		<p id="ctft-notation">
+			Enter LaTeX or supported notation such as pi, j, omega, fractions,
+			and e^&#123;...&#125;. All intermediate answers must be verified
+			before the worked solution and plots unlock.
+		</p>
+		<CtftStepSolver
+			problem={currentProblem}
+			{mode}
+		/>
 	</div>
 </PageLayout>
 
 <style>
-	/* ── Practice card ─────────────────────────────────────── */
-
 	.practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-md);
-		padding: 1.5rem;
+		padding: clamp(0.65rem, 3vw, 1.5rem);
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		min-width: 0;
 	}
-
-	.card-title {
-		font-size: var(--text-lg);
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	/* ── LaTeX input section & actions ─────────────────────── */
-
-	.input-section {
+	.card-header {
 		display: flex;
-		flex-direction: column;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
 		gap: 0.75rem;
 	}
-
-	.input-label {
-		font-size: var(--text-sm);
-		font-weight: 600;
+	h2 {
+		font-size: var(--text-lg);
+	}
+	p {
 		color: var(--text-secondary);
 	}
-
-	.action-bar {
-		display: flex;
-		gap: 0.75rem;
-		flex-wrap: wrap;
-	}
-
-	.btn-primary {
-		background: var(--accent-primary);
-		color: var(--accent-contrast, #042f2e);
-		border: none;
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
-		font-weight: 700;
+	summary {
 		cursor: pointer;
-		transition: all 0.2s ease;
 	}
-
-	.btn-primary:hover,
-	.btn-primary:focus-visible {
-		background: var(--accent-hover);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
-	}
-
-	.btn-secondary {
-		background: var(--bg-primary);
-		border: 1px solid var(--border-color);
-		color: var(--text-primary);
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.btn-secondary:hover,
-	.btn-secondary:focus-visible {
-		border-color: var(--accent-primary);
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 2px;
-	}
-
-	/* ── Feedback banner ───────────────────────────────────── */
-
-	.feedback-box {
-		padding: 1rem;
-		border-radius: var(--radius-md);
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	/* Correct — green alert */
-	.feedback-box.correct {
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-success);
-	}
-
-	/* Incorrect — red alert */
-	.feedback-box.incorrect {
-		background: var(--color-error-bg);
-		border: 1px solid var(--color-error);
-	}
-
-	/* ── Solution breakdown ────────────────────────────────── */
-
-	.solution-breakdown {
-		border-top: 1px solid var(--border-color);
-		padding-top: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.solution-title {
-		font-size: 1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	.step-card {
-		background: var(--bg-primary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.75rem 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.step-heading {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--accent-primary);
-	}
-
-	/* ── Narrow viewport (≤360px) container query ─────────── */
-
-	@container (max-width: 360px) {
-		.practice-card {
-			padding: 1rem 0.85rem;
-		}
+	.conventions {
+		min-width: 0;
 	}
 </style>

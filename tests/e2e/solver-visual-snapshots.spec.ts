@@ -221,11 +221,11 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 	},
 	{
 		module: "fourier-transform",
-		slug: "ctft-transform-duality",
-		title: "CTFT Transform & Duality",
+		slug: "ctft-guided-derivation",
+		title: "CTFT Guided Derivation",
 		path: "/fourier-transform",
 		seed: 3103,
-		isItsStepper: false,
+		isItsStepper: true,
 	},
 	{
 		module: "circuits",
@@ -236,6 +236,95 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		isItsStepper: false,
 	},
 ];
+
+test.describe("CTFT representative mode spectra @dev-harness", () => {
+	test.skip(
+		CAPTURE_INITIAL_ONLY,
+		"These captures require the development state-selection harness.",
+	);
+	for (const mode of ["derivation", "pairs-properties"] as const)
+		for (const family of ["rect", "cos"] as const) {
+			/** Captures completed regular/distribution spectra and both teaching-mode layouts. */
+			test(`${mode} ${family} completion`, async ({ page }) => {
+				await page.emulateMedia({ reducedMotion: "reduce" });
+				await installDeterministicBrowserState(page, "dark", 3103);
+				await page.addInitScript(() => {
+					Math.random = () => 0.2;
+				});
+				await page.goto("/fourier-transform");
+				await page.locator(".drill-summary").click();
+				await page.locator("#ctft-mode-select").selectOption(mode);
+				await page.locator("#signal-type-select").selectOption(family);
+				await page.locator(".drill-summary").click();
+				await expect
+					.poll(() =>
+						page.evaluate(() =>
+							Boolean(window.__signalLabDev?.activeSolver),
+						),
+					)
+					.toBe(true);
+				await prepareVisualCapturePage(page, {
+					module: "fourier-transform",
+					archetype: `${mode}-${family}`,
+				});
+				await page.evaluate(() => window.__signalLabDev!.solveAll());
+				await expect(page.locator(".completion-section")).toBeVisible();
+				for (const width of [1280, 320]) {
+					await page.setViewportSize({ width, height: 900 });
+					await waitForCompletionVisuals(page, {
+						module: "fourier-transform",
+						archetype: `${mode}-${family}`,
+					});
+					await page.locator(".completion-section").evaluate(
+						/**
+						 * Aligns fractional SVG-container bounds to physical pixels for stable element crops.
+						 * @param element - Completed spectrum section.
+						 */
+						(element) => {
+							const section = element as HTMLElement;
+							section.style.transform = "none";
+							const bounds = section.getBoundingClientRect();
+							section.style.transform = `translate(${Math.round(bounds.x) - bounds.x}px, ${Math.round(bounds.y) - bounds.y}px)`;
+						},
+					);
+					await expect(
+						page.locator(".completion-section"),
+					).toHaveScreenshot(`ctft-${mode}-${family}-${width}.png`, {
+						animations: "disabled",
+					});
+				}
+			});
+		}
+	for (const mode of ["derivation", "pairs-properties"] as const) {
+		/** Captures hint and diagnostic rendering on an actual active base-transform task. */
+		test(`${mode} remediation`, async ({ page }) => {
+			await page.emulateMedia({ reducedMotion: "reduce" });
+			await installDeterministicBrowserState(page, "dark", 3103);
+			await page.goto("/fourier-transform");
+			await page.locator(".drill-summary").click();
+			await page.locator("#ctft-mode-select").selectOption(mode);
+			await page.locator(".drill-summary").click();
+			await prepareVisualCapturePage(page, {
+				module: "fourier-transform",
+				archetype: `${mode}-remediation`,
+			});
+			for (const kind of ["hint", "diagnostic"] as const) {
+				await page.evaluate(
+					({ mode, kind }) =>
+						window.__signalLabDev!.goToVisualState(
+							`${mode}:base:expression:${kind}`,
+						),
+					{ mode, kind },
+				);
+				await expect(
+					page.locator(".step-card.active"),
+				).toHaveScreenshot(`ctft-${mode}-${kind}.png`, {
+					animations: "disabled",
+				});
+			}
+		});
+	}
+});
 
 const runArtifacts: VisualArtifactEntry[] = [];
 const runTimingRecorder = WRITE_INSPECTION_ARTIFACTS
