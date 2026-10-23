@@ -10,6 +10,47 @@ test.beforeEach(async ({ page }) => {
 	await page.goto("/fourier-transform");
 });
 
+/** Keyboard users can locate and expand conventions and copy complete literal notation. */
+test("conventions and notation have accessible keyboard controls", async ({
+	page,
+}) => {
+	const disclosure = page.getByText(
+		"Transform conventions & input notation",
+		{ exact: true },
+	);
+	await disclosure.focus();
+	await expect(disclosure).toBeFocused();
+	expect(
+		await disclosure.evaluate(
+			/** @param element - Focused summary. @returns The computed themed outline. */
+			(element) => getComputedStyle(element).outlineStyle,
+		),
+	).toBe("solid");
+	await disclosure.press("Enter");
+	await expect(page.locator("details.conventions")).toHaveAttribute(
+		"open",
+		"",
+	);
+	for (const literal of ["e^(-j*omega)", "e^{-j*omega}"]) {
+		const example = page.getByRole("button", {
+			name: `Copy input notation: ${literal}`,
+			exact: true,
+		});
+		await expect(example.locator(".katex-html")).toHaveText(literal);
+		await example.focus();
+		await expect(example).toBeFocused();
+	}
+	await page.setViewportSize({ width: 320, height: 740 });
+	expect(
+		await page.evaluate(
+			/** @returns Whether the notation fits the narrow page. */
+			() =>
+				document.documentElement.scrollWidth <=
+				document.documentElement.clientWidth,
+		),
+	).toBe(true);
+});
+
 /** Ordinary keyboard controls expose relevant context, original error ranges, and responsive columns. */
 test("workspace guides endpoint algebra and reflows its verified context", async ({
 	page,
@@ -103,6 +144,40 @@ test("CTFT production omits the developer harness", async ({ page }, info) => {
 	);
 	expect(await page.evaluate(() => window.__signalLabDev)).toBeUndefined();
 });
+
+for (const mode of ["derivation", "pairs-properties"] as const) {
+	/** Tolerance-accepted final rows remain learner work while the solution uses exact symbolic weights. */
+	test(`exact cosine solution after approximate reversed rows in ${mode}`, async ({
+		page,
+	}) => {
+		await page.locator(".drill-summary").click();
+		await page.getByLabel("Teaching Mode:").selectOption(mode);
+		await page.getByLabel("Signal Category:").selectOption("cos");
+		await prepareCtftFinal(page, "cos", { a: 2, T: 1, w0: 3, t0: 1 }, mode);
+		for (const [row, location] of [3, -3].entries()) {
+			await enterCtftAnswer(
+				page,
+				`Impulse ${row + 1} location`,
+				String(location),
+			);
+			await enterCtftAnswer(
+				page,
+				`Impulse ${row + 1} complex weight`,
+				`3.14159265 e^{-j(${location})}`,
+			);
+		}
+		await page
+			.getByText("View Complete Worked Solution", { exact: true })
+			.click();
+		await expect(page.locator(".solution-breakdown")).not.toContainText(
+			"3.14159265",
+		);
+		await expect(page.locator(".solution-breakdown")).toContainText("\\pi");
+		const review = page.locator(".verified-fields").last();
+		await review.locator("summary").press("Enter");
+		await expect(review).toContainText("3.14159265");
+	});
+}
 
 for (const mode of ["derivation", "pairs-properties"] as const)
 	for (const notation of [

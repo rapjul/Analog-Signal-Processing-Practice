@@ -2,7 +2,10 @@
 	/** Completed plots keep regular spectra separate from weighted distributions. */
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
-	import { buildCtftSpectrum } from "$lib/math-engine/ctft-spectrum";
+	import {
+		buildCtftSpectrum,
+		selectCtftSpectrumSamples,
+	} from "$lib/math-engine/ctft-spectrum";
 	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
 
 	/** Plot inputs. */
@@ -21,10 +24,7 @@
 		),
 	);
 	const tablePoints = $derived(
-		data.points.filter(
-			/** @param point - Sample. @param index - Offset. @returns Representative values and all zeros. */
-			(point, index) => index % 50 === 0 || point.phase === null,
-		),
+		selectCtftSpectrumSamples(data.points, problem.signalType),
 	);
 	/** @param omega - Angular frequency. @returns Horizontal SVG coordinate. */
 	function x(omega: number): number {

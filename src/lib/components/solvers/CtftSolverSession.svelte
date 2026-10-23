@@ -145,9 +145,9 @@
 		{#snippet verifiedSummary()}
 			<details class="verified-fields">
 				<summary
-					>{stage.parts.length} verified {stage.parts.length === 1
-						? "exercise"
-						: "exercises"} — review work</summary
+					>Step {index + 1}: {stage.title} — {stage.parts.length} verified
+					{stage.parts.length === 1 ? "exercise" : "exercises"} — review
+					work</summary
 				>
 				<dl>
 					{#each stage.parts as task}<dt>

@@ -43,6 +43,10 @@ read-only summaries. Three progressive hints guide each task, including the
 rectangular exponential-to-sine-to-normalized-sinc transition. Delta derivation
 does not require re-entering the sampled kernel as the same base spectrum.
 Cosine builders associate each location and complex weight in an impulse row.
+Completed worked solutions use exact lesson targets rather than tolerance-accepted
+approximations; attempt summaries retain the learner's accepted form. Each review
+disclosure names its stage. Input examples render literal notation and copy the
+original typing syntax, independently of their display LaTeX.
 
 Balanced parenthesized exponents such as `e^(-j omega)` are equivalent to braced
 exponents. Empty exponents stay incomplete. Syntax diagnostics refer to original
@@ -83,6 +87,8 @@ complex weights retain the existing coefficient tolerance.
 Ordinary spectra use independently evaluated complex formulas, including translation
 phase. Principal phase is masked at numerical zeros; curves break at phase wraps.
 An accessible sample table accompanies the plots.
+Rectangular sample tables include the center, spectral zeros, and intermediate
+nonzero lobe values on both sides; undefined phase stays masked at zeros.
 
 Cosine spectra use symbolic arrows and a table of locations, complex weights,
 weight magnitudes, and phases. Arrow length does not represent a finite spectral

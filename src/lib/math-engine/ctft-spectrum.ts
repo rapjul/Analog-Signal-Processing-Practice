@@ -20,6 +20,23 @@ export interface CtftSpectrumData {
 }
 
 /**
+ * Selects ordered accessible observations without sampling only rectangular zeros.
+ * @param points - Existing regular plot grid; distributions supply no points.
+ * @param family - Signal family controlling the observation stride.
+ * @returns Existing samples, including masked zeros and intervening rectangular lobes.
+ */
+export function selectCtftSpectrumSamples(
+	points: CtftPlotPoint[],
+	family: GeneratedCtftProblem["signalType"],
+): CtftPlotPoint[] {
+	const stride = family === "rect" ? 25 : 50;
+	return points.filter(
+		/** @param point - Existing ordinate. @param index - Grid position. @returns Whether it is representative or a numerical zero. */
+		(point, index) => index % stride === 0 || point.phase === null,
+	);
+}
+
+/**
  * Computes an ordinary complex CTFT directly from signal parameters.
  * @param problem - Generated signal, including translation.
  * @param omega - Angular frequency.

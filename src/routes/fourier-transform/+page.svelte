@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** Guided forward CTFT derivation and transform-pair practice. */
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
+	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import CtftStepSolver from "$lib/components/solvers/CtftStepSolver.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
@@ -105,9 +106,29 @@
 			</p>
 		</details>
 		<p id="ctft-notation">
-			Enter LaTeX or supported notation such as pi, j, omega, fractions,
-			and e^(...) or e^&#123;...&#125;. All intermediate answers must be
-			verified before the worked solution and plots unlock.
+			Enter LaTeX, fractions, or supported input notation such as
+			<MathInline
+				math={String.raw`\texttt{pi}`}
+				copyText="pi"
+			/>,
+			<MathInline
+				math={String.raw`\texttt{j}`}
+				copyText="j"
+			/>, and
+			<MathInline
+				math={String.raw`\texttt{omega}`}
+				copyText="omega"
+			/>. Equivalent exponential inputs include
+			<MathInline
+				math={String.raw`\texttt{e\textasciicircum(-j*omega)}`}
+				copyText="e^(-j*omega)"
+			/>
+			and <MathInline
+				math={String.raw`\texttt{e\textasciicircum\{-j*omega\}}`}
+				copyText={"e^{-j*omega}"}
+			/>. Select an example to copy its input text. All intermediate
+			answers must be verified before the worked solution and plots
+			unlock.
 		</p>
 		<CtftStepSolver
 			problem={currentProblem}
@@ -135,6 +156,11 @@
 	}
 	summary {
 		cursor: pointer;
+	}
+	summary:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 4px;
+		border-radius: var(--radius-sm);
 	}
 	.conventions {
 		min-width: 0;
