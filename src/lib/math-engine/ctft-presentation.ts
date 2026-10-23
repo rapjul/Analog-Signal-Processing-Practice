@@ -1,11 +1,69 @@
 /** Read-only display helpers; these never establish mathematical correctness. */
 import { factorAt, scalar } from "./canonical-algebra";
 import { normalizeCanonicalTransform } from "./canonical-transform";
-import type { CtftLessonPart, CtftStageId } from "./ctft-lesson";
+import type {
+	CtftLessonPart,
+	CtftLessonStage,
+	CtftStageId,
+} from "./ctft-lesson";
 import { validateCtftConstant } from "./ctft-tutor-validation";
 import { normalizeMathLatex, parseStrictLatex } from "./evaluator";
 import type { GeneratedCtftProblem } from "./fourier-transform";
 import { normalizeTransformNotation } from "./transform-notation";
+
+/**
+ * Selects compact stage results while detailed derivations remain completion-gated.
+ * @param stage - Completed lesson stage.
+ * @returns Stage-owned tasks whose accepted responses summarize the work.
+ */
+export function completedCtftParts(stage: CtftLessonStage): CtftLessonPart[] {
+	if (stage.id !== "base" && stage.id !== "property") return stage.parts;
+	return stage.parts.filter(
+		/** @param task - Owned exercise. @returns Whether it supplies the stage's resulting expression. */
+		(task) =>
+			["expression", "kernel", "phase"].includes(task.id) ||
+			task.kind === "location" ||
+			task.kind === "weight",
+	);
+}
+
+/**
+ * Names the actual typed task using the established solver action convention.
+ * @param task - Active lesson-owned task.
+ * @param stageId - Distinguishes base and final spectrum entry.
+ * @returns Plain-text action with a progression arrow.
+ */
+export function ctftCheckLabel(
+	task: CtftLessonPart,
+	stageId: CtftStageId,
+): string {
+	if (task.kind === "location") return "Check impulse location →";
+	if (task.kind === "weight") return "Check impulse weight →";
+	if (task.kind === "spectrum")
+		return stageId === "base"
+			? "Check base spectrum →"
+			: "Check final spectrum →";
+	const subjects: Record<string, string> = {
+		T: "width",
+		a: "decay parameter",
+		w0: "carrier frequency",
+		t0: "translation",
+		primitive: "antiderivative",
+		endpoints: "endpoints",
+		sine: "sine form",
+		limit: "zero-frequency value",
+		phase: "phase multiplier",
+		linear: "linear coefficient",
+		square: "squared coefficient",
+		remainder: "exponent",
+		sifting: "sifting point",
+		kernel: "sampled factor",
+		euler: "Euler coefficient",
+		"exponential-weight": "impulse weight",
+		"scaled-weight": "scaled weight",
+	};
+	return `Check ${subjects[task.id] ?? "calculation"} →`;
+}
 
 /**
  * Presents an authoritative exact solution, separately from accepted attempt text.

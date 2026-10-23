@@ -65,6 +65,65 @@ test("formulas and notation have accessible keyboard controls", async ({
 	).toBe(true);
 });
 
+/** Scalar controls follow their actual exercise width rather than the browser viewport. */
+test("scalar rows and actions use their own container width", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 602, height: 983 });
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	const row = page.locator(".step-card.active .answer-row");
+	await expect(row).toHaveCSS("flex-direction", "row");
+	const check = page.getByRole("button", {
+		name: "Check width →",
+		exact: true,
+	});
+	await expect(check).toBeDisabled();
+	await page.locator(".exercise-container").evaluate(
+		/** @param element - Actual exercise. Constrains only this component at a wide viewport. */
+		(element) => {
+			(element as HTMLElement).style.width = "250px";
+		},
+	);
+	await expect(row).toHaveCSS("flex-direction", "column");
+	await page.locator(".exercise-container").evaluate(
+		/** @param element - Constrained exercise. Restores natural sizing. */
+		(element) => {
+			(element as HTMLElement).style.removeProperty("width");
+		},
+	);
+	await page.getByLabel("Pulse width T").fill("2");
+	await expect(check).toBeEnabled();
+	await check.focus();
+	await check.press("Enter");
+	await expect(
+		page.getByRole("button", { name: "Check translation →", exact: true }),
+	).toBeVisible();
+	await expect(page.locator(".step-card.active .answer-row")).toHaveCSS(
+		"flex-direction",
+		"row",
+	);
+	await expect(
+		page.getByRole("group", {
+			name: "Step 1 verified results: Identify the Base Transform Pair",
+		}),
+	).toContainText("Rectangular pulse");
+	await expect(page.locator(".step-card.completed details")).toHaveCount(0);
+	await page.setViewportSize({ width: 320, height: 740 });
+	await expect(page.locator(".step-card.active .answer-row")).toHaveCSS(
+		"flex-direction",
+		"column",
+	);
+	const button = page.getByRole("button", {
+		name: "Check translation →",
+		exact: true,
+	});
+	const box = await button.boundingBox();
+	const action = await page.locator(".solver-actions").boundingBox();
+	expect(box!.width).toBeCloseTo(action!.width, 0);
+});
+
 /** Ordinary keyboard controls expose relevant context, original error ranges, and responsive columns. */
 test("workspace guides endpoint algebra and reflows its verified context", async ({
 	page,
@@ -192,7 +251,7 @@ for (const mode of ["derivation", "pairs-properties"] as const) {
 		);
 		await expect(page.locator(".solution-breakdown")).toContainText("\\pi");
 		const review = page.locator(".verified-fields").last();
-		await review.locator("summary").press("Enter");
+		await expect(review).toBeVisible();
 		await expect(review).toContainText("3.14159265");
 	});
 }
@@ -293,7 +352,7 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 /** Mode switches retain the visible signal but clear progress, hints, and gated content. */
 test("mode changes and new problems isolate attempts", async ({ page }) => {
 	const prompt = await page
-		.locator(".problem-prompt annotation")
+		.locator(".problem-prompt .math-block annotation")
 		.first()
 		.textContent();
 	await page
@@ -302,9 +361,9 @@ test("mode changes and new problems isolate attempts", async ({ page }) => {
 	await expect(page.getByLabel("Pulse width T")).toBeVisible();
 	await page.locator(".drill-summary").click();
 	await page.getByLabel("Teaching Mode:").selectOption("pairs-properties");
-	await expect(page.locator(".problem-prompt annotation").first()).toHaveText(
-		prompt!,
-	);
+	await expect(
+		page.locator(".problem-prompt .math-block annotation").first(),
+	).toHaveText(prompt!);
 	await expect(page.locator(".step-card.completed")).toHaveCount(0);
 	await expect(
 		page.getByRole("button", { name: "Rectangular pulse", exact: true }),

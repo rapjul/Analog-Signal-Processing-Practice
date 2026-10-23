@@ -310,19 +310,23 @@ describe("CTFT guided component", () => {
 				).toBeNull();
 				await complete(view.container, problem, mode);
 				const names = [
-					...view.container.querySelectorAll(
-						".verified-fields summary",
-					),
+					...view.container.querySelectorAll(".verified-fields"),
 				].map(
-					/** @param disclosure - Completed stage control. @returns Its accessible visible name. */
-					(disclosure) =>
-						disclosure.textContent?.replace(/\s+/g, " ").trim(),
+					/** @param disclosure - Completed stage results. @returns Its accessible name. */
+					(disclosure) => disclosure.getAttribute("aria-label"),
 				);
 				expect(new Set(names).size).toBe(mode === "derivation" ? 6 : 5);
 				expect(names[0]).toBe(
-					"Step 1: Identify the Base Transform Pair — 1 verified exercise — review work",
+					"Step 1 verified results: Identify the Base Transform Pair",
 				);
-				expect(names[1]).toContain("Step 2: Extract Signal Parameters");
+				expect(names[1]).toContain(
+					"Step 2 verified results: Extract Signal Parameters",
+				);
+				expect(
+					view.container.querySelector(
+						".step-card.completed details",
+					),
+				).toBeNull();
 				expect(
 					view.container.querySelector('[role="status"]')
 						?.textContent,

@@ -44,7 +44,9 @@ wide containers, and stacks above it on mobile. Future answers are never passed
 into the results snippet.
 
 Choice cards check immediately on activation. Typed exercises use the standard
-primary check action; scalar inputs stay compact and do not duplicate simple
+shared `SolverCheckButton` primary action with task-specific labels. Scalar rows
+use the named exercise container: labels and inputs align at widths of at least
+`18rem` and stack below that width. Scalar inputs stay compact and do not duplicate simple
 numbers in a preview. Multipart labels use letters such as **Part 4A**; singleton
 stages have no part badge. Accepted rational arithmetic is reduced exactly in
 read-only summaries. Three progressive hints guide each task, including the
@@ -53,7 +55,7 @@ does not require re-entering the sampled kernel as the same base spectrum.
 Cosine builders associate each location and complex weight in an impulse row.
 Completed worked solutions use exact lesson targets rather than tolerance-accepted
 approximations; attempt summaries retain the learner's accepted form. Each review
-disclosure names its stage. Input examples render literal notation and copy the
+summary visibly names its accepted results without a disclosure control. Input examples render literal notation and copy the
 original typing syntax, independently of their display LaTeX.
 Answer-form instructions render mathematical notation through the shared wrappers.
 Rectangular half-widths stay in reduced fractional form in setup hints, endpoint

@@ -3,12 +3,16 @@
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
+	import SolverCheckButton from "$lib/components/ui/SolverCheckButton.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import type {
 		CtftLessonPart,
 		CtftStageId,
 	} from "$lib/math-engine/ctft-lesson";
-	import { displayCtftInput } from "$lib/math-engine/ctft-presentation";
+	import {
+		ctftCheckLabel,
+		displayCtftInput,
+	} from "$lib/math-engine/ctft-presentation";
 	import type { TransformDiagnostic } from "$lib/math-engine/transform-diagnostics";
 	import { transformSyntaxDiagnostics } from "$lib/math-engine/transform-diagnostics";
 	import type {
@@ -69,146 +73,155 @@
 	}
 </script>
 
-<p class="objective">
-	<MathText text={task.objective ?? "Complete the current exercise."} />
-</p>
-{#if task.contextLatex}<MathBlock
-		math={task.contextLatex}
-		compact
-		hideHeader
-	/>{/if}
-<p
-	class="answer-form"
-	id="ctft-answer-form"
->
-	<MathText text={task.answerForm ?? ""} />
-</p>
-<form onsubmit={submit}>
-	{#if task.kind === "choice"}
-		<div
-			class="choices"
-			role="group"
-			aria-label={task.label}
-		>
-			{#each task.choices ?? [] as choice}
-				<button
-					type="button"
-					value={choice.id}
-					class="choice"
-					class:selected={response.input === choice.id}
-					aria-label={choice.accessibleLabel ?? choice.label}
-					aria-pressed={response.input === choice.id}
-					onclick={/** Activates this lesson-owned option. */ () =>
-						choose(choice.id)}
-				>
-					{#if task.mathChoices}<span aria-hidden="true"
-							><MathText text={`$${choice.label}$`} /></span
-						>{:else}{choice.label}{/if}
-				</button>
-			{/each}
-		</div>
-	{:else}
-		<div
-			class="answer-row"
-			class:compact
-		>
-			<label
-				for={inputId}
-				class:sr-only={!compact}
-				><MathText
-					text={compact ? (task.inputLabel ?? "Value") : task.label}
-				/></label
-			>
-			<input
-				bind:this={input}
-				id={inputId}
-				class="math-text-input"
-				aria-label={task.label}
-				type="text"
-				autocomplete="off"
-				spellcheck="false"
-				maxlength="16384"
-				value={response.input}
-				oninput={edit}
-				aria-invalid={response.result !== null &&
-					response.result.status !== "correct"}
-				aria-describedby={`ctft-notation ctft-answer-form${response.result?.diagnostics?.length ? " ctft-input-errors" : ""}`}
-			/>
-		</div>
-		{#if preview && !previewComplete && !response.result?.diagnostics?.length}<p
-				class="answer-form"
-			>
-				Complete the brackets and exponent to see the expression
-				preview.
-			</p>{/if}
-		{#if preview && previewComplete && !response.result?.diagnostics?.length}<div
-				class="answer-preview"
-			>
-				<span>Expression preview</span><MathBlock
-					math={displayCtftInput(response.input)}
-					compact
-					hideHeader
-				/>
-			</div>{/if}
-		<button
-			class="check-button"
-			type="submit"
-			disabled={!response.input.trim()}>Check Answer</button
-		>
-	{/if}
-</form>
-{#if response.result?.diagnostics?.length}
-	<div
-		id="ctft-input-errors"
-		class="input-errors"
-		role="region"
-		aria-label="Issues in your expression"
+<div class="exercise-container">
+	<p class="objective">
+		<MathText text={task.objective ?? "Complete the current exercise."} />
+	</p>
+	{#if task.contextLatex}<MathBlock
+			math={task.contextLatex}
+			compact
+			hideHeader
+		/>{/if}
+	<p
+		class="answer-form"
+		id="ctft-answer-form"
 	>
-		<p>Select an issue to jump to its location in your input.</p>
-		<ul>
-			{#each response.result.diagnostics as issue}
-				<li>
+		<MathText text={task.answerForm ?? ""} />
+	</p>
+	<form onsubmit={submit}>
+		{#if task.kind === "choice"}
+			<div
+				class="choices"
+				role="group"
+				aria-label={task.label}
+			>
+				{#each task.choices ?? [] as choice}
 					<button
 						type="button"
-						onclick={/** Selects this original input range. */ () =>
-							selectIssue(issue)}
-						>{issue.message}
-						<span class="source-excerpt"
-							><code
-								>{response.input.slice(
-									Math.max(0, issue.start - 16),
-									issue.start,
-								)}<mark
-									>{response.input.slice(
-										issue.start,
-										issue.end,
-									) || "▏"}</mark
-								>{response.input.slice(
-									issue.end,
-									issue.end + 16,
-								)}</code
-							></span
-						></button
+						value={choice.id}
+						class="choice"
+						class:selected={response.input === choice.id}
+						aria-label={choice.accessibleLabel ?? choice.label}
+						aria-pressed={response.input === choice.id}
+						onclick={/** Activates this lesson-owned option. */ () =>
+							choose(choice.id)}
 					>
-				</li>
-			{/each}
-		</ul>
+						{#if task.mathChoices}<span aria-hidden="true"
+								><MathText text={`$${choice.label}$`} /></span
+							>{:else}{choice.label}{/if}
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<div
+				class="answer-row"
+				class:compact
+			>
+				<label
+					for={inputId}
+					class:sr-only={!compact}
+					><MathText
+						text={compact
+							? (task.inputLabel ?? "Value")
+							: task.label}
+					/></label
+				>
+				<input
+					bind:this={input}
+					id={inputId}
+					class="math-text-input"
+					aria-label={task.label}
+					type="text"
+					autocomplete="off"
+					spellcheck="false"
+					maxlength="16384"
+					value={response.input}
+					oninput={edit}
+					aria-invalid={response.result !== null &&
+						response.result.status !== "correct"}
+					aria-describedby={`ctft-notation ctft-answer-form${response.result?.diagnostics?.length ? " ctft-input-errors" : ""}`}
+				/>
+			</div>
+			{#if preview && !previewComplete && !response.result?.diagnostics?.length}<p
+					class="answer-form"
+				>
+					Complete the brackets and exponent to see the expression
+					preview.
+				</p>{/if}
+			{#if preview && previewComplete && !response.result?.diagnostics?.length}<div
+					class="answer-preview"
+				>
+					<span>Expression preview</span><MathBlock
+						math={displayCtftInput(response.input)}
+						compact
+						hideHeader
+					/>
+				</div>{/if}
+			<SolverCheckButton
+				label={ctftCheckLabel(task, stageId)}
+				disabled={!response.input.trim()}
+			/>
+		{/if}
+	</form>
+	{#if response.result?.diagnostics?.length}
+		<div
+			id="ctft-input-errors"
+			class="input-errors"
+			role="region"
+			aria-label="Issues in your expression"
+		>
+			<p>Select an issue to jump to its location in your input.</p>
+			<ul>
+				{#each response.result.diagnostics as issue}
+					<li>
+						<button
+							type="button"
+							onclick={/** Selects this original input range. */ () =>
+								selectIssue(issue)}
+							>{issue.message}
+							<span class="source-excerpt"
+								><code
+									>{response.input.slice(
+										Math.max(0, issue.start - 16),
+										issue.start,
+									)}<mark
+										>{response.input.slice(
+											issue.start,
+											issue.end,
+										) || "▏"}</mark
+									>{response.input.slice(
+										issue.end,
+										issue.end + 16,
+									)}</code
+								></span
+							></button
+						>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+	<div
+		class="feedback-box"
+		data-validation={response.result?.status}
+	>
+		<StepFeedback {solver} />
 	</div>
-{/if}
-<div
-	class="feedback-box"
-	data-validation={response.result?.status}
->
-	<StepFeedback {solver} />
+	<HintDisclosure
+		hints={solver.activeHints}
+		hintTier={solver.hintTier}
+		onRevealNextHint={/** Reveals only the current exercise's next hint. */ () =>
+			solver.revealNextHint()}
+	/>
 </div>
-<HintDisclosure
-	hints={solver.activeHints}
-	hintTier={solver.hintTier}
-	onRevealNextHint={/** Reveals only the current exercise's next hint. */ () =>
-		solver.revealNextHint()}
-/>
 
 <style>
+	/* ── Exercise-sized responsive boundary ─────────────────────────────── */
+	.exercise-container {
+		container: ctft-exercise / inline-size;
+		min-width: 0;
+		width: 100%;
+	}
 	/* ── Labels and exercise layout ─────────────────────────────────────── */
 	.sr-only {
 		position: absolute;
@@ -270,27 +283,6 @@
 		border-color: var(--accent-primary);
 		background: var(--accent-glow);
 	}
-	.check-button {
-		align-self: flex-end;
-		display: inline-flex;
-		justify-content: center;
-		padding: 0.55rem 1.1rem;
-		border: 0;
-		border-radius: var(--radius-sm);
-		background: var(--accent-primary);
-		color: var(--text-on-accent, #000);
-		font: inherit;
-		font-size: var(--text-sm);
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.check-button:hover:enabled {
-		filter: brightness(1.1);
-	}
-	.check-button:disabled {
-		opacity: 0.5;
-		cursor: default;
-	}
 	.answer-preview {
 		margin-block: 0.5rem;
 		min-width: 0;
@@ -326,8 +318,8 @@
 		color: var(--text-primary);
 		text-decoration: underline;
 	}
-	/* ── Desktop scalar alignment; mobile retains stacked controls ─────── */
-	@media (min-width: 640px) {
+	/* ── Scalar alignment follows the available exercise width ──────────── */
+	@container ctft-exercise (min-width: 18rem) {
 		.answer-row.compact {
 			flex-direction: row;
 			align-items: center;

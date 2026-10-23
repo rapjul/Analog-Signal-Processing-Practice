@@ -16,6 +16,7 @@
 		CtftStageId,
 	} from "$lib/math-engine/ctft-lesson";
 	import {
+		completedCtftParts,
 		exactCtftSolution,
 		summarizeCtftInput,
 	} from "$lib/math-engine/ctft-presentation";
@@ -143,15 +144,18 @@
 					progress={solver.partProgress}
 				/>{/if}{/snippet}
 		{#snippet verifiedSummary()}
-			<details class="verified-fields">
-				<summary
-					>Step {index + 1}: {stage.title} — {stage.parts.length} verified
-					{stage.parts.length === 1 ? "exercise" : "exercises"} — review
-					work</summary
-				>
+			<div
+				class="verified-fields"
+				role="group"
+				aria-label={`Step ${index + 1} verified results: ${stage.title}`}
+			>
 				<dl>
-					{#each stage.parts as task}<dt>
-							<MathText text={task.labelMath ?? task.label} />
+					{#each completedCtftParts(stage) as task}<dt>
+							<MathText
+								text={stage.id === "pair"
+									? "Signal family"
+									: (task.labelMath ?? task.label)}
+							/>
 						</dt>
 						<dd>
 							{#if task.kind === "choice" && !task.mathChoices}{summary(
@@ -162,7 +166,7 @@
 								/>{/if}
 						</dd>{/each}
 				</dl>
-			</details>
+			</div>
 		{/snippet}
 		<StepCard
 			stepNumber={index + 1}
