@@ -141,6 +141,7 @@ export function getCtftPairLatex(
  * @param {{ T?: number; a?: number; w0?: number }} params Parameter values (T, a, w0)
  * @param {number} omega Frequency omega in rad/s
  * @returns {CtftSpectrumPoint} CtftSpectrumPoint object with magnitude and phase
+ * @throws {Error} Cosine spectra contain distributions rather than pointwise values.
  */
 export function evaluateCtftSpectrum(
 	type: CtftSignalType,
@@ -178,9 +179,9 @@ export function evaluateCtftSpectrum(
 			return { omega, magnitude: 1, phase: 0 };
 		}
 		case "cos": {
-			const w0 = params.w0 ?? 1;
-			const isImpulse = Math.abs(Math.abs(omega) - w0) < 1e-4;
-			return { omega, magnitude: isImpulse ? Math.PI : 0, phase: 0 };
+			throw new Error(
+				"A cosine spectrum is a distribution; use weighted impulses, not pointwise heights.",
+			);
 		}
 		default: {
 			const _exhaustiveCheck: never = type;
@@ -198,6 +199,7 @@ export function evaluateCtftSpectrum(
  * @param {{ T?: number; a?: number; w0?: number }} params Signal parameter values
  * @param {number} omega Frequency omega in rad/s
  * @returns {number} Numerical value of |X(w)|^2
+ * @throws {Error} Distribution spectra cannot be squared as finite peak heights.
  */
 export function evaluateEnergySpectrum(
 	type: CtftSignalType,
