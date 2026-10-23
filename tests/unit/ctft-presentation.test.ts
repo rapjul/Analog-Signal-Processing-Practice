@@ -30,7 +30,7 @@ describe("exact CTFT solutions", () => {
 							task,
 							problem,
 							stage.id,
-							`${location * 2}/2`,
+							`X(omega)=${location * 2}/2`,
 						);
 						if (task.kind === "location")
 							expect(value).toBe(String(location));

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
-import type { Plugin } from "vite";
+import { loadEnv, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 import { shouldRegisterServiceWorker } from "./src/lib/pwa-policy.ts";
@@ -54,8 +54,9 @@ function playwrightProbePlugin(): Plugin {
  * Configures development servers, production asset caching, and test runtimes.
  * @param context - Vite configuration context.
  * @param context.command - Whether Vite is serving or building the application.
+ * @param context.mode - Vite mode selecting the shared environment files.
  */
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
 	const isBuild = command === "build";
 	const rawBasePath = process.env.BASE_PATH?.replace(/\/$/, "");
 	const basePath: "" | `/${string}` = rawBasePath
@@ -96,7 +97,8 @@ export default defineConfig(({ command }) => {
 				devOptions: {
 					enabled: shouldRegisterServiceWorker(
 						true,
-						process.env.VITE_SIGNALLAB_DEV_PWA,
+						loadEnv(mode, process.cwd(), "VITE_")
+							.VITE_SIGNALLAB_DEV_PWA,
 					),
 					type: "module",
 					navigateFallback: basePath ? `${basePath}/` : "/",

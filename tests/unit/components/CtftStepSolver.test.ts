@@ -47,11 +47,11 @@ async function complete(
 				expected = `${approximateReversedRows ? "3.14159265" : "\\pi"} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
 			}
 			if (approximateReversedRows && task.kind === "location")
-				expected = String(
+				expected = `X(omega)=${String(
 					task.id === "location-0"
 						? problem.params.w0
 						: -problem.params.w0,
-				);
+				)}`;
 			if (task.kind === "choice")
 				await fireEvent.click(
 					form.querySelector(`button[value="${expected}"]`)!,

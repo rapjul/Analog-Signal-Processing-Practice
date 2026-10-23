@@ -8,6 +8,33 @@ import { diagnoseTransformSyntax } from "$lib/math-engine/transform-diagnostics"
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 
 describe("transform source diagnostics", () => {
+	/** Rewriting sized groups and invisible spacing must not hide incomplete powers. */
+	it("rejects exponents that become empty during notation normalization", () => {
+		const problem = createCtftProblem("delta", {
+			a: 1,
+			T: 2,
+			w0: 2,
+			t0: 0,
+		});
+		for (const input of [
+			"e^[]",
+			String.raw`e^\left(\right)`,
+			String.raw`e^{\,}`,
+			String.raw`e^{\quad}`,
+		]) {
+			const result = validateCtftAnswer(input, problem);
+			expect(result.status, input).toBe("invalid");
+			expect(result.message).toContain("exponent");
+		}
+	});
+	/** Many adjacent groups preserve values without repeatedly scanning the preceding source. */
+	it("normalizes large adjacent groups and whitespace before powers", () => {
+		const groups = "(1)".repeat(5000);
+		expect(normalizeTransformNotation(groups, "omega")).toBe(groups);
+		expect(normalizeTransformNotation("e^  ((1+2)^(2))", "omega")).toBe(
+			"e^  {(1+2)^{2}}",
+		);
+	});
 	/** Equivalent exponent delimiters must pass the real canonical verifier. */
 	it("accepts nested parenthesized powers and equation prefixes", () => {
 		const problem = createCtftProblem("delta", {

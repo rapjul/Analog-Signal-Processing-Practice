@@ -204,7 +204,7 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 						? String(location).padEnd(8200)
 						: notation === "internal-whitespace"
 							? `(${" ".repeat(8200)}${location})`
-							: String(location);
+							: `X(omega)=${location}`;
 				await enterCtftAnswer(
 					page,
 					`Impulse ${row + 1} location`,

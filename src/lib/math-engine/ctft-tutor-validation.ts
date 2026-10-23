@@ -107,7 +107,7 @@ export function validateCtftCalculation(
  * Verifies a constant against an independent symbolic target, optionally exactly.
  * @param answer - Student constant expression.
  * @param expected - Parameter-derived symbolic constant.
- * @param exact - Require exact equality using a distribution coordinate.
+ * @param exact - Require exact canonical scalar equality rather than coefficient tolerance.
  * @returns Typed verification, retaining unsupported and malformed outcomes.
  */
 export function validateCtftConstant(
@@ -139,22 +139,16 @@ export function validateCtftConstant(
 					"Enter a constant expression without time or frequency variables.",
 			};
 		if (!exact) return result;
-		const coordinate = normalizeCanonicalTransform(
-			parseStrictLatex(
-				normalizeTransformNotation(
-					`\\delta(\\omega-(${expected}))`,
-					"omega",
-				),
-			),
-			"omega",
-		);
-		return validateTransformAnswer(`\\delta(\\omega-(${answer}))`, {
-			variable: "omega",
-			canonicalTarget: coordinate,
-			samples: [],
-			/** @returns The zero regular part of this artificial coordinate comparison. */
-			evaluate: () => evaluateCanonicalRegular(coordinate, 0),
-		});
+		// Compare parsed values so accepted prefixes and per-field limits survive exact checks.
+		return parseImpulseConstant(answer).equals(
+			parseImpulseConstant(expected),
+		)
+			? result
+			: {
+					status: "incorrect",
+					message:
+						"Enter the exact constant value, without rounding.",
+				};
 	} catch (error) {
 		return error instanceof CanonicalError
 			? { status: error.status, message: error.message }

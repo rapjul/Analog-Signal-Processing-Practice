@@ -75,6 +75,24 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	/** Coordinates use exact scalar equality with their original independent input budget. */
+	it("accepts prefixed and maximum-length exact constants without embedding", () => {
+		for (const input of [
+			"X(omega)=3",
+			"3".padEnd(16384),
+			`( ${" ".repeat(16377)}3 )`,
+		])
+			expect(
+				validateCtftConstant(input, "3", true).status,
+				input.length.toString(),
+			).toBe("correct");
+		expect(validateCtftConstant("3".padEnd(16385), "3", true).status).toBe(
+			"unsupported",
+		);
+		expect(validateCtftConstant("3.000000001", "3", true).status).toBe(
+			"incorrect",
+		);
+	});
 	/** Remediation preserves the canonical outcome and original syntax ranges without mutating its input. */
 	it("adds bounded time-substitution diagnostics without changing verification", () => {
 		const original = {
@@ -178,7 +196,7 @@ describe("CTFT tutor", () => {
 									? String(location).padEnd(8200)
 									: notation === "internal-whitespace"
 										? `(${" ".repeat(8200)}${location})`
-										: String(location);
+										: `X(omega)=${location}`;
 						} else {
 							const translation =
 								solver.activeStage!.id === "base" ? 0 : shift;

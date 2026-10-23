@@ -56,6 +56,9 @@ different checkouts sharing an origin. Explicit development PWA testing uses
 `VITE_SIGNALLAB_DEV_PWA=1 npm run dev`; production builds retain normal service
 worker registration and offline support. Disabling registration does not remove
 an already installed worker, so inspect existing browser state during recovery.
+The development opt-in can also be set in a Vite environment file such as
+`.env.development.local`; worker generation and client registration read the same
+mode-specific setting. Shell environment values retain Vite's normal precedence.
 Keep Vite's filesystem restrictions enabled; adding unrelated checkouts to the
 allow list does not repair stale application content.
 

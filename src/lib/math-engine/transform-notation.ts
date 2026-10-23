@@ -117,7 +117,10 @@ function normalizePowers(source: string): string {
 		if (source[index] === "(") stack.push(index);
 		if (source[index] !== ")") continue;
 		const start = stack.pop();
-		if (start !== undefined && /\^\s*$/.test(source.slice(0, start))) {
+		if (start === undefined) continue;
+		let before = start - 1;
+		while (before >= 0 && /\s/.test(source[before]!)) before--;
+		if (source[before] === "^") {
 			output[start] = "{";
 			output[index] = "}";
 		}
@@ -149,6 +152,11 @@ export function normalizeTransformNotation(
 		prefix,
 		"",
 	);
+	if (/\^\s*\{\s*\}/.test(expression))
+		throw new CanonicalError(
+			"invalid",
+			"Enter an exponent inside this group.",
+		);
 	if (expression.includes("="))
 		throw new CanonicalError(
 			"invalid",
