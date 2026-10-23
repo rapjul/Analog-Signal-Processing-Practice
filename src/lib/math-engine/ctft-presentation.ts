@@ -1,9 +1,51 @@
 /** Read-only display helpers; these never establish mathematical correctness. */
 import { factorAt, scalar } from "./canonical-algebra";
 import { normalizeCanonicalTransform } from "./canonical-transform";
-import type { CtftLessonPart } from "./ctft-lesson";
+import type { CtftLessonPart, CtftStageId } from "./ctft-lesson";
+import { validateCtftConstant } from "./ctft-tutor-validation";
 import { normalizeMathLatex, parseStrictLatex } from "./evaluator";
+import type { GeneratedCtftProblem } from "./fourier-transform";
 import { normalizeTransformNotation } from "./transform-notation";
+
+/**
+ * Presents an authoritative exact solution, separately from accepted attempt text.
+ * @param task - Lesson-owned completed task and exact target.
+ * @param problem - Authoritative signal parameters.
+ * @param stageId - Determines whether translation has been applied.
+ * @param verifiedLocation - Accepted coordinate for this impulse row, if applicable.
+ * @returns Exact mathematical target or the lesson-owned choice label.
+ */
+export function exactCtftSolution(
+	task: CtftLessonPart,
+	problem: GeneratedCtftProblem,
+	stageId: CtftStageId,
+	verifiedLocation?: string,
+): string {
+	let target = task.expected;
+	if (task.kind === "location" || task.kind === "weight") {
+		const location = [problem.params.w0, -problem.params.w0].find(
+			/** @param coordinate - Exact carrier candidate. @returns Whether the verified row uses it. */
+			(coordinate) =>
+				validateCtftConstant(
+					verifiedLocation ?? "",
+					String(coordinate),
+					true,
+				).status === "correct",
+		);
+		if (location === undefined)
+			throw new Error(
+				"Exact solution requires a verified carrier coordinate.",
+			);
+		const shift = stageId === "base" ? 0 : problem.params.t0;
+		target =
+			task.kind === "location"
+				? String(location)
+				: shift === 0
+					? "\\pi"
+					: `\\pi e^{-j(${location})(${shift})}`;
+	}
+	return summarizeCtftInput(task, target);
+}
 
 /**
  * Formats accepted shorthand consistently with the real notation normalizer.

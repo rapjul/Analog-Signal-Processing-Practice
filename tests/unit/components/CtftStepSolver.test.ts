@@ -22,12 +22,14 @@ afterEach(cleanup);
  * @param problem - Fixture providing deterministic mathematical expectations.
  * @param mode - Selected path.
  * @param stopBefore - Optional stage to leave active for targeted accessibility assertions.
+ * @param approximateReversedRows - Exercises accepted decimal weights and reversed impulse order.
  */
 async function complete(
 	container: HTMLElement,
 	problem: GeneratedCtftProblem,
 	mode: CtftPracticeMode,
 	stopBefore?: CtftStageId,
+	approximateReversedRows = false,
 ): Promise<void> {
 	const lesson = buildCtftLesson(problem, mode);
 	for (const stage of lesson.stages) {
@@ -39,11 +41,17 @@ async function complete(
 			let expected = task.expected;
 			if (task.kind === "weight") {
 				const location =
-					task.id === "weight-0"
+					(task.id === "weight-0") !== approximateReversedRows
 						? -problem.params.w0
 						: problem.params.w0;
-				expected = `\\pi e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
+				expected = `${approximateReversedRows ? "3.14159265" : "\\pi"} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
 			}
+			if (approximateReversedRows && task.kind === "location")
+				expected = String(
+					task.id === "location-0"
+						? problem.params.w0
+						: -problem.params.w0,
+				);
 			if (task.kind === "choice")
 				await fireEvent.click(
 					form.querySelector(`button[value="${expected}"]`)!,
@@ -63,6 +71,36 @@ async function complete(
 }
 
 describe("CTFT guided component", () => {
+	for (const mode of ["derivation", "pairs-properties"] as const)
+		for (const t0 of [0, 1, -1]) {
+			/** Real validators accept approximations while completed solutions remain exact. */
+			it(`separates exact solutions from accepted rows in ${mode} at ${t0}`, async () => {
+				const problem = createCtftProblem("cos", {
+					a: 2,
+					T: 4,
+					w0: 3,
+					t0,
+				});
+				const view = render(CtftStepSolver, { problem, mode });
+				await complete(view.container, problem, mode, undefined, true);
+				expect(
+					view.container.querySelector(".solution-breakdown")
+						?.textContent,
+				).not.toContain("3.14159265");
+				expect(
+					view.container.querySelector(".solution-breakdown")
+						?.textContent,
+				).toContain("\\pi");
+				expect(
+					[
+						...view.container.querySelectorAll(".verified-fields"),
+					].some(
+						/** @param field - Accepted attempt disclosure. @returns Whether the entered approximation survives. */
+						(field) => field.textContent?.includes("3.14159265"),
+					),
+				).toBe(true);
+			});
+		}
 	/** Context is earned through real validators, never populated from future targets or edited drafts. */
 	it("shows only accepted work in context and simplifies exact scalar arithmetic", async () => {
 		const problem = createCtftProblem("rect", { a: 2, T: 6, w0: 3, t0: 1 });

@@ -13,8 +13,12 @@
 	import type {
 		CtftLessonPart,
 		CtftPracticeMode,
+		CtftStageId,
 	} from "$lib/math-engine/ctft-lesson";
-	import { summarizeCtftInput } from "$lib/math-engine/ctft-presentation";
+	import {
+		exactCtftSolution,
+		summarizeCtftInput,
+	} from "$lib/math-engine/ctft-presentation";
 	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
 	import CtftExercise from "./CtftExercise.svelte";
 	import {
@@ -91,6 +95,19 @@
 	/** @param task - Verified task. @param state - Accepted response. @returns Read-only simplified presentation. */
 	function summary(task: CtftLessonPart, state: CtftPartState): string {
 		return summarizeCtftInput(task, state.input);
+	}
+	/** @param task - Completed lesson task. @param stageId - Its mathematical stage. @returns Authoritative exact worked answer. */
+	function solution(task: CtftLessonPart, stageId: CtftStageId): string {
+		const locationId =
+			task.kind === "weight"
+				? task.id.replace("weight", "location")
+				: task.id;
+		return exactCtftSolution(
+			task,
+			problem,
+			stageId,
+			solver.stages[stageId]?.parts[locationId]?.input,
+		);
 	}
 </script>
 
@@ -293,19 +310,9 @@
 								<MathText text={task.labelMath ?? task.label} />
 							</p>
 							{#if task.kind === "choice" && !task.mathChoices}<p>
-									{summary(
-										task,
-										solver.stages[stage.id]!.parts[
-											task.id
-										]!,
-									)}
+									{solution(task, stage.id)}
 								</p>{:else}<MathBlock
-									math={summary(
-										task,
-										solver.stages[stage.id]!.parts[
-											task.id
-										]!,
-									)}
+									math={solution(task, stage.id)}
 									compact
 									hideHeader
 								/>{/if}{/each}
