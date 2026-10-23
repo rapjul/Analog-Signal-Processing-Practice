@@ -120,6 +120,9 @@
 </PageLayout>
 
 <style>
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Practice card and conventions
+	   ═══════════════════════════════════════════════════════════════════════ */
 	.practice-card {
 		background: var(--bg-card);
 		border: 1px solid var(--border-color);

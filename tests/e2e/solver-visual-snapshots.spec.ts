@@ -247,11 +247,11 @@ test.describe("CTFT representative mode spectra @dev-harness", () => {
 			/** Captures completed regular/distribution spectra and both teaching-mode layouts. */
 			test(`${mode} ${family} completion`, async ({ page }) => {
 				await page.emulateMedia({ reducedMotion: "reduce" });
-				await installDeterministicBrowserState(page, "dark", 3103);
-				await page.addInitScript(() => {
-					Math.random = () => 0.2;
-				});
+				await installDeterministicBrowserState(page, "dark", 3103, 0.2);
 				await page.goto("/fourier-transform");
+				expect(await page.evaluate(() => Math.random())).toBe(0.2);
+				await page.reload();
+				expect(await page.evaluate(() => Math.random())).toBe(0.2);
 				await page.locator(".drill-summary").click();
 				await page.locator("#ctft-mode-select").selectOption(mode);
 				await page.locator("#signal-type-select").selectOption(family);
@@ -429,15 +429,18 @@ function writeCurrentRunManifest(): void {
 	);
 }
 
+/** @param page - Capture page. @param theme - Initial theme. @param seed - Seeded generator state. @param fixedRandom - Optional constant generator for parameter fixtures. Installs one authoritative random initializer. */
 async function installDeterministicBrowserState(
 	page: Page,
 	theme: Theme,
 	seed: number,
+	fixedRandom?: number,
 ): Promise<void> {
 	await page.addInitScript(
-		({ initialSeed, initialTheme }) => {
+		({ initialSeed, initialTheme, fixedRandom }) => {
 			let state = initialSeed >>> 0;
 			Math.random = () => {
+				if (fixedRandom !== undefined) return fixedRandom;
 				state += 0x6d2b79f5;
 				let value = state;
 				value = Math.imul(value ^ (value >>> 15), value | 1);
@@ -446,7 +449,7 @@ async function installDeterministicBrowserState(
 			};
 			localStorage.setItem("theme", initialTheme);
 		},
-		{ initialSeed: seed, initialTheme: theme },
+		{ initialSeed: seed, initialTheme: theme, fixedRandom },
 	);
 }
 

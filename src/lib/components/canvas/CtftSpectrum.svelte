@@ -69,6 +69,11 @@
 			Arrows mark Dirac impulses. Arrow length is symbolic; labels give
 			complex weights, not finite peak heights.
 		</p>
+		<p>
+			<MathText
+				text={String.raw`Each arrow has weight magnitude $\pi$. Horizontal axis: $\omega$ (rad/s).`}
+			/>
+		</p>
 		<svg
 			viewBox="0 0 640 200"
 			role="img"
@@ -79,19 +84,11 @@
 				y1="160"
 				x2="620"
 				y2="160"
-			/><text
-				x="520"
-				y="190">ω (rad/s)</text
-			>
+			/>
 			{#each data.impulses as impulse}
 				<path
 					d={`M${x(impulse.location)},160 L${x(impulse.location)},40 m-7,12 l7,-12 l7,12`}
 				/>
-				<text
-					x={x(impulse.location)}
-					y="25"
-					text-anchor="middle">weight magnitude π</text
-				>
 				<text
 					x={x(impulse.location)}
 					y="180"
@@ -132,6 +129,13 @@
 		</div>
 	{:else}
 		{#each ["magnitude", "phase"] as metric}
+			<p>
+				<MathText
+					text={metric === "magnitude"
+						? String.raw`$|X(\omega)|$ (peak $${number(maximum)}$). Horizontal axis: $\omega$ (rad/s).`
+						: String.raw`$\arg X(\omega)$ ($-\pi$ to $\pi$ rad). Horizontal axis: $\omega$ (rad/s).`}
+				/>
+			</p>
 			<svg
 				viewBox="0 0 640 200"
 				role="img"
@@ -153,13 +157,6 @@
 				/><path d={path(metric as "magnitude" | "phase")} />
 				<text
 					x="50"
-					y="17"
-					>{metric === "magnitude"
-						? `|X(ω)| (peak ${number(maximum)})`
-						: "arg X(ω) (−π to π rad)"}</text
-				>
-				<text
-					x="50"
 					y="185">{number(-data.extent)}</text
 				><text
 					x="325"
@@ -167,9 +164,6 @@
 				><text
 					x="555"
 					y="185">{number(data.extent)}</text
-				><text
-					x="500"
-					y="199">ω (rad/s)</text
 				>
 			</svg>
 		{/each}
@@ -215,6 +209,9 @@
 </section>
 
 <style>
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Spectrum layout and vector curves
+	   ═══════════════════════════════════════════════════════════════════════ */
 	.ctft-spectrum {
 		min-width: 0;
 		display: grid;
@@ -241,6 +238,9 @@
 	p {
 		color: var(--text-secondary);
 	}
+	/* ═══════════════════════════════════════════════════════════════════════
+	   Accessible numerical values
+	   ═══════════════════════════════════════════════════════════════════════ */
 	.table-scroll {
 		overflow-x: auto;
 		max-width: 100%;

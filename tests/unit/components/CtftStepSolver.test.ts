@@ -137,6 +137,24 @@ describe("CTFT guided component", () => {
 				expect(
 					view.container.querySelectorAll(".katex-error"),
 				).toHaveLength(0);
+				// SVG keeps numerical ticks only; mathematical captions use shared renderers.
+				for (const label of view.container.querySelectorAll(
+					".ctft-spectrum svg text",
+				))
+					expect(label.textContent).not.toMatch(/[ωπ]|arg|X\(/);
+				expect(
+					view.container.querySelector(".ctft-spectrum .katex"),
+				).not.toBeNull();
+				const chains = [
+					...view.container.querySelectorAll(
+						".solution-breakdown annotation",
+					),
+				].filter(
+					/** @param annotation - Rendered formula source. @returns A completed equation chain. */ (
+						annotation,
+					) => annotation.textContent?.includes("X_0"),
+				);
+				expect(chains.length > 0).toBe(mode === "derivation");
 				await fireEvent.click(
 					view.getByRole("button", { name: "Restart Problem" }),
 				);
