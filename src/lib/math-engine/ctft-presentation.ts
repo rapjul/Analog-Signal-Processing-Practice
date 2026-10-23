@@ -50,6 +50,8 @@ export function ctftCheckLabel(
 		t0: "translation",
 		primitive: "antiderivative",
 		endpoints: "endpoints",
+		upper: "infinite endpoint",
+		lower: "lower endpoint",
 		sine: "sine form",
 		limit: "zero-frequency value",
 		phase: "phase multiplier",

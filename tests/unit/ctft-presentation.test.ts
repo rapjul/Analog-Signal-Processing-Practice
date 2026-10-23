@@ -5,10 +5,35 @@ import {
 	formatCtftHalfWidth,
 } from "$lib/math-engine/ctft-derivation";
 import { buildCtftLesson } from "$lib/math-engine/ctft-lesson";
-import { exactCtftSolution } from "$lib/math-engine/ctft-presentation";
+import {
+	ctftCheckLabel,
+	exactCtftSolution,
+} from "$lib/math-engine/ctft-presentation";
 import { createCtftProblem } from "$lib/math-engine/fourier-transform";
 
 describe("exact CTFT solutions", () => {
+	/** Every typed course exercise has an informative submit action, including both exponential endpoints. */
+	it("names every typed course exercise action", () => {
+		for (const family of ["rect", "exponential", "delta", "cos"] as const) {
+			for (const mode of ["derivation", "pairs-properties"] as const) {
+				const lesson = buildCtftLesson(
+					createCtftProblem(family, { a: 2, T: 2, w0: 3, t0: 1 }),
+					mode,
+				);
+				for (const stage of lesson.stages) {
+					for (const task of stage.parts) {
+						if (task.kind === "choice") continue;
+						const label = ctftCheckLabel(task, stage.id);
+						expect(label).not.toBe("Check calculation →");
+						if (task.id === "upper")
+							expect(label).toBe("Check infinite endpoint →");
+						if (task.id === "lower")
+							expect(label).toBe("Check lower endpoint →");
+					}
+				}
+			}
+		}
+	});
 	/** Odd generated widths retain reduced fractions in bounds, phases, identities, and hints. */
 	it("formats pulse half-widths exactly throughout the lesson", () => {
 		for (const [T, half] of [
