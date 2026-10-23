@@ -1,4 +1,5 @@
 /** Family-specific teaching copy, independent of controller and rendering. */
+import { formatCtftHalfWidth } from "./ctft-derivation";
 import type {
 	CtftLessonPart,
 	CtftLessonStage,
@@ -134,7 +135,7 @@ function objective(
 function setupScaffold(problem: GeneratedCtftProblem): string {
 	const { T, a, w0 } = problem.params;
 	const scaffolds: Record<GeneratedCtftProblem["signalType"], string> = {
-		rect: String.raw`The unshifted pulse is one from $-${T / 2}$ to $${T / 2}$. Use these bounds and the forward kernel $e^{-j\omega t}$.`,
+		rect: String.raw`The unshifted pulse is one from $-${formatCtftHalfWidth(T)}$ to $${formatCtftHalfWidth(T)}$. Use these bounds and the forward kernel $e^{-j\omega t}$.`,
 		exponential: String.raw`The causal signal starts at zero and decays with $a=${a}>0$. Multiply its exponential by $e^{-j\omega t}$ before integrating to infinity.`,
 		gaussian:
 			"The Gaussian spans the entire real line. Match its exponent and the forward kernel to the supplied Gaussian identity.",
@@ -268,16 +269,13 @@ function inputMetadata(
 		t0: "$t_0 =$",
 		limit: "$X_0(0) =$",
 	};
-	let answerForm =
-		"Enter one expression in omega, using pi, j, fractions, and e^(...) or e^{...}.";
+	let answerForm = String.raw`Enter one expression in $\omega$, using $\pi$, $j$, fractions, and exponential notation. Copyable typing examples are above the solver.`;
 	if (compact)
-		answerForm =
-			"Enter an exact constant, using fractions or pi where needed.";
+		answerForm = String.raw`Enter an exact constant, using fractions or $\pi$ where needed.`;
 	if (task.kind === "choice")
 		answerForm = "Choose one option; it is checked immediately.";
 	if (task.kind === "weight")
-		answerForm =
-			"Enter this row's complex weight, without a delta factor. Exact pi and complex exponentials are supported.";
+		answerForm = String.raw`Enter this row's complex weight, without a $\delta$ factor. Exact $\pi$ and complex exponentials are supported.`;
 	return {
 		inputSize: compact ? "scalar" : "expression",
 		inputLabel:

@@ -1,10 +1,50 @@
 /** Exact worked solutions remain independent of tolerance-accepted attempt text. */
 import { describe, expect, it } from "vitest";
+import {
+	buildCtftDerivation,
+	formatCtftHalfWidth,
+} from "$lib/math-engine/ctft-derivation";
 import { buildCtftLesson } from "$lib/math-engine/ctft-lesson";
 import { exactCtftSolution } from "$lib/math-engine/ctft-presentation";
 import { createCtftProblem } from "$lib/math-engine/fourier-transform";
 
 describe("exact CTFT solutions", () => {
+	/** Odd generated widths retain reduced fractions in bounds, phases, identities, and hints. */
+	it("formats pulse half-widths exactly throughout the lesson", () => {
+		for (const [T, half] of [
+			[1, "\\frac{1}{2}"],
+			[2, "1"],
+			[3, "\\frac{3}{2}"],
+			[4, "2"],
+			[6, "3"],
+		] as const) {
+			const problem = createCtftProblem("rect", {
+				a: 2,
+				T,
+				w0: 3,
+				t0: 1,
+			});
+			expect(formatCtftHalfWidth(T)).toBe(half);
+			const derivation = buildCtftDerivation(problem);
+			expect(
+				derivation.parts.find(
+					/** @param task - Derivation exercise. @returns Whether it substitutes the endpoint bounds. */
+					(task) => task.id === "endpoints",
+				)?.contextLatex,
+			).toContain(`_{-${half}}^{${half}}`);
+			const lesson = buildCtftLesson(problem, "derivation");
+			expect(JSON.stringify(lesson)).not.toMatch(/0\.5|1\.5/);
+			if (T % 2)
+				expect(
+					lesson.stages
+						.find(
+							/** @param stage - Lesson stage. @returns Whether it supplies the setup scaffold. */
+							(stage) => stage.id === "setup",
+						)
+						?.parts[0]?.hints.join(" "),
+				).toContain(half);
+		}
+	});
 	for (const mode of ["derivation", "pairs-properties"] as const)
 		for (const t0 of [0, 1, -1]) {
 			/** Exact weights follow each row's coordinate rather than the fixture row order. */

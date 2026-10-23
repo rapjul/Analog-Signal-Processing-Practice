@@ -71,6 +71,26 @@ async function complete(
 }
 
 describe("CTFT guided component", () => {
+	/** Typed instructions and odd-width endpoint bounds use the shared mathematical renderer. */
+	it("renders mathematical answer forms and fractional endpoint bounds", async () => {
+		const problem = createCtftProblem("rect", { a: 2, T: 1, w0: 3, t0: 0 });
+		const view = render(CtftStepSolver, { problem });
+		await complete(view.container, problem, "derivation", "base");
+		expect(
+			view.container.querySelectorAll(".answer-form .katex").length,
+		).toBeGreaterThan(0);
+		await fireEvent.input(view.getByRole("textbox"), {
+			target: { value: "j/omega" },
+		});
+		await fireEvent.submit(view.container.querySelector("form")!);
+		expect(
+			view.container.querySelector(".step-card.active")?.textContent,
+		).toContain("\\frac{1}{2}");
+		expect(
+			view.container.querySelector(".step-card.active")?.textContent,
+		).not.toContain("0.5");
+		expect(view.container.querySelector(".katex-error")).toBeNull();
+	});
 	for (const mode of ["derivation", "pairs-properties"] as const)
 		for (const t0 of [0, 1, -1]) {
 			/** Real validators accept approximations while completed solutions remain exact. */

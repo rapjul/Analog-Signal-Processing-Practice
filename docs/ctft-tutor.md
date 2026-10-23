@@ -47,6 +47,9 @@ Completed worked solutions use exact lesson targets rather than tolerance-accept
 approximations; attempt summaries retain the learner's accepted form. Each review
 disclosure names its stage. Input examples render literal notation and copy the
 original typing syntax, independently of their display LaTeX.
+Answer-form instructions render mathematical notation through the shared wrappers.
+Rectangular half-widths stay in reduced fractional form in setup hints, endpoint
+bounds, and sine identities, including odd generated widths.
 
 Balanced parenthesized exponents such as `e^(-j omega)` are equivalent to braced
 exponents. Empty exponents stay incomplete. Syntax diagnostics refer to original

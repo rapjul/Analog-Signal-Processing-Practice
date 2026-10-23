@@ -41,7 +41,7 @@ export interface CtftLessonPart {
 	/** Current equation supplying context without supplying the requested answer. */ contextLatex?: string;
 	/** Progressive conceptual guidance. */ hints: string[];
 	/** Brief purpose of the current exercise. */ objective?: string;
-	/** Explicit expected input form. */ answerForm?: string;
+	/** Explicit expected input form with dollar-delimited LaTeX for mathematical notation. */ answerForm?: string;
 	/** Supplied identity, distinct from verified learner work. */ identityLatex?: string;
 	/** Compact scalar versus wider symbolic entry. */ inputSize?:
 		"scalar" | "expression";

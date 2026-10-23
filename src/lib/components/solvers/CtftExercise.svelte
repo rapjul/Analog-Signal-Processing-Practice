@@ -81,7 +81,7 @@
 	class="answer-form"
 	id="ctft-answer-form"
 >
-	{task.answerForm}
+	<MathText text={task.answerForm ?? ""} />
 </p>
 <form onsubmit={submit}>
 	{#if task.kind === "choice"}

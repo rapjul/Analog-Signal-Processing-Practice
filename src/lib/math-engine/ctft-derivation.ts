@@ -1,6 +1,18 @@
 /** Family-specific algebra between integral setup and the base transform. */
 import type { CtftLessonPart } from "./ctft-lesson";
+import { ExactFraction } from "./exact-fraction";
 import type { GeneratedCtftProblem } from "./fourier-transform";
+
+/**
+ * Formats a pulse half-width without introducing decimal presentation.
+ * @param width - Authoritative full pulse width.
+ * @returns Reduced exact LaTeX shared by derivation and setup guidance.
+ */
+export function formatCtftHalfWidth(width: number): string {
+	return ExactFraction.fromDecimal(width)
+		.divide(new ExactFraction(2n))
+		.toLatex();
+}
 
 /** Independently graded intermediate tasks and their completed algebra. */
 interface CtftDerivation {
@@ -45,8 +57,9 @@ export function buildCtftDerivation(
 	problem: GeneratedCtftProblem,
 ): CtftDerivation {
 	const { T, a, w0 } = problem.params;
+	const halfWidth = formatCtftHalfWidth(T);
 	/** Simplified half-width frequency used in endpoint and sine prompts. */
-	const halfFrequency = T === 2 ? String.raw`\omega` : `${T / 2}\\omega`;
+	const halfFrequency = T === 2 ? String.raw`\omega` : `${halfWidth}\\omega`;
 	switch (problem.signalType) {
 		case "rect":
 			return {
@@ -63,7 +76,7 @@ export function buildCtftDerivation(
 						"endpoints",
 						"Upper minus lower endpoint expression",
 						String.raw`\frac{e^{-j${halfFrequency}}-e^{j${halfFrequency}}}{-j\omega}`,
-						String.raw`X_0(\omega)=\left[\frac{e^{-j\omega t}}{-j\omega}\right]_{-${T / 2}}^{${T / 2}}`,
+						String.raw`X_0(\omega)=\left[\frac{e^{-j\omega t}}{-j\omega}\right]_{-${halfWidth}}^{${halfWidth}}`,
 						"Substitute the upper endpoint first, then subtract the lower endpoint.",
 						String.raw`The lower endpoint reverses the exponential sign. Keep the common divisor $-j\omega$.`,
 					),
@@ -71,7 +84,7 @@ export function buildCtftDerivation(
 						"sine",
 						"Equivalent sine expression",
 						String.raw`2\sin(${halfFrequency})/\omega`,
-						String.raw`e^{-j\theta}-e^{j\theta}=-2j\sin\theta,\quad\theta=${T / 2}\omega`,
+						String.raw`e^{-j\theta}-e^{j\theta}=-2j\sin\theta,\quad\theta=${halfFrequency}`,
 						"Replace the difference of exponentials using Euler's sine identity.",
 						"Cancel the common imaginary factor against the denominator; retain the factor two.",
 					),
@@ -79,7 +92,7 @@ export function buildCtftDerivation(
 						"limit",
 						"Zero-frequency limit",
 						String(T),
-						String.raw`X_0(0)=\int_{-${T / 2}}^{${T / 2}}1\,dt`,
+						String.raw`X_0(0)=\int_{-${halfWidth}}^{${halfWidth}}1\,dt`,
 						"At zero frequency the kernel equals one.",
 						"The integral equals the full pulse width.",
 					),
