@@ -23,6 +23,42 @@ npm install
 npm run dev
 ```
 
+### Worktrees and stale development pages
+
+Run the server from the intended checkout and reserve a different port for each
+active worktree. Use strict port selection so Vite cannot silently choose another
+port:
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
+
+If a failed dynamic import points at another checkout's `.svelte-kit` directory:
+
+1. Check which process owns the port and its working directory. Stop only the
+   stale server that belongs to this application.
+2. In browser developer tools, inspect **Application → Service Workers** for that
+   development origin. Unregister the SignalLab worker if present and delete only
+   its associated cache storage. Close stale tabs for that origin.
+3. From the intended checkout, regenerate local caches if necessary:
+
+    ```bash
+    rm -rf .svelte-kit node_modules/.vite
+    npm run check
+    npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+    ```
+
+4. Reopen the exact server URL, confirm that generated module requests refer to
+   the current checkout, and verify both initial loading and reloading.
+
+Development service workers are disabled by default to prevent app shells from
+different checkouts sharing an origin. Explicit development PWA testing uses
+`VITE_SIGNALLAB_DEV_PWA=1 npm run dev`; production builds retain normal service
+worker registration and offline support. Disabling registration does not remove
+an already installed worker, so inspect existing browser state during recovery.
+Keep Vite's filesystem restrictions enabled; adding unrelated checkouts to the
+allow list does not repair stale application content.
+
 ---
 
 ## 📜 Available Scripts

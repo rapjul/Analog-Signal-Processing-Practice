@@ -5,6 +5,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import type { Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
+import { shouldRegisterServiceWorker } from "./src/lib/pwa-policy.ts";
 
 /**
  * Standard security response headers for local Vite development and preview servers.
@@ -93,7 +94,10 @@ export default defineConfig(({ command }) => {
 				strategies: "generateSW",
 				registerType: "prompt",
 				devOptions: {
-					enabled: true,
+					enabled: shouldRegisterServiceWorker(
+						true,
+						process.env.VITE_SIGNALLAB_DEV_PWA,
+					),
 					type: "module",
 					navigateFallback: basePath ? `${basePath}/` : "/",
 				},
