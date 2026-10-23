@@ -70,7 +70,7 @@ function baseHints(
 			String.raw`Substitute $a=${a}$ into the prefactor and use your negative squared-frequency exponent. The prefactor multiplies the exponential.`,
 		],
 		delta: [
-			"The delta samples the forward kernel at its location.",
+			"For the forward transformation, the delta samples the exponential factor at its location.",
 			String.raw`Use $\int\delta(t)f(t)\,dt=f(0)$ with $f(t)=e^{-j\omega t}$.`,
 			"Evaluate the exponential at zero time. The unshifted result is constant in frequency.",
 		],
@@ -112,7 +112,7 @@ function objective(
 	const intermediate: Record<string, string> = {
 		sine: "Convert your verified endpoint expression into an equivalent sine expression.",
 		limit: "Evaluate the zero-frequency value directly from the integral, without dividing by zero.",
-		kernel: "Evaluate the forward kernel at the verified sifting point. This gives the base spectrum.",
+		kernel: "Evaluate the exponential factor at the verified sifting point to obtain the forward transformation.",
 	};
 	if (intermediate[task.id]) return intermediate[task.id]!;
 	if (task.id !== "expression") return general.base;
@@ -121,7 +121,7 @@ function objective(
 		exponential: String.raw`Subtract the lower-endpoint contribution from the upper contribution to assemble $X_0(\omega)$.`,
 		gaussian:
 			"Multiply the Gaussian prefactor by the exponential containing your verified exponent.",
-		delta: "Use the sampled forward kernel as the unshifted spectrum.",
+		delta: "Use the sampled exponential factor as the unshifted spectrum.",
 		cos: "Assemble both frequency impulses from the verified Euler decomposition.",
 	};
 	return assembly[problem.signalType];
@@ -135,14 +135,45 @@ function objective(
 function setupScaffold(problem: GeneratedCtftProblem): string {
 	const { T, a, w0 } = problem.params;
 	const scaffolds: Record<GeneratedCtftProblem["signalType"], string> = {
-		rect: String.raw`The unshifted pulse is one from $-${formatCtftHalfWidth(T)}$ to $${formatCtftHalfWidth(T)}$. Use these bounds and the forward kernel $e^{-j\omega t}$.`,
+		rect: String.raw`The unshifted pulse is one from $-${formatCtftHalfWidth(T)}$ to $${formatCtftHalfWidth(T)}$. For the forward transformation, multiply by $e^{-j\omega t}$ and integrate between these bounds.`,
 		exponential: String.raw`The causal signal starts at zero and decays with $a=${a}>0$. Multiply its exponential by $e^{-j\omega t}$ before integrating to infinity.`,
-		gaussian:
-			"The Gaussian spans the entire real line. Match its exponent and the forward kernel to the supplied Gaussian identity.",
-		delta: "Use the unshifted impulse's location as the kernel's evaluation point; there are no finite support bounds to integrate over.",
+		gaussian: String.raw`The Gaussian spans the entire real line. For the forward transformation, multiply by $e^{-j\omega t}$ and use the supplied Gaussian integration identity.`,
+		delta: String.raw`For the forward transformation, evaluate $e^{-j\omega t}$ at the unshifted impulse's location using the sifting identity.`,
 		cos: String.raw`Use Euler's sum of two exponentials at $\pm${w0}$, including the factor $1/2$. The individual exponential transforms are distributions.`,
 	};
 	return scaffolds[problem.signalType];
+}
+
+/**
+ * Explains the forward transformation using only the active signal family.
+ * @param problem - Unshifted family and authoritative parameters.
+ * @returns Concept, applicable identity, and parameter substitution scaffold.
+ */
+function setupHints(problem: GeneratedCtftProblem): Hints {
+	const first: Record<GeneratedCtftProblem["signalType"], [string, string]> =
+		{
+			rect: [
+				"Find the interval where the unshifted rectangular pulse is nonzero.",
+				String.raw`For the forward transformation, multiply the pulse by $e^{-j\omega t}$ and integrate over that interval.`,
+			],
+			exponential: [
+				"The causal exponential is zero before time zero.",
+				String.raw`For the forward transformation, integrate $e^{-at}e^{-j\omega t}$ from zero to infinity.`,
+			],
+			gaussian: [
+				"The unshifted Gaussian extends over the entire real line.",
+				String.raw`For the forward transformation, combine $e^{-at^2}$ with $e^{-j\omega t}$ and use the supplied Gaussian identity.`,
+			],
+			delta: [
+				"Use the sifting identity for the unshifted impulse.",
+				String.raw`The forward transformation integrates $\delta(t)e^{-j\omega t}$. Sifting evaluates the exponential factor at the impulse's location.`,
+			],
+			cos: [
+				"Write the cosine as the sum of two complex exponentials.",
+				String.raw`Use Euler's cosine identity with coefficients $1/2$, then apply the complex-exponential transformation pair to each term.`,
+			],
+		};
+	return [...first[problem.signalType], setupScaffold(problem)];
 }
 
 /**
@@ -179,11 +210,7 @@ function taskHints(
 				String.raw`Compare the displayed signal with its unshifted family evaluated at $t-t_0$. If the argument contains $t+c$, the signed translation is $t_0=-c$.`,
 			];
 		case "setup":
-			return [
-				"Start with the unshifted signal, using its support or distribution identity.",
-				String.raw`The forward kernel is $e^{-j\omega t}$. Use sifting for a delta and Euler decomposition for a cosine.`,
-				setupScaffold(problem),
-			];
+			return setupHints(problem);
 		case "property":
 			return [
 				"Time translation changes phase; it does not translate the frequency axis.",

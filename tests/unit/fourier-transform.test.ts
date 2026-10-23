@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	createCtftProblem,
 	evaluateCtftSpectrum,
 	evaluateEnergySpectrum,
 	generateCtftProblem,
@@ -7,6 +8,31 @@ import {
 } from "$lib/math-engine/fourier-transform";
 
 describe("CTFT Math Engine (fourier-transform.ts)", () => {
+	/** Every generated prompt exposes its signal without embedding instructional prose. */
+	it("provides a math-only signal while preserving the legacy prompt", () => {
+		for (const family of [
+			"rect",
+			"exponential",
+			"gaussian",
+			"delta",
+			"cos",
+		] as const)
+			for (const t0 of [-1, 0, 1]) {
+				const problem = createCtftProblem(family, {
+					a: 2,
+					T: 2,
+					w0: 3,
+					t0,
+				});
+				expect(problem.signalLatex).toMatch(/^x\(t\) = /);
+				expect(problem.signalLatex).not.toMatch(/Find|\\text/);
+				expect(problem.promptLatex).toContain(problem.signalLatex);
+				if (t0)
+					expect(problem.signalLatex).toContain(
+						t0 < 0 ? "t + 1" : "t - 1",
+					);
+			}
+	});
 	describe("CTFT Transform Pairs & Custom Operator Formatting", () => {
 		it("should evaluate rectangular pulse transform to normalized sinc with \\operatorname{sinc}", () => {
 			const pair = getCtftPairLatex("rect", { T: 2 });

@@ -108,8 +108,8 @@ export async function prepareCtftFinal(
 					family === "cos"
 						? /Cosine equals half the sum/
 						: family === "delta"
-							? /Sift the kernel at time zero/
-							: /negative imaginary forward-kernel exponent/,
+							? /Evaluate the exponential factor at time zero/
+							: /forward transformation with the negative imaginary exponent/,
 			})
 			.click();
 	}
@@ -152,7 +152,7 @@ async function enterDerivation(
 ): Promise<void> {
 	const answers: Record<CtftSignalType, [string, string][]> = {
 		rect: [
-			["Kernel antiderivative coefficient", "j/omega"],
+			["Exponential antiderivative coefficient", "j/omega"],
 			[
 				"Upper minus lower endpoint expression",
 				`2 sin(${params.T} omega/2)/omega`,
@@ -178,7 +178,7 @@ async function enterDerivation(
 		],
 		delta: [
 			["Sifting evaluation point", "0"],
-			["Sampled forward kernel", "1"],
+			["Sampled exponential factor", "1"],
 		],
 		cos: [
 			["Euler decomposition coefficient", "1/2"],

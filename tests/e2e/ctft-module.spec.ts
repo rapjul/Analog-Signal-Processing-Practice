@@ -10,28 +10,42 @@ test.beforeEach(async ({ page }) => {
 	await page.goto("/fourier-transform");
 });
 
-/** Keyboard users can locate and expand conventions and copy complete literal notation. */
-test("conventions and notation have accessible keyboard controls", async ({
+/** Definitions live in the route-selected drawer while signal math and input aliases remain readable. */
+test("formulas and notation have accessible keyboard controls", async ({
 	page,
 }) => {
-	const disclosure = page.getByText(
-		"Transform conventions & input notation",
-		{ exact: true },
+	await expect(page.locator(".problem-prompt p")).toContainText(
+		"Find the Fourier transform",
 	);
-	await disclosure.focus();
-	await expect(disclosure).toBeFocused();
-	expect(
-		await disclosure.evaluate(
-			/** @param element - Focused summary. @returns The computed themed outline. */
-			(element) => getComputedStyle(element).outlineStyle,
-		),
-	).toBe("solid");
-	await disclosure.press("Enter");
-	await expect(page.locator("details.conventions")).toHaveAttribute(
-		"open",
-		"",
+	await expect(page.locator(".problem-prompt .math-block")).not.toContainText(
+		"Find",
 	);
-	for (const literal of ["e^(-j*omega)", "e^{-j*omega}"]) {
+	const formulas = page.getByRole("button", {
+		name: "Open Formulas Reference Sheet",
+	});
+	await formulas.focus();
+	await formulas.press("Enter");
+	await expect(page.locator(".drawer-content h3").first()).toHaveText(
+		"Continuous-Time Fourier Transform (CTFT)",
+	);
+	await expect(
+		page.getByRole("heading", {
+			name: "Forward transformation",
+			exact: true,
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("heading", {
+			name: "Inverse transformation",
+			exact: true,
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: "Normalized sinc", exact: true }),
+	).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(formulas).toBeFocused();
+	for (const literal of ["omega", "w", "e^(-j*omega)", "e^{-j*omega}"]) {
 		const example = page.getByRole("button", {
 			name: `Copy input notation: ${literal}`,
 			exact: true,
@@ -93,10 +107,14 @@ test("workspace guides endpoint algebra and reflows its verified context", async
 	await enterCtftAnswer(page, "Signed time translation", "0");
 	await page
 		.getByRole("button", {
-			name: /negative imaginary forward-kernel exponent/,
+			name: /forward transformation with the negative imaginary exponent/,
 		})
 		.click();
-	await enterCtftAnswer(page, "Kernel antiderivative coefficient", "j/omega");
+	await enterCtftAnswer(
+		page,
+		"Exponential antiderivative coefficient",
+		"j/omega",
+	);
 	const endpoint = page.getByLabel("Upper minus lower endpoint expression");
 	await endpoint.fill("e^{-j t} - e^{j {t}");
 	await endpoint.press("Enter");

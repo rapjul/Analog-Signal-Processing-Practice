@@ -26,6 +26,8 @@ export interface CtftParameters {
 
 /** Generated forward drill with a parameter-based grading reference. */
 export interface GeneratedCtftProblem extends CtftProblem {
+	/** Math-only signal equation, independent of instructional prose. */
+	signalLatex: string;
 	/** Base signal family. */
 	signalType: CtftSignalType;
 	/** Complete reproducible signal parameters. */
@@ -284,6 +286,7 @@ export function createCtftProblem(
 			id,
 			signalType: type,
 			params: { ...params },
+			signalLatex: `x(t) = ${shiftedTimeLatex}`,
 			promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of time-shifted signal } x(t) = ${shiftedTimeLatex}`,
 			referenceAnswerLatex: shiftedFreqLatex,
 			solutionSteps: [
@@ -307,6 +310,7 @@ export function createCtftProblem(
 		id,
 		signalType: type,
 		params: { ...params },
+		signalLatex: `x(t) = ${pair.timeLatex}`,
 		promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of } x(t) = ${pair.timeLatex}`,
 		referenceAnswerLatex: pair.freqLatex,
 		solutionSteps: [

@@ -66,7 +66,7 @@ export function buildCtftDerivation(
 				parts: [
 					calculation(
 						"primitive",
-						"Kernel antiderivative coefficient",
+						"Exponential antiderivative coefficient",
 						String.raw`\frac{1}{-j\omega}`,
 						String.raw`\int e^{-j\omega t}\,dt=C(\omega)e^{-j\omega t}`,
 						"Differentiate the proposed primitive with respect to time.",
@@ -93,7 +93,7 @@ export function buildCtftDerivation(
 						"Zero-frequency limit",
 						String(T),
 						String.raw`X_0(0)=\int_{-${halfWidth}}^{${halfWidth}}1\,dt`,
-						"At zero frequency the kernel equals one.",
+						"At zero frequency the exponential factor equals one.",
 						"The integral equals the full pulse width.",
 					),
 				],
@@ -138,7 +138,7 @@ export function buildCtftDerivation(
 						String.raw`-j\omega`,
 						String.raw`-${a}t^2-j\omega t=-at^2+bt,\quad a=${a}`,
 						"Match the coefficient multiplying time with the supplied identity.",
-						"The forward-transform kernel supplies the negative imaginary linear coefficient.",
+						"The forward transformation supplies the negative imaginary linear coefficient.",
 					),
 					calculation(
 						"square",
@@ -172,10 +172,10 @@ export function buildCtftDerivation(
 					),
 					calculation(
 						"kernel",
-						"Sampled forward kernel",
+						"Sampled exponential factor",
 						"1",
 						String.raw`f(t)=e^{-j\omega t},\quad f(0)=?`,
-						"Substitute the verified evaluation point into the forward kernel.",
+						"Substitute the verified evaluation point into the exponential factor for the forward transformation.",
 						"An exponential with zero exponent equals one.",
 					),
 				],

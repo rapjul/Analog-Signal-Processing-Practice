@@ -26,6 +26,14 @@ $\operatorname{sinc}(z)=\sin(\pi z)/(\pi z)$ with value one at zero.
 
 ## Guided Workspace
 
+Problem instructions use normal prose with inline mathematics; the signal block
+contains only the generated `signalLatex` equation. The legacy `promptLatex`
+remains available to existing consumers. Forward and inverse definitions and
+normalized sinc live in the shared formulas drawer, with CTFT shown first on this
+route. The page retains a short convention note, copyable `omega` and `w` aliases,
+and task-specific identities. Setup hints describe the forward transformation in
+terms of the selected family without requiring knowledge of the word "kernel".
+
 `GuidedSolverWorkspace` in `../src/lib/components/ui/GuidedSolverWorkspace.svelte`
 accepts typed Svelte snippets for the exercise, optional verified results, and
 optional supplied identities. It owns layout only; the consuming solver owns

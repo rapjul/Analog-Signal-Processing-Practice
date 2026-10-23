@@ -21,6 +21,7 @@ import {
 	createCtftProblem,
 	evaluateCtftSpectrum,
 	evaluateEnergySpectrum,
+	validateCtftAnswer,
 } from "$lib/math-engine/fourier-transform";
 
 /** Family matrix, including regular and distribution spectra. */
@@ -75,6 +76,27 @@ function advance(solver: CtftStepSolverState, stop = "complete"): void {
 }
 
 describe("CTFT tutor", () => {
+	/** Setup guidance names the forward transformation and remains specific to the selected family. */
+	it("keeps setup hints family-specific and accepts both frequency aliases", () => {
+		const rect = buildCtftLesson(
+			createCtftProblem("rect", { a: 2, T: 2, w0: 3, t0: 0 }),
+			"derivation",
+		);
+		const setup = rect.stages.find(
+			/** @param stage - Lesson stage. @returns Whether it sets up the integral. */
+			(stage) => stage.id === "setup",
+		)!.parts[0]!;
+		expect(setup.hints).toHaveLength(3);
+		expect(setup.hints.join(" ")).toContain("forward transformation");
+		expect(setup.hints.join(" ")).not.toMatch(
+			/kernel|sifting|Euler|Gaussian/,
+		);
+		const delta = createCtftProblem("delta", { a: 2, T: 2, w0: 3, t0: 1 });
+		for (const symbol of ["w", "omega"])
+			expect(validateCtftAnswer(`e^(-j ${symbol})`, delta).status).toBe(
+				"correct",
+			);
+	});
 	/** Coordinates use exact scalar equality with their original independent input budget. */
 	it("accepts prefixed and maximum-length exact constants without embedding", () => {
 		for (const input of [

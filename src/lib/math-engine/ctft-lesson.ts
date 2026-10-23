@@ -105,7 +105,7 @@ function part(
 		hints: [
 			hint,
 			kind === "choice"
-				? "Compare the available options with the signal family, forward kernel, and applicable property."
+				? "Compare the available options with the signal family, forward transformation, and applicable property."
 				: "Check the transform convention, amplitude factors, and signs. Use exact constants such as pi and fractions.",
 		],
 	};
@@ -123,13 +123,13 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 			{
 				id: "correct",
 				accessibleLabel:
-					"Sift the kernel at time zero, giving the exponential of zero",
+					"Evaluate the exponential factor at time zero using sifting",
 				label: String.raw`\int_{-\infty}^{\infty}\delta(t)e^{-j\omega t}\,dt=e^0`,
 			},
 			{
 				id: "wrong",
 				accessibleLabel:
-					"Set the integral of the impulse times the kernel to zero",
+					"Set the integral of the impulse times the exponential factor to zero",
 				label: String.raw`\int_{-\infty}^{\infty}\delta(t)e^{-j\omega t}\,dt=0`,
 			},
 		];
@@ -165,13 +165,13 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 		{
 			id: "correct",
 			accessibleLabel:
-				"Integrate over the signal support with the negative imaginary forward-kernel exponent",
+				"Use the forward transformation with the negative imaginary exponent",
 			label: String.raw`\int_{${bounds[0]}}^{${bounds[1]}}${integrand}e^{-j\omega t}\,dt`,
 		},
 		{
 			id: "wrong",
 			accessibleLabel:
-				"Integrate over the signal support with a positive imaginary kernel exponent",
+				"Integrate over the signal support with a positive imaginary exponent",
 			label: String.raw`\int_{${bounds[0]}}^{${bounds[1]}}${integrand}e^{+j\omega t}\,dt`,
 		},
 	];
@@ -261,7 +261,7 @@ export function buildCtftLesson(
 		"Choose the forward-transform setup",
 		"choice",
 		"correct",
-		String.raw`The forward kernel is $e^{-j\omega t}$. Respect the signal support, sifting, or the factor $1/2$ in Euler's cosine identity.`,
+		String.raw`Use the forward transformation definition and the appropriate identity for this signal family.`,
 	);
 	setup.choices = setupChoices(baseProblem);
 	setup.mathChoices = true;

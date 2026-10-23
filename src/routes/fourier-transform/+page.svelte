@@ -83,28 +83,21 @@
 			onNextProblem={handleGenerateNext}
 		/>
 		<div class="problem-prompt">
+			<p>
+				<MathText
+					text={String.raw`Find the Fourier transform $X(\omega)$ of the following signal:`}
+				/>
+			</p>
 			<MathBlock
-				math={currentProblem.promptLatex}
+				math={currentProblem.signalLatex}
 				responsive
 			/>
 		</div>
-		<details class="conventions">
-			<summary>Transform conventions & input notation</summary>
-			<MathBlock
-				math={String.raw`X(\omega)=\int_{-\infty}^{\infty}x(t)e^{-j\omega t}\,dt,\quad x(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty}X(\omega)e^{j\omega t}\,d\omega`}
-				compact
-				responsive
+		<p class="conventions">
+			<MathText
+				text={String.raw`Use angular frequency in rad/s and normalized $\operatorname{sinc}$. Definitions are in Formulas. Impulses have complex weights rather than finite heights.`}
 			/>
-			<MathBlock
-				math={String.raw`\operatorname{sinc}(z)=\frac{\sin(\pi z)}{\pi z},\quad\operatorname{sinc}(0)=1`}
-				compact
-			/>
-			<p>
-				<MathText
-					text={String.raw`$\omega$ is angular frequency in rad/s. $j$ is the imaginary unit. Impulses have complex weights, not finite heights.`}
-				/>
-			</p>
-		</details>
+		</p>
 		<p id="ctft-notation">
 			Enter LaTeX, fractions, or supported input notation such as
 			<MathInline
@@ -114,10 +107,13 @@
 			<MathInline
 				math={String.raw`\texttt{j}`}
 				copyText="j"
-			/>, and
+			/>. For <MathText text={String.raw`$\omega$`} />, type
 			<MathInline
 				math={String.raw`\texttt{omega}`}
 				copyText="omega"
+			/> or <MathInline
+				math={String.raw`\texttt{w}`}
+				copyText="w"
 			/>. Equivalent exponential inputs include
 			<MathInline
 				math={String.raw`\texttt{e\textasciicircum(-j*omega)}`}
@@ -153,14 +149,6 @@
 	}
 	p {
 		color: var(--text-secondary);
-	}
-	summary {
-		cursor: pointer;
-	}
-	summary:focus-visible {
-		outline: 2px solid var(--accent-primary);
-		outline-offset: 4px;
-		border-radius: var(--radius-sm);
 	}
 	.conventions {
 		min-width: 0;
