@@ -171,29 +171,12 @@ function setupChoices(problem: GeneratedCtftProblem): CtftChoice[] {
 }
 
 /**
- * Constructs mode-specific tasks from signal parameters, never displayed answers.
+ * Builds only the parameter fields relevant to the active signal family.
  * @param problem - Active generated signal.
- * @param mode - Teaching approach.
- * @returns Complete ordered lesson.
+ * @returns Parameter-owned fields with mathematical display labels.
  */
-export function buildCtftLesson(
-	problem: GeneratedCtftProblem,
-	mode: CtftPracticeMode,
-): CtftLesson {
+function parameterTasks(problem: GeneratedCtftProblem): CtftLessonPart[] {
 	const { signalType: type, params } = problem;
-	const baseProblem = createCtftProblem(type, { ...params, t0: 0 });
-	const canonicalProblem = createCtftProblem(type, params);
-	const pairTask = part(
-		"family",
-		"Choose the base signal family",
-		"choice",
-		type,
-		"Identify the signal before applying its translation.",
-	);
-	pairTask.choices = CTFT_FAMILIES.map(
-		/** @param choice - Shared family label. @returns A lesson-owned option. */
-		(choice) => ({ ...choice }),
-	);
 	const parameters: CtftLessonPart[] = [];
 	if (type === "rect")
 		parameters.push(
@@ -238,6 +221,34 @@ export function buildCtftLesson(
 		if (parameter.id === "T") parameter.labelMath = "Pulse width $T$";
 		if (parameter.id === "a") parameter.labelMath = "Decay parameter $a$";
 	}
+	return parameters;
+}
+
+/**
+ * Constructs mode-specific tasks from signal parameters, never displayed answers.
+ * @param problem - Active generated signal.
+ * @param mode - Teaching approach.
+ * @returns Complete ordered lesson.
+ */
+export function buildCtftLesson(
+	problem: GeneratedCtftProblem,
+	mode: CtftPracticeMode,
+): CtftLesson {
+	const { signalType: type, params } = problem;
+	const baseProblem = createCtftProblem(type, { ...params, t0: 0 });
+	const canonicalProblem = createCtftProblem(type, params);
+	const pairTask = part(
+		"family",
+		"Choose the base signal family",
+		"choice",
+		type,
+		"Identify the signal before applying its translation.",
+	);
+	pairTask.choices = CTFT_FAMILIES.map(
+		/** @param choice - Shared family label. @returns A lesson-owned option. */
+		(choice) => ({ ...choice }),
+	);
+	const parameters = parameterTasks(problem);
 	const setup = part(
 		"definition",
 		"Choose the forward-transform setup",

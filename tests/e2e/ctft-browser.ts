@@ -118,70 +118,7 @@ export async function prepareCtftFinal(
 			.click();
 	}
 	if (mode === "derivation") {
-		if (family === "rect") {
-			await enterCtftAnswer(
-				page,
-				"Kernel antiderivative coefficient",
-				"j/omega",
-			);
-			await enterCtftAnswer(
-				page,
-				"Upper minus lower endpoint expression",
-				`2 sin(${params.T} omega/2)/omega`,
-			);
-			await enterCtftAnswer(
-				page,
-				"Zero-frequency limit",
-				String(params.T),
-			);
-		} else if (family === "exponential") {
-			await enterCtftAnswer(
-				page,
-				"Exponential antiderivative coefficient",
-				`-1/(${params.a}+j omega)`,
-			);
-			await enterCtftAnswer(page, "Infinite-endpoint contribution", "0");
-			await enterCtftAnswer(
-				page,
-				"Lower-endpoint contribution before subtraction",
-				`-1/(${params.a}+j omega)`,
-			);
-		} else if (family === "gaussian") {
-			await enterCtftAnswer(
-				page,
-				"Gaussian identity linear coefficient",
-				"-j omega",
-			);
-			await enterCtftAnswer(
-				page,
-				"Squared linear coefficient",
-				"-omega^2",
-			);
-			await enterCtftAnswer(
-				page,
-				"Gaussian identity exponent",
-				`-omega^2/${4 * params.a}`,
-			);
-		} else if (family === "delta") {
-			await enterCtftAnswer(page, "Sifting evaluation point", "0");
-			await enterCtftAnswer(page, "Sampled forward kernel", "1");
-		} else {
-			await enterCtftAnswer(
-				page,
-				"Euler decomposition coefficient",
-				"1/2",
-			);
-			await enterCtftAnswer(
-				page,
-				"Complex exponential impulse weight",
-				"2 pi",
-			);
-			await enterCtftAnswer(
-				page,
-				"Cosine impulse weight after Euler scaling",
-				"pi",
-			);
-		}
+		await enterDerivation(page, family, params);
 	}
 	if (family === "cos") await enterImpulses(page, params, 0);
 	else
@@ -207,6 +144,56 @@ export async function prepareCtftFinal(
 		"Phase multiplier",
 		params.t0 === 0 ? "1" : `e^{-j(${params.t0})\\omega}`,
 	);
+}
+
+/**
+ * Answers intermediate work with independent family formulas and ordinary forms.
+ * @param page - Browser at the base derivation stage.
+ * @param family - Visible signal family.
+ * @param params - Independently known fixture parameters.
+ */
+async function enterDerivation(
+	page: Page,
+	family: CtftSignalType,
+	params: CtftParameters,
+): Promise<void> {
+	const answers: Record<CtftSignalType, [string, string][]> = {
+		rect: [
+			["Kernel antiderivative coefficient", "j/omega"],
+			[
+				"Upper minus lower endpoint expression",
+				`2 sin(${params.T} omega/2)/omega`,
+			],
+			["Zero-frequency limit", String(params.T)],
+		],
+		exponential: [
+			[
+				"Exponential antiderivative coefficient",
+				`-1/(${params.a}+j omega)`,
+			],
+			["Infinite-endpoint contribution", "0"],
+			[
+				"Lower-endpoint contribution before subtraction",
+				`-1/(${params.a}+j omega)`,
+			],
+		],
+		gaussian: [
+			["Gaussian identity linear coefficient", "-j omega"],
+			["Squared linear coefficient", "-omega^2"],
+			["Gaussian identity exponent", `-omega^2/${4 * params.a}`],
+		],
+		delta: [
+			["Sifting evaluation point", "0"],
+			["Sampled forward kernel", "1"],
+		],
+		cos: [
+			["Euler decomposition coefficient", "1/2"],
+			["Complex exponential impulse weight", "2 pi"],
+			["Cosine impulse weight after Euler scaling", "pi"],
+		],
+	};
+	for (const [label, answer] of answers[family])
+		await enterCtftAnswer(page, label, answer);
 }
 
 /**
