@@ -16,6 +16,39 @@ const names: Record<CtftSignalType, string> = {
 };
 
 /**
+ * Checks the complete feedback message independently of its alert icon/title.
+ * @param page - Browser displaying the active feedback.
+ * @param expected - Full prose and visible mathematical text, including the task hint.
+ * @returns Resolves once the exact message is rendered.
+ */
+export async function expectCtftFeedback(
+	page: Page,
+	expected: string,
+): Promise<void> {
+	const feedback = page.locator(".feedback-box .alert-text");
+	await expect(feedback).toBeVisible();
+	await expect
+		.poll(
+			/** Reads only a detached copy so duplicate KaTeX accessibility text cannot affect visual equality. */
+			async () =>
+				feedback.evaluate(
+					/** @param element - Rendered message. @returns Complete text with one representation per formula. */
+					(element) => {
+						const copy = element.cloneNode(true) as HTMLElement;
+						for (const math of copy.querySelectorAll(
+							".katex-mathml",
+						))
+							math.remove();
+						return (copy.textContent ?? "")
+							.replace(/\s+/g, " ")
+							.trim();
+					},
+				),
+		)
+		.toBe(expected);
+}
+
+/**
  * Enters and submits an ordinary active answer through the keyboard.
  * @param page - Browser under test.
  * @param label - Field's accessible name.

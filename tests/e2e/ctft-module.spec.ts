@@ -1,7 +1,12 @@
 /** Both CTFT teaching paths, exercised without development-only shortcuts. */
 import { expect, test } from "@playwright/test";
 import type { CtftSignalType } from "$lib/math-engine/fourier-transform";
-import { enterCtftAnswer, finishCtft, prepareCtftFinal } from "./ctft-browser";
+import {
+	enterCtftAnswer,
+	expectCtftFeedback,
+	finishCtft,
+	prepareCtftFinal,
+} from "./ctft-browser";
 
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
@@ -285,18 +290,19 @@ test("cosine retries use task-specific choices and neutral coefficient guidance"
 	await page
 		.getByRole("button", { name: "Rectangular pulse", exact: true })
 		.click();
-	await expect(page.locator(".feedback-box")).toContainText(
-		"Check the selected signal family.",
+	await expectCtftFeedback(
+		page,
+		"Check the selected signal family. Identify the signal before applying its translation.",
 	);
-	await expect(page.locator(".feedback-box")).not.toContainText("kernel");
 	await page.getByRole("button", { name: "Cosine", exact: true }).click();
 	await enterCtftAnswer(page, "Carrier angular frequency", "3");
 	await enterCtftAnswer(page, "Signed time translation", "1");
 	await page
 		.getByRole("button", { name: /Cosine equals the unscaled sum/ })
 		.click();
-	await expect(page.locator(".feedback-box")).toContainText(
-		"Check the forward-transformation setup.",
+	await expectCtftFeedback(
+		page,
+		"Check the forward-transformation setup. Write the cosine as the sum of two complex exponentials.",
 	);
 	await page
 		.getByRole("button", { name: /Cosine equals half the sum/ })
@@ -311,10 +317,13 @@ test("cosine retries use task-specific choices and neutral coefficient guidance"
 		"data-validation",
 		"unsupported",
 	);
-	await expect(page.locator(".feedback-box")).toContainText(
-		"Complete the operation shown in the task context.",
+	await expectCtftFeedback(
+		page,
+		"The requested intermediate result must not contain the time variable t. Complete the operation shown in the task context.",
 	);
-	await expect(page.locator(".feedback-box")).not.toContainText("endpoint");
+	await expect(
+		page.locator(".feedback-box .alert-text .katex-mathml annotation"),
+	).toHaveText("t");
 	await expect(issues).toContainText(
 		"Complete the requested calculation without leaving",
 	);
@@ -357,8 +366,9 @@ test("cosine retries use task-specific choices and neutral coefficient guidance"
 			exact: true,
 		})
 		.click();
-	await expect(page.locator(".feedback-box")).toContainText(
-		"Check whether the signal is translated in time.",
+	await expectCtftFeedback(
+		page,
+		"Check whether the signal is translated in time. Time translation changes phase; it does not translate the frequency axis.",
 	);
 	await page
 		.getByRole("button", { name: "Time translation", exact: true })
@@ -442,11 +452,9 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 					exact: true,
 				})
 				.click();
-			await expect(page.locator(".feedback-box")).toContainText(
-				"Check the selected signal family.",
-			);
-			await expect(page.locator(".feedback-box")).not.toContainText(
-				"kernel",
+			await expectCtftFeedback(
+				page,
+				"Check the selected signal family. Identify the signal before applying its translation.",
 			);
 			await prepareCtftFinal(page, family, params, mode);
 			await expect(
