@@ -71,7 +71,7 @@ remediation remains separate from syntax and cannot establish correctness.
 
 ## Validation and State
 
-Lesson construction in `../src/lib/math-engine/ctft-lesson.ts` uses generated
+Lesson construction in `../src/lib/math-engine/fourier-transform/its-scaffolding/lesson.ts` uses generated
 signal parameters. Displayed answer strings cannot establish correctness.
 `CtftStepSolverState` owns the active stage and task, rejects stale submissions,
 and completes exactly once. Mode and problem changes recreate the controller.
@@ -115,3 +115,27 @@ lifecycle, component, and browser tests cover both paths.
 
 Inverse transforms, additional operational properties, energy and bandwidth
 exercises, persistence, and exam-bank integration remain future work.
+
+## Code Organization
+
+- `../src/lib/components/solvers/CtftStepSolver.svelte` is the public component.
+  Its keyed problem-and-mode boundary mounts the session and exercise components
+  in `../src/lib/components/solvers/ctft-steps/`.
+- `../src/lib/components/solvers/ctft-step-solver.svelte.ts` explicitly re-exports
+  the controller and response-state contracts from
+  `../src/lib/components/solvers/ctft-solver-state/`. The controller retains the
+  shared `BaseStepSolverState` lifecycle.
+- `../src/lib/math-engine/fourier-transform/index.ts` defines the public CTFT
+  mathematics package. `engine.ts`, `presentation.ts`, `spectrum.ts`, and
+  `tutor-validation.ts` separate mathematics, read-only display, numerical plot
+  data, and grading. `its-scaffolding/lesson.ts`, `its-scaffolding/derivation.ts`,
+  and `its-scaffolding/guidance.ts` construct the teaching paths.
+- Shared canonical mathematics, notation, diagnostics, workspace UI, and canvas
+  components remain in their shared locations. Tests remain under `../tests/`.
+
+Cross-directory application imports use `$lib`; same-directory siblings may use
+`./` imports. Package consumers specify `/index` explicitly, while internal
+modules import their dependencies directly rather than through the public barrel.
+This follows the package and import boundaries in
+[ADR 0031](./adrs/0031-explicit-directory-package-boundaries-and-esm-imports.md) and
+[ADR 0035](./adrs/0035-standardized-lib-path-aliases-for-components-and-solvers.md).

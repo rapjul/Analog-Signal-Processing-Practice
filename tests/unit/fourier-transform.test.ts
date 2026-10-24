@@ -5,9 +5,9 @@ import {
 	evaluateEnergySpectrum,
 	generateCtftProblem,
 	getCtftPairLatex,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
 
-describe("CTFT Math Engine (fourier-transform.ts)", () => {
+describe("CTFT Math Engine (fourier-transform/index.ts)", () => {
 	/** Every generated prompt exposes its signal without embedding instructional prose. */
 	it("provides a math-only signal while preserving the legacy prompt", () => {
 		for (const family of [

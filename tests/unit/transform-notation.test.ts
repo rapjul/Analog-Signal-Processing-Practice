@@ -6,7 +6,7 @@ import * as evaluator from "$lib/math-engine/evaluator";
 import {
 	createCtftProblem,
 	validateCtftAnswer,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,

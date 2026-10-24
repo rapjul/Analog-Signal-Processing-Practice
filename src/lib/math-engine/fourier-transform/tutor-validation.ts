@@ -5,25 +5,25 @@ import {
 	type Scalar,
 	scalar,
 	scalarField,
-} from "./canonical-algebra";
-import { createCtftCanonicalTarget } from "./canonical-targets";
+} from "$lib/math-engine/canonical-algebra";
+import { createCtftCanonicalTarget } from "$lib/math-engine/canonical-targets";
 import {
 	type CanonicalImpulse,
 	canonicalTransformsMatch,
 	evaluateCanonicalRegular,
 	normalizeCanonicalTransform,
-} from "./canonical-transform";
-import { parseStrictLatex } from "./evaluator";
+} from "$lib/math-engine/canonical-transform";
+import { parseStrictLatex } from "$lib/math-engine/evaluator";
+import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
+import {
+	type TransformValidationResult,
+	validateTransformAnswer,
+} from "$lib/math-engine/transform-validation";
 import {
 	createCtftProblem,
 	type GeneratedCtftProblem,
 	validateCtftAnswer,
-} from "./fourier-transform";
-import { normalizeTransformNotation } from "./transform-notation";
-import {
-	type TransformValidationResult,
-	validateTransformAnswer,
-} from "./transform-validation";
+} from "./engine";
 
 /**
  * Detects variable participation before constant-expression simplification.

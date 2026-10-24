@@ -8,14 +8,14 @@
 	import PageLayout from "$lib/components/ui/PageLayout.svelte";
 	import ProblemHeader from "$lib/components/ui/ProblemHeader.svelte";
 	import {
-		CTFT_COURSE_FAMILIES,
-		type CtftPracticeMode,
-	} from "$lib/math-engine/ctft-lesson";
-	import {
 		type CtftSignalType,
 		createCtftProblem,
 		generateCtftProblem,
-	} from "$lib/math-engine/fourier-transform";
+	} from "$lib/math-engine/fourier-transform/index";
+	import {
+		CTFT_COURSE_FAMILIES,
+		type CtftPracticeMode,
+	} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 
 	let selectedType = $state<CtftSignalType>("rect");
 	let mode = $state<CtftPracticeMode>("derivation");

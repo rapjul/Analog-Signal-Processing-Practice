@@ -1,15 +1,15 @@
 /** Exact worked solutions remain independent of tolerance-accepted attempt text. */
 import { describe, expect, it } from "vitest";
+import { createCtftProblem } from "$lib/math-engine/fourier-transform/index";
 import {
 	buildCtftDerivation,
 	formatCtftHalfWidth,
-} from "$lib/math-engine/ctft-derivation";
-import { buildCtftLesson } from "$lib/math-engine/ctft-lesson";
+} from "$lib/math-engine/fourier-transform/its-scaffolding/derivation";
+import { buildCtftLesson } from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 import {
 	ctftCheckLabel,
 	exactCtftSolution,
-} from "$lib/math-engine/ctft-presentation";
-import { createCtftProblem } from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/presentation";
 
 describe("exact CTFT solutions", () => {
 	/** Every typed course exercise has an informative submit action, including both exponential endpoints. */

@@ -4,7 +4,7 @@
  * duality, energy density spectra |X(ω)|^2, and 3dB energy bandwidths.
  */
 
-import type { CtftProblem } from "../../math-engine/fourier-transform";
+import type { CtftProblem } from "$lib/math-engine/fourier-transform/index";
 
 /** Hand-curated CTFT exam practice problems */
 export const CTFT_EXAM_BANK: CtftProblem[] = [

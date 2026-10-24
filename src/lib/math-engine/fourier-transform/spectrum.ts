@@ -1,10 +1,7 @@
 /** Independent numerical data for regular spectra and weighted distributions. */
-import { Complex } from "./complex";
-import {
-	evaluateCtftSpectrum,
-	type GeneratedCtftProblem,
-} from "./fourier-transform";
-import type { SpectrumImpulse } from "./transform-validation";
+import { Complex } from "$lib/math-engine/complex";
+import type { SpectrumImpulse } from "$lib/math-engine/transform-validation";
+import { evaluateCtftSpectrum, type GeneratedCtftProblem } from "./engine";
 
 /** One plot ordinate, with undefined phase explicitly masked. */
 export interface CtftPlotPoint {

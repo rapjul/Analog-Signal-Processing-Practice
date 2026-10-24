@@ -4,28 +4,28 @@
 	import CtftSpectrum from "$lib/components/canvas/CtftSpectrum.svelte";
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import {
+		type CtftPartState,
+		CtftStepSolverState,
+	} from "$lib/components/solvers/ctft-step-solver.svelte";
 	import CompletionBanner from "$lib/components/ui/CompletionBanner.svelte";
 	import GuidedSolverWorkspace from "$lib/components/ui/GuidedSolverWorkspace.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
+	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform/index";
 	import type {
 		CtftLessonPart,
 		CtftPracticeMode,
 		CtftStageId,
-	} from "$lib/math-engine/ctft-lesson";
+	} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 	import {
 		completedCtftParts,
 		exactCtftSolution,
 		summarizeCtftInput,
-	} from "$lib/math-engine/ctft-presentation";
-	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
+	} from "$lib/math-engine/fourier-transform/presentation";
 	import CtftExercise from "./CtftExercise.svelte";
-	import {
-		type CtftPartState,
-		CtftStepSolverState,
-	} from "./ctft-step-solver.svelte";
 
 	/** Inputs fixed for the lifetime of this keyed session. */
 	interface Props {

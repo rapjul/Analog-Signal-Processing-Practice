@@ -3,27 +3,27 @@ import { renderToString } from "katex";
 import { describe, expect, it, vi } from "vitest";
 import { CtftStepSolverState } from "$lib/components/solvers/ctft-step-solver.svelte";
 import {
-	buildCtftLesson,
-	CTFT_COURSE_FAMILIES,
-	type CtftPracticeMode,
-} from "$lib/math-engine/ctft-lesson";
-import {
-	buildCtftSpectrum,
-	evaluateCtftRegular,
-} from "$lib/math-engine/ctft-spectrum";
-import {
-	validateCtftCalculation,
-	validateCtftConstant,
-	validateCtftImpulseRows,
-	withCtftCalculationDiagnostics,
-} from "$lib/math-engine/ctft-tutor-validation";
-import {
 	type CtftSignalType,
 	createCtftProblem,
 	evaluateCtftSpectrum,
 	evaluateEnergySpectrum,
 	validateCtftAnswer,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
+import {
+	buildCtftLesson,
+	CTFT_COURSE_FAMILIES,
+	type CtftPracticeMode,
+} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
+import {
+	buildCtftSpectrum,
+	evaluateCtftRegular,
+} from "$lib/math-engine/fourier-transform/spectrum";
+import {
+	validateCtftCalculation,
+	validateCtftConstant,
+	validateCtftImpulseRows,
+	withCtftCalculationDiagnostics,
+} from "$lib/math-engine/fourier-transform/tutor-validation";
 
 /** Family matrix, including regular and distribution spectra. */
 const families: CtftSignalType[] = [

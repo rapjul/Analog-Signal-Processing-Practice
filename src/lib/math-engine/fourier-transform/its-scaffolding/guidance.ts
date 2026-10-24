@@ -1,12 +1,13 @@
 /** Family-specific teaching copy, independent of controller and rendering. */
-import { formatCtftHalfWidth } from "./ctft-derivation";
+
+import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform/engine";
+import { formatCtftHalfWidth } from "./derivation";
 import type {
 	CtftLessonPart,
 	CtftLessonStage,
 	CtftPracticeMode,
 	CtftStageId,
-} from "./ctft-lesson";
-import type { GeneratedCtftProblem } from "./fourier-transform";
+} from "./lesson";
 
 /** Concept, identity, and substitution scaffold revealed progressively. */
 type Hints = [string, string, string];

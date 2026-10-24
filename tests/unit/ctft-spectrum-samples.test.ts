@@ -1,10 +1,10 @@
 /** Numerical coverage for accessible CTFT observations independent of screenshots. */
 import { describe, expect, it } from "vitest";
+import { createCtftProblem } from "$lib/math-engine/fourier-transform/index";
 import {
 	buildCtftSpectrum,
 	selectCtftSpectrumSamples,
-} from "$lib/math-engine/ctft-spectrum";
-import { createCtftProblem } from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/spectrum";
 
 describe("accessible CTFT spectrum samples", () => {
 	for (const T of [1, 2, 6]) {

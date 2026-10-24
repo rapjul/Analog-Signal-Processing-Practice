@@ -1,8 +1,8 @@
 <script lang="ts">
 	/** Keys attempts by object and mode so even identical IDs reset all state. */
-	import type { CtftPracticeMode } from "$lib/math-engine/ctft-lesson";
-	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
-	import CtftSolverSession from "./CtftSolverSession.svelte";
+	import CtftSolverSession from "$lib/components/solvers/ctft-steps/CtftSolverSession.svelte";
+	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform/index";
+	import type { CtftPracticeMode } from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 
 	/** Public guided solver inputs. */
 	interface Props {

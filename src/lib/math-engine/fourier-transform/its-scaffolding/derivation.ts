@@ -1,7 +1,8 @@
 /** Family-specific algebra between integral setup and the base transform. */
-import type { CtftLessonPart } from "./ctft-lesson";
-import { ExactFraction } from "./exact-fraction";
-import type { GeneratedCtftProblem } from "./fourier-transform";
+
+import { ExactFraction } from "$lib/math-engine/exact-fraction";
+import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform/engine";
+import type { CtftLessonPart } from "./lesson";
 
 /**
  * Formats a pulse half-width without introducing decimal presentation.

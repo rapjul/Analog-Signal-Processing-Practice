@@ -1,10 +1,10 @@
 /** Browser exercises using independent formulas and ordinary UI controls. */
 import { expect, type Page } from "@playwright/test";
-import type { CtftPracticeMode } from "$lib/math-engine/ctft-lesson";
 import type {
 	CtftParameters,
 	CtftSignalType,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
+import type { CtftPracticeMode } from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 
 /** Accessible family labels, independent of the lesson metadata. */
 const names: Record<CtftSignalType, string> = {

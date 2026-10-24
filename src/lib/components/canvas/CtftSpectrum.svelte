@@ -2,11 +2,11 @@
 	/** Completed plots keep regular spectra separate from weighted distributions. */
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform/index";
 	import {
 		buildCtftSpectrum,
 		selectCtftSpectrumSamples,
-	} from "$lib/math-engine/ctft-spectrum";
-	import type { GeneratedCtftProblem } from "$lib/math-engine/fourier-transform";
+	} from "$lib/math-engine/fourier-transform/spectrum";
 
 	/** Plot inputs. */
 	interface Props {
