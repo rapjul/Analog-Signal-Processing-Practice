@@ -178,10 +178,10 @@ describe("CTFT guided component", () => {
 		expect(
 			view.container.querySelector(".input-errors button annotation")
 				?.textContent,
-		).toBe(String.raw`\omega`);
+		).toBe("t");
 		expect(
 			view.container.querySelector(".input-errors")?.textContent,
-		).toContain("Substitute the time endpoint here; retain");
+		).toContain("Complete the requested calculation without leaving");
 		expect(view.container.querySelector(".solution-breakdown")).toBeNull();
 		await fireEvent.input(input, {
 			target: { value: "(e^(-2j omega)-e^(2j omega))/(-j omega)" },
@@ -192,6 +192,68 @@ describe("CTFT guided component", () => {
 		).toBeNull();
 		expect(view.getByLabelText("Equivalent sine expression")).toBeTruthy();
 	});
+	for (const family of ["cos", "gaussian"] as const) {
+		/** Coefficient extraction errors render neutral math-aware guidance and select the original time token. */
+		it(`guides a ${family} coefficient retry without endpoint instructions`, async () => {
+			const problem = createCtftProblem(family, {
+				a: 2,
+				T: 4,
+				w0: 3,
+				t0: 0,
+			});
+			const view = render(CtftStepSolver, { problem });
+			await complete(view.container, problem, "derivation", "base");
+			const input = view.getByRole("textbox") as HTMLInputElement;
+			const answer = family === "cos" ? "t/2" : "-j omega t";
+			await fireEvent.input(input, { target: { value: answer } });
+			await fireEvent.submit(view.container.querySelector("form")!);
+			await waitFor(() =>
+				expect(
+					input.value.slice(
+						input.selectionStart!,
+						input.selectionEnd!,
+					),
+				).toBe("t"),
+			);
+			expect(
+				view.container
+					.querySelector(".feedback-box")
+					?.getAttribute("data-validation"),
+			).toBe("unsupported");
+			expect(
+				view.container.querySelector(".feedback-box")?.textContent,
+			).not.toContain("endpoint");
+			expect(
+				view.container.querySelector(".input-errors button annotation")
+					?.textContent,
+			).toBe("t");
+			expect(
+				view.container.querySelector(
+					".solution-breakdown, .ctft-spectrum",
+				),
+			).toBeNull();
+			await fireEvent.click(
+				view.container.querySelector(".input-errors button")!,
+			);
+			expect(input.selectionStart).toBe(answer.indexOf("t"));
+			await fireEvent.input(input, {
+				target: { value: family === "cos" ? "1/2" : "-j omega" },
+			});
+			await fireEvent.submit(view.container.querySelector("form")!);
+			expect(
+				view.queryByRole("region", {
+					name: "Issues in your expression",
+				}),
+			).toBeNull();
+			expect(
+				view.getByLabelText(
+					family === "cos"
+						? "Complex exponential impulse weight"
+						: "Squared linear coefficient",
+				),
+			).toBeTruthy();
+		});
+	}
 	for (const family of [
 		"rect",
 		"exponential",

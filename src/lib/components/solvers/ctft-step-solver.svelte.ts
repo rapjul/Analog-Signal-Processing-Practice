@@ -270,9 +270,22 @@ export class CtftStepSolverState extends BaseStepSolverState {
 				status: "invalid",
 				message: "Select one of the options for this question.",
 			};
+		if (input === task.expected)
+			return {
+				status: "correct",
+				message: "Correct! This choice matches the current task.",
+			};
+		/** Retry guidance keyed by the lesson's stable recognition task identifiers. */
+		const guidance: Record<string, string> = {
+			family: "Check the selected signal family.",
+			definition: "Check the forward-transformation setup.",
+			operation: "Check whether the signal is translated in time.",
+		};
 		return {
-			status: input === task.expected ? "correct" : "incorrect",
-			message: "Check the signal family, forward kernel, or property.",
+			status: "incorrect",
+			message:
+				guidance[task.id] ??
+				"Compare your choice with the current task.",
 		};
 	}
 

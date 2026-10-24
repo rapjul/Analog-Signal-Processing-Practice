@@ -39,7 +39,7 @@ function containsVariable(node: unknown): boolean {
 }
 
 /**
- * Adds actionable time-substitution feedback without changing a grading outcome.
+ * Adds calculation-neutral time-variable feedback without changing a grading outcome.
  * @param answer - Original intermediate-calculation input.
  * @param result - Canonical verifier's authoritative result.
  * @returns The original result or a copy retaining its status and syntax diagnostics.
@@ -54,7 +54,7 @@ export function withCtftCalculationDiagnostics(
 	return {
 		...result,
 		message:
-			"The time variable $t$ should disappear after endpoint substitution. Use $\\omega$ for angular frequency and substitute the endpoint for $t$.",
+			"The requested intermediate result must not contain the time variable $t$. Complete the operation shown in the task context.",
 		diagnostics: [
 			...(result.diagnostics ?? []),
 			...times.map(
@@ -63,7 +63,7 @@ export function withCtftCalculationDiagnostics(
 					start: match.index! + match[1]!.length,
 					end: match.index! + match[1]!.length + 1,
 					message:
-						"Substitute the time endpoint here; retain $\\omega$ as the frequency variable.",
+						"Complete the requested calculation without leaving $t$ in the answer.",
 				}),
 			),
 		].slice(0, 8),

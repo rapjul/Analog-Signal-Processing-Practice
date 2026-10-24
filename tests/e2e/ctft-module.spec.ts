@@ -276,6 +276,97 @@ for (const mode of ["derivation", "pairs-properties"] as const) {
 	});
 }
 
+/** Wrong recognition and coefficient responses remain retryable through complete ordinary controls. */
+test("cosine retries use task-specific choices and neutral coefficient guidance", async ({
+	page,
+}) => {
+	await page.locator(".drill-summary").click();
+	await page.getByLabel("Signal Category:").selectOption("cos");
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	await expect(page.locator(".feedback-box")).toContainText(
+		"Check the selected signal family.",
+	);
+	await expect(page.locator(".feedback-box")).not.toContainText("kernel");
+	await page.getByRole("button", { name: "Cosine", exact: true }).click();
+	await enterCtftAnswer(page, "Carrier angular frequency", "3");
+	await enterCtftAnswer(page, "Signed time translation", "1");
+	await page
+		.getByRole("button", { name: /Cosine equals the unscaled sum/ })
+		.click();
+	await expect(page.locator(".feedback-box")).toContainText(
+		"Check the forward-transformation setup.",
+	);
+	await page
+		.getByRole("button", { name: /Cosine equals half the sum/ })
+		.click();
+	const coefficient = page.getByLabel("Euler decomposition coefficient");
+	await coefficient.fill("t/2");
+	await coefficient.press("Enter");
+	const issues = page.getByRole("region", {
+		name: "Issues in your expression",
+	});
+	await expect(page.locator(".feedback-box")).toHaveAttribute(
+		"data-validation",
+		"unsupported",
+	);
+	await expect(page.locator(".feedback-box")).toContainText(
+		"Complete the operation shown in the task context.",
+	);
+	await expect(page.locator(".feedback-box")).not.toContainText("endpoint");
+	await expect(issues).toContainText(
+		"Complete the requested calculation without leaving",
+	);
+	await issues.getByRole("button").click();
+	await expect(coefficient).toBeFocused();
+	expect(
+		await coefficient.evaluate(
+			/** @param element - Original active input. @returns Selected source token. */
+			(element) => {
+				const field = element as HTMLInputElement;
+				return field.value.slice(
+					field.selectionStart!,
+					field.selectionEnd!,
+				);
+			},
+		),
+	).toBe("t");
+	await expect(
+		page.locator(".solution-breakdown, .ctft-spectrum"),
+	).toHaveCount(0);
+	await enterCtftAnswer(page, "Euler decomposition coefficient", "1/2");
+	await expect(issues).toHaveCount(0);
+	await enterCtftAnswer(page, "Complex exponential impulse weight", "2 pi");
+	await enterCtftAnswer(
+		page,
+		"Cosine impulse weight after Euler scaling",
+		"pi",
+	);
+	for (const [row, location] of [3, -3].entries()) {
+		await enterCtftAnswer(
+			page,
+			`Impulse ${row + 1} location`,
+			String(location),
+		);
+		await enterCtftAnswer(page, `Impulse ${row + 1} complex weight`, "pi");
+	}
+	await page
+		.getByRole("button", {
+			name: "Frequency translation (modulation)",
+			exact: true,
+		})
+		.click();
+	await expect(page.locator(".feedback-box")).toContainText(
+		"Check whether the signal is translated in time.",
+	);
+	await page
+		.getByRole("button", { name: "Time translation", exact: true })
+		.click();
+	await enterCtftAnswer(page, "Phase multiplier", "e^(-j omega)");
+	await finishCtft(page, "cos", { a: 2, T: 1, w0: 3, t0: 1 });
+});
+
 for (const mode of ["derivation", "pairs-properties"] as const)
 	for (const notation of [
 		"padded",
@@ -345,6 +436,18 @@ for (const mode of ["derivation", "pairs-properties"] as const)
 			await expect(
 				page.locator(".solution-breakdown, .ctft-spectrum"),
 			).toHaveCount(0);
+			await page
+				.getByRole("button", {
+					name: family === "cos" ? "Rectangular pulse" : "Cosine",
+					exact: true,
+				})
+				.click();
+			await expect(page.locator(".feedback-box")).toContainText(
+				"Check the selected signal family.",
+			);
+			await expect(page.locator(".feedback-box")).not.toContainText(
+				"kernel",
+			);
 			await prepareCtftFinal(page, family, params, mode);
 			await expect(
 				page.locator(".solution-breakdown, .ctft-spectrum"),

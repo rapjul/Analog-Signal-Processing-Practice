@@ -142,7 +142,7 @@ describe("CTFT tutor", () => {
 		);
 	});
 	/** Remediation preserves the canonical outcome and original syntax ranges without mutating its input. */
-	it("adds bounded time-substitution diagnostics without changing verification", () => {
+	it("adds bounded time-variable diagnostics without changing verification", () => {
 		const original = {
 			status: "invalid" as const,
 			message: "Unclosed bracket",
@@ -163,6 +163,110 @@ describe("CTFT tutor", () => {
 		const verified = { status: "correct" as const, message: "Verified" };
 		expect(withCtftCalculationDiagnostics("t", verified)).toBe(verified);
 	});
+	/** Every derivation calculation retains canonical grading while describing time-independent results correctly. */
+	it("uses neutral residual-time guidance across all derivation families", () => {
+		for (const family of families) {
+			const lesson = buildCtftLesson(
+				createCtftProblem(family, { a: 2, T: 4, w0: 3, t0: 0 }),
+				"derivation",
+			);
+			for (const stage of lesson.stages) {
+				for (const task of stage.parts) {
+					if (task.kind !== "calculation") continue;
+					const answer = `(${task.expected})+t+t`;
+					const original = validateCtftCalculation(
+						answer,
+						task.expected,
+					);
+					const result = withCtftCalculationDiagnostics(
+						answer,
+						original,
+					);
+					expect(original.status).toBe("unsupported");
+					expect(result.status).toBe(original.status);
+					expect(result.message).toBe(
+						"The requested intermediate result must not contain the time variable $t$. Complete the operation shown in the task context.",
+					);
+					expect(result.diagnostics).toHaveLength(2);
+					for (const diagnostic of result.diagnostics!) {
+						expect(
+							answer.slice(diagnostic.start, diagnostic.end),
+						).toBe("t");
+						expect(diagnostic.message).toBe(
+							"Complete the requested calculation without leaving $t$ in the answer.",
+						);
+					}
+					expect(
+						validateCtftCalculation(task.expected, task.expected)
+							.status,
+					).toBe("correct");
+				}
+			}
+		}
+		const answer = Array(12).fill("t").join("+");
+		const original = validateCtftCalculation(answer, "1/2");
+		expect(
+			withCtftCalculationDiagnostics(answer, original).diagnostics,
+		).toHaveLength(8);
+	});
+	for (const mode of modes)
+		for (const family of ["rect", "exponential", "delta", "cos"] as const) {
+			/** Real recognition retries retain ownership guards and report the topic actually being checked. */
+			it(`gives task-specific choice feedback for ${family} in ${mode}`, () => {
+				const expectedFeedback: Record<string, string> = {
+					family: "Check the selected signal family.",
+					definition: "Check the forward-transformation setup.",
+					operation:
+						"Check whether the signal is translated in time.",
+				};
+				for (const t0 of [0, 1, -1]) {
+					const callback = vi.fn();
+					const solver = new CtftStepSolverState(
+						createCtftProblem(family, { a: 2, T: 4, w0: 3, t0 }),
+						mode,
+						callback,
+					);
+					for (
+						let attempt = 0;
+						attempt < 100 && !solver.isCompleted;
+						attempt++
+					) {
+						const stage = solver.activeStage!;
+						const task = solver.activePart!;
+						const state = solver.currentStepState!;
+						if (task.kind === "choice") {
+							solver.editAnswer(
+								stage.id,
+								task.id,
+								"unknown-option",
+							);
+							solver.check(stage.id, task.id);
+							expect(state.result?.status).toBe("invalid");
+							const wrong = task.choices!.find(
+								/** @param option - Owned recognition choice. @returns A valid distractor. */
+								(option) => option.id !== task.expected,
+							)!;
+							solver.editAnswer(stage.id, task.id, wrong.id);
+							solver.check(stage.id, task.id);
+							expect(state.result?.status).toBe("incorrect");
+							expect(state.result?.message).toBe(
+								expectedFeedback[task.id],
+							);
+							expect(state.feedback).not.toContain("kernel");
+							expect(solver.activePart).toBe(task);
+						}
+						answerCurrent(solver);
+						if (task.kind === "choice") {
+							expect(state.result?.message).toBe(
+								"Correct! This choice matches the current task.",
+							);
+							expect(state.isValid).toBe(true);
+						}
+					}
+					expect(callback).toHaveBeenCalledTimes(1);
+				}
+			});
+		}
 	/** Pair-only guidance cannot refer to calculations that this teaching path omits. */
 	it("keeps input sizing and guidance consistent with each mode", () => {
 		for (const family of families) {
