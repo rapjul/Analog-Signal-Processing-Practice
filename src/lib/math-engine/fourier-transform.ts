@@ -26,6 +26,8 @@ export interface CtftParameters {
 
 /** Generated forward drill with a parameter-based grading reference. */
 export interface GeneratedCtftProblem extends CtftProblem {
+	/** Math-only signal equation, independent of instructional prose. */
+	signalLatex: string;
 	/** Base signal family. */
 	signalType: CtftSignalType;
 	/** Complete reproducible signal parameters. */
@@ -141,6 +143,7 @@ export function getCtftPairLatex(
  * @param {{ T?: number; a?: number; w0?: number }} params Parameter values (T, a, w0)
  * @param {number} omega Frequency omega in rad/s
  * @returns {CtftSpectrumPoint} CtftSpectrumPoint object with magnitude and phase
+ * @throws {Error} Cosine spectra contain distributions rather than pointwise values.
  */
 export function evaluateCtftSpectrum(
 	type: CtftSignalType,
@@ -178,9 +181,9 @@ export function evaluateCtftSpectrum(
 			return { omega, magnitude: 1, phase: 0 };
 		}
 		case "cos": {
-			const w0 = params.w0 ?? 1;
-			const isImpulse = Math.abs(Math.abs(omega) - w0) < 1e-4;
-			return { omega, magnitude: isImpulse ? Math.PI : 0, phase: 0 };
+			throw new Error(
+				"A cosine spectrum is a distribution; use weighted impulses, not pointwise heights.",
+			);
 		}
 		default: {
 			const _exhaustiveCheck: never = type;
@@ -198,6 +201,7 @@ export function evaluateCtftSpectrum(
  * @param {{ T?: number; a?: number; w0?: number }} params Signal parameter values
  * @param {number} omega Frequency omega in rad/s
  * @returns {number} Numerical value of |X(w)|^2
+ * @throws {Error} Distribution spectra cannot be squared as finite peak heights.
  */
 export function evaluateEnergySpectrum(
 	type: CtftSignalType,
@@ -282,6 +286,7 @@ export function createCtftProblem(
 			id,
 			signalType: type,
 			params: { ...params },
+			signalLatex: `x(t) = ${shiftedTimeLatex}`,
 			promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of time-shifted signal } x(t) = ${shiftedTimeLatex}`,
 			referenceAnswerLatex: shiftedFreqLatex,
 			solutionSteps: [
@@ -305,6 +310,7 @@ export function createCtftProblem(
 		id,
 		signalType: type,
 		params: { ...params },
+		signalLatex: `x(t) = ${pair.timeLatex}`,
 		promptLatex: String.raw`\text{Find the CTFT } X(\omega) \text{ of } x(t) = ${pair.timeLatex}`,
 		referenceAnswerLatex: pair.freqLatex,
 		solutionSteps: [

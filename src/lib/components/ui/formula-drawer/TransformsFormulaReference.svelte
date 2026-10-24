@@ -8,97 +8,131 @@
 
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+
+	/** Route context selects reference ordering without changing the shared tab. */
+	interface Props {
+		/** Active solver route; other routes retain Laplace-first ordering. */ activeRoute?: string;
+	}
+	let { activeRoute = "" }: Props = $props();
 </script>
 
-<div class="ref-section">
-	<h3 class="section-heading">Common Laplace Transform Pairs</h3>
-	<table class="ref-table">
-		<thead>
-			<tr>
-				<th>
-					<MathText text={"Time Domain $x(t) u(t)$"} />
-				</th>
-				<th>
-					<MathText text={"Laplace Domain $X(s)$"} />
-				</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td>
-					<MathText text={String.raw`$\delta(t)$`} />
-				</td>
-				<td><MathText text={"$1$"} /></td>
-			</tr>
-			<tr>
-				<td><MathText text={"$u(t)$"} /></td>
-				<td>
-					<MathText text={String.raw`$\frac{1}{s}$`} />
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<MathText text={String.raw`$e^{-a t} u(t)$`} />
-				</td>
-				<td>
-					<MathText text={String.raw`$\frac{1}{s + a}$`} />
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<MathText text={String.raw`$\cos(\omega t) u(t)$`} />
-				</td>
-				<td>
-					<MathText text={String.raw`$\frac{s}{s^2 + \omega^2}$`} />
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<MathText text={String.raw`$\sin(\omega t) u(t)$`} />
-				</td>
-				<td>
-					<MathText
-						text={String.raw`$\frac{\omega}{s^2 + \omega^2}$`}
-					/>
-				</td>
-			</tr>
-		</tbody>
-	</table>
-</div>
+{#snippet laplaceReference()}
+	<div class="ref-section">
+		<h3 class="section-heading">Common Laplace Transform Pairs</h3>
+		<table class="ref-table">
+			<thead>
+				<tr>
+					<th>
+						<MathText text={"Time Domain $x(t) u(t)$"} />
+					</th>
+					<th>
+						<MathText text={"Laplace Domain $X(s)$"} />
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<MathText text={String.raw`$\delta(t)$`} />
+					</td>
+					<td><MathText text={"$1$"} /></td>
+				</tr>
+				<tr>
+					<td><MathText text={"$u(t)$"} /></td>
+					<td>
+						<MathText text={String.raw`$\frac{1}{s}$`} />
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<MathText text={String.raw`$e^{-a t} u(t)$`} />
+					</td>
+					<td>
+						<MathText text={String.raw`$\frac{1}{s + a}$`} />
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<MathText text={String.raw`$\cos(\omega t) u(t)$`} />
+					</td>
+					<td>
+						<MathText
+							text={String.raw`$\frac{s}{s^2 + \omega^2}$`}
+						/>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<MathText text={String.raw`$\sin(\omega t) u(t)$`} />
+					</td>
+					<td>
+						<MathText
+							text={String.raw`$\frac{\omega}{s^2 + \omega^2}$`}
+						/>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+{/snippet}
 
-<div class="ref-section">
-	<h3 class="section-heading">Continuous-Time Fourier Transform (CTFT)</h3>
-	<MathBlock
-		math={"X(\\omega) = \\int_{-\\infty}^{\\infty} x(t) e^{-j \\omega t} dt, \\quad x(t) = \\frac{1}{2\\pi} \\int_{-\\infty}^{\\infty} X(\\omega) e^{j \\omega t} d\\omega"}
-		compact={true}
-	/>
-	<ul class="ref-list">
-		<li>
-			<strong>Duality:</strong>
-			<MathText
-				text={String.raw`$X(t) \leftrightarrow 2\pi x(-\omega)$`}
-			/>
-		</li>
-		<li>
-			<strong>Time Shifting:</strong>
-			<MathText
-				text={String.raw`$x(t - t_0) \leftrightarrow e^{-j \omega t_0} X(\omega)$`}
-			/>
-		</li>
-		<li>
-			<strong>Modulation:</strong>
-			<MathText
-				text={String.raw`$x(t) e^{j \omega_0 t} \leftrightarrow X(\omega - \omega_0)$`}
-			/>
-		</li>
-		<li>
-			<strong>Differentiation:</strong>
-			<MathText
-				text={String.raw`$\frac{d x}{dt} \leftrightarrow j \omega X(\omega)$`}
-			/>
-		</li>
-	</ul>
-</div>
+{#snippet ctftReference()}
+	<div class="ref-section">
+		<h3 class="section-heading">
+			Continuous-Time Fourier Transform (CTFT)
+		</h3>
+		<h4>Forward transformation</h4>
+		<MathBlock
+			math={String.raw`X(\omega)=\int_{-\infty}^{\infty}x(t)e^{-j\omega t}\,dt`}
+			compact={true}
+			responsive
+		/>
+		<h4>Inverse transformation</h4>
+		<MathBlock
+			math={String.raw`x(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty}X(\omega)e^{j\omega t}\,d\omega`}
+			compact
+			responsive
+		/>
+		<h4>Normalized sinc</h4>
+		<MathBlock
+			math={String.raw`\operatorname{sinc}(z)=\frac{\sin(\pi z)}{\pi z},\quad\operatorname{sinc}(0)=1`}
+			compact
+			responsive
+		/>
+		<ul class="ref-list">
+			<li>
+				<strong>Duality:</strong>
+				<MathText
+					text={String.raw`$X(t) \leftrightarrow 2\pi x(-\omega)$`}
+				/>
+			</li>
+			<li>
+				<strong>Time Shifting:</strong>
+				<MathText
+					text={String.raw`$x(t - t_0) \leftrightarrow e^{-j \omega t_0} X(\omega)$`}
+				/>
+			</li>
+			<li>
+				<strong>Modulation:</strong>
+				<MathText
+					text={String.raw`$x(t) e^{j \omega_0 t} \leftrightarrow X(\omega - \omega_0)$`}
+				/>
+			</li>
+			<li>
+				<strong>Differentiation:</strong>
+				<MathText
+					text={String.raw`$\frac{d x}{dt} \leftrightarrow j \omega X(\omega)$`}
+				/>
+			</li>
+		</ul>
+	</div>
+{/snippet}
+
+{#if activeRoute.startsWith("/fourier-transform")}
+	{@render ctftReference()}{@render laplaceReference()}
+{:else}
+	{@render laplaceReference()}{@render ctftReference()}
+{/if}
 
 <style>
 	/* ── Box-drawing section dividers ────────────────────────────────────────── */
@@ -120,6 +154,10 @@
 		font-weight: 700;
 		color: var(--text-primary, #f4f4f5);
 		margin: 0;
+	}
+	h4 {
+		margin: 0;
+		font-size: var(--text-sm);
 	}
 
 	.ref-list {

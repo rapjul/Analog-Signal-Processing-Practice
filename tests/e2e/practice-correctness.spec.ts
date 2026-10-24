@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { transformAdversaries } from "$lib/testing/transform-adversaries";
+import { prepareCtftFinal } from "./ctft-browser";
 
 /** Reproduces generated page parameters without exposing grading shortcuts. */
 test.beforeEach(async ({ page }) => {
@@ -26,11 +27,22 @@ async function reveal(page: Page) {
 /** A known delta input has a scalar spectrum, with no fixture-only production interface. */
 test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", async ({
 	page,
-}) => {
+}, info) => {
 	await page.goto("/fourier-transform");
 	await page.locator(".drill-summary").click();
 	await page.locator("#signal-type-select").selectOption("delta");
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+	await prepareCtftFinal(page, "delta", { a: 1, T: 2, w0: 3, t0: 0 });
+	if (info.config.configFile?.endsWith("playwright.production.config.ts")) {
+		await page.evaluate(
+			/** Waits for this fresh production context to finish installing its offline worker. */ async () => {
+				await navigator.serviceWorker.ready;
+			},
+		);
+		await page
+			.getByRole("button", { name: "Dismiss notification" })
+			.click();
+	}
 	const input = page.locator("#ctft-input");
 	for (const answer of [
 		"garbage",
@@ -50,7 +62,9 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		),
 	]) {
 		await input.fill(answer);
-		await page.getByRole("button", { name: "Check Answer" }).click();
+		await page
+			.getByRole("button", { name: "Check final spectrum →" })
+			.click();
 		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
 			"data-validation",
 			"correct",
@@ -58,32 +72,21 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}
 	await input.fill("3.14");
-	await page.getByRole("button", { name: "Check Answer" }).click();
+	await page.getByRole("button", { name: "Check final spectrum →" }).click();
 	await expect(page.locator(".feedback-box")).toContainText(
 		"If you intended the constant pi, type 'pi' (lowercase)",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
-	for (const answer of [
-		"X(omega)=2/2",
-		String.raw`X\left(\omega\right)=2/2`,
-		String.raw`X\,\left[jw\right]=2/2`,
-	]) {
-		await input.fill(answer);
-		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).toHaveAttribute(
-			"data-validation",
-			"correct",
-		);
-	}
-	await reveal(page);
+	await input.fill(String.raw`X\,\left[jw\right]=2/2`);
+	await input.press("Enter");
+	await expect(
+		page.getByRole("heading", { name: "CTFT solution verified" }),
+	).toBeVisible();
+	await page
+		.getByText("View Complete Worked Solution", { exact: true })
+		.click();
 	await expect(page.locator(".assistance-status")).toHaveCount(0);
-	await input.fill("0");
-	await expect(page.locator(".feedback-box")).toHaveCount(0);
-	await page.getByRole("button", { name: "Next Problem" }).click();
-	await expect(page.locator(".worked-solution")).not.toHaveAttribute(
-		"open",
-		"",
-	);
+	await page.getByRole("button", { name: /Generate Next Problem/ }).click();
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 });
 
@@ -207,7 +210,7 @@ test("Circuits rebuilds one component model and resets revealed answers", async 
 	await expect(page.locator(".katex-error")).toHaveCount(0);
 });
 
-for (const route of ["laplace", "fourier-transform", "circuits"]) {
+for (const route of ["laplace", "circuits"]) {
 	/** Explicit reveal remains keyboard accessible without narrow-screen document overflow. */
 	test(`${route} solution reflows at 320px`, async ({ page }) => {
 		await page.setViewportSize({ width: 320, height: 568 });

@@ -44,8 +44,35 @@ describe("FormulaDrawer Modular Reference Panels", () => {
 	});
 
 	describe("TransformsFormulaReference", () => {
+		/** Course route ordering keeps definitions discoverable and equations separately labeled. */
+		it("puts CTFT first on its route and supplies normalized sinc", () => {
+			const view = render(TransformsFormulaReference, {
+				activeRoute: "/fourier-transform",
+			});
+			expect(view.container.querySelector("h3")?.textContent).toContain(
+				"Continuous-Time Fourier Transform",
+			);
+			expect(
+				view.getByRole("heading", { name: "Forward transformation" }),
+			).toBeTruthy();
+			expect(
+				view.getByRole("heading", { name: "Inverse transformation" }),
+			).toBeTruthy();
+			expect(
+				view.getByRole("heading", { name: "Normalized sinc" }),
+			).toBeTruthy();
+			expect(
+				view.container.querySelectorAll(
+					".ref-section:first-child .math-block",
+				),
+			).toHaveLength(3);
+			expect(view.container.querySelector(".katex-error")).toBeNull();
+		});
 		it("renders Laplace transform pairs and CTFT properties tables", () => {
 			const { container } = render(TransformsFormulaReference);
+			expect(container.querySelector("h3")?.textContent).toBe(
+				"Common Laplace Transform Pairs",
+			);
 			expect(container.querySelectorAll(".ref-section").length).toBe(2);
 			expect(container.querySelectorAll(".ref-table").length).toBe(1);
 		});

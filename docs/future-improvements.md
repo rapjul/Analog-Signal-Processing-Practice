@@ -151,10 +151,10 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ## Deferred Guided Tutors
 
-The following tutors require detailed planning in a separate future chat. The
-current correctness work provides strict transform grading, structured generated
-problem parameters, and explicit assisted-solution disclosures; it does not
-implement these new tutoring workflows.
+The remaining tutoring extensions below require detailed planning. Forward CTFT
+now has guided teaching paths; Laplace and circuit tutoring remain deferred.
+The shared correctness foundation provides strict transform grading and
+structured generated problem parameters.
 
 ### 17. Laplace Transform Tutor
 
@@ -167,9 +167,8 @@ implement these new tutoring workflows.
 
 ### 18. Continuous-Time Fourier Transform Tutor
 
-- Start with base-pair identification, parameter extraction, base-transform derivation, operational-property selection, application, and final assembly for the currently generated forward families.
-- Provide dedicated impulse-location and complex-weight inputs for distribution spectra; never grade Dirac impulses by point sampling or represent their weights as finite peak heights.
-- Diagnose normalized-sinc scaling, time-shift phase signs, missing paired impulses, and omitted amplitude factors.
+- Forward-family tutoring is implemented in Derivation and Pairs & Properties modes; see `./ctft-tutor.md` for the workflows, grading, and completed spectra.
+- Preserve dedicated impulse-location and complex-weight inputs as coverage expands; never grade Dirac impulses by point sampling or represent their weights as finite peak heights.
 - Follow with inverse transforms, time scaling, modulation, differentiation, duality, energy spectra, and bandwidth drills.
 - Distinguish energy signals from power signals before requesting energy calculations; explicitly state the normalized-sinc and angular-frequency conventions.
 - Test ordinary and distribution answers independently, including phase, equivalent forms, zero-frequency limits, and every operational-property combination taught.

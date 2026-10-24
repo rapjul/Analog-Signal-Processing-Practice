@@ -1,88 +1,579 @@
+/** Both CTFT teaching paths, exercised without development-only shortcuts. */
 import { expect, test } from "@playwright/test";
+import type { CtftSignalType } from "$lib/math-engine/fourier-transform";
+import {
+	enterCtftAnswer,
+	expectCtftFeedback,
+	finishCtft,
+	prepareCtftFinal,
+} from "./ctft-browser";
 
-/**
- * End-to-End Test Suite: Continuous-Time Fourier Transform Module (/fourier-transform).
- *
- * Verifies CTFT signal category selection, transform formula input,
- * dynamic problem prompt updates, validation feedback, and step breakdown LaTeX math.
- */
-
-test.describe("CTFT Practice Module", () => {
-	test.beforeEach(async ({ page }) => {
-		await page.goto("/fourier-transform");
-		await page.waitForLoadState("networkidle");
+test.beforeEach(async ({ page }) => {
+	await page.addInitScript(() => {
+		Math.random = () => 0.2;
 	});
+	await page.goto("/fourier-transform");
+});
 
-	/**
-	 * Verifies initial rendering of the CTFT module page.
-	 */
-	test("renders header, signal category dropdown, and CTFT practice card", async ({
+/** Deep input within the field limit must never turn a renderer failure into HTML execution. */
+test("failed mathematical previews keep learner markup inert and allow retries", async ({
+	page,
+}) => {
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	await enterCtftAnswer(page, "Pulse width T", "2");
+	await enterCtftAnswer(page, "Signed time translation", "0");
+	await page
+		.getByRole("button", {
+			name: /forward transformation with the negative imaginary exponent/,
+		})
+		.click();
+	const input = page.getByLabel("Exponential antiderivative coefficient");
+	const markup =
+		"<img src=/__ctft_audit_missing__ onerror=document.documentElement.dataset.ctftAudit=1>";
+	const source = "{".repeat(4096) + markup + "}".repeat(4096);
+	await input.fill(source);
+	await expect(page.locator(".answer-preview")).toContainText(markup);
+	await expect(page.locator(".answer-preview img")).toHaveCount(0);
+	expect(
+		await page.locator("html").getAttribute("data-ctft-audit"),
+	).toBeNull();
+	await input.press("Enter");
+	await expect(input).toBeVisible();
+	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+	await enterCtftAnswer(
+		page,
+		"Exponential antiderivative coefficient",
+		"j/omega",
+	);
+	await expect(
+		page.getByLabel("Upper minus lower endpoint expression"),
+	).toBeVisible();
+});
+
+/** Course controls and recognition expose only the agreed four families in either mode. */
+test("course practice excludes Gaussian choices", async ({ page }) => {
+	await page.locator(".drill-summary").click();
+	await expect(
+		page.getByLabel("Signal Category:").locator("option"),
+	).toHaveText([
+		"Rectangular pulse",
+		"Causal exponential",
+		"Dirac delta",
+		"Cosine",
+	]);
+	for (const mode of ["derivation", "pairs-properties"]) {
+		await page.getByLabel("Teaching Mode:").selectOption(mode);
+		await expect(page.locator(".step-card.active .choice")).toHaveCount(4);
+		await expect(
+			page.getByRole("button", { name: "Gaussian", exact: true }),
+		).toHaveCount(0);
+	}
+});
+
+/** Definitions live in the route-selected drawer while signal math and input aliases remain readable. */
+test("formulas and notation have accessible keyboard controls", async ({
+	page,
+}) => {
+	await expect(page.locator(".problem-prompt p")).toContainText(
+		"Find the Fourier transform",
+	);
+	await expect(page.locator(".problem-prompt .math-block")).not.toContainText(
+		"Find",
+	);
+	const formulas = page.getByRole("button", {
+		name: "Open Formulas Reference Sheet",
+	});
+	await formulas.focus();
+	await formulas.press("Enter");
+	await expect(page.locator(".drawer-content h3").first()).toHaveText(
+		"Continuous-Time Fourier Transform (CTFT)",
+	);
+	await expect(
+		page.getByRole("heading", {
+			name: "Forward transformation",
+			exact: true,
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("heading", {
+			name: "Inverse transformation",
+			exact: true,
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: "Normalized sinc", exact: true }),
+	).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(formulas).toBeFocused();
+	for (const literal of ["omega", "w", "e^(-j*omega)", "e^{-j*omega}"]) {
+		const example = page.getByRole("button", {
+			name: `Copy input notation: ${literal}`,
+			exact: true,
+		});
+		await expect(example.locator(".katex-html")).toHaveText(literal);
+		await example.focus();
+		await expect(example).toBeFocused();
+	}
+	await page.setViewportSize({ width: 320, height: 740 });
+	expect(
+		await page.evaluate(
+			/** @returns Whether the notation fits the narrow page. */
+			() =>
+				document.documentElement.scrollWidth <=
+				document.documentElement.clientWidth,
+		),
+	).toBe(true);
+});
+
+/** Scalar controls follow their actual exercise width rather than the browser viewport. */
+test("scalar rows and actions use their own container width", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 602, height: 983 });
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	const row = page.locator(".step-card.active .answer-row");
+	await expect(row).toHaveCSS("flex-direction", "row");
+	const check = page.getByRole("button", {
+		name: "Check width →",
+		exact: true,
+	});
+	await expect(check).toBeDisabled();
+	await page.locator(".exercise-container").evaluate(
+		/** @param element - Actual exercise. Constrains only this component at a wide viewport. */
+		(element) => {
+			(element as HTMLElement).style.width = "250px";
+		},
+	);
+	await expect(row).toHaveCSS("flex-direction", "column");
+	await page.locator(".exercise-container").evaluate(
+		/** @param element - Constrained exercise. Restores natural sizing. */
+		(element) => {
+			(element as HTMLElement).style.removeProperty("width");
+		},
+	);
+	await page.getByLabel("Pulse width T").fill("2");
+	await expect(check).toBeEnabled();
+	await check.focus();
+	await check.press("Enter");
+	await expect(
+		page.getByRole("button", { name: "Check translation →", exact: true }),
+	).toBeVisible();
+	await expect(page.locator(".step-card.active .answer-row")).toHaveCSS(
+		"flex-direction",
+		"row",
+	);
+	await expect(
+		page.getByRole("group", {
+			name: "Step 1 verified results: Identify the Base Transform Pair",
+		}),
+	).toContainText("Rectangular pulse");
+	await expect(page.locator(".step-card.completed details")).toHaveCount(0);
+	await page.setViewportSize({ width: 320, height: 740 });
+	await expect(page.locator(".step-card.active .answer-row")).toHaveCSS(
+		"flex-direction",
+		"column",
+	);
+	const button = page.getByRole("button", {
+		name: "Check translation →",
+		exact: true,
+	});
+	const box = await button.boundingBox();
+	const action = await page.locator(".solver-actions").boundingBox();
+	expect(box!.width).toBeCloseTo(action!.width, 0);
+});
+
+/** Ordinary keyboard controls expose relevant context, original error ranges, and responsive columns. */
+test("workspace guides endpoint algebra and reflows its verified context", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	const family = page.getByRole("button", {
+		name: "Rectangular pulse",
+		exact: true,
+	});
+	await family.focus();
+	await family.press("Enter");
+	await expect(
+		page.locator(".step-card.active .subpart-title"),
+	).toBeFocused();
+	await enterCtftAnswer(page, "Pulse width T", "4/2");
+	const context = page.getByRole("region", { name: "Results so far" });
+	await expect(context).toContainText("Pulse width");
+	await expect(context).not.toContainText("Phase multiplier");
+	const input = page.getByLabel("Signed time translation");
+	const inputBox = await input.boundingBox();
+	expect(inputBox!.width).toBeLessThanOrEqual(220);
+	const side = await page
+		.locator(".step-card.active .workspace-context")
+		.boundingBox();
+	const work = await page
+		.locator(".step-card.active .workspace-exercise")
+		.boundingBox();
+	expect(side!.x).toBeGreaterThan(work!.x);
+	await page.setViewportSize({ width: 320, height: 740 });
+	const mobileSide = await page
+		.locator(".step-card.active .workspace-context")
+		.boundingBox();
+	const mobileWork = await page
+		.locator(".step-card.active .workspace-exercise")
+		.boundingBox();
+	expect(mobileSide!.y + mobileSide!.height).toBeLessThanOrEqual(
+		mobileWork!.y + 1,
+	);
+	await enterCtftAnswer(page, "Signed time translation", "0");
+	await page
+		.getByRole("button", {
+			name: /forward transformation with the negative imaginary exponent/,
+		})
+		.click();
+	await enterCtftAnswer(
+		page,
+		"Exponential antiderivative coefficient",
+		"j/omega",
+	);
+	const endpoint = page.getByLabel("Upper minus lower endpoint expression");
+	await endpoint.fill("e^{-j t} - e^{j {t}");
+	await endpoint.press("Enter");
+	const issues = page.getByRole("region", {
+		name: "Issues in your expression",
+	});
+	await expect(issues.locator("li")).toHaveCount(3);
+	await expect(endpoint).toBeFocused();
+	expect(
+		await endpoint.evaluate(
+			/** @param element - Active text field. @returns Its selected source token. */ (
+				element,
+			) => {
+				const field = element as HTMLInputElement;
+				return field.value.slice(
+					field.selectionStart!,
+					field.selectionEnd!,
+				);
+			},
+		),
+	).toBe("{");
+	await enterCtftAnswer(
+		page,
+		"Upper minus lower endpoint expression",
+		"(e^(-j omega)-e^(j omega))/(-j omega)",
+	);
+	await expect(page.getByLabel("Equivalent sine expression")).toBeVisible();
+	await expect(
+		page.locator(".solution-breakdown, .ctft-spectrum"),
+	).toHaveCount(0);
+	expect(
+		await page.evaluate(
+			/** Reports horizontal page overflow. */ () =>
+				document.documentElement.scrollWidth <=
+				document.documentElement.clientWidth,
+		),
+	).toBe(true);
+});
+
+/** Production registers no state-selection or answer-autofill interface. */
+test("CTFT production omits the developer harness", async ({ page }, info) => {
+	test.skip(
+		!info.config.configFile?.endsWith("playwright.production.config.ts"),
+		"Production-only interface contract.",
+	);
+	expect(await page.evaluate(() => window.__signalLabDev)).toBeUndefined();
+});
+
+for (const mode of ["derivation", "pairs-properties"] as const) {
+	/** Tolerance-accepted final rows remain learner work while the solution uses exact symbolic weights. */
+	test(`exact cosine solution after approximate reversed rows in ${mode}`, async ({
 		page,
 	}) => {
-		await expect(page).toHaveTitle(
-			/Continuous-Time Fourier Transform \(CTFT\) — SignalLab/i,
-		);
-		await expect(page.locator("h1.page-title")).toHaveText(
-			/Continuous-Time Fourier Transform \(CTFT\)/i,
-		);
-
 		await page.locator(".drill-summary").click();
-		const signalSelect = page.locator("#signal-type-select");
-		await expect(signalSelect).toBeVisible();
-
-		const practiceCard = page.locator(".practice-card");
-		await expect(practiceCard).toBeVisible();
-	});
-
-	/**
-	 * Verifies changing signal categories generates appropriate transform problems.
-	 */
-	test("updates CTFT problem when switching signal types", async ({
-		page,
-	}) => {
-		await page.locator(".drill-summary").click();
-		const signalSelect = page.locator("#signal-type-select");
-
-		const prompt = page.locator(".problem-prompt");
-		await expect(prompt).toBeVisible();
-		for (const value of ["exponential", "cos", "gaussian"]) {
-			const previous = await prompt
-				.locator("annotation")
-				.first()
-				.textContent();
-			await signalSelect.selectOption(value);
-			await expect(signalSelect).toHaveValue(value);
-			await expect(prompt.locator("annotation").first()).not.toHaveText(
-				previous ?? "",
+		await page.getByLabel("Teaching Mode:").selectOption(mode);
+		await page.getByLabel("Signal Category:").selectOption("cos");
+		await prepareCtftFinal(page, "cos", { a: 2, T: 1, w0: 3, t0: 1 }, mode);
+		for (const [row, location] of [3, -3].entries()) {
+			await enterCtftAnswer(
+				page,
+				`Impulse ${row + 1} location`,
+				String(location),
+			);
+			await enterCtftAnswer(
+				page,
+				`Impulse ${row + 1} complex weight`,
+				`3.14159265 e^{-j(${location})}`,
 			);
 		}
-	});
-
-	/**
-	 * Verifies LaTeX math input and feedback display on submission.
-	 */
-	test("submits LaTeX answer and shows validation alert", async ({
-		page,
-	}) => {
-		const input = page.locator("#ctft-input");
-		await expect(input).toBeVisible();
-		await input.fill("arbitrary text");
-		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).toBeVisible();
-		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
-			"data-validation",
-			"correct",
+		await page
+			.getByText("View Complete Worked Solution", { exact: true })
+			.click();
+		await expect(page.locator(".solution-breakdown")).not.toContainText(
+			"3.14159265",
 		);
-		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+		await expect(page.locator(".solution-breakdown")).toContainText("\\pi");
+		const review = page.locator(".verified-fields").last();
+		await expect(review).toBeVisible();
+		await expect(review).toContainText("3.14159265");
 	});
+}
 
-	/**
-	 * Verifies step-by-step transform derivation and KaTeX formula rendering.
-	 */
-	test("renders KaTeX math formulas in CTFT prompt and step breakdowns", async ({
+/** Wrong recognition and coefficient responses remain retryable through complete ordinary controls. */
+test("cosine retries use task-specific choices and neutral coefficient guidance", async ({
+	page,
+}) => {
+	await page.locator(".drill-summary").click();
+	await page.getByLabel("Signal Category:").selectOption("cos");
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	await expectCtftFeedback(
 		page,
-	}) => {
-		const katex = page.locator(".katex");
-		await expect(katex.first()).toBeVisible();
+		"Check the selected signal family. Identify the signal before applying its translation.",
+	);
+	await page.getByRole("button", { name: "Cosine", exact: true }).click();
+	await enterCtftAnswer(page, "Carrier angular frequency", "3");
+	await enterCtftAnswer(page, "Signed time translation", "1");
+	await page
+		.getByRole("button", { name: /Cosine equals the unscaled sum/ })
+		.click();
+	await expectCtftFeedback(
+		page,
+		"Check the forward-transformation setup. Write the cosine as the sum of two complex exponentials.",
+	);
+	await page
+		.getByRole("button", { name: /Cosine equals half the sum/ })
+		.click();
+	const coefficient = page.getByLabel("Euler decomposition coefficient");
+	await coefficient.fill("t/2");
+	await coefficient.press("Enter");
+	const issues = page.getByRole("region", {
+		name: "Issues in your expression",
 	});
+	await expect(page.locator(".feedback-box")).toHaveAttribute(
+		"data-validation",
+		"unsupported",
+	);
+	await expectCtftFeedback(
+		page,
+		"The requested intermediate result must not contain the time variable t. Complete the operation shown in the task context.",
+	);
+	await expect(
+		page.locator(".feedback-box .alert-text .katex-mathml annotation"),
+	).toHaveText("t");
+	await expect(issues).toContainText(
+		"Complete the requested calculation without leaving",
+	);
+	await issues.getByRole("button").click();
+	await expect(coefficient).toBeFocused();
+	expect(
+		await coefficient.evaluate(
+			/** @param element - Original active input. @returns Selected source token. */
+			(element) => {
+				const field = element as HTMLInputElement;
+				return field.value.slice(
+					field.selectionStart!,
+					field.selectionEnd!,
+				);
+			},
+		),
+	).toBe("t");
+	await expect(
+		page.locator(".solution-breakdown, .ctft-spectrum"),
+	).toHaveCount(0);
+	await enterCtftAnswer(page, "Euler decomposition coefficient", "1/2");
+	await expect(issues).toHaveCount(0);
+	await enterCtftAnswer(page, "Complex exponential impulse weight", "2 pi");
+	await enterCtftAnswer(
+		page,
+		"Cosine impulse weight after Euler scaling",
+		"pi",
+	);
+	for (const [row, location] of [3, -3].entries()) {
+		await enterCtftAnswer(
+			page,
+			`Impulse ${row + 1} location`,
+			String(location),
+		);
+		await enterCtftAnswer(page, `Impulse ${row + 1} complex weight`, "pi");
+	}
+	await page
+		.getByRole("button", {
+			name: "Frequency translation (modulation)",
+			exact: true,
+		})
+		.click();
+	await expectCtftFeedback(
+		page,
+		"Check whether the signal is translated in time. Time translation changes phase; it does not translate the frequency axis.",
+	);
+	await page
+		.getByRole("button", { name: "Time translation", exact: true })
+		.click();
+	await enterCtftAnswer(page, "Phase multiplier", "e^(-j omega)");
+	await finishCtft(page, "cos", { a: 2, T: 1, w0: 3, t0: 1 });
+});
+
+for (const mode of ["derivation", "pairs-properties"] as const)
+	for (const notation of [
+		"padded",
+		"internal-whitespace",
+		"equation-prefix",
+	] as const) {
+		/** Previously accepted fields remain valid when assembling the final distribution through normal controls. */
+		test(`cosine completes with ${notation} fields in ${mode}`, async ({
+			page,
+		}) => {
+			await page.locator(".drill-summary").click();
+			await page.getByLabel("Teaching Mode:").selectOption(mode);
+			await page.getByLabel("Signal Category:").selectOption("cos");
+			await prepareCtftFinal(
+				page,
+				"cos",
+				{ a: 2, T: 1, w0: 3, t0: 1 },
+				mode,
+			);
+			for (const [row, location] of [3, -3].entries()) {
+				const coordinate =
+					notation === "padded"
+						? String(location).padEnd(8200)
+						: notation === "internal-whitespace"
+							? `(${" ".repeat(8200)}${location})`
+							: `X(omega)=${location}`;
+				await enterCtftAnswer(
+					page,
+					`Impulse ${row + 1} location`,
+					coordinate,
+				);
+				await enterCtftAnswer(
+					page,
+					`Impulse ${row + 1} complex weight`,
+					`${notation === "equation-prefix" ? "X(omega)=" : ""}pi e^{-j(${location})}`,
+				);
+			}
+			await expect(
+				page.getByRole("heading", { name: "CTFT solution verified" }),
+			).toBeVisible();
+			await expect(page.locator(".ctft-spectrum")).toBeVisible();
+			await expect(page.getByRole("textbox")).toHaveCount(0);
+		});
+	}
+
+for (const mode of ["derivation", "pairs-properties"] as const)
+	for (const family of [
+		"rect",
+		"exponential",
+		"delta",
+		"cos",
+	] as CtftSignalType[]) {
+		/** Completes every family and mode through independently answered, keyboard-submitted forms. */
+		test(`CTFT ${family} completes in ${mode}`, async ({ page }) => {
+			await page.locator(".drill-summary").click();
+			await page.getByLabel("Teaching Mode:").selectOption(mode);
+			await page.getByLabel("Signal Category:").selectOption(family);
+			const params = {
+				a: 2,
+				T: 1,
+				w0: 3,
+				t0: family === "delta" ? 0 : 1,
+			};
+			await expect(page.locator(".step-card")).toHaveCount(
+				mode === "derivation" ? 6 : 5,
+			);
+			await expect(
+				page.locator(".solution-breakdown, .ctft-spectrum"),
+			).toHaveCount(0);
+			await page
+				.getByRole("button", {
+					name: family === "cos" ? "Rectangular pulse" : "Cosine",
+					exact: true,
+				})
+				.click();
+			await expectCtftFeedback(
+				page,
+				"Check the selected signal family. Identify the signal before applying its translation.",
+			);
+			await prepareCtftFinal(page, family, params, mode);
+			await expect(
+				page.locator(".solution-breakdown, .ctft-spectrum"),
+			).toHaveCount(0);
+			await finishCtft(page, family, params);
+			await page
+				.getByText("View Complete Worked Solution", { exact: true })
+				.click();
+			await expect(page.locator(".solution-breakdown")).toBeVisible();
+			await expect(page.locator(".solution-breakdown h4")).toHaveCount(
+				mode === "derivation" ? 6 : 5,
+			);
+			await expect(page.locator(".katex-error")).toHaveCount(0);
+			await page
+				.getByRole("button", { name: /Generate Next Problem/ })
+				.click();
+			await expect(page.getByLabel("Teaching Mode:")).toHaveValue(mode);
+			await expect(
+				page.locator(".solution-breakdown, .ctft-spectrum"),
+			).toHaveCount(0);
+		});
+	}
+
+/** Mode switches retain the visible signal but clear progress, hints, and gated content. */
+test("mode changes and new problems isolate attempts", async ({ page }) => {
+	const prompt = await page
+		.locator(".problem-prompt .math-block annotation")
+		.first()
+		.textContent();
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	await expect(page.getByLabel("Pulse width T")).toBeVisible();
+	await page.locator(".drill-summary").click();
+	await page.getByLabel("Teaching Mode:").selectOption("pairs-properties");
+	await expect(
+		page.locator(".problem-prompt .math-block annotation").first(),
+	).toHaveText(prompt!);
+	await expect(page.locator(".step-card.completed")).toHaveCount(0);
+	await expect(
+		page.getByRole("button", { name: "Rectangular pulse", exact: true }),
+	).toHaveAttribute("aria-pressed", "false");
+	await prepareCtftFinal(
+		page,
+		"rect",
+		{ a: 1, T: 2, w0: 2, t0: 0 },
+		"pairs-properties",
+	);
+	await finishCtft(page, "rect", { a: 1, T: 2, w0: 2, t0: 0 });
+	await expect(
+		page.getByRole("button", { name: "Restart Problem" }),
+	).toHaveCount(0);
+	await page.getByRole("button", { name: /Generate Next Problem/ }).click();
+	await expect(
+		page.locator(".solution-breakdown, .ctft-spectrum"),
+	).toHaveCount(0);
+	await expect(page.locator(".step-card.completed")).toHaveCount(0);
+});
+
+/** A completed ordinary spectrum and worked derivation reflow on the smallest supported viewport. */
+test("CTFT completion reflows at 320px with reduced motion", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 320, height: 568 });
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await prepareCtftFinal(page, "rect", { a: 1, T: 2, w0: 2, t0: 0 });
+	await finishCtft(page, "rect", { a: 1, T: 2, w0: 2, t0: 0 });
+	const summary = page.getByText("View Complete Worked Solution", {
+		exact: true,
+	});
+	await summary.focus();
+	await summary.press("Enter");
+	await expect(page.locator(".solution-breakdown")).toHaveAttribute(
+		"open",
+		"",
+	);
+	expect(
+		await page.evaluate(
+			() =>
+				document.documentElement.scrollWidth <=
+				document.documentElement.clientWidth,
+		),
+	).toBe(true);
 });

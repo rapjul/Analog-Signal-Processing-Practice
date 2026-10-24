@@ -197,7 +197,7 @@
 			{:else if activeTab === "convolution"}
 				<ConvolutionFormulaReference />
 			{:else if activeTab === "transforms"}
-				<TransformsFormulaReference />
+				<TransformsFormulaReference {activeRoute} />
 			{/if}
 		</div>
 	</div>

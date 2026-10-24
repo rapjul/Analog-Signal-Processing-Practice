@@ -8,6 +8,33 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import MathInline from "$lib/components/math/MathInline.svelte";
 
 describe("MathInline.svelte Component", () => {
+	for (const [copyText, math] of [
+		["e^(-j*omega)", String.raw`\texttt{e\textasciicircum(-j*omega)}`],
+		["e^{-j*omega}", String.raw`\texttt{e\textasciicircum\{-j*omega\}}`],
+	]) {
+		/** Literal notation is displayed and copied without its presentation wrapper. */
+		it(`copies literal input ${copyText}`, async () => {
+			const writeText = vi.fn().mockResolvedValue(undefined);
+			Object.assign(navigator, { clipboard: { writeText } });
+			const view = render(MathInline, {
+				math: math!,
+				copyText: copyText!,
+			});
+			expect(
+				view.container.querySelector(".katex-html")?.textContent,
+			).toBe(copyText);
+			expect(view.container.querySelector(".katex-error")).toBeNull();
+			await fireEvent.click(
+				view.getByRole("button", {
+					name: `Copy input notation: ${copyText}`,
+				}),
+			);
+			expect(writeText).toHaveBeenCalledWith(copyText);
+			expect(
+				view.getByRole("button", { name: "Copied input notation" }),
+			).toBeTruthy();
+		});
+	}
 	afterEach(() => {
 		cleanup();
 		vi.useRealTimers();
@@ -55,6 +82,19 @@ describe("MathInline.svelte Component", () => {
 		const errorSpan = container.querySelector(".katex-error");
 		expect(errorSpan).toBeTruthy();
 		expect(errorSpan?.textContent).toBe("\\broken{math}");
+	});
+
+	/** Inline fallback source remains literal even when rendering fails unexpectedly. */
+	it("escapes markup when the inline renderer throws", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new RangeError("Maximum call stack size exceeded");
+		});
+		const source = '<img src=x onerror="alert(1)">&\'text';
+		const { container } = render(MathInline, { props: { math: source } });
+		expect(container.querySelector(".katex-error")?.textContent).toBe(
+			source,
+		);
+		expect(container.querySelector("img, script, svg")).toBeNull();
 	});
 
 	it("handles clipboard copying, dismiss timers, and mouse leave transitions", async () => {
