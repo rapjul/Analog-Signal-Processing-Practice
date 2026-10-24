@@ -5,6 +5,7 @@
 	 * Renders display-mode LaTeX math using KaTeX.
 	 */
 	import katex from "katex";
+	import { renderMathError } from "./math-error";
 
 	interface Props {
 		/** LaTeX expression to render */
@@ -103,7 +104,7 @@
 				throwOnError: false,
 			});
 		} catch {
-			return `<span class="katex-error">${expr}</span>`;
+			return renderMathError(expr);
 		}
 	}
 </script>

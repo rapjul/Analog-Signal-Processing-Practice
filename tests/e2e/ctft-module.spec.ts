@@ -15,6 +15,43 @@ test.beforeEach(async ({ page }) => {
 	await page.goto("/fourier-transform");
 });
 
+/** Deep input within the field limit must never turn a renderer failure into HTML execution. */
+test("failed mathematical previews keep learner markup inert and allow retries", async ({
+	page,
+}) => {
+	await page
+		.getByRole("button", { name: "Rectangular pulse", exact: true })
+		.click();
+	await enterCtftAnswer(page, "Pulse width T", "2");
+	await enterCtftAnswer(page, "Signed time translation", "0");
+	await page
+		.getByRole("button", {
+			name: /forward transformation with the negative imaginary exponent/,
+		})
+		.click();
+	const input = page.getByLabel("Exponential antiderivative coefficient");
+	const markup =
+		"<img src=/__ctft_audit_missing__ onerror=document.documentElement.dataset.ctftAudit=1>";
+	const source = "{".repeat(4096) + markup + "}".repeat(4096);
+	await input.fill(source);
+	await expect(page.locator(".answer-preview")).toContainText(markup);
+	await expect(page.locator(".answer-preview img")).toHaveCount(0);
+	expect(
+		await page.locator("html").getAttribute("data-ctft-audit"),
+	).toBeNull();
+	await input.press("Enter");
+	await expect(input).toBeVisible();
+	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
+	await enterCtftAnswer(
+		page,
+		"Exponential antiderivative coefficient",
+		"j/omega",
+	);
+	await expect(
+		page.getByLabel("Upper minus lower endpoint expression"),
+	).toBeVisible();
+});
+
 /** Course controls and recognition expose only the agreed four families in either mode. */
 test("course practice excludes Gaussian choices", async ({ page }) => {
 	await page.locator(".drill-summary").click();

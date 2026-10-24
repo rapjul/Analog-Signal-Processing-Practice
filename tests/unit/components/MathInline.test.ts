@@ -84,6 +84,19 @@ describe("MathInline.svelte Component", () => {
 		expect(errorSpan?.textContent).toBe("\\broken{math}");
 	});
 
+	/** Inline fallback source remains literal even when rendering fails unexpectedly. */
+	it("escapes markup when the inline renderer throws", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new RangeError("Maximum call stack size exceeded");
+		});
+		const source = '<img src=x onerror="alert(1)">&\'text';
+		const { container } = render(MathInline, { props: { math: source } });
+		expect(container.querySelector(".katex-error")?.textContent).toBe(
+			source,
+		);
+		expect(container.querySelector("img, script, svg")).toBeNull();
+	});
+
 	it("handles clipboard copying, dismiss timers, and mouse leave transitions", async () => {
 		vi.useFakeTimers();
 		const writeTextMock = vi.fn().mockResolvedValue(undefined);
