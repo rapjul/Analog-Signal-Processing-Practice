@@ -123,6 +123,23 @@ describe("MathBlock.svelte Component", () => {
 		expect(errorSpan?.textContent).toBe("\\broken{math}");
 	});
 
+	/** Renderer failures must preserve source text without creating attacker-controlled elements. */
+	it("escapes markup when the display renderer throws", () => {
+		vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+			throw new RangeError("Maximum call stack size exceeded");
+		});
+		const source = '<img src=x onerror="alert(1)">&\'text';
+		const { container } = render(MathBlock, { props: { math: source } });
+		expect(container.querySelector(".katex-error")?.textContent).toBe(
+			source,
+		);
+		expect(
+			container.querySelector(
+				".math-block-content img, .math-block-content script, .math-block-content svg",
+			),
+		).toBeNull();
+	});
+
 	it("hides header bar when hideHeader is true", () => {
 		const { container } = render(MathBlock, {
 			props: {

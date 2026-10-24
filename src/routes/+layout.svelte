@@ -3,6 +3,7 @@
 	import "../app.css";
 	import favicon from "$lib/assets/favicon.svg";
 	import UpdateToast from "$lib/components/ui/UpdateToast.svelte";
+	import { shouldRegisterServiceWorker } from "$lib/pwa-policy";
 
 	let { children } = $props();
 
@@ -40,6 +41,13 @@
 	 * @returns {Promise<void>} Resolves once registration has been initiated.
 	 */
 	async function initServiceWorker(): Promise<void> {
+		if (
+			!shouldRegisterServiceWorker(
+				import.meta.env.DEV,
+				import.meta.env.VITE_SIGNALLAB_DEV_PWA,
+			)
+		)
+			return;
 		if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 			const { registerSW } = await import("virtual:pwa-register");
 			updateServiceWorker = registerSW({

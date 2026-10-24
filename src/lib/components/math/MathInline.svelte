@@ -4,10 +4,13 @@
 	 * Renders inline-mode LaTeX math using KaTeX.
 	 */
 	import katex from "katex";
+	import { renderMathError } from "./math-error";
 
 	interface Props {
 		/** LaTeX expression to render */
 		math: string;
+		/** Optional literal input notation to copy instead of its display LaTeX. */
+		copyText?: string | undefined;
 		/** Optional additional CSS class */
 		class?: string | undefined;
 		/** Optional flag to force KaTeX display style sizing for inline math */
@@ -16,6 +19,7 @@
 
 	let {
 		math = "",
+		copyText,
 		class: className = "",
 		displayStyle = false,
 	}: Props = $props();
@@ -25,11 +29,11 @@
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 	/**
-	 * Copies LaTeX expression to system clipboard and triggers visual feedback.
+	 * Copies literal input notation or the default LaTeX source and shows feedback.
 	 */
 	function handleCopy(): void {
 		if (!math) return;
-		navigator.clipboard.writeText(math).then(() => {
+		navigator.clipboard.writeText(copyText ?? math).then(() => {
 			copied = true;
 			copyDismissed = false;
 			if (timeoutId) clearTimeout(timeoutId);
@@ -75,7 +79,7 @@
 				throwOnError: false,
 			});
 		} catch {
-			return `<span class="katex-error">${expr}</span>`;
+			return renderMathError(expr);
 		}
 	}
 </script>
@@ -87,14 +91,24 @@
 		: ''}"
 	onclick={handleCopy}
 	onmouseleave={handleMouseLeave}
-	aria-label={copied ? "Copied LaTeX code" : "Click to copy LaTeX code"}
+	aria-label={copyText !== undefined
+		? copied
+			? "Copied input notation"
+			: `Copy input notation: ${copyText}`
+		: copied
+			? "Copied LaTeX code"
+			: "Click to copy LaTeX code"}
 >
 	{@html renderInlineMath(math, displayStyle)}
 	<span
 		class="copy-badge {copied ? 'copied-state' : ''}"
 		ontransitionend={handleTransitionEnd}
 	>
-		{copied ? "Copied!" : "Copy LaTeX"}
+		{copied
+			? "Copied!"
+			: copyText !== undefined
+				? "Copy input"
+				: "Copy LaTeX"}
 	</span>
 </button>
 

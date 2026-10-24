@@ -1,5 +1,6 @@
 /** Transform-specific presentation normalization; decimal values remain unchanged. */
 import { CanonicalError } from "$lib/math-engine/canonical-algebra";
+import { transformSyntaxDiagnostics } from "./transform-diagnostics";
 
 /** Opening group retained until the matching ordinary or sized closing token. */
 interface Group {
@@ -105,6 +106,29 @@ function normalizeGroups(source: string): string {
 }
 
 /**
+ * Converts complete parenthesized exponents without changing nested grouping.
+ * @param source - Balanced normalized grouping.
+ * @returns Equivalent LaTeX powers with braced exponents.
+ */
+function normalizePowers(source: string): string {
+	const output = source.split("");
+	const stack: number[] = [];
+	for (let index = 0; index < source.length; index++) {
+		if (source[index] === "(") stack.push(index);
+		if (source[index] !== ")") continue;
+		const start = stack.pop();
+		if (start === undefined) continue;
+		let before = start - 1;
+		while (before >= 0 && /\s/.test(source[before]!)) before--;
+		if (source[before] === "^") {
+			output[start] = "{";
+			output[index] = "}";
+		}
+	}
+	return output.join("");
+}
+
+/**
  * @param answer - Bounded student input.
  * @param variable - Expected independent symbol.
  * @returns Parser-ready expression, preserving exact mathematical values.
@@ -113,12 +137,26 @@ export function normalizeTransformNotation(
 	answer: string,
 	variable: "t" | "omega",
 ): string {
+	const emptyPower = transformSyntaxDiagnostics(answer).find(
+		/** @param diagnostic - Source issue. @returns Whether an exponent is empty. */
+		(diagnostic) =>
+			diagnostic.message === "Enter an exponent inside this group.",
+	);
+	if (emptyPower) throw new CanonicalError("invalid", emptyPower.message);
 	const prefix =
 		variable === "t"
 			? /^x\s*\(\s*t\s*\)\s*=\s*/
 			: /^X\s*\(\s*(?:[ij]\s*)?(?:\\omega|omega|w)\s*\)\s*=\s*/;
 	const spaced = answer.trim().replace(/\\(?:[,;:!]| |quad\b|qquad\b)/g, " ");
-	const expression = normalizeGroups(spaced).replace(prefix, "");
+	const expression = normalizePowers(normalizeGroups(spaced)).replace(
+		prefix,
+		"",
+	);
+	if (/\^\s*\{\s*\}/.test(expression))
+		throw new CanonicalError(
+			"invalid",
+			"Enter an exponent inside this group.",
+		);
 	if (expression.includes("="))
 		throw new CanonicalError(
 			"invalid",

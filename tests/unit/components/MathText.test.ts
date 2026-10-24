@@ -101,6 +101,30 @@ describe("MathText.svelte Component", () => {
 		expect(errorSpan?.textContent).toBe("\\omega_0");
 	});
 
+	/** All delimited and standalone fallback paths share the same escaping contract. */
+	it.each(["inline", "display", "macro"])(
+		"escapes markup in the %s mathematical fallback",
+		/** @param kind - Mathematical source wrapper whose renderer fails. */
+		(kind) => {
+			vi.spyOn(katex, "renderToString").mockImplementationOnce(() => {
+				throw new RangeError("Maximum call stack size exceeded");
+			});
+			const markup = '<img src=x onerror="alert(1)">&\'text';
+			const source = kind === "macro" ? `\\text{${markup}}` : markup;
+			const text =
+				kind === "inline"
+					? `$${source}$`
+					: kind === "display"
+						? `$$${source}$$`
+						: source;
+			const { container } = render(MathText, { props: { text } });
+			expect(container.querySelector(".katex-error")?.textContent).toBe(
+				source,
+			);
+			expect(container.querySelector("img, script, svg")).toBeNull();
+		},
+	);
+
 	it("renders markdown bold, italic, inline code, and safe HTML tags", () => {
 		const { container } = render(MathText, {
 			props: {

@@ -6,6 +6,7 @@
 	 */
 
 	import katex from "katex";
+	import { renderMathError } from "./math-error";
 
 	interface Props {
 		/** Text content containing optional LaTeX math delimiters ($...$ or $$...$$) */
@@ -67,20 +68,6 @@
 	}
 
 	/**
-	 * Escapes raw HTML special characters in plain text segments to prevent markup injection.
-	 * @param {string} str Plain text to escape
-	 * @returns {string} Escaped HTML string
-	 */
-	function escapeHtml(str: string): string {
-		return str
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#039;");
-	}
-
-	/**
 	 * Parses text with LaTeX delimiters and compiles math using KaTeX.
 	 * Also defensively compiles standalone un-enclosed LaTeX macros (e.g. \text{...}, \frac{...}{...}, \omega_0).
 	 * @param {string} content Input string potentially containing LaTeX math
@@ -110,7 +97,7 @@
 							throwOnError: false,
 						});
 					} catch {
-						return `<span class="katex-error">${escapeHtml(math)}</span>`;
+						return renderMathError(math);
 					}
 				}
 
@@ -126,7 +113,7 @@
 							throwOnError: false,
 						});
 					} catch {
-						return `<span class="katex-error">${escapeHtml(math)}</span>`;
+						return renderMathError(math);
 					}
 				}
 
@@ -137,7 +124,7 @@
 							throwOnError: false,
 						});
 					} catch {
-						return `<span class="katex-error">${escapeHtml(part)}</span>`;
+						return renderMathError(part);
 					}
 				}
 
