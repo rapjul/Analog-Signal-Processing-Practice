@@ -242,9 +242,9 @@ describe("exact learner-built Laplace mathematics", () => {
 				.status,
 		).toBe("incorrect");
 	});
-	it("authors teaching for every workflow and preset without missing families or generic fallback hints", () => {
-		for (const workflow of ["inverse", "forward", "roc", "ode"] as const)
-			for (const preset of LAPLACE_PRESETS) {
+	for (const workflow of ["inverse", "forward", "roc", "ode"] as const)
+		for (const preset of LAPLACE_PRESETS)
+			it(`authors ${workflow}/${preset} teaching without missing families or generic fallback hints`, () => {
 				const problem = generateLaplaceExercise(workflow, 73, preset);
 				const tasks = problem.stages.flatMap((stage) => stage.tasks);
 				expect(
@@ -260,6 +260,5 @@ describe("exact learner-built Laplace mathematics", () => {
 							/Identify the applicable rule|Use your verified earlier work|Worked guidance:|Check your answer to continue/,
 						);
 				}
-			}
-	});
+			});
 });
