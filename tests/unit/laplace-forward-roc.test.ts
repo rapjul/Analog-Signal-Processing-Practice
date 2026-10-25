@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createLaplaceExercise } from "$lib/math-engine/laplace/configuration";
 import { createForwardExercise } from "$lib/math-engine/laplace/its-scaffolding/forward";
 import { createRocExercise } from "$lib/math-engine/laplace/its-scaffolding/roc";
 import type { LaplaceSignalTerm } from "$lib/math-engine/laplace/types";
@@ -20,6 +21,60 @@ const term = (rate: string, amplitude = "1"): LaplaceSignalTerm => ({
 });
 
 describe("forward and ROC workflows", () => {
+	for (const side of ["left", "right"] as const)
+		for (const amplitude of ["1", "1/2"])
+			it(`combines supports before transforming a ${side}-sided delayed remainder with gain ${amplitude}`, () => {
+				const problem = createLaplaceExercise({
+					workflow: "forward",
+					seed: 73,
+					terms: [
+						term("0", amplitude),
+						{ ...term("0", amplitude), side: "left" },
+						{
+							...term("0", `-${amplitude}`),
+							side: side === "left" ? "right" : "left",
+							delay: "1",
+						},
+					],
+				});
+				const expected =
+					side === "left"
+						? `-(${amplitude})e^{-s}/s`
+						: `(${amplitude})e^{-s}/s`;
+				expect(verifyLaplaceS(problem.transform, expected).status).toBe(
+					"correct",
+				);
+				expect(problem.roc).toEqual(
+					side === "left" ? [-Infinity, 0] : [0, Infinity],
+				);
+				expect(
+					verifyLaplaceTime(
+						`(${amplitude})u(${side === "left" ? "1-t" : "t-1"})`,
+						problem.terms,
+					).status,
+				).toBe("correct");
+				const support = problem.stages.find(
+					(stage) => stage.id === "combine-support",
+				)!;
+				expect(support).toBeDefined();
+				expect(
+					verifyLaplaceTime(support.tasks[0]!.answer, problem.terms)
+						.status,
+				).toBe("correct");
+				const families = problem.stages.find(
+					(stage) => stage.id === "separate",
+				)!.tasks;
+				expect(families).toHaveLength(1);
+			});
+	it("still rejects a complete signal with no open convergence region", () => {
+		expect(() =>
+			createLaplaceExercise({
+				workflow: "forward",
+				seed: 73,
+				terms: [term("0"), { ...term("0"), side: "left" }],
+			}),
+		).toThrow(/no common open ROC/);
+	});
 	it("removes delayed finite-duration tails and lowers surviving pole multiplicity exactly", () => {
 		const finite = createForwardExercise({
 			workflow: "forward",

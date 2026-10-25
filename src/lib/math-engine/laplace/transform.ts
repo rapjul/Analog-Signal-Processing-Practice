@@ -9,16 +9,13 @@ import {
 } from "./algebra";
 import {
 	decompose,
+	fractionLatex,
 	inverseTerms,
 	type LaplaceDecomposition,
 	rocBounds,
 } from "./pfd";
-import {
-	commonFactors,
-	signalFactors,
-	signalRational,
-	signalRoc,
-} from "./signals";
+import { analyzeSignalRoc } from "./roc";
+import { commonFactors, signalFactors, signalRational } from "./signals";
 import type {
 	LaplaceFactor,
 	LaplaceResponseTerm,
@@ -57,13 +54,15 @@ export function collectTerms(terms: LaplaceSignalTerm[]): LaplaceSignalTerm[] {
 				].join(":") === key,
 		);
 		if (previous)
-			previous.amplitude = fraction(previous.amplitude)
-				.add(fraction(term.amplitude))
+			previous.amplitude = fractionLatex(previous.amplitude)
+				.add(fractionLatex(term.amplitude))
 				.toLatex()
 				.replace(/^(-?)\\frac\{(\d+)\}\{(\d+)\}$/, "$1$2/$3");
 		else result.push({ ...term });
 	}
-	return result.filter((term) => fraction(term.amplitude).numerator !== 0n);
+	return result.filter(
+		(term) => fractionLatex(term.amplitude).numerator !== 0n,
+	);
 }
 
 /** @param factors - Known denominator factors. @param numerator - Exact polynomial. @param delay - Shift. @param lower - Required ROC lower boundary. @returns Solved rational block. */
@@ -94,6 +93,7 @@ export function solveBlock(
 
 /** @param terms - Collected signal terms. @returns Exact blocks grouped by common delay. */
 export function transformBlocks(terms: LaplaceSignalTerm[]): TransformBlock[] {
+	const lower = analyzeSignalRoc(terms).bounds[0];
 	const delays = [
 		...new Set(terms.map((term) => fraction(term.delay).toLatex())),
 	];
@@ -111,12 +111,7 @@ export function transformBlocks(terms: LaplaceSignalTerm[]): TransformBlock[] {
 				multiply(value.n, divide(denominator, value.d)[0]),
 			);
 		}
-		return solveBlock(
-			factors,
-			numerator,
-			group[0]!.delay,
-			signalRoc(group)[0],
-		);
+		return solveBlock(factors, numerator, group[0]!.delay, lower);
 	});
 }
 

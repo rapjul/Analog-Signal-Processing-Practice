@@ -11,6 +11,7 @@ import {
 import {
 	responseLatex,
 	signalLatex,
+	signalRoc,
 	signalTransform,
 	validateTerms,
 } from "$lib/math-engine/laplace/signals";
@@ -23,8 +24,10 @@ import {
 import type {
 	ForwardExercise,
 	LaplaceExercise,
+	LaplaceSignalTerm,
 	LaplaceStage,
 } from "$lib/math-engine/laplace/types";
+import { verifyLaplaceTime } from "$lib/math-engine/laplace/verification";
 import { factorTask, fieldTask, rootList, rootTask, task } from "./shared";
 import { teaching, teachRoc, teachSignal } from "./teaching";
 
@@ -219,8 +222,12 @@ function zeroTasks(
 export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 	const spec = structuredClone(input),
 		terms = collectTerms(validateTerms(spec.terms));
-	const blocks = transformBlocks(terms);
-	const transform = terms.map(signalTransform).join("+") || "0",
+	const originalBlocks = transformBlocks(terms);
+	const practice = forwardPracticeTerms(terms, originalBlocks);
+	const blocks = practice.rewritten
+		? transformBlocks(practice.terms)
+		: originalBlocks;
+	const transform = practice.terms.map(signalTransform).join("+") || "0",
 		response = responseLatex(terms);
 	const { bounds: roc, poles } = analyzeSignalRoc(terms);
 	const rocLatex = formatRoc(roc, poles);
@@ -242,10 +249,13 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 				),
 			],
 		},
+		...(practice.rewritten
+			? [supportRewriteStage(terms, practice.terms)]
+			: []),
 		{
 			id: "separate",
 			title: "Separate Signal Terms",
-			tasks: spec.terms.map((term, index) =>
+			tasks: practice.terms.map((term, index) =>
 				teachSignal(
 					task(
 						`forward-family-${index}`,
@@ -262,7 +272,7 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 		{
 			id: "transform",
 			title: "Apply Pairs, Parameters, and Delays",
-			tasks: spec.terms.flatMap((term, index) => [
+			tasks: practice.terms.flatMap((term, index) => [
 				task(
 					`forward-delay-${index}`,
 					`Identify delay ${index + 1}`,
@@ -331,12 +341,66 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 		terms,
 		poles,
 		canceled: totalCanceledFactors(
-			blocks.map((block) => block.spec.poles),
+			originalBlocks.map((block) => block.spec.poles),
 			poles,
 		),
 		roc,
 		rocLatex,
 		stable: false,
 		stages,
+	};
+}
+
+/** @param terms - Original complete signal. @param blocks - Algebraic blocks selected using the proved global ROC. @returns Individually transformable practice terms, with an independent time-identity check when rewriting is necessary. */
+function forwardPracticeTerms(
+	terms: LaplaceSignalTerm[],
+	blocks: TransformBlock[],
+): { terms: LaplaceSignalTerm[]; rewritten: boolean } {
+	try {
+		signalRoc(terms);
+		return { terms, rewritten: false };
+	} catch {
+		const combined = collectTerms(blocks.flatMap((block) => block.terms));
+		signalRoc(combined);
+		if (
+			verifyLaplaceTime(responseLatex(combined), terms).status !==
+			"correct"
+		)
+			throw new Error(
+				"The combined support could not be verified exactly within the supported signal families.",
+			);
+		return { terms: combined, rewritten: true };
+	}
+}
+
+/** @param original - Given supported terms. @param combined - Independently verified common-ROC representation. @returns Support combination before applying termwise transform pairs. */
+function supportRewriteStage(
+	original: LaplaceSignalTerm[],
+	combined: LaplaceSignalTerm[],
+): LaplaceStage {
+	const response = responseLatex(combined);
+	const boundaries = [...new Set(original.map((term) => term.delay))]
+		.map((delay) => `$${delay}$`)
+		.join(", ");
+	return {
+		id: "combine-support",
+		title: "Combine Time Support Before Transforming",
+		tasks: [
+			{
+				id: "forward-support",
+				title: "Rewrite the complete supported signal",
+				kind: "t",
+				lhs: "x(t)",
+				prompt: "The original components have no common ROC. Combine their time supports first; enter an equivalent complete signal before using termwise pairs.",
+				answer: response,
+				terms: original,
+				...teaching(
+					"Cancellation of infinite tails can make the complete signal transformable even when its original pieces have disjoint convergence regions.",
+					`Split the time line at the supplied delays ${boundaries}. On each open interval, add only the active signal terms. Ordinary values at isolated endpoints do not affect the transform; keep impulses separate.`,
+					`Combining the active terms on these intervals gives $${response}$. This representation is verified across the support intervals and has a common convergence region, so its terms can now be transformed and added.`,
+					"Check Combined Support",
+				),
+			},
+		],
 	};
 }

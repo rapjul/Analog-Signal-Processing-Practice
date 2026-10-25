@@ -76,16 +76,38 @@ test.describe("guided Laplace practice", () => {
 		"zero",
 		"coincident impulses",
 		"second-order fields",
+		"cross-delay ROC",
 	] as const) {
 		test(`completes custom ${scenario} with checked response tasks`, async ({
 			page,
 		}) => {
 			test.setTimeout(90000);
 			const spec = generateLaplaceExercise(
-				scenario === "zero" ? "inverse" : "ode",
+				scenario === "zero"
+					? "inverse"
+					: scenario === "cross-delay ROC"
+						? "forward"
+						: "ode",
 				73,
 				scenario === "second-order fields" ? "repeated" : "impulse",
 			).spec;
+			if (spec.workflow === "forward") {
+				const step = {
+					kind: "exponential",
+					amplitude: "1",
+					rate: "0",
+					frequency: "0",
+					power: 0,
+					delay: "0",
+					side: "right",
+				} as const;
+				spec.terms = [
+					step,
+					{ ...step, side: "left" },
+					{ ...step, amplitude: "-1", delay: "1" },
+				];
+				await page.setViewportSize({ width: 320, height: 900 });
+			}
 			if (spec.workflow === "inverse") spec.rational.gain = "0";
 			else if (
 				spec.workflow === "ode" &&

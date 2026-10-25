@@ -97,6 +97,10 @@ exact fractional coordinates, and time verification uses exact endpoints on ever
 support interval. Numeric projections serve diagrams and diagnostics only.
 Final ROC analysis checks surviving infinite tails after combining delayed terms
 and ODE contributions, including cancellations that leave finite-duration signals.
+When the original forward components have disjoint ROCs, the tutor first proves
+the complete signal's convergence from its surviving tails, independently verifies
+an equivalent support combination, and teaches that rewriting before applying
+termwise pairs. A complete signal with no open ROC remains unsupported.
 Completion cancellation markers compare the original least common denominator
 with the complete response's surviving poles. Block-specific reductions remain
 inside their derivations. Removed copies and surviving pole multiplicities are
