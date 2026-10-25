@@ -124,7 +124,14 @@
 					bind:value={preset}
 					onchange={nextProblem}
 					>{#each LAPLACE_PRESETS as family}<option value={family}
-							>{family}</option
+							>{family
+								.split("-")
+								.map(
+									(word) =>
+										word.charAt(0).toUpperCase() +
+										word.slice(1),
+								)
+								.join(" ")}</option
 						>{/each}</select
 				></label
 			>

@@ -1,7 +1,9 @@
 import {
 	add,
 	divide,
+	factorPoly,
 	fraction,
+	multiply,
 	type Poly,
 	polynomialLatex,
 	rationalLatex,
@@ -12,10 +14,12 @@ import {
 	laplaceAnswerLabel,
 	renderLaplaceFields,
 } from "$lib/math-engine/laplace/answer-entry";
+import { constructionTarget } from "$lib/math-engine/laplace/construction";
 import type { LaplaceDecomposition } from "$lib/math-engine/laplace/pfd";
 import { fractionLatex, normalizeFactors } from "$lib/math-engine/laplace/pfd";
 import type {
 	LaplaceAnswerField,
+	LaplaceConstructionTask,
 	LaplaceFactor,
 	LaplaceFieldTask,
 	LaplaceSingleTask,
@@ -23,6 +27,7 @@ import type {
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
 import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
+import { taskTeaching, teaching } from "./teaching";
 
 /** @param id - Stable ID. @param title - Heading. @param prompt - Question. @param kind - Control. @param answer - Exact target. @param choices - Options. @returns Checked task. */
 export function task(
@@ -57,11 +62,7 @@ export function task(
 					),
 				}
 			: {}),
-		hints: [
-			"Identify the applicable rule before calculating.",
-			`Use your verified earlier work. ${prompt}`,
-			`Worked guidance: ${kind === "choice" ? answer : `$${answer}$`}. Check your answer to continue.`,
-		],
+		...taskTeaching(id, answer),
 	};
 }
 
@@ -87,6 +88,11 @@ export function fieldTask(
 		kind: "fields",
 		frame,
 		fields,
+		hints: [
+			"Each blank holds an exact signed coefficient, not a whole derivative expression. Subtracting a negative initial value produces addition; zero must still be entered.",
+			`The supplied values for these slots are ${fields.map((field) => `${field.label}: $${field.target}$`).join("; ")}. Copy each signed value into its matching position rather than changing the sign of the rule.`,
+			`Substituting the first value gives $${renderLaplaceFields(frame, { [fields[0]!.id]: fields[0]!.target })}$. For example, the rule subtracts a supplied $-2$ as $-(-2)=+2$; the slot itself still contains $-2$.`,
+		],
 	};
 }
 
@@ -103,26 +109,74 @@ export function rootList(factors: LaplaceFactor[]): string {
 }
 
 /** @param title - Heading. @param id - Stable ID. @param factors - Roots. @param other - Distractor. @returns Root-set question. */
-function rootTask(
+export function rootTask(
 	title: string,
 	id: string,
 	factors: LaplaceFactor[],
 	other: LaplaceFactor[],
-): LaplaceTask {
+): LaplaceConstructionTask {
 	const answer = rootList(factors);
-	return task(
+	const first = factors[0];
+	return {
 		id,
 		title,
-		"Identify every root and its multiplicity. Distinguish numerator roots from denominator roots.",
-		"choice",
+		prompt: "Add every root or conjugate pair and enter its multiplicity. The number of rows is yours to determine.",
+		kind: "roots",
 		answer,
-		[
-			answer,
-			rootList(other),
-			"No finite roots",
-			"All original roots remain despite cancellation",
-		],
+		construction: constructionTarget(factors, true),
+		...teaching(
+			"A root is a value that makes a polynomial zero. Multiplicity counts factor copies. The imaginary unit satisfies $j^2=-1$; conjugate roots $a+jb$ and $a-jb$ share real part $a$ and opposite imaginary parts.",
+			`Solve the factors of the ${id.includes("zero") ? "numerator" : "denominator or selected factor list"}, not those of the other polynomial. For a linear factor $s+b$, solve $s+b=0$. Other polynomial roots: ${rootList(other)}.`,
+			first
+				? `For the factor $${polynomialLatex(factorPoly(first))}$, ${fraction(first.frequency).numerator ? `complete the square to obtain $(s-(${first.real}))^2+(${first.frequency})^2=0$, giving the pair $${first.real}\\pm j(${first.frequency})$` : `subtract its constant from both sides to obtain $s=${first.real}$`}. Count its copies separately from solving its location.`
+				: "A nonzero constant cannot equal zero, so it has no finite roots. This differs from the zero polynomial, which vanishes at every value.",
+			"Check Roots",
+		),
+	};
+}
+
+/** @param id - Stable ID. @param title - Task heading. @param factors - Independently known factors. @param polynomial - Expanded polynomial. @returns Coefficient-template construction rather than free-expression equivalence. */
+export function factorTask(
+	id: string,
+	title: string,
+	factors: LaplaceFactor[],
+	polynomial: Poly,
+): LaplaceConstructionTask {
+	const target = constructionTarget(
+		factors,
+		false,
+		polynomial.at(-1)!.toLatex(),
+		zero(polynomial),
 	);
+	const product =
+		factors
+			.map(
+				(factor) =>
+					`(${polynomialLatex(factorPoly(factor))})^{${factor.multiplicity}}`,
+			)
+			.join("") || "1";
+	return {
+		id,
+		title,
+		kind: "factors",
+		prompt: `Factor $${polynomialLatex(polynomial)}$. Choose a factor type, then enter its signed coefficients and power. Each factor has leading coefficient one; put the remaining gain outside.`,
+		answer: zero(polynomial)
+			? "0"
+			: `(${target.gain})${factors.length ? product : ""}`,
+		construction: target,
+		...teaching(
+			"Factoring rewrites a sum as a product. A linear factor has the form $s+b$; an irreducible quadratic has the form $s^2+bs+c$. The outside gain retains the original leading coefficient.",
+			polynomial.length === 2
+				? `Divide $${polynomialLatex(polynomial)}$ by its leading coefficient $${polynomial[1]!.toLatex()}$. The remaining constant is $(${polynomial[0]!.toLatex()})/(${polynomial[1]!.toLatex()})$. Put the leading coefficient outside and the divided constant in the linear row.`
+				: `The highest-power coefficient of $${polynomialLatex(polynomial)}$ is $${polynomial.at(-1)!.toLatex()}$. Divide by that coefficient before finding monic factors. For a quadratic, seek constants whose sum and product match its coefficients; if real linear factors do not exist, retain a quadratic.`,
+			factors[0]
+				? `Divide by the candidate factor $${polynomialLatex(factorPoly(factors[0]))}$: $${polynomialLatex(polynomial)}=(${polynomialLatex(factorPoly(factors[0]))})(${polynomialLatex(divide(polynomial, factorPoly(factors[0]))[0])})$ with zero remainder. Multiplying these pieces verifies the candidate; continue factoring the quotient if it is reducible.`
+				: zero(polynomial)
+					? "Every coefficient is zero, so select the identically zero case and do not invent a finite factor list."
+					: `This is the constant $${polynomialLatex(polynomial)}$: enter it as the gain and leave the factor rows empty.`,
+			"Check Factorization",
+		),
+	};
 }
 
 /** @param data - Exact analysis. @param originalZeros - Numerator factors. @param originalPoles - Denominator factors. @returns Mandatory rational analysis. */
@@ -134,12 +188,11 @@ export function analysisStage(
 	originalZeros = normalizeFactors(originalZeros);
 	originalPoles = normalizeFactors(originalPoles);
 	const tasks: LaplaceTask[] = [
-		task(
+		factorTask(
 			"factor-numerator",
 			"Factor the numerator",
-			"Enter an equivalent numerator. Identify its factors before continuing.",
-			"s",
-			polynomialLatex(data.originalNumerator),
+			originalZeros,
+			data.originalNumerator,
 		),
 		zero(data.originalNumerator)
 			? task(
@@ -159,12 +212,11 @@ export function analysisStage(
 					originalZeros,
 					originalPoles,
 				),
-		task(
+		factorTask(
 			"factor-denominator",
 			"Factor the denominator",
-			"Enter an equivalent denominator and identify its factors.",
-			"s",
-			polynomialLatex(data.originalDenominator),
+			originalPoles,
+			data.originalDenominator,
 		),
 		rootTask(
 			"Identify original denominator roots",
@@ -181,6 +233,31 @@ export function analysisStage(
 			["Common factors exist", "No common factors"],
 		),
 	];
+	tasks.push({
+		...fieldTask(
+			"common-copies-values",
+			"Count matching factor copies",
+			"\\text{Common factor copies}={{copies}}",
+			[
+				{
+					id: "copies",
+					label: "Number of exact common factor copies",
+					target: String(
+						data.canceled.reduce(
+							(sum, factor) => sum + factor.multiplicity,
+							0,
+						),
+					),
+				},
+			],
+		),
+		...teaching(
+			"A matching factor can be removed once from the numerator and once from the denominator. Count only the smaller multiplicity at each matching location.",
+			`Compare numerator roots ${rootList(originalZeros)} with denominator roots ${rootList(originalPoles)}. A matching location identifies the same monic factor.`,
+			`These polynomials share ${data.canceled.reduce((sum, factor) => sum + factor.multiplicity, 0)} factor copies in total. For instance, powers three and one at the same location allow only one cancellation.`,
+			"Check Common Copies",
+		),
+	});
 	if (data.canceled.length) {
 		tasks.push(
 			rootTask(
@@ -231,6 +308,46 @@ export function analysisStage(
 			originalPoles,
 		),
 	);
+	tasks.push({
+		...fieldTask(
+			"degrees-values",
+			"Compare the reduced polynomial degrees",
+			"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
+			[
+				{
+					id: "numerator",
+					label: "Reduced numerator degree (zero polynomial: enter -1)",
+					target: String(
+						zero(data.numerator) ? -1 : data.numerator.length - 1,
+					),
+				},
+				{
+					id: "denominator",
+					label: "Reduced denominator degree",
+					target: String(data.denominator.length - 1),
+				},
+			],
+		),
+		...teaching(
+			"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero. For this tutor enter -1 to mark the zero polynomial's undefined degree.",
+			`Find the highest powers in $${polynomialLatex(data.numerator)}$ and $${polynomialLatex(data.denominator)}$ after cancellation.`,
+			`The denominator's highest power is $${data.denominator.length - 1}$. If the numerator degree is at least this large, divide before using proper-fraction pairs.`,
+			"Check Polynomial Degrees",
+		),
+	});
+	tasks.push({
+		...task(
+			"division",
+			"Decide whether division is needed",
+			"Compare your verified reduced degrees. Is the rational expression proper?",
+			"choice",
+			!zero(data.numerator) &&
+				data.numerator.length >= data.denominator.length
+				? "Divide first"
+				: "No division needed",
+			["Divide first", "No division needed"],
+		),
+	});
 	if (
 		data.numerator.length >= data.denominator.length &&
 		!zero(data.numerator)
@@ -271,11 +388,58 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 				`${slot.label}(${polynomialLatex(divide(data.denominator, slot.denominator)[0])})(${polynomialLatex(slot.basis)})`,
 		)
 		.join("+");
-	const result = [
+	const columns = data.slots.map((slot) =>
+		multiply(divide(data.denominator, slot.denominator)[0], slot.basis),
+	);
+	const equations = Array.from({ length: data.slots.length }, (_, power) => [
+		...columns.map((column) => column[power] ?? fraction(0)),
+		remainder[power] ?? fraction(0),
+	]);
+	const operations: string[] = [];
+	for (let column = 0; column < data.slots.length; column++) {
+		const pivot = equations.findIndex(
+			(row, index) => index >= column && row[column]!.numerator !== 0n,
+		);
+		if (pivot < 0)
+			throw new Error(
+				"The verified coefficient system must have a pivot.",
+			);
+		if (pivot !== column) {
+			[equations[pivot], equations[column]] = [
+				equations[column]!,
+				equations[pivot]!,
+			];
+			operations.push(
+				`Exchange equations ${pivot + 1} and ${column + 1} to place a nonzero coefficient in the working position.`,
+			);
+		}
+		const divisor = equations[column]![column]!;
+		equations[column] = equations[column]!.map((value) =>
+			value.divide(divisor),
+		);
+		const work = [
+			`Divide equation ${column + 1} by $${divisor.toLatex()}$ so the coefficient of $${data.slots[column]!.label}$ becomes one.`,
+		];
+		for (let row = 0; row < equations.length; row++) {
+			if (row === column) continue;
+			const multiplier = equations[row]![column]!;
+			if (!multiplier.numerator) continue;
+			equations[row] = equations[row]!.map((value, index) =>
+				value.add(
+					equations[column]![index]!.multiply(multiplier).negate(),
+				),
+			);
+			work.push(
+				`Subtract $${multiplier.toLatex()}$ times equation ${column + 1} from equation ${row + 1}; this removes $${data.slots[column]!.label}$ from that equation.`,
+			);
+		}
+		operations.push(work.join(" "));
+	}
+	const result: LaplaceTask[] = [
 		task(
 			"matching-identity",
 			"Clear denominators and set up the coefficient system",
-			"Choose the identity for the proper remainder. Match each power of s to solve repeated or quadratic factors.",
+			"Choose the identity for the proper remainder. Match each power of $s$ to solve repeated or quadratic factors.",
 			"choice",
 			`$${polynomialLatex(remainder)}=${identity}$`,
 			[
@@ -285,13 +449,39 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 			],
 		),
 	];
+	for (let power = 0; power < data.denominator.length - 1; power++) {
+		const fields = data.slots.map((slot, index) => ({
+			id: `column-${index}`,
+			label: `Coefficient multiplying $${slot.label}$ in the $s^{${power}}$ equation`,
+			target: (
+				multiply(
+					divide(data.denominator, slot.denominator)[0],
+					slot.basis,
+				)[power] ?? fraction(0)
+			).toLatex(),
+		}));
+		result.push({
+			...fieldTask(
+				`matching-power-${power}-values`,
+				`Match the coefficient of $s^{${power}}$`,
+				`${fields.map((field, index) => `({{${field.id}}})${data.slots[index]!.label}`).join("+")}=${(remainder[power] ?? fraction(0)).toLatex()}`,
+				fields,
+			),
+			...teaching(
+				"A polynomial identity must have equal coefficients at every power. Missing powers have coefficient zero.",
+				`Expand the identity $${polynomialLatex(remainder)}=${identity}$. Collect only the coefficient of $s^{${power}}$ in each unknown's multiplier.`,
+				`The known side contributes $${(remainder[power] ?? fraction(0)).toLatex()}$ at this power. For the first unknown, its multiplier contributes $${fields[0]!.target}$; the other columns are obtained from their own multiplier polynomials.`,
+				"Check Coefficient Equation",
+			),
+		});
+	}
 	for (const slot of data.slots) {
 		if (
 			fraction(slot.factor.frequency).numerator === 0n &&
 			slot.factor.multiplicity === 1
 		) {
-			result.push(
-				task(
+			result.push({
+				...task(
 					`coverup-numerator-${slot.label}`,
 					`Evaluate ${slot.label}'s cover-up numerator`,
 					`Substitute $s=${slot.factor.real}$ into the reduced numerator.`,
@@ -301,9 +491,16 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 						slot.factor.real,
 					).toLatex(),
 				),
-			);
-			result.push(
-				task(
+				formula: `N(s)=${polynomialLatex(data.numerator)},\\quad s=${slot.factor.real}`,
+				...teaching(
+					"For a simple pole, cover-up evaluates the numerator at the pole location after removing its factor.",
+					`In $N(s)=${polynomialLatex(data.numerator)}$, replace every $s$ by $${slot.factor.real}$, including inside powers.`,
+					`This gives $N(${slot.factor.real})=${polynomialLatex(data.numerator, `(${slot.factor.real})`)}=${evaluatePolynomial(data.numerator, slot.factor.real).toLatex()}$. Carry this numerator value into the residue division.`,
+					"Check Numerator Substitution",
+				),
+			});
+			result.push({
+				...task(
 					`coverup-denominator-${slot.label}`,
 					`Evaluate ${slot.label}'s remaining denominator`,
 					"Remove the selected linear factor, then substitute its root into the remaining denominator.",
@@ -313,61 +510,330 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 						slot.factor.real,
 					).toLatex(),
 				),
-			);
+				formula: `D_{\\mathrm{remaining}}(s)=${polynomialLatex(divide(data.denominator, slot.denominator)[0])},\\quad s=${slot.factor.real}`,
+				...teaching(
+					"The remaining denominator is the original reduced denominator divided by the selected simple-pole factor.",
+					`Remove $${polynomialLatex(slot.denominator)}$, then evaluate $${polynomialLatex(divide(data.denominator, slot.denominator)[0])}$ at $s=${slot.factor.real}$.`,
+					`The substitution gives $${polynomialLatex(divide(data.denominator, slot.denominator)[0], `(${slot.factor.real})`)}=${evaluatePolynomial(divide(data.denominator, slot.denominator)[0], slot.factor.real).toLatex()}$. Use this as the divisor of the checked numerator value.`,
+					"Check Denominator Substitution",
+				),
+			});
 		}
-		result.push(
-			task(
+		result.push({
+			...task(
 				`coefficient-${slot.label}`,
 				`Calculate $${slot.label}$`,
 				`Solve the verified identity for the coefficient of $\\frac{${polynomialLatex(slot.basis)}}{${polynomialLatex(slot.denominator)}}$.`,
 				"scalar",
 				slot.value,
 			),
-		);
+			formula: `${polynomialLatex(remainder)}=${identity}`,
+			...teaching(
+				"To solve coefficient equations, divide both sides by a nonzero coefficient and subtract multiples of equations to eliminate one unknown at a time.",
+				`Use your checked coefficient equations for $${identity}=${polynomialLatex(remainder)}$. ${operations[0] ?? "There is one nonzero coefficient to divide by."}`,
+				`${operations.at(-1) ?? "Divide the equation by its coefficient."} Continuing these equality-preserving operations isolates $${slot.label}=${slot.value}$. Substitute it into the original identity to verify it.`,
+				"Check Coefficient",
+			),
+		});
 	}
 	return result;
 }
 
-/** @param data - Verified PFD. @returns Setup, coefficient, and reconstruction stages. */
+/** @param data - Verified PFD. @param includeDegrees - Whether block analysis has not already checked division. @returns Setup, coefficient, and reconstruction stages. */
 export function decompositionStages(
 	data: LaplaceDecomposition,
+	includeDegrees = false,
 ): LaplaceStage[] {
 	if (!data.slots.length) return [];
+	const simple = data.poles.every(
+		(factor) =>
+			fraction(factor.frequency).numerator === 0n &&
+			factor.multiplicity === 1,
+	);
+	const direct = data.poles.length === 1;
+	const matching = "Partial Fractions: Coefficient Matching",
+		coverup = "Partial Fractions: Cover-Up",
+		pair = "Direct Transform Pairs";
+	const methods = [
+		matching,
+		...(simple ? [coverup] : []),
+		...(direct ? [pair] : []),
+	];
+	const pfdPaths = [matching, coverup];
+	const template = constructionTarget(data.poles, false, data.quotient);
+	template.rows = template.rows.flatMap((row) =>
+		Array.from({ length: Number(row.power) }, (_, index) => ({
+			...row,
+			power: String(index + 1),
+		})),
+	);
+	const coefficients = coefficientTasks(data).flatMap(
+		(part): LaplaceTask[] => {
+			if (part.id.startsWith("coefficient-") && simple) {
+				const slot = data.slots.find(
+					(candidate) => part.id === `coefficient-${candidate.label}`,
+				)!;
+				const numerator = evaluatePolynomial(
+						data.numerator,
+						slot.factor.real,
+					).toLatex(),
+					denominator = evaluatePolynomial(
+						divide(data.denominator, slot.denominator)[0],
+						slot.factor.real,
+					).toLatex();
+				return [
+					{
+						...part,
+						id: `${part.id}-matching`,
+						when: { id: "method", values: [matching] },
+					},
+					{
+						...part,
+						id: `${part.id}-coverup`,
+						when: { id: "method", values: [coverup] },
+						...teaching(
+							"A simple-pole residue is the evaluated numerator divided by the evaluated remaining denominator.",
+							`Use the numerator value $${numerator}$ and remaining-denominator value $${denominator}$ checked at $s=${slot.factor.real}$. The removed pole factor must not appear in the divisor.`,
+							`$${slot.label}=\\frac{${numerator}}{${denominator}}=${slot.value}$. Dividing the signed values preserves the residue's sign.`,
+							"Check Coefficient",
+						),
+					},
+				];
+			}
+			return [
+				{
+					...part,
+					when: {
+						id: "method",
+						values: part.id.startsWith("coverup-")
+							? [coverup]
+							: part.id.startsWith("matching-")
+								? [matching]
+								: pfdPaths,
+					},
+				},
+			];
+		},
+	);
+	const strategy = {
+		...task(
+			"method",
+			"Choose an inversion method",
+			"Use the verified degrees and denominator factors to choose a supported approach. More than one method can be valid.",
+			"choice",
+			direct ? pair : simple ? coverup : matching,
+			[pair, coverup, matching],
+		),
+		accepted: methods,
+	};
 	return [
 		{
 			id: "setup",
-			title: "Set Up Partial Fractions",
+			title: "Choose and Set Up a Method",
 			tasks: [
-				task(
-					"template",
-					"Choose the complete PFD template",
-					"Include every repeated-factor power and linear numerators over quadratics.",
-					"choice",
-					`Use $${data.template}$`,
-					[
-						`Use $${data.template}$`,
-						"Keep one constant over the original denominator",
-						"Use only the highest power of each repeated factor",
-					],
-				),
+				...(includeDegrees
+					? [
+							{
+								...fieldTask(
+									"method-degrees-values",
+									"Compare reduced degrees",
+									"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
+									[
+										{
+											id: "numerator",
+											label: "Reduced numerator degree (zero polynomial: enter -1)",
+											target: String(
+												zero(data.numerator)
+													? -1
+													: data.numerator.length - 1,
+											),
+										},
+										{
+											id: "denominator",
+											label: "Reduced denominator degree",
+											target: String(
+												data.denominator.length - 1,
+											),
+										},
+									],
+								),
+								...teaching(
+									"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero; enter -1 for the zero polynomial's undefined degree.",
+									`Compare $${polynomialLatex(data.numerator)}$ with $${polynomialLatex(data.denominator)}$ after cancellation.`,
+									`The denominator degree is $${data.denominator.length - 1}$. Divide if the numerator degree is at least this large, before matching proper-fraction pairs.`,
+									"Check Polynomial Degrees",
+								),
+							},
+							{
+								...task(
+									"division",
+									"Decide whether division is needed",
+									"Use the checked degrees to decide whether the block is proper.",
+									"choice",
+									!zero(data.numerator) &&
+										data.numerator.length >=
+											data.denominator.length
+										? "Divide first"
+										: "No division needed",
+									["Divide first", "No division needed"],
+								),
+								id: "method-division",
+							},
+							...(!zero(data.numerator) &&
+							data.numerator.length >= data.denominator.length
+								? [
+										{
+											...task(
+												"quotient",
+												"Find the constant quotient",
+												"Divide leading coefficients, then subtract the corresponding denominator multiple.",
+												"scalar",
+												data.quotient,
+											),
+											id: "method-quotient",
+										},
+									]
+								: []),
+						]
+					: []),
+				strategy,
+				{
+					...fieldTask(
+						"factor-counts-values",
+						"Classify the denominator factors",
+						"\\text{Linear copies}={{linear}},\\quad\\text{Quadratic copies}={{quadratic}}",
+						[
+							{
+								id: "linear",
+								label: "Total linear factor copies",
+								target: String(
+									data.poles
+										.filter(
+											(factor) =>
+												!fraction(factor.frequency)
+													.numerator,
+										)
+										.reduce(
+											(sum, factor) =>
+												sum + factor.multiplicity,
+											0,
+										),
+								),
+							},
+							{
+								id: "quadratic",
+								label: "Total irreducible quadratic factor copies",
+								target: String(
+									data.poles.filter(
+										(factor) =>
+											fraction(factor.frequency)
+												.numerator,
+									).length,
+								),
+							},
+						],
+					),
+					when: { id: "method", values: pfdPaths },
+					...teaching(
+						"A real root produces a linear factor. A nonreal conjugate pair produces a real irreducible quadratic. Multiplicity counts copies, rather than distinct locations.",
+						`Classify the factors of $${polynomialLatex(data.denominator)}$ from the verified roots.`,
+						"For $(s+1)^2(s^2+4)$, there are two linear copies and one quadratic copy. The PFD must include both linear denominator powers.",
+						"Check Factor Types",
+					),
+				},
+				{
+					id: "template",
+					title: "Build the partial-fraction template",
+					prompt: "Add one row for each denominator power. Choose a constant or linear unknown numerator, and enter the constant quotient (zero if absent).",
+					kind: "template",
+					answer: data.template,
+					construction: template,
+					when: { id: "method", values: pfdPaths },
+					...teaching(
+						"A proper fraction over a linear factor needs a constant numerator. A proper fraction over an irreducible quadratic needs a general linear numerator.",
+						`Use the factors of $${polynomialLatex(data.denominator)}$. For a repeated factor of power $m$, add a term for each power from one through $m$, even if a solved coefficient might be zero.`,
+						`For $(s+3)(s+5)$, the template is $A/(s+3)+B/(s+5)$. For $(s+3)^2$, use $A/(s+3)+B/(s+3)^2$ instead. The numerator degree stays below each base factor's degree.`,
+						"Check PFD Template",
+					),
+					explanation: `Your construction includes all required factors, powers, and numerator degrees. The next calculations label equivalent terms in fixed factor order as $${data.template}$. A quadratic numerator can be written $A(s-a)+B$ instead of $As+C$, because $C=B-Aa$; the shifted basis prepares it for the transform pairs.`,
+				},
+				...(direct && fraction(data.poles[0]!.frequency).numerator
+					? [
+							{
+								...fieldTask(
+									"square-values",
+									"Rewrite the quadratic as a shifted square",
+									"(s-({{rate}}))^2+({{frequency}})^2",
+									[
+										{
+											id: "rate",
+											label: "Exponential shift a",
+											target: data.poles[0]!.real,
+										},
+										{
+											id: "frequency",
+											label: "Positive angular frequency",
+											target: data.poles[0]!.frequency,
+										},
+									],
+								),
+								when: { id: "method", values: [pair] },
+								...teaching(
+									"Completing the square rewrites $s^2+bs+c$ as $(s+b/2)^2+c-(b/2)^2$.",
+									`Use $${polynomialLatex(data.denominator)}$ to identify the signed shift and positive frequency.`,
+									`Half the linear coefficient is $${fraction(data.poles[0]!.real).negate().toLatex()}$. The shift is its negative, $${data.poles[0]!.real}$, and the remaining square gives frequency $${data.poles[0]!.frequency}$.`,
+									"Check Shifted Square",
+								),
+							} satisfies LaplaceTask,
+						]
+					: []),
+				...(direct
+					? [
+							{
+								...fieldTask(
+									"direct-weights-values",
+									"Rewrite the numerator in pair-ready terms",
+									`${polynomialLatex(add(data.numerator, scale(data.denominator, fractionLatex(data.quotient).negate())))}=${data.slots.map((slot, index) => `({{weight-${index}}})(${polynomialLatex(multiply(divide(data.denominator, slot.denominator)[0], slot.basis))})`).join("+")}`,
+									data.slots.map((slot, index) => ({
+										id: `weight-${index}`,
+										label: `Weight of $${polynomialLatex(multiply(divide(data.denominator, slot.denominator)[0], slot.basis))}$`,
+										target: slot.value,
+									})),
+								),
+								when: { id: "method", values: [pair] },
+								...teaching(
+									"Before applying a direct pair, rewrite the numerator in the same shifted basis as the denominator. This can separate cosine and sine, or lower powers of one repeated real factor.",
+									`For this transform the denominator is $${polynomialLatex(data.denominator)}$. Expand your proposed weighted numerator pieces and equate their coefficients to the displayed numerator. The constant quotient $${data.quotient}$ is separate.`,
+									"For example, $2s+7=2(s+3)+1$. Over $(s+3)^2+4$, the first part matches a cosine numerator and the remaining constant matches a sine numerator after frequency normalization.",
+									"Check Pair-Ready Numerator",
+								),
+							} satisfies LaplaceTask,
+						]
+					: []),
 			],
 		},
 		{
 			id: "coefficients",
-			title: "Calculate Each Coefficient",
-			tasks: coefficientTasks(data),
+			title: "Calculate Intermediate Values",
+			tasks: coefficients,
 		},
 		{
 			id: "reconstruct",
-			title: "Verify the Decomposition",
+			title: "Check the Intermediate Result",
 			tasks: [
-				task(
-					"reconstruction",
-					"Recombine the fractions",
-					"Enter your PFD sum, including any constant quotient. It must reconstruct the reduced transform.",
-					"s",
-					rationalLatex({ n: data.numerator, d: data.denominator }),
-				),
+				{
+					...task(
+						"reconstruction",
+						"Recombine the fractions",
+						"Enter your PFD sum, including any constant quotient. It must reconstruct the reduced transform.",
+						"s",
+						rationalLatex({
+							n: data.numerator,
+							d: data.denominator,
+						}),
+					),
+					when: { id: "method", values: pfdPaths },
+				},
 			],
 		},
 	];

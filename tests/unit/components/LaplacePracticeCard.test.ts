@@ -16,7 +16,7 @@ describe("Laplace practice assistance and completion", () => {
 			problem: generateLaplaceExercise("inverse", 73),
 			onNextProblem: () => {},
 		});
-		await fireEvent.click(view.getByRole("button", { name: "Show Hint" }));
+		await fireEvent.click(view.getByRole("button", { name: /Get Hint/ }));
 		expect(view.container.querySelector(".step-card.completed")).toBeNull();
 		expect(view.container.querySelector(".completion-banner")).toBeNull();
 		await act(() => window.__signalLabDev!.solveAll());

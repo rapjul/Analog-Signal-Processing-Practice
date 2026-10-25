@@ -7,6 +7,71 @@ import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	test("fills reactive construction targets through the development harness @dev-harness", async ({
+		page,
+	}) => {
+		await page.goto("/laplace");
+		await page.waitForFunction(() => Boolean(window.__signalLabDev));
+		await page.evaluate(() => window.__signalLabDev!.solveAll());
+		await expect(page.locator(".completion-banner")).toBeVisible();
+	});
+	test("teaches the annotated example with shared hints and constructive PFD at 320px", async ({
+		page,
+	}) => {
+		const problem = createLaplaceExercise({
+			workflow: "inverse",
+			seed: 73,
+			system: false,
+			rational: {
+				gain: "2",
+				zeros: [{ real: "-6", frequency: "0", multiplicity: 1 }],
+				poles: [
+					{ real: "-3", frequency: "0", multiplicity: 1 },
+					{ real: "-5", frequency: "0", multiplicity: 1 },
+				],
+				delay: "0",
+				region: -1,
+			},
+		});
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await expect(page.locator('input[type="radio"]')).toHaveCount(0);
+		await expect(
+			page.locator(".step-card.active .subpart-block"),
+		).toHaveCount(0);
+		await completeLaplaceTasks(page, problem, "template");
+		const active = page.locator(".step-card.active");
+		await expect(active.locator("[data-construction-row]")).toHaveCount(0);
+		for (let tier = 0; tier < 3; tier++)
+			await active
+				.getByRole("button", { name: /Get (Next )?Hint/ })
+				.click();
+		await expect(
+			active.getByRole("region", { name: "Hints", exact: true }),
+		).toBeVisible();
+		await expect(
+			active.getByRole("region", { name: "Hints", exact: true }),
+		).not.toContainText("Identify the applicable rule");
+		await expect(
+			active.getByRole("button", { name: "Continue", exact: true }),
+		).toHaveCount(0);
+		await answerLaplaceTask(
+			page,
+			problem.stages
+				.flatMap((stage) => stage.tasks)
+				.find((task) => task.id === "template")!,
+		);
+		expect(
+			await page.evaluate(
+				() =>
+					document.documentElement.scrollWidth <=
+					document.documentElement.clientWidth,
+			),
+		).toBe(true);
+		await expect(page.locator(".katex-error")).toHaveCount(0);
+	});
 	for (const scenario of [
 		"zero",
 		"coincident impulses",
@@ -74,13 +139,17 @@ test.describe("guided Laplace practice", () => {
 		);
 		const tasks = problem.stages.flatMap((stage) => stage.tasks);
 		const first = tasks[0]!;
-		const radio = page
-			.locator('.step-card.active input[type="radio"]')
+		const choice = page
+			.locator(".step-card.active [data-choice]")
 			.nth(first.choices!.indexOf(first.answer));
-		await radio.focus();
-		await radio.press("Space");
+		await choice.focus();
+		await choice.press("Space");
+		await expect(page.locator("[data-success-heading]")).toBeFocused();
+		await expect(
+			page.locator(".step-card.active [data-task-id]"),
+		).toHaveAttribute("data-task-id", first.id);
 		await page
-			.getByRole("button", { name: "Check Answer", exact: true })
+			.getByRole("button", { name: "Continue", exact: true })
 			.press("Enter");
 		await expect(
 			page.locator(".step-card.active [data-task-id]"),
@@ -88,8 +157,8 @@ test.describe("guided Laplace practice", () => {
 		await expect(
 			page.locator(".step-card.active [data-progress-heading]").last(),
 		).toBeFocused();
-		await page.locator("#laplace-input").fill(tasks[1]!.answer);
-		await page.locator("#laplace-input").press("Enter");
+		await expect(page.locator("[data-construction-row]")).toHaveCount(0);
+		await answerLaplaceTask(page, tasks[1]!);
 		await expect(
 			page.locator(".step-card.active [data-task-id]"),
 		).toHaveAttribute("data-task-id", tasks[2]!.id);
@@ -149,10 +218,9 @@ test.describe("guided Laplace practice", () => {
 			.flatMap((stage) => stage.tasks)
 			.find((part) => part.id === "cancellation")!;
 		await answerLaplaceTask(page, task, "Common factors exist");
-		await expect(page.locator(".feedback-box")).toHaveAttribute(
-			"data-validation",
-			"incorrect",
-		);
+		await expect(
+			page.locator('[data-validation="incorrect"]').first(),
+		).toHaveAttribute("data-validation", "incorrect");
 		await page.locator(".worked-solution summary").focus();
 		await page.locator(".worked-solution summary").press("Enter");
 		await expect(page.locator(".assistance-status")).toBeVisible();

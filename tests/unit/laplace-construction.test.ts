@@ -1,0 +1,236 @@
+import { describe, expect, it } from "vitest";
+import { createLaplaceExercise } from "$lib/math-engine/laplace/configuration";
+import {
+	emptyConstruction,
+	validateConstruction,
+} from "$lib/math-engine/laplace/construction";
+import {
+	generateLaplaceExercise,
+	LAPLACE_PRESETS,
+} from "$lib/math-engine/laplace/generator";
+import type {
+	LaplaceConstruction,
+	LaplaceConstructionTask,
+	LaplaceEntryRow,
+} from "$lib/math-engine/laplace/types";
+import { verifyLaplaceS } from "$lib/math-engine/laplace/verification";
+
+/** @param first - Signed linear constant or real root. @param power - Multiplicity. @returns Independent linear row. */
+function linear(first: string, power = "1"): LaplaceEntryRow {
+	return { kind: "linear", first, second: "", power, numerator: "constant" };
+}
+
+/** @param kind - Mathematical control. @param rows - Independently specified factors or roots. @param gain - Outside gain. @returns Small exact fixture. */
+function fixture(
+	kind: LaplaceConstructionTask["kind"],
+	rows: LaplaceEntryRow[],
+	gain = "1",
+): LaplaceConstructionTask {
+	return {
+		id: "independent",
+		title: "Independent construction",
+		prompt: "Construct the expression.",
+		answer: "",
+		hints: [],
+		kind,
+		construction: { mode: "finite", gain, rows },
+	};
+}
+
+describe("exact learner-built Laplace mathematics", () => {
+	it("teaches the zero polynomial rather than nonzero-constant hints for a zero initial-state block", () => {
+		const spec = generateLaplaceExercise("ode", 73, "distinct").spec;
+		if (spec.workflow !== "ode") throw new Error("Expected ODE fixture.");
+		spec.initial = ["0", "0"];
+		const problems = createLaplaceExercise(spec)
+			.stages.flatMap((stage) => stage.tasks)
+			.filter(
+				(task) =>
+					"construction" in task &&
+					task.kind === "roots" &&
+					task.construction.mode === "zero",
+			);
+		expect(problems.length).toBeGreaterThan(0);
+		for (const task of problems)
+			expect(task.hints[2]).toContain("every value satisfies");
+	});
+	it("renders a constant factorization without concatenating its gain with a spurious one", () => {
+		const problem = createLaplaceExercise({
+			workflow: "inverse",
+			seed: 1,
+			system: false,
+			rational: {
+				gain: "3/2",
+				zeros: [],
+				poles: [],
+				delay: "0",
+				region: -1,
+			},
+		});
+		const task = problem.stages
+			.flatMap((stage) => stage.tasks)
+			.find((part) => part.id === "factor-numerator")!;
+		expect(verifyLaplaceS(task.answer, "3/2").status).toBe("correct");
+	});
+	it("requires a complete factorization of 2s+12 instead of accepting a copied polynomial", () => {
+		const task = fixture("factors", [linear("6")], "2");
+		expect(validateConstruction(task, emptyConstruction()).status).toBe(
+			"invalid",
+		);
+		const expanded: LaplaceConstruction = {
+			mode: "finite",
+			gain: "2s+12",
+			rows: [],
+		};
+		expect(validateConstruction(task, expanded).status).toBe("invalid");
+		expect(
+			validateConstruction(task, {
+				mode: "finite",
+				gain: "2.0",
+				rows: [linear("12/2")],
+			}).status,
+		).toBe("correct");
+		expect(
+			validateConstruction(task, {
+				mode: "finite",
+				gain: "2",
+				rows: [linear("-6")],
+			}).status,
+		).toBe("incorrect");
+	});
+	it("accepts unordered and split repeated copies but rejects missing copies", () => {
+		const task = fixture("factors", [linear("3", "2"), linear("5")]);
+		const draft: LaplaceConstruction = {
+			mode: "finite",
+			gain: "1",
+			rows: [linear("5"), linear("3"), linear("3")],
+		};
+		expect(validateConstruction(task, draft).status).toBe("correct");
+		draft.rows.pop();
+		expect(validateConstruction(task, draft).status).toBe("incorrect");
+		draft.rows[0]!.power = "1/2";
+		expect(validateConstruction(task, draft).status).toBe("invalid");
+	});
+	it("keeps root signs distinct from factor constants and checks conjugate frequency and multiplicity", () => {
+		const pair: LaplaceEntryRow = {
+			kind: "quadratic",
+			first: "-1/2",
+			second: "3/2",
+			power: "1",
+			numerator: "linear",
+		};
+		const task = fixture("roots", [pair, linear("-3", "2")]);
+		const draft: LaplaceConstruction = {
+			mode: "finite",
+			gain: "",
+			rows: [
+				linear("-3", "2"),
+				{ ...pair, first: "-0.5", second: "1.5" },
+			],
+		};
+		expect(validateConstruction(task, draft).status).toBe("correct");
+		draft.rows[0]!.first = "3";
+		expect(validateConstruction(task, draft).message).toMatch(/signs/);
+		draft.rows[1]!.second = "-1.5";
+		expect(validateConstruction(task, draft).status).toBe("invalid");
+	});
+	it("distinguishes nonzero constants, the zero polynomial, and no finite roots", () => {
+		const constant = fixture("factors", [], "3/2");
+		expect(
+			validateConstruction(constant, {
+				mode: "finite",
+				gain: "1.5",
+				rows: [],
+			}).status,
+		).toBe("correct");
+		const roots = fixture("roots", []);
+		roots.construction.mode = "none";
+		expect(
+			validateConstruction(roots, { mode: "none", gain: "", rows: [] })
+				.status,
+		).toBe("correct");
+		expect(
+			validateConstruction(roots, { mode: "zero", gain: "", rows: [] })
+				.status,
+		).toBe("incorrect");
+		roots.construction.mode = "zero";
+		expect(
+			validateConstruction(roots, { mode: "zero", gain: "", rows: [] })
+				.status,
+		).toBe("correct");
+	});
+	it("checks every PFD power and a general quadratic numerator without accepting duplicate terms", () => {
+		const quadratic: LaplaceEntryRow = {
+			kind: "quadratic",
+			first: "2",
+			second: "5",
+			power: "1",
+			numerator: "linear",
+		};
+		const task = fixture(
+			"template",
+			[linear("3"), linear("3", "2"), quadratic],
+			"0",
+		);
+		const draft = structuredClone(task.construction);
+		expect(validateConstruction(task, draft).status).toBe("correct");
+		draft.rows[2]!.numerator = "constant";
+		expect(validateConstruction(task, draft).status).toBe("incorrect");
+		draft.rows[2]!.numerator = "linear";
+		draft.rows.push(linear("3"));
+		expect(validateConstruction(task, draft).status).toBe("incorrect");
+	});
+	it("retains a surviving zero after partial multiplicity cancellation", () => {
+		const problem = createLaplaceExercise({
+			workflow: "inverse",
+			seed: 73,
+			system: false,
+			rational: {
+				gain: "1",
+				zeros: [{ real: "-1", frequency: "0", multiplicity: 3 }],
+				poles: [
+					{ real: "-1", frequency: "0", multiplicity: 2 },
+					{ real: "-4", frequency: "0", multiplicity: 1 },
+				],
+				delay: "0",
+				region: -1,
+			},
+		});
+		const task = problem.stages
+			.flatMap((stage) => stage.tasks)
+			.find((part) => part.id === "surviving-zeros")!;
+		if (task.kind !== "roots")
+			throw new Error("Expected root construction.");
+		expect(
+			validateConstruction(task, {
+				mode: "finite",
+				gain: "",
+				rows: [linear("-1")],
+			}).status,
+		).toBe("correct");
+		expect(
+			validateConstruction(task, { mode: "none", gain: "", rows: [] })
+				.status,
+		).toBe("incorrect");
+	});
+	it("authors teaching for every workflow and preset without missing families or generic fallback hints", () => {
+		for (const workflow of ["inverse", "forward", "roc", "ode"] as const)
+			for (const preset of LAPLACE_PRESETS) {
+				const problem = generateLaplaceExercise(workflow, 73, preset);
+				const tasks = problem.stages.flatMap((stage) => stage.tasks);
+				expect(
+					new Set(tasks.map((task) => task.id)).size,
+					`${workflow}/${preset}: stable task IDs`,
+				).toBe(tasks.length);
+				for (const task of tasks) {
+					expect(task.hints, task.id).toHaveLength(3);
+					expect(task.lesson, task.id).toBeTruthy();
+					expect(task.action, task.id).toMatch(/^Check /);
+					for (const hint of task.hints)
+						expect(hint).not.toMatch(
+							/Identify the applicable rule|Use your verified earlier work|Worked guidance:|Check your answer to continue/,
+						);
+				}
+			}
+	});
+});

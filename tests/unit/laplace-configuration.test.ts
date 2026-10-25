@@ -4,6 +4,7 @@ import {
 	parseLaplaceConfiguration,
 	serializeLaplaceConfiguration,
 } from "$lib/math-engine/laplace/configuration";
+import { validateConstruction } from "$lib/math-engine/laplace/construction";
 import {
 	generateLaplaceExercise,
 	LAPLACE_PRESETS,
@@ -40,26 +41,29 @@ describe("reproducible bounded Laplace configuration", () => {
 					(stage) => stage.tasks,
 				)) {
 					const result =
-						task.kind === "fields"
-							? task.fields.every(
-									(field) =>
-										verifyLaplaceS(
-											field.target,
-											field.target,
-										).status === "correct",
-								)
-							: task.kind === "choice"
-								? task.choices?.includes(task.answer)
-								: (task.kind === "t"
-										? verifyLaplaceTime(
-												task.answer,
-												task.terms ?? problem.terms,
-											)
-										: verifyLaplaceS(
-												task.answer,
-												task.answer,
-											)
-									).status === "correct";
+						"construction" in task
+							? validateConstruction(task, task.construction)
+									.status === "correct"
+							: task.kind === "fields"
+								? task.fields.every(
+										(field) =>
+											verifyLaplaceS(
+												field.target,
+												field.target,
+											).status === "correct",
+									)
+								: task.kind === "choice"
+									? task.choices?.includes(task.answer)
+									: (task.kind === "t"
+											? verifyLaplaceTime(
+													task.answer,
+													task.terms ?? problem.terms,
+												)
+											: verifyLaplaceS(
+													task.answer,
+													task.answer,
+												)
+										).status === "correct";
 					expect(result, `${workflow}/${preset}/${task.id}`).toBe(
 						true,
 					);

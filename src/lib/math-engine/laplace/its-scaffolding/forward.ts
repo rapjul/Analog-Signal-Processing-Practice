@@ -1,4 +1,5 @@
 import {
+	fraction,
 	polynomialLatex,
 	rationalLatex,
 } from "$lib/math-engine/laplace/algebra";
@@ -24,67 +25,194 @@ import type {
 	LaplaceExercise,
 	LaplaceStage,
 } from "$lib/math-engine/laplace/types";
-import { rootList, task } from "./shared";
+import { factorTask, fieldTask, rootList, rootTask, task } from "./shared";
+import { teaching, teachRoc, teachSignal } from "./teaching";
 
 /** @param blocks - Exact rational blocks. @returns Mandatory cancellation and root analysis for every block. */
 export function blockAnalysis(blocks: TransformBlock[]): LaplaceStage {
 	return {
 		id: "block-analysis",
 		title: "Simplify and Analyze Each Rational Block",
-		tasks: blocks.flatMap((block, index) => [
-			task(
-				`block-${index}-numerator`,
-				`Combine block ${index + 1}'s numerator`,
-				"Clear the common denominator and enter the resulting numerator polynomial.",
-				"s",
-				polynomialLatex(block.data.originalNumerator),
-			),
-			task(
-				`block-${index}-cancellation`,
-				"Check for common factors",
-				"Do numerator and denominator share an exact factor? Near-matching roots do not cancel.",
-				"choice",
-				block.data.canceled.length
-					? "Common factors exist"
-					: "No common factors",
-				["Common factors exist", "No common factors"],
-			),
-			task(
-				`block-${index}-reduced`,
-				"Write the reduced rational block",
-				"Cancel matching copies only. Delay exponentials are retained outside this rational block.",
-				"s",
-				rationalLatex({
-					n: block.data.numerator,
-					d: block.data.denominator,
-				}),
-			),
-			task(
-				`block-${index}-zeros`,
-				"Identify surviving finite zeros",
-				"Solve the reduced numerator equation. Zeros do not set the ROC boundaries.",
-				"choice",
-				zeroDescription(block.data.numerator),
-				[
-					zeroDescription(block.data.numerator),
-					rootList(block.data.poles),
-					"All original denominator roots are zeros",
-				],
-			),
-			task(
-				`block-${index}-poles`,
-				"Identify genuine poles",
-				"Use reduced denominator roots and their remaining multiplicities.",
-				"choice",
-				rootList(block.data.poles),
-				[
-					rootList(block.data.poles),
-					"Keep canceled denominator roots",
-					"Poles are the numerator roots",
-				],
-			),
-		]),
+		tasks: blocks.flatMap((block, index) =>
+			[
+				{
+					...task(
+						`block-${index}-numerator`,
+						`Combine block ${index + 1}'s numerator`,
+						"Clear the common denominator and enter the resulting numerator polynomial.",
+						"s",
+						polynomialLatex(block.data.originalNumerator),
+					),
+					...teaching(
+						"Combining fractions means expressing them over the same denominator, then adding their adjusted numerators.",
+						`Use $${polynomialLatex(block.data.originalDenominator)}$ as this block's common denominator. Each missing factor multiplies its numerator.`,
+						`After adding like powers, the numerator is $${polynomialLatex(block.data.originalNumerator)}$. Check this by multiplying each original fraction by its missing denominator factors.`,
+						"Check Combined Numerator",
+					),
+				},
+				factorTask(
+					`block-${index}-factor-denominator`,
+					"Factor the common denominator",
+					block.spec.poles,
+					block.data.originalDenominator,
+				),
+				task(
+					"cancellation",
+					"Check for common factors",
+					"Do numerator and denominator share an exact factor? Near-matching roots do not cancel.",
+					"choice",
+					block.data.canceled.length
+						? "Common factors exist"
+						: "No common factors",
+					["Common factors exist", "No common factors"],
+				),
+				{
+					...fieldTask(
+						`block-${index}-copies-values`,
+						"Count exact common copies",
+						"\\text{Common copies}={{copies}}",
+						[
+							{
+								id: "copies",
+								label: "Number of exact common factor copies",
+								target: String(
+									block.data.canceled.reduce(
+										(sum, factor) =>
+											sum + factor.multiplicity,
+										0,
+									),
+								),
+							},
+						],
+					),
+					...teaching(
+						"A denominator factor cancels only if dividing the numerator by it leaves zero remainder.",
+						`Test the factors of $${polynomialLatex(block.data.originalDenominator)}$ against $${polynomialLatex(block.data.originalNumerator)}$. For a linear factor, substitution of its root tests the remainder.`,
+						`The factors that divide exactly are ${rootList(block.data.canceled)}. Count matching copies, then stop when a nonzero remainder appears.`,
+						"Check Common Copies",
+					),
+				},
+				task(
+					`block-${index}-reduced`,
+					"Write the reduced rational block",
+					"Cancel matching copies only. Delay exponentials are retained outside this rational block.",
+					"s",
+					rationalLatex({
+						n: block.data.numerator,
+						d: block.data.denominator,
+					}),
+				),
+				...zeroTasks(block, index),
+				rootTask(
+					"Identify genuine poles",
+					`block-${index}-poles`,
+					block.data.poles,
+					[],
+				),
+			].map((part) => ({
+				...part,
+				id:
+					part.id === "cancellation"
+						? `block-${index}-cancellation`
+						: part.id,
+			})),
+		),
 	};
+}
+
+/** @param block - Independently reduced rational block. @param index - Stable block index. @returns Exact zero characterization, including nonrational quadratic roots. */
+function zeroTasks(
+	block: TransformBlock,
+	index: number,
+): import("$lib/math-engine/laplace/types").LaplaceTask[] {
+	const n = block.data.numerator;
+	if (n.length <= 2) {
+		const root = n.length === 2 ? n[0]!.negate().divide(n[1]!) : null;
+		const result = rootTask(
+			"Identify surviving finite zeros",
+			`block-${index}-zeros`,
+			root
+				? [
+						{
+							real: `${root.numerator}/${root.denominator}`,
+							frequency: "0",
+							multiplicity: 1,
+						},
+					]
+				: [],
+			block.data.poles,
+		);
+		if (n.length === 1 && !n[0]!.numerator) {
+			result.construction.mode = "zero";
+			result.answer = "Identically zero; no discrete zero list";
+			Object.assign(
+				result,
+				teaching(
+					"The zero polynomial vanishes for every value. It has no discrete root list, whereas a nonzero constant has no roots.",
+					"This reduced numerator is exactly zero. Select Identically Zero and leave the finite-root rows empty.",
+					"For $0=0$, every value satisfies the equation. Thus this block contributes no finite isolated zeros or genuine poles, and it must not be confused with a nonzero constant numerator.",
+					"Check Zero Expression",
+				),
+			);
+		}
+		return [result];
+	}
+	if (n.length === 3) {
+		const [c, b, a] = n;
+		const discriminant = b!
+			.multiply(b!)
+			.add(a!.multiply(c!).multiply(fraction(-4)));
+		return [
+			{
+				...fieldTask(
+					`block-${index}-zero-formula-values`,
+					"Construct the exact quadratic roots",
+					"s=\\frac{-({{b}})\\pm\\sqrt{ {{disc}} }}{ {{twoa}} }",
+					[
+						{
+							id: "b",
+							label: "Signed linear coefficient b",
+							target: b!.toLatex(),
+						},
+						{
+							id: "disc",
+							label: "Discriminant b squared minus four a c",
+							target: discriminant.toLatex(),
+						},
+						{
+							id: "twoa",
+							label: "Twice the leading coefficient",
+							target: a!.multiply(fraction(2)).toLatex(),
+						},
+					],
+				),
+				...teaching(
+					"The quadratic formula solves $as^2+bs+c=0$, including roots that cannot be written as rational numbers.",
+					`For $${polynomialLatex(n)}=0$, read $a=${a!.toLatex()}$, $b=${b!.toLatex()}$, and $c=${c!.toLatex()}$. Compute $b^2-4ac$ before taking its square root.`,
+					`Here the discriminant is $(${b!.toLatex()})^2-4(${a!.toLatex()})(${c!.toLatex()})=${discriminant.toLatex()}$. A negative discriminant produces a conjugate pair; zero gives one root of multiplicity two.`,
+					"Check Quadratic Roots",
+				),
+			},
+		];
+	}
+	return [
+		{
+			...task(
+				`block-${index}-numerator`,
+				"Construct the finite-zero equation",
+				"Enter the reduced numerator polynomial whose zero set defines the finite zeros. Higher-degree roots may lie outside rational-location entry.",
+				"s",
+				polynomialLatex(n),
+			),
+			id: `block-${index}-zero-equation`,
+			...teaching(
+				"Finite zeros are exactly the roots of the reduced numerator. An exact defining polynomial can characterize algebraic roots without decimal approximations.",
+				`Set $${polynomialLatex(n)}=0$, using the reduced numerator rather than the denominator.`,
+				`${zeroDescription(n)}. This equation describes the full zero set, including multiplicities, without claiming that its roots are rational.`,
+				"Check Zero Equation",
+			),
+		},
+	];
 }
 
 /** @param input - Forward configuration. @returns Exact transform workflow. */
@@ -118,13 +246,16 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 			id: "separate",
 			title: "Separate Signal Terms",
 			tasks: spec.terms.map((term, index) =>
-				task(
-					`forward-family-${index}`,
-					`Identify signal term ${index + 1}`,
-					`Classify $${signalLatex(term)}$.`,
-					"choice",
-					term.kind,
-					["exponential", "cosine", "sine", "impulse"],
+				teachSignal(
+					task(
+						`forward-family-${index}`,
+						`Identify signal term ${index + 1}`,
+						`Classify $${signalLatex(term)}$.`,
+						"choice",
+						term.kind,
+						["exponential", "cosine", "sine", "impulse"],
+					),
+					term,
 				),
 			),
 		},
@@ -139,12 +270,15 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 					"scalar",
 					term.delay,
 				),
-				task(
-					`forward-pair-${index}`,
-					`Transform term ${index + 1}`,
-					`Find the transform of $${signalLatex(term)}$, retaining its weight and delay.`,
-					"s",
-					signalTransform(term),
+				teachSignal(
+					task(
+						`forward-pair-${index}`,
+						`Transform term ${index + 1}`,
+						`Find the transform of $${signalLatex(term)}$, retaining its weight and delay.`,
+						"s",
+						signalTransform(term),
+					),
+					term,
 				),
 			]),
 		},
@@ -166,17 +300,23 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 			id: "roc",
 			title: "Verify the Region of Convergence",
 			tasks: [
-				task(
-					"forward-roc",
-					"Determine the maximal convergence region",
-					"Combine equal modes across delays and check both infinite tails. Finite-duration sums can have the whole plane as their ROC, even when individual terms have poles.",
-					"choice",
-					`$${rocLatex}$`,
-					[
+				teachRoc(
+					task(
+						"forward-roc",
+						"Determine the maximal convergence region",
+						"Combine equal modes across delays and check both infinite tails. Finite-duration sums can have the whole plane as their ROC, even when individual terms have poles.",
+						"choice",
 						`$${rocLatex}$`,
-						"All poles belong to the ROC",
-						"The zeros determine the ROC",
-					],
+						[
+							`$${rocLatex}$`,
+							"All poles belong to the ROC",
+							"The zeros determine the ROC",
+						],
+					),
+					poles,
+					roc,
+					rocLatex,
+					`The given signal is $${response}$. Combine identical modes and check both infinite time tails.`,
 				),
 			],
 		},

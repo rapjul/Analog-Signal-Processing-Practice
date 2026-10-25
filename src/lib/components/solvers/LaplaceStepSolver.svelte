@@ -27,16 +27,29 @@
 			solver = new LaplaceStepSolverState(problem, () => onComplete?.());
 	});
 	let root: HTMLDivElement | undefined;
+	/** @param index - Zero-based part index. @returns Alphabetic part suffix, including stages with more than 26 tasks. */
+	function partSuffix(index: number): string {
+		let number = index + 1,
+			suffix = "";
+		while (number > 0) {
+			number--;
+			suffix = String.fromCharCode(65 + (number % 26)) + suffix;
+			number = Math.floor(number / 26);
+		}
+		return suffix;
+	}
 	let previous = "";
 	$effect(() => {
-		const key = solver.task?.id ?? "completed";
+		const key = `${solver.task?.id ?? "completed"}:${solver.awaitingContinue}`;
 		const focus = previous !== "" && previous !== key;
 		previous = key;
 		if (focus)
 			void tick().then(() =>
 				root
 					?.querySelector<HTMLElement>(
-						".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading]",
+						solver.awaitingContinue
+							? "[data-success-heading]"
+							: ".step-card.active [data-task-id] h3, .step-card.active .subpart-block:not(.subpart-done) [data-progress-heading], .step-card.active [data-single-heading]",
 					)
 					?.focus(),
 			);
@@ -62,41 +75,40 @@
 	>
 		{solver.isCompleted
 			? "Laplace derivation completed."
-			: `Step ${solver.currentStep} of ${solver.totalSteps}. ${solver.progress.label}. ${solver.task?.title ?? ""}`}
+			: `Step ${solver.displayStep} of ${solver.visibleStages.length}. ${solver.progress.total > 1 ? solver.progress.label : ""} ${solver.task?.title ?? ""}`}
 	</p>
 	<Progress
-		currentStep={solver.currentStep}
-		totalSteps={solver.totalSteps}
+		currentStep={solver.displayStep}
+		totalSteps={solver.visibleStages.length}
 	/>
-	{#each problem.stages as stage, index}
+	{#each solver.visibleStages as stage, displayIndex}
+		{@const index = problem.stages.indexOf(stage)}
+		{@const tasks = solver.tasksForStage(index)}
 		<StepCard
-			stepNumber={index + 1}
+			stepNumber={displayIndex + 1}
 			title={stage.title}
 			status={solver.currentStep > index + 1
 				? "completed"
 				: solver.currentStep === index + 1
 					? "active"
 					: "locked"}
-			summaryLatex={`${stage.tasks.length} verified tasks.`}
 		>
-			{#snippet summarySnippet()}<details class="verified-result">
-					<summary
-						>{stage.tasks.length} verified tasks — review your work</summary
-					>{#each stage.tasks as task}<p>
+			{#snippet summarySnippet()}<div class="verified-result">
+					{#each tasks as task}<p>
 							<MathText text={task.title} />: <MathText
 								text={task.kind === "choice"
 									? (solver.verified[task.id] ?? "")
 									: `$${solver.verified[task.id] ?? ""}$`}
 							/>
 						</p>{/each}
-				</details>{/snippet}
-			{#snippet headerExtra()}{#if solver.currentStep === index + 1}<PartProgressPill
+				</div>{/snippet}
+			{#snippet headerExtra()}{#if solver.currentStep === index + 1 && tasks.length > 1}<PartProgressPill
 						progress={solver.progress}
 					/>{/if}{/snippet}
-			{#each stage.tasks as task, part}
+			{#each tasks as task, part}
 				{#if solver.verified[task.id] !== undefined}
 					<SubStepBlock
-						badge={`Part ${part + 1}`}
+						badge={`Part ${displayIndex + 1}${partSuffix(part)}`}
 						title={task.title}
 						isCompleted
 					>
@@ -109,14 +121,27 @@
 							</div>{/snippet}
 					</SubStepBlock>
 				{:else if solver.task?.id === task.id}
-					<SubStepBlock
-						badge={`Part ${part + 1}`}
-						title={task.title}
-						><LaplaceTaskInput
+					{#if tasks.length === 1}
+						<h3
+							tabindex="-1"
+							data-single-heading
+						>
+							{task.title}
+						</h3>
+						<LaplaceTaskInput
 							{solver}
 							{onAssist}
-						/></SubStepBlock
-					>
+						/>
+					{:else}
+						<SubStepBlock
+							badge={`Part ${displayIndex + 1}${partSuffix(part)}`}
+							title={task.title}
+							><LaplaceTaskInput
+								{solver}
+								{onAssist}
+							/></SubStepBlock
+						>
+					{/if}
 				{/if}
 			{/each}
 		</StepCard>
@@ -124,6 +149,7 @@
 </div>
 
 <style>
+	/* ── Guided workflow and verified summaries ───────────────────────────── */
 	.laplace-step-solver {
 		display: flex;
 		flex-direction: column;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { validateConstruction } from "$lib/math-engine/laplace/construction";
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
 import type { RationalExercise } from "$lib/math-engine/laplace/types";
 import {
@@ -52,7 +53,16 @@ describe("Laplace inverse tutoring", () => {
 		for (const cancellation of [false, true]) {
 			const problem = createRationalExercise(inverseSpec(cancellation));
 			for (const task of problem.stages.flatMap((stage) => stage.tasks)) {
-				if (task.kind === "choice")
+				if ("construction" in task)
+					expect(
+						validateConstruction(task, task.construction).status,
+					).toBe("correct");
+				else if (task.kind === "fields")
+					for (const field of task.fields)
+						expect(
+							verifyLaplaceS(field.target, field.target).status,
+						).toBe("correct");
+				else if (task.kind === "choice")
 					expect(task.choices).toContain(task.answer);
 				else
 					expect(

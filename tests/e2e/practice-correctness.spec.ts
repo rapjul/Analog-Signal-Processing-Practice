@@ -105,10 +105,17 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	const responseTask = problem.stages
 		.flatMap((stage) => stage.tasks)
 		.find((task) => task.id === "response")!;
+	const checkResponse = page.getByRole("button", {
+		name: responseTask.action!,
+		exact: true,
+	});
+	const responseFeedback = page
+		.locator(".step-card.active [data-validation]")
+		.first();
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	await page.locator("#laplace-input").fill("123");
-	await page.getByRole("button", { name: "Check Answer" }).click();
-	await expect(page.locator(".feedback-box")).toHaveAttribute(
+	await checkResponse.click();
+	await expect(responseFeedback).toHaveAttribute(
 		"data-validation",
 		"incorrect",
 	);
@@ -117,8 +124,8 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 		await page
 			.locator("#laplace-input")
 			.fill(`(${problem.response})+(${attack.expression})`);
-		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
+		await checkResponse.click();
+		await expect(responseFeedback).not.toHaveAttribute(
 			"data-validation",
 			"correct",
 		);
@@ -127,8 +134,8 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	await page
 		.locator("#laplace-input")
 		.fill(`(${problem.response})u((3.14159265358979323843-\\pi)t)`);
-	await page.getByRole("button", { name: "Check Answer" }).click();
-	await expect(page.locator(".feedback-box")).toHaveAttribute(
+	await checkResponse.click();
+	await expect(responseFeedback).toHaveAttribute(
 		"data-validation",
 		"unsupported",
 	);

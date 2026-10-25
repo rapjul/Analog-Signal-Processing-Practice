@@ -26,7 +26,13 @@ describe("guided Laplace answer entry", () => {
 			spec.initial = initial;
 			const problem = createLaplaceExercise(spec);
 			const tasks = problem.stages.flatMap((stage) => stage.tasks);
-			const fieldTasks = tasks.filter((task) => task.kind === "fields");
+			const fieldTasks = tasks
+				.filter((task) => task.kind === "fields")
+				.filter((task) =>
+					["ode-derivative-values", "ode-second-values"].includes(
+						task.id,
+					),
+				);
 			expect(fieldTasks).toHaveLength(2);
 			for (const task of fieldTasks) {
 				expect(renderLaplaceFields(task.frame, {})).toContain(

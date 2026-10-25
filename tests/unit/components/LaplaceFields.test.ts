@@ -29,17 +29,22 @@ describe("Laplace field controls", () => {
 		expect(y0.value).toBe("");
 		expect(dy0.value).toBe("");
 		await fireEvent.input(y0, { target: { value: "1/1" } });
-		await fireEvent.click(view.getByRole("button", { name: "Show Hint" }));
+		await fireEvent.click(view.getByRole("button", { name: /Get Hint/ }));
 		expect(y0.value).toBe("1/1");
 		expect(solver.verified["ode-second-values"]).toBeUndefined();
 		await fireEvent.click(
-			view.getByRole("button", { name: "Check Answer" }),
+			view.getByRole("button", {
+				name: "Check Initial-Condition Substitution",
+			}),
 		);
 		expect(solver.fieldResults.y0!.status).toBe("correct");
 		expect(solver.fieldResults.dy0!.status).toBe("invalid");
 		expect(y0.value).toBe("1/1");
 		await fireEvent.input(dy0, { target: { value: "0/5" } });
 		await fireEvent.keyDown(dy0, { key: "Enter" });
+		expect(solver.awaitingContinue).toBe(true);
+		expect(solver.verified["ode-second-values"]).toBeUndefined();
+		await fireEvent.click(view.getByRole("button", { name: "Continue" }));
 		expect(solver.verified["ode-second-values"]).toContain("0/5");
 		expect(solver.fieldInputs).toEqual({});
 		await act(() => solver.reset());

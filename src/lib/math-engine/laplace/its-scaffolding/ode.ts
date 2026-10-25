@@ -19,6 +19,7 @@ import type {
 import { blockAnalysis } from "./forward";
 import { pairingStage } from "./inverse";
 import { decompositionStages, fieldTask, task } from "./shared";
+import { teaching, teachSignal } from "./teaching";
 
 /** @param input - Structured unilateral IVP. @returns Eight-stage Laplace ODE tutor. */
 export function createOdeExercise(input: OdeExercise): LaplaceExercise {
@@ -40,13 +41,23 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 			.join("+") + `=${spec.terms.map(signalLatex).join("+")}`;
 	const { bounds: roc, poles } = analyzeSignalRoc(terms);
 	const decomposition = solution.blocks.flatMap((block, index) =>
-		[blockAnalysis([block]), ...decompositionStages(block.data)].flatMap(
-			(stage) =>
-				stage.tasks.map((part) => ({
-					...part,
-					id: `ode-block-${index}-${part.id}`,
-					title: `Block ${index + 1}: ${part.title}`,
-				})),
+		[
+			blockAnalysis([block]),
+			...decompositionStages(block.data, true),
+		].flatMap((stage) =>
+			stage.tasks.map((part) => ({
+				...part,
+				id: `ode-block-${index}-${part.id}`,
+				...(part.when
+					? {
+							when: {
+								...part.when,
+								id: `ode-block-${index}-${part.when.id}`,
+							},
+						}
+					: {}),
+				title: `Block ${index + 1}: ${part.title}`,
+			})),
 		),
 	);
 	const impulses = collectTerms(
@@ -57,15 +68,23 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 	const jumpTasks = impulses.flatMap((term, index) =>
 		term.kind === "impulse"
 			? [
-					task(
-						`jump-${index}`,
-						`Check the impulse at $t=${term.delay}$`,
-						`Integrate the ODE across this time. Add all coincident impulse weights; the jump in $${order === 1 ? "y" : "y'"}$ equals their combined weight divided by the leading coefficient.`,
-						"scalar",
-						fraction(term.amplitude)
-							.divide(fraction(spec.leading))
-							.toLatex(),
-					),
+					{
+						...task(
+							`jump-${index}`,
+							`Check the impulse at $t=${term.delay}$`,
+							`Integrate the ODE across this time. Add all coincident impulse weights; the jump in $${order === 1 ? "y" : "y'"}$ equals their combined weight divided by the leading coefficient.`,
+							"scalar",
+							fraction(term.amplitude)
+								.divide(fraction(spec.leading))
+								.toLatex(),
+						),
+						...teaching(
+							"Integrating across an impulse turns its area into a state jump. Add impulses at the same time before dividing by the leading coefficient.",
+							`At $t=${term.delay}$, the combined impulse weight is $${term.amplitude}$ and the leading coefficient is $${spec.leading}$. For this order, the jump is in $${order === 1 ? "y" : "y'"}$.`,
+							`The jump is $(${term.amplitude})/(${spec.leading})=${fraction(term.amplitude).divide(fraction(spec.leading)).toLatex()}$. Smooth lower-order terms contribute zero area over the shrinking interval.`,
+							"Check Impulse Jump",
+						),
+					},
 				]
 			: [],
 	);
@@ -98,12 +117,15 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 			id: "forcing",
 			title: "Transform the Forcing",
 			tasks: spec.terms.map((term, index) =>
-				task(
-					`ode-force-${index}`,
-					`Transform forcing term ${index + 1}`,
-					`Transform $${signalLatex(term)}$ with its amplitude and delay.`,
-					"s",
-					signalTransform(term),
+				teachSignal(
+					task(
+						`ode-force-${index}`,
+						`Transform forcing term ${index + 1}`,
+						`Transform $${signalLatex(term)}$ with its amplitude and delay.`,
+						"s",
+						signalTransform(term),
+					),
+					term,
 				),
 			),
 		},
@@ -202,7 +224,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 		},
 		{
 			id: "ode-pfd",
-			title: "Simplify and Decompose Each Block",
+			title: "Analyze Each Response Block and Choose a Method",
 			tasks: decomposition,
 		},
 		pairingStage(terms),
@@ -250,6 +272,29 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 			],
 		},
 	].filter((stage) => stage.tasks.length);
+	for (const stage of stages)
+		for (const part of stage.tasks) {
+			if (part.id === "ode-initial-numerator")
+				Object.assign(
+					part,
+					teaching(
+						"Move the subtracted initial-condition terms to the forcing side, then group equal powers of the transform variable.",
+						`Use $y(0^-)=${y0.toLatex()}$${order === 2 ? ` and $y'(0^-)=${dy0.toLatex()}$` : ""} with the coefficients of $D(s)=${polynomialLatex(solution.operator)}$. For second order the initial numerator is $a(sy_0+y'_0)+by_0$; for first order it is $ay_0$.`,
+						`The leading derivative contributes $(${spec.leading})(${order === 2 ? `s(${y0.toLatex()})+(${dy0.toLatex()})` : y0.toLatex()})$. Add any first-derivative initial term from the operator before collecting the numerator.`,
+						"Check Initial Contribution",
+					),
+				);
+			if (["ode-zi", "ode-zs", "ode-total"].includes(part.id))
+				Object.assign(
+					part,
+					teaching(
+						"The same differential operator acts on the initial-state and forcing contributions. Their transforms add by linearity.",
+						`Here $D(s)=${polynomialLatex(solution.operator)}$, the initial numerator is $I(s)=${polynomialLatex(solution.initialNumerator)}$, and $F(s)=${spec.terms.map(signalTransform).join("+")}$. ${part.id === "ode-zi" ? "Use I and omit F." : part.id === "ode-zs" ? "Use F and omit I." : "Retain both I and F."}`,
+						`Dividing the initial part gives $Y_{ZI}(s)=${solution.ziTransform}$; dividing the input part gives $Y_{ZS}(s)=${solution.zsTransform}$. Keep delay factors attached to their input blocks before adding the parts.`,
+						"Check Response Transform",
+					),
+				);
+		}
 	return {
 		spec,
 		prompt,

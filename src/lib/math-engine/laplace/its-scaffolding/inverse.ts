@@ -18,66 +18,80 @@ import type {
 	RationalExercise,
 } from "$lib/math-engine/laplace/types";
 import { analysisStage, decompositionStages, task } from "./shared";
+import { teachPairParameter, teachRoc, teachSignal } from "./teaching";
 
 /** @param terms - Independently solved terms. @returns Pairing stage with separate weight and support checks. */
 export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 	return {
 		id: "pairs",
 		title: "Apply Transform Pairs and Properties",
-		tasks: terms.flatMap((term, index) => [
-			task(
-				`pair-${index}`,
-				`Identify transform pair ${index + 1}`,
-				`Which time-domain family corresponds to $${signalTransform(term)}$?`,
-				"choice",
-				term.kind,
-				["exponential", "cosine", "sine", "impulse"],
-			),
-			task(
-				`weight-${index}`,
-				`Find term ${index + 1}'s weight`,
-				"Include the factorial, frequency normalization, and any left-sided minus sign.",
-				"scalar",
-				term.amplitude,
-			),
-			task(
-				`delay-${index}`,
-				`Determine term ${index + 1}'s delay`,
-				"The factor is $e^{-ds}$; enter $d$.",
-				"scalar",
-				term.delay,
-			),
-			...(term.kind === "impulse"
-				? []
-				: [
-						task(
-							`rate-${index}`,
-							`Find term ${index + 1}'s exponential rate`,
-							"Rewrite the pole factor as s minus the rate; keep its sign.",
-							"scalar",
-							term.rate,
-						),
-						task(
-							`parameter-${index}`,
-							`Find term ${index + 1}'s ${term.kind === "exponential" ? "polynomial power" : "angular frequency"}`,
-							"Use the repeated-pole power rule or the quadratic transform pair.",
-							"scalar",
-							term.kind === "exponential"
-								? String(term.power)
-								: term.frequency,
-						),
-					]),
-			{
-				...task(
-					`inverse-${index}`,
-					`Invert term ${index + 1}`,
-					`Invert $${signalTransform(term)}$. Include its supplied support.`,
-					"t",
-					signalLatex(term),
+		tasks: terms.flatMap((term, index) =>
+			[
+				teachSignal(
+					task(
+						`pair-${index}`,
+						`Identify transform pair ${index + 1}`,
+						`Which time-domain family corresponds to $${signalTransform(term)}$?`,
+						"choice",
+						term.kind,
+						["exponential", "cosine", "sine", "impulse"],
+					),
+					term,
 				),
-				terms: [term],
-			},
-		]),
+				task(
+					`weight-${index}`,
+					`Find term ${index + 1}'s weight`,
+					"Include the factorial, frequency normalization, and any left-sided minus sign.",
+					"scalar",
+					term.amplitude,
+				),
+				task(
+					`delay-${index}`,
+					`Determine term ${index + 1}'s delay`,
+					"The factor is $e^{-ds}$; enter $d$.",
+					"scalar",
+					term.delay,
+				),
+				...(term.kind === "impulse"
+					? []
+					: [
+							task(
+								`rate-${index}`,
+								`Find term ${index + 1}'s exponential rate`,
+								"Rewrite the pole factor as $s$ minus the rate; keep its sign.",
+								"scalar",
+								term.rate,
+							),
+							task(
+								`parameter-${index}`,
+								`Find term ${index + 1}'s ${term.kind === "exponential" ? "polynomial power" : "angular frequency"}`,
+								"Use the repeated-pole power rule or the quadratic transform pair.",
+								"scalar",
+								term.kind === "exponential"
+									? String(term.power)
+									: term.frequency,
+							),
+						]),
+				{
+					...teachSignal(
+						task(
+							`inverse-${index}`,
+							`Invert term ${index + 1}`,
+							`Invert $${signalTransform(term)}$. Include its supplied support.`,
+							"t",
+							signalLatex(term),
+						),
+						term,
+					),
+					terms: [term],
+				},
+			].map((part) => ({
+				...(part.kind === "scalar"
+					? teachPairParameter(part, term)
+					: part),
+				formula: signalTransform(term),
+			})),
+		),
 	};
 }
 
@@ -142,7 +156,7 @@ export function createRationalExercise(
 					"Bilateral transform with explicit support",
 					[
 						"Bilateral transform with explicit support",
-						"Unilateral ODE rule with unspecified initial state",
+						"Unilateral transform using initial conditions",
 					],
 				),
 			],
@@ -166,7 +180,13 @@ export function createRationalExercise(
 				},
 			],
 		},
-		{ id: "interpret", title: "Verify and Interpret", tasks: finalTasks },
+		{
+			id: "interpret",
+			title: "Verify and Interpret",
+			tasks: finalTasks.map((part) =>
+				teachRoc(part, data.poles, roc, rocLatex, conditions),
+			),
+		},
 	].filter((stage) => stage.tasks.length);
 	return {
 		spec,

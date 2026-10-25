@@ -20,10 +20,42 @@ separate from reactive state and Svelte step components. Verified intermediate
 work becomes the input to later tasks. Full-solution assistance never grants
 completion. Exact identities establish correctness; sampled plots are diagnostic.
 
-Implementation proceeds in ten commits: roadmap, bank retirement, engine
+The original implementation used ten commits: roadmap, bank retirement, engine
 extraction, expanded mathematics, inverse tutoring, forward/ROC tutoring, ODE
 tutoring, custom configuration, completion/reference views, and production
-integration. Each behavior change includes corresponding automated tests.
+integration. Subsequent teaching improvements retain those commits and include
+automated tests alongside their behavior changes.
+
+## Beginner teaching and answer construction
+
+The tutor assumes arithmetic and introduces algebra and transform vocabulary in
+brief explanations. Single-choice cards check on activation, explain successful
+answers, and wait for **Continue**. Incorrect answers retain their drafts and
+receive feedback without mandatory remedial exercises.
+
+Factoring uses an outside gain and learner-added **Linear** or **Quadratic**
+templates. Learners enter signed coefficients and powers directly; LaTeX typing
+is not required. Exact structural checks reject an unchanged reducible polynomial.
+Root rows are also learner-added and check unordered locations, conjugate pairs,
+and multiplicities. Constants and the zero polynomial have explicit treatments.
+Combined forward/ODE numerators may have nonrational zeros: quadratic-formula
+fields retain exact radicals, and higher-degree zero sets retain their exact
+defining polynomial instead of claiming a rational location list.
+
+Degree comparisons and common-copy counts provide evidence for division and
+cancellation decisions. Supported inversion paths include direct pairs and
+properties, shifted-square rewriting, and partial fractions using either cover-up
+or coefficient matching when applicable. Matching includes checked coefficient
+equations; decomposition templates check every denominator power and numerator
+shape. Alternative paths are conditional tutor tasks, not changes to serialized
+problem configurations.
+
+Hints use the shared `HintDisclosure` presentation and explicit task-family
+teaching: concept, current setup, and an explained worked intermediate. There is
+no generic fallback hint generator. Assistance cannot check or advance tasks.
+Completed summaries show verified mathematical results directly. Single-question
+stages omit redundant part labels; multipart stages use step-aware alphabetic
+labels. Fixed equation labels and mixed prose/math use `MathText`.
 
 ## Code organization
 

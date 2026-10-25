@@ -6,6 +6,7 @@ import type {
 } from "$lib/math-engine/laplace/types";
 import { createRationalExercise } from "./inverse";
 import { analysisStage, task } from "./shared";
+import { teachRoc } from "./teaching";
 
 /** @param input - System-analysis configuration. @returns Pole/zero, ROC, sidedness, and stability workflow. */
 export function createRocExercise(input: RationalExercise): LaplaceExercise {
@@ -107,7 +108,7 @@ export function createRocExercise(input: RationalExercise): LaplaceExercise {
 				task(
 					"axis",
 					"Check the imaginary axis",
-					"The entire line Re(s)=0 must lie inside the ROC.",
+					"The entire line $\\Re(s)=0$ must lie inside the ROC.",
 					"choice",
 					problem.stable
 						? "Axis is inside the ROC"
@@ -125,5 +126,21 @@ export function createRocExercise(input: RationalExercise): LaplaceExercise {
 			],
 		},
 	];
+	problem.stages = problem.stages.map((stage) =>
+		stage.id === "analysis"
+			? stage
+			: {
+					...stage,
+					tasks: stage.tasks.map((part) =>
+						teachRoc(
+							part,
+							data.poles,
+							problem.roc,
+							problem.rocLatex,
+							problem.conditions,
+						),
+					),
+				},
+	);
 	return problem;
 }

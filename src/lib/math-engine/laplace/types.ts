@@ -74,6 +74,14 @@ interface LaplaceTaskBase {
 	/** Relevant formula without task-specific answers. */ formula?: string;
 	/** Independent response parameters for a time-domain substep. */ terms?: LaplaceResponseTerm[];
 	/** Displayed assignment label, accepted optionally on submitted expressions. */ lhs?: string;
+	/** Accepted alternatives for a supported strategy decision. */ accepted?: string[];
+	/** Only present this task after the named decision selects a listed path. */ when?: {
+		id: string;
+		values: string[];
+	};
+	/** Short first-use prerequisite teaching. */ lesson?: string;
+	/** Explanation shown after independent validation, before continuation. */ explanation?: string;
+	/** Specific action label. */ action?: string;
 }
 
 /** Existing single-answer task controls. */
@@ -97,7 +105,34 @@ export interface LaplaceFieldTask extends LaplaceTaskBase {
 }
 
 /** All supported guided tasks. */
-export type LaplaceTask = LaplaceSingleTask | LaplaceFieldTask;
+export type LaplaceTask =
+	LaplaceSingleTask | LaplaceFieldTask | LaplaceConstructionTask;
+
+/** A learner-created factor, root pair, or decomposition denominator. */
+export interface LaplaceEntryRow {
+	/** Linear factor/real root or quadratic factor/conjugate pair. */ kind:
+		"linear" | "quadratic";
+	/** Linear constant, quadratic linear coefficient, or root real part. */ first: string;
+	/** Quadratic constant or positive conjugate frequency. */ second: string;
+	/** Factor multiplicity or denominator power. */ power: string;
+	/** Unknown numerator shape for decomposition terms. */ numerator:
+		"constant" | "linear";
+}
+
+/** Structured draft, kept independent from display strings. */
+export interface LaplaceConstruction {
+	/** Explicit exceptional root/polynomial classification. */ mode:
+		"finite" | "none" | "zero";
+	/** Outside polynomial gain or decomposition quotient. */ gain: string;
+	/** Learner-created rows; their number is not supplied by the tutor. */ rows: LaplaceEntryRow[];
+}
+
+/** Exact targets for constructive mathematical tasks. */
+export interface LaplaceConstructionTask extends LaplaceTaskBase {
+	/** Structured mathematical control. */ kind:
+		"factors" | "roots" | "template";
+	/** Canonical target constructed from exact mathematics. */ construction: LaplaceConstruction;
+}
 
 /** Parent stage containing independently checked tasks. */
 export interface LaplaceStage {

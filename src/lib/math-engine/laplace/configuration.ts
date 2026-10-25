@@ -123,8 +123,13 @@ export function createLaplaceExercise(input: unknown): LaplaceExercise {
 				: {};
 		const valid =
 			(task.kind !== "choice" || task.choices?.includes(task.answer)) &&
-			validateLaplaceTask(task, task.answer, values, result.terms).result
-				.status === "correct";
+			validateLaplaceTask(
+				task,
+				task.answer,
+				values,
+				result.terms,
+				"construction" in task ? task.construction : undefined,
+			).result.status === "correct";
 		if (!valid)
 			throw new Error(
 				"This configuration exceeds the tutor's exact answer language. Simplify its factors or signal terms before starting.",

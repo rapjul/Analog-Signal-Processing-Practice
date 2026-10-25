@@ -72,12 +72,21 @@
 						{#each stage.tasks as task}<p>
 								<strong><MathText text={task.title} /></strong>
 							</p>
-							{#if task.kind === "choice"}<p>
+							{#if task.when}<p>
+									Alternative path: {task.when.values.join(
+										" or ",
+									)}.
+								</p>{/if}
+							{#if task.kind === "choice" || task.kind === "roots"}<p
+								>
 									<MathText text={task.answer} />
 								</p>{:else}<MathBlock
 									math={task.answer}
 									compact
-								/>{/if}{/each}
+								/>{/if}
+							<p>
+								<MathText text={task.explanation ?? ""} />
+							</p>{/each}
 					</section>{/each}
 				<MathBlock
 					math={problem.response}

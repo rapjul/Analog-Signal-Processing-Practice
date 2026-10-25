@@ -1,8 +1,10 @@
 <script lang="ts">
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
-	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
+	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
+	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import LaplaceConstructionInput from "./LaplaceConstructionInput.svelte";
 
 	/** Input task and validation controls. */
 	interface Props {
@@ -15,33 +17,49 @@
 
 {#if solver.task}
 	<div data-task-id={solver.task.id}>
+		{#if solver.task.lesson}<p class="lesson">
+				<MathText text={solver.task.lesson} />
+			</p>{/if}
 		<p><MathText text={solver.task.prompt} /></p>
 		{#if solver.task.formula}<MathBlock
 				math={solver.task.formula}
 				compact
 			/>{/if}
 		{#if solver.task.kind === "choice"}
-			<fieldset>
-				<legend>Your answer</legend>
+			<fieldset
+				disabled={solver.awaitingContinue}
+				aria-describedby={solver.result && !solver.awaitingContinue
+					? "laplace-feedback"
+					: undefined}
+			>
+				<legend>Choose an answer</legend>
 				{#each solver.task.choices ?? [] as choice}
-					<label class="choice"
-						><input
-							type="radio"
-							name={solver.task.id}
-							value={choice}
-							bind:group={solver.input}
-							onchange={() => solver.clearFeedback()}
-						/><MathText text={choice} /></label
+					<button
+						type="button"
+						class="choice"
+						class:selected={solver.input === choice}
+						aria-pressed={solver.input === choice}
+						data-choice={choice}
+						onclick={() => {
+							solver.input = choice;
+							solver.clearFeedback();
+							solver.check();
+						}}><MathText text={choice} /></button
 					>
 				{/each}
 			</fieldset>
+		{:else if "construction" in solver.task}
+			<LaplaceConstructionInput {solver} />
 		{:else if solver.task.kind === "fields"}
 			<MathBlock
 				math={solver.preview}
 				compact
 			/>
-			<fieldset class="coefficient-fields">
-				<legend>Initial-condition values</legend>
+			<fieldset
+				class="coefficient-fields"
+				disabled={solver.awaitingContinue}
+			>
+				<legend>Enter each exact value</legend>
 				{#each solver.task.fields as field}
 					<label for={`laplace-field-${field.id}`}
 						><MathText text={field.label} /></label
@@ -72,7 +90,9 @@
 								.status}
 							role="status"
 						>
-							{solver.fieldResults[field.id]!.message}
+							<MathText
+								text={solver.fieldResults[field.id]!.message}
+							/>
 						</p>{/if}
 				{/each}
 			</fieldset>
@@ -80,17 +100,29 @@
 			<label for="laplace-input"
 				>{solver.task.kind === "scalar"
 					? "Exact value (integer, decimal, fraction, or LaTeX)"
-					: `Expression in ${solver.task.kind} (LaTeX)`}</label
+					: "Enter an expression (standard math or LaTeX)"}</label
 			>
+			{#if solver.task.kind === "s" || solver.task.kind === "t"}<p>
+					<MathText
+						text={`Use $${solver.task.kind}$ as the variable. Enter the right-hand expression beside the fixed label.`}
+					/>
+				</p>{/if}
 			<div class="equation-entry">
 				{#if solver.task.lhs}<span class="equation-label"
-						><MathInline math={`${solver.task.lhs}=`} /></span
+						><MathText text={`$${solver.task.lhs}=$`} /></span
 					>{/if}
 				<input
 					id="laplace-input"
 					type="text"
 					autocomplete="off"
 					spellcheck="false"
+					disabled={solver.awaitingContinue}
+					aria-invalid={solver.result
+						? solver.result.status !== "correct"
+						: undefined}
+					aria-describedby={solver.result && !solver.awaitingContinue
+						? "laplace-feedback"
+						: undefined}
 					bind:value={solver.input}
 					oninput={() => solver.clearFeedback()}
 					onkeydown={(event) => {
@@ -105,35 +137,56 @@
 					/>
 				</div>{/if}
 		{/if}
-		<div class="actions">
-			<button
-				type="button"
-				class="btn btn-primary"
-				onclick={() => solver.check()}>Check Answer</button
-			><button
-				type="button"
-				class="btn btn-secondary"
-				onclick={() => {
-					solver.revealNextHint();
-					onAssist?.();
-				}}
-				disabled={solver.hintTier >= solver.activeHints.length}
-				>Show Hint</button
+		{#if solver.task.kind !== "choice" && !solver.awaitingContinue}<div
+				class="actions"
 			>
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={() => solver.check()}
+					>{solver.task.action ??
+						`Check ${solver.task.title}`}</button
+				>
+			</div>{/if}
+		<div
+			id="laplace-feedback"
+			data-validation={solver.result?.status}
+		>
+			<StepFeedback {solver} />
 		</div>
-		{#if solver.result}<p
-				class="feedback-box"
+		{#if solver.awaitingContinue}<div
+				class="success"
 				role="status"
-				data-validation={solver.result.status}
+				data-validation="correct"
 			>
-				<MathText text={solver.result.message} />
-			</p>{/if}
-		{#each solver.activeHints.slice(0, solver.hintTier) as hint, index}<p
-				class="hint"
-			>
-				<strong>Hint {index + 1}:</strong>
-				<MathText text={hint} />
-			</p>{/each}
+				<h4
+					tabindex="-1"
+					data-success-heading
+				>
+					Correct — here is why
+				</h4>
+				<p>
+					<MathText
+						text={solver.task.explanation ?? solver.result!.message}
+					/>
+				</p>
+				<div class="actions">
+					<button
+						type="button"
+						class="btn btn-primary"
+						onclick={() => solver.continue()}>Continue</button
+					>
+				</div>
+			</div>{/if}
+		<HintDisclosure
+			hints={solver.activeHints}
+			hintTier={solver.hintTier}
+			disabled={solver.awaitingContinue}
+			onRevealNextHint={() => {
+				solver.revealNextHint();
+				onAssist?.();
+			}}
+		/>
 	</div>
 {/if}
 
@@ -179,6 +232,29 @@
 		border-radius: var(--radius-sm);
 		overflow-wrap: anywhere;
 		min-width: 0;
+		text-align: left;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		font: inherit;
+		font-weight: 500;
+		width: 100%;
+	}
+	.choice.selected {
+		border-color: var(--accent-primary);
+		background: var(--accent-subtle, rgba(6, 182, 212, 0.12));
+	}
+	.choice:hover:not(:disabled) {
+		border-color: var(--accent-primary);
+	}
+	.lesson {
+		color: var(--text-secondary);
+		line-height: 1.6;
+	}
+	.success {
+		margin-block: 1rem;
+		border: 1px solid var(--color-success, #22c55e);
+		border-radius: var(--radius-sm);
+		padding: 0.85rem;
 	}
 	input[type="text"] {
 		width: 100%;
@@ -195,6 +271,8 @@
 		gap: 0.75rem;
 		flex-wrap: wrap;
 		margin-top: 1rem;
+		justify-content: flex-end;
+		margin-bottom: 1rem;
 	}
 	button {
 		padding: 0.6rem 1rem;
@@ -206,21 +284,22 @@
 		background: var(--accent-primary);
 		color: var(--accent-contrast, #042f2e);
 	}
-	.btn-secondary {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-	}
 	:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 3px;
 	}
-	.hint,
-	.feedback-box,
 	.preview {
 		padding: 0.75rem;
 		background: var(--bg-secondary);
 		border-radius: var(--radius-sm);
 		overflow-wrap: anywhere;
 		min-width: 0;
+	}
+	/* ── Mobile media query (≤480px) ──────────────────────────────────────── */
+	@media (max-width: 480px) {
+		.actions button {
+			max-width: 100%;
+			white-space: normal;
+		}
 	}
 </style>
