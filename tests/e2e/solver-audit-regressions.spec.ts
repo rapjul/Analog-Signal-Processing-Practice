@@ -1,4 +1,4 @@
-/** Browser regressions shared by the three implemented stepped solvers. */
+/** Browser regressions for shared stepped-solver behavior. */
 import { expect, test } from "@playwright/test";
 import type { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
 

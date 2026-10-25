@@ -151,8 +151,8 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ## Deferred Guided Tutors
 
-The remaining tutoring extensions below require detailed planning. Forward CTFT
-now has guided teaching paths; Laplace and circuit tutoring remain deferred.
+Forward CTFT and the bounded Laplace tutor now have guided teaching paths.
+Circuit tutoring and the explicitly deferred extensions below require further planning.
 The shared correctness foundation provides strict transform grading and
 structured generated problem parameters.
 

@@ -7,7 +7,7 @@ import {
 } from "$lib/math-engine/laplace/verification";
 
 /** @param cancellation - Whether numerator and denominator share a factor. @returns Reproducible inverse problem. */
-export function inverseSpec(cancellation = false): RationalExercise {
+function inverseSpec(cancellation = false): RationalExercise {
 	return {
 		workflow: "inverse",
 		seed: 17,

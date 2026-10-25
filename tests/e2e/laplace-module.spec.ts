@@ -65,9 +65,9 @@ test.describe("guided Laplace practice", () => {
 			).toBe(true);
 		});
 	}
-	test("supports keyboard checking and announces the next task without a production harness", async ({
+	test("supports keyboard checking, progress focus, and restart", async ({
 		page,
-	}) => {
+	}, info) => {
 		const problem = generateLaplaceExercise("inverse", 73);
 		await page.goto(
 			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
@@ -93,9 +93,14 @@ test.describe("guided Laplace practice", () => {
 		await expect(
 			page.locator(".step-card.active [data-task-id]"),
 		).toHaveAttribute("data-task-id", tasks[2]!.id);
-		expect(
-			await page.evaluate(() => window.__signalLabDev),
-		).toBeUndefined();
+		// The development server intentionally registers the harness; production must exclude it.
+		if (
+			info.config.configFile?.endsWith("playwright.production.config.ts")
+		) {
+			expect(
+				await page.evaluate(() => window.__signalLabDev),
+			).toBeUndefined();
+		}
 		await page
 			.getByRole("button", { name: "Restart this problem" })
 			.press("Enter");

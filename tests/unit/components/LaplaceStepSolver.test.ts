@@ -32,8 +32,10 @@ describe("Laplace checked workflow", () => {
 			view.getByRole("button", { name: "Check Answer" }),
 		);
 		expect(
-			view.container.querySelector(".feedback-box")?.textContent,
-		).toContain("Enter");
+			view.container
+				.querySelector(".feedback-box")
+				?.getAttribute("data-validation"),
+		).toBe("invalid");
 		await act(() => {
 			const solver = window.__signalLabDev!.activeSolver!;
 			solver.devSolveAll();
