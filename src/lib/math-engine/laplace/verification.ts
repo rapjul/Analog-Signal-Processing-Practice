@@ -1,4 +1,7 @@
-import { CanonicalError } from "$lib/math-engine/canonical-algebra";
+import {
+	CanonicalError,
+	literalScalar,
+} from "$lib/math-engine/canonical-algebra";
 import {
 	canonicalTransformsMatch,
 	normalizeCanonicalTransform,
@@ -68,6 +71,34 @@ export function verifyLaplaceS(
 	}
 }
 
+/** @param terms - One mode and support direction. @returns Surviving pole multiplicity on its infinite tail, or zero after exact cancellation. */
+export function laplaceTailOrder(terms: LaplaceResponseTerm[]): number {
+	if (!terms.length) return 0;
+	const right = terms[0]!.side === "right";
+	const delays = terms
+		.map((term) => fraction(term.delay))
+		.sort((a, b) => a.toNumber() - b.toNumber());
+	const boundary = right ? delays.at(-1)! : delays[0]!;
+	const exact = literalScalar(String(boundary.numerator)).divide(
+		literalScalar(String(boundary.denominator)),
+	);
+	const normalized = normalizeLaplaceInterval(
+		parseExpression(terms.map(signalLatex).join("+"), "t"),
+		right
+			? { min: boundary.toNumber(), max: Infinity, minExact: exact }
+			: { min: -Infinity, max: boundary.toNumber(), maxExact: exact },
+	);
+	return Math.max(
+		0,
+		...normalized.right.terms.map(
+			(term) =>
+				term.factor.numerator.length -
+				term.factor.denominator.length +
+				1,
+		),
+	);
+}
+
 /** @param answer - Submitted response. @param terms - Structured target terms. @returns Global support and distribution comparison. */
 export function verifyLaplaceTime(
 	answer: string,
@@ -76,22 +107,44 @@ export function verifyLaplaceTime(
 	try {
 		const actual = parseExpression(answer, "t");
 		// Construct target ASTs term-by-term from solved parameters, independently of the displayed sum.
-		const expected: unknown = [
-			"Add",
-			...terms.map((term) => parseExpression(signalLatex(term), "t")),
-		];
-		const boundaries = [
-			-Infinity,
-			...[
-				...new Set([
-					0,
-					...terms.map((term) => fraction(term.delay).toNumber()),
-				]),
-			].sort((a, b) => a - b),
-			Infinity,
-		];
+		const expected: unknown = terms.length
+			? [
+					"Add",
+					...terms.map((term) =>
+						parseExpression(signalLatex(term), "t"),
+					),
+				]
+			: 0;
+		const delays = new Map<number, ReturnType<typeof fraction>>();
+		for (const delay of ["0", ...terms.map((term) => term.delay)]) {
+			const exact = fraction(delay),
+				numeric = exact.toNumber();
+			const previous = delays.get(numeric);
+			if (previous && previous.add(exact.negate()).numerator !== 0n)
+				throw new CanonicalError(
+					"unsupported",
+					"Support boundaries are too close for this tutor's numeric display range.",
+				);
+			delays.set(numeric, exact);
+		}
+		const boundaries = [-Infinity, ...delays.keys()].sort((a, b) => a - b);
+		boundaries.push(Infinity);
+		/** @param endpoint - Numeric projection. @returns Exact finite boundary scalar. */
+		const exactEndpoint = (endpoint: number) => {
+			const value = delays.get(endpoint);
+			return value
+				? literalScalar(String(value.numerator)).divide(
+						literalScalar(String(value.denominator)),
+					)
+				: undefined;
+		};
 		for (let i = 1; i < boundaries.length; i++) {
-			const interval = { min: boundaries[i - 1]!, max: boundaries[i]! };
+			const interval = {
+				min: boundaries[i - 1]!,
+				max: boundaries[i]!,
+				minExact: exactEndpoint(boundaries[i - 1]!),
+				maxExact: exactEndpoint(boundaries[i]!),
+			};
 			if (
 				!canonicalTransformsMatch(
 					normalizeLaplaceInterval(actual, interval),

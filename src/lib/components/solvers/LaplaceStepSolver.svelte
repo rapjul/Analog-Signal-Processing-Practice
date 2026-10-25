@@ -8,12 +8,15 @@
 	import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
 	import { LaplaceStepSolverState } from "./laplace-solver-state/controller.svelte";
 	import LaplaceTaskInput from "./laplace-steps/LaplaceTaskInput.svelte";
+
 	/** Checked workflow properties. */
 	interface Props {
 		/** Validated exercise. */ problem: LaplaceExercise;
 		/** Completion notification. */ onComplete?: () => void;
+		/** Assistance notification, separate from validation. */ onAssist?:
+			(() => void) | undefined;
 	}
-	let { problem, onComplete }: Props = $props();
+	let { problem, onComplete, onAssist }: Props = $props();
 	let solver = $state(
 		untrack(
 			() => new LaplaceStepSolverState(problem, () => onComplete?.()),
@@ -76,6 +79,17 @@
 					: "locked"}
 			summaryLatex={`${stage.tasks.length} verified tasks.`}
 		>
+			{#snippet summarySnippet()}<details class="verified-result">
+					<summary
+						>{stage.tasks.length} verified tasks — review your work</summary
+					>{#each stage.tasks as task}<p>
+							<MathText text={task.title} />: <MathText
+								text={task.kind === "choice"
+									? (solver.verified[task.id] ?? "")
+									: `$${solver.verified[task.id] ?? ""}$`}
+							/>
+						</p>{/each}
+				</details>{/snippet}
 			{#snippet headerExtra()}{#if solver.currentStep === index + 1}<PartProgressPill
 						progress={solver.progress}
 					/>{/if}{/snippet}
@@ -98,7 +112,10 @@
 					<SubStepBlock
 						badge={`Part ${part + 1}`}
 						title={task.title}
-						><LaplaceTaskInput {solver} /></SubStepBlock
+						><LaplaceTaskInput
+							{solver}
+							{onAssist}
+						/></SubStepBlock
 					>
 				{/if}
 			{/each}

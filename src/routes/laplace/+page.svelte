@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount, untrack } from "svelte";
-	import { replaceState } from "$app/navigation";
+	import { untrack } from "svelte";
+	import { afterNavigate, replaceState } from "$app/navigation";
 	import { page } from "$app/state";
 	import LaplaceConfiguration from "$lib/components/solvers/laplace-steps/LaplaceConfiguration.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
@@ -17,14 +17,19 @@
 		serializeLaplaceConfiguration,
 	} from "$lib/math-engine/laplace/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
+
 	let error = $state("");
 	/** @returns Valid shared exercise, or a clearly diagnosed ordinary default. */
 	function initialProblem(): LaplaceExercise {
 		try {
 			const shared = parseLaplaceConfiguration(page.url.searchParams);
+			const rawSeed = page.url.searchParams.get("seed");
+			const seed = rawSeed === null ? 73 : Number(rawSeed);
+			if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
+				throw new Error("Use an unsigned 32-bit integer seed.");
 			return shared
 				? createLaplaceExercise(shared)
-				: generateLaplaceExercise("inverse", 73);
+				: generateLaplaceExercise("inverse", seed);
 		} catch (failure) {
 			error =
 				failure instanceof Error
@@ -39,7 +44,7 @@
 	);
 	let preset = $state<LaplacePreset>("distinct");
 	let draft = $state<LaplaceExerciseSpec>(
-		untrack(() => structuredClone(current.spec)),
+		untrack(() => structuredClone($state.snapshot(current.spec))),
 	);
 	let shareUrl = $state("");
 	/** Synchronizes the active validated problem with a reproducible URL. */
@@ -87,7 +92,7 @@
 	function share(): void {
 		shareUrl = `${window.location.origin}${page.url.pathname}?${serializeLaplaceConfiguration($state.snapshot(current.spec))}`;
 	}
-	onMount(() => {
+	afterNavigate(() => {
 		if (!error) syncUrl();
 	});
 </script>

@@ -1,10 +1,10 @@
 import {
-	type Poly,
 	add,
 	divide,
 	expand,
 	fraction,
 	multiply,
+	type Poly,
 	polynomialLatex,
 } from "./algebra";
 import {

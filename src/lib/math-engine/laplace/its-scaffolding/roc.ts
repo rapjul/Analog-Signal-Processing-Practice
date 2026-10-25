@@ -17,7 +17,8 @@ export function createRocExercise(input: RationalExercise): LaplaceExercise {
 	).size;
 	const allRegions = Array.from(
 		{ length: distinct + 1 },
-		(_, index) => `$${formatRoc(rocBounds(data.poles, index))}$`,
+		(_, index) =>
+			`$${formatRoc(rocBounds(data.poles, index), data.poles)}$`,
 	).join("; ");
 	const side = !data.poles.length
 		? "Finite-duration impulses or zero signal"
@@ -59,7 +60,7 @@ export function createRocExercise(input: RationalExercise): LaplaceExercise {
 					Array.from(
 						{ length: distinct + 1 },
 						(_, index) =>
-							`$${formatRoc(rocBounds(data.poles, index))}$`,
+							`$${formatRoc(rocBounds(data.poles, index), data.poles)}$`,
 					),
 				),
 			],

@@ -72,6 +72,10 @@ interface Context {
 export interface CanonicalInterval {
 	/** Lower time limit. */ min: number;
 	/** Upper time limit. */ max: number;
+	/** Exact lower endpoint when its numeric projection is rounded. */ minExact?:
+		Scalar | undefined;
+	/** Exact upper endpoint when its numeric projection is rounded. */ maxExact?:
+		Scalar | undefined;
 }
 
 /** @returns Empty regular/distribution sum. */
@@ -571,16 +575,17 @@ function intervalStep(
 	/**
 	 * Proves the affine sign at a finite endpoint or infinite limit.
 	 * @param endpoint - Finite boundary or infinite domain limit.
+	 * @param exact - Exact finite coordinate when the display value is rounded.
 	 * @returns Exact sign of the affine boundary value or limit.
 	 */
-	const endpointSign = (endpoint: number): -1 | 0 | 1 =>
+	const endpointSign = (endpoint: number, exact?: Scalar): -1 | 0 | 1 =>
 		Number.isFinite(endpoint)
 			? intercept
-					.add(coefficient.multiply(scalar(endpoint)))
+					.add(coefficient.multiply(exact ?? scalar(endpoint)))
 					.requireRealSign()
 			: ((Math.sign(endpoint) * direction) as -1 | 1);
-	const lower = endpointSign(interval.min);
-	const upper = endpointSign(interval.max);
+	const lower = endpointSign(interval.min, interval.minExact);
+	const upper = endpointSign(interval.max, interval.maxExact);
 	if (lower >= 0 && upper >= 0) return constant(scalar(1));
 	if (lower <= 0 && upper <= 0) return constant(scalar(0));
 	throw unsupported();

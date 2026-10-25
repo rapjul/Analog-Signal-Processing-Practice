@@ -9,8 +9,8 @@
 	import { tick } from "svelte";
 	import ConvolutionFormulaReference from "./formula-drawer/ConvolutionFormulaReference.svelte";
 	import FourierFormulaReference from "./formula-drawer/FourierFormulaReference.svelte";
-	import OdeFormulaReference from "./formula-drawer/OdeFormulaReference.svelte";
 	import LaplaceFormulaReference from "./formula-drawer/LaplaceFormulaReference.svelte";
+	import OdeFormulaReference from "./formula-drawer/OdeFormulaReference.svelte";
 	import TransformsFormulaReference from "./formula-drawer/TransformsFormulaReference.svelte";
 
 	interface Props {

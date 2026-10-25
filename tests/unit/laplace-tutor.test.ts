@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
+import type { RationalExercise } from "$lib/math-engine/laplace/types";
 import {
 	verifyLaplaceS,
 	verifyLaplaceTime,
 } from "$lib/math-engine/laplace/verification";
-import type { RationalExercise } from "$lib/math-engine/laplace/types";
 
 /** @param cancellation - Whether numerator and denominator share a factor. @returns Reproducible inverse problem. */
 export function inverseSpec(cancellation = false): RationalExercise {

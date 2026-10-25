@@ -1,5 +1,6 @@
 import { polynomialLatex, rationalLatex } from "../algebra";
-import { formatRoc, rocBounds } from "../pfd";
+import { formatRoc } from "../pfd";
+import { analyzeSignalRoc } from "../roc";
 import {
 	responseLatex,
 	signalLatex,
@@ -8,8 +9,8 @@ import {
 } from "../signals";
 import {
 	collectTerms,
-	transformBlocks,
 	type TransformBlock,
+	transformBlocks,
 	zeroDescription,
 } from "../transform";
 import type { ForwardExercise, LaplaceExercise, LaplaceStage } from "../types";
@@ -83,16 +84,8 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 	const blocks = transformBlocks(terms);
 	const transform = terms.map(signalTransform).join("+") || "0",
 		response = responseLatex(terms);
-	const bounds = blocks.map((block) =>
-		rocBounds(block.data.poles, block.spec.region),
-	);
-	const roc: [number, number] = [
-		Math.max(-Infinity, ...bounds.map((bound) => bound[0])),
-		Math.min(Infinity, ...bounds.map((bound) => bound[1])),
-	];
-	if (roc[0] >= roc[1])
-		throw new Error("The signal terms have no common ROC.");
-	const rocLatex = formatRoc(roc);
+	const { bounds: roc, poles } = analyzeSignalRoc(terms);
+	const rocLatex = formatRoc(roc, poles);
 	const stages: LaplaceStage[] = [
 		{
 			id: "convention",
@@ -165,8 +158,8 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 			tasks: [
 				task(
 					"forward-roc",
-					"Intersect the convergence regions",
-					"Use surviving poles after exact cancellation. Exclude all pole boundaries.",
+					"Determine the maximal convergence region",
+					"Combine equal modes across delays and check both infinite tails. Finite-duration sums can have the whole plane as their ROC, even when individual terms have poles.",
 					"choice",
 					`$${rocLatex}$`,
 					[
@@ -186,7 +179,7 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 		transform,
 		response,
 		terms,
-		poles: blocks.flatMap((block) => block.data.poles),
+		poles,
 		canceled: blocks.flatMap((block) => block.data.canceled),
 		roc,
 		rocLatex,

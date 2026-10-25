@@ -1,8 +1,14 @@
-import { createRationalExercise } from "./its-scaffolding/inverse";
 import { createForwardExercise } from "./its-scaffolding/forward";
+import { createRationalExercise } from "./its-scaffolding/inverse";
 import { createOdeExercise } from "./its-scaffolding/ode";
 import { createRocExercise } from "./its-scaffolding/roc";
-import type { LaplaceExercise, LaplaceExerciseSpec } from "./types";
+import type {
+	LaplaceExercise,
+	LaplaceExerciseSpec,
+	OdeExercise,
+	RationalExercise,
+} from "./types";
+import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
 
 /** @param value - Untrusted scalar. @returns Whether it is a bounded literal string. */
 function literal(value: unknown): boolean {
@@ -44,59 +50,85 @@ function terms(value: unknown): boolean {
 	);
 }
 
-/** @param input - Untrusted custom configuration. @returns Mathematically checked problem, or an explanatory exception. */
-export function createLaplaceExercise(input: unknown): LaplaceExercise {
+/** @param spec - Untrusted rational fields. @returns Whether required rational fields are present. */
+function rationalFields(spec: RationalExercise): boolean {
+	const rational = spec.rational;
+	return Boolean(
+		rational &&
+		literal(rational.gain) &&
+		literal(rational.delay) &&
+		factors(rational.zeros) &&
+		factors(rational.poles) &&
+		Number.isInteger(rational.region) &&
+		typeof spec.system === "boolean",
+	);
+}
+
+/** @param spec - Untrusted initial-value fields. @returns Whether required ODE fields are present. */
+function odeFields(spec: OdeExercise): boolean {
+	return (
+		literal(spec.leading) &&
+		factors(spec.roots) &&
+		Array.isArray(spec.initial) &&
+		spec.initial.length === 2 &&
+		spec.initial.every(literal) &&
+		terms(spec.terms)
+	);
+}
+
+/** @param input - Untrusted configuration. @returns Shape-checked generated workflow. */
+function buildWorkflow(input: unknown): LaplaceExercise {
 	if (!input || typeof input !== "object")
 		throw new Error("Supply a structured Laplace configuration.");
 	const spec = input as LaplaceExerciseSpec;
 	if (!Number.isInteger(spec.seed) || spec.seed < 0 || spec.seed > 0xffffffff)
 		throw new Error("Use an unsigned 32-bit integer seed.");
-	let result: LaplaceExercise;
 	switch (spec.workflow) {
 		case "inverse":
 		case "roc": {
-			const rational = spec.rational;
-			if (
-				!rational ||
-				!literal(rational.gain) ||
-				!literal(rational.delay) ||
-				!factors(rational.zeros) ||
-				!factors(rational.poles) ||
-				!Number.isInteger(rational.region) ||
-				typeof spec.system !== "boolean"
-			)
+			if (!rationalFields(spec))
 				throw new Error(
 					"Specify exact gain, numerator/denominator factors, delay, and ROC region.",
 				);
-			result =
-				spec.workflow === "inverse"
-					? createRationalExercise(spec)
-					: createRocExercise(spec);
-			break;
+			return spec.workflow === "inverse"
+				? createRationalExercise(spec)
+				: createRocExercise(spec);
 		}
 		case "forward":
 			if (!terms(spec.terms))
 				throw new Error(
 					"Specify one through three complete signal terms.",
 				);
-			result = createForwardExercise(spec);
-			break;
+			return createForwardExercise(spec);
 		case "ode":
-			if (
-				!literal(spec.leading) ||
-				!factors(spec.roots) ||
-				!Array.isArray(spec.initial) ||
-				spec.initial.length !== 2 ||
-				!spec.initial.every(literal) ||
-				!terms(spec.terms)
-			)
+			if (!odeFields(spec))
 				throw new Error(
 					"Specify the operator factors, leading coefficient, two initial-state fields, and forcing terms.",
 				);
-			result = createOdeExercise(spec);
-			break;
+			return createOdeExercise(spec);
 		default:
 			throw new Error("Choose inverse, forward, ROC, or ODE practice.");
+	}
+}
+
+/** @param input - Untrusted custom configuration. @returns Mathematically checked problem, or an explanatory exception. */
+export function createLaplaceExercise(input: unknown): LaplaceExercise {
+	const result = buildWorkflow(input);
+	for (const task of result.stages.flatMap((stage) => stage.tasks)) {
+		const valid =
+			task.kind === "choice"
+				? task.choices?.includes(task.answer)
+				: (task.kind === "t"
+						? verifyLaplaceTime(
+								task.answer,
+								task.terms ?? result.terms,
+							)
+						: verifyLaplaceS(task.answer, task.answer)
+					).status === "correct";
+		if (!valid)
+			throw new Error(
+				"This configuration exceeds the tutor's exact answer language. Simplify its factors or signal terms before starting.",
+			);
 	}
 	return result;
 }
@@ -106,7 +138,11 @@ export function serializeLaplaceConfiguration(
 	spec: LaplaceExerciseSpec,
 ): URLSearchParams {
 	createLaplaceExercise(spec);
-	return new URLSearchParams({ v: "1", config: JSON.stringify(spec) });
+	return new URLSearchParams({
+		v: "1",
+		seed: String(spec.seed),
+		config: JSON.stringify(spec),
+	});
 }
 
 /** @param params - URL parameters. @returns Supplied validated configuration, or null for an ordinary visit. */

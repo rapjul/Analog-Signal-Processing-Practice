@@ -1,14 +1,15 @@
 import {
-	type Poly,
 	add,
 	expand,
 	fraction,
+	type Poly,
 	polynomialLatex,
 	rationalLatex,
 	scale,
 } from "./algebra";
-import { formatRoc, normalizeFactors } from "./pfd";
+import { normalizeFactors } from "./pfd";
 import {
+	commonFactors,
 	responseLatex,
 	signalFactors,
 	signalRational,
@@ -69,6 +70,10 @@ export function solveLaplaceOde(spec: OdeExercise): LaplaceOdeSolution {
 			term.delay,
 		);
 	});
+	commonFactors([
+		ziBlock.data.poles,
+		...forced.map((block) => block.data.poles),
+	]);
 	const zi = ziBlock.terms,
 		zs = forced.flatMap((block) => block.terms);
 	const ziTransform = rationalLatex({ n: initialNumerator, d: operator });

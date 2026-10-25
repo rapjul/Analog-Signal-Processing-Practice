@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	decompose,
+	formatRoc,
 	inverseTerms,
 	rocBounds,
 } from "$lib/math-engine/laplace/pfd";
@@ -28,6 +29,26 @@ const spec = (partial: Partial<RationalSpec> = {}): RationalSpec => ({
 });
 
 describe("expanded exact Laplace mathematics", () => {
+	it("verifies an empty solved response as identically zero", () => {
+		expect(verifyLaplaceTime("0", [])).toMatchObject({ status: "correct" });
+		expect(verifyLaplaceTime("1", [])).toMatchObject({
+			status: "incorrect",
+		});
+		expect(verifyLaplaceTime("\\delta(t)", []).status).toBe("incorrect");
+	});
+	it("preserves exact fractional support boundaries and ROC labels", () => {
+		const input = spec({ poles: [f("-1/3")], delay: "1/3" });
+		const terms = inverseTerms(decompose(input), input);
+		expect(verifyLaplaceTime(responseLatex(terms), terms).status).toBe(
+			"correct",
+		);
+		expect(formatRoc(rocBounds(input.poles, -1), input.poles)).toBe(
+			"\\operatorname{Re}(s)>-\\frac{1}{3}",
+		);
+		expect(() => rocBounds([f("1"), f("1.00000000000000001")], 1)).toThrow(
+			"too close",
+		);
+	});
 	it("distinguishes cancellation, multiplicity, no finite zeros, and nearby roots", () => {
 		const reduced = decompose(spec({ zeros: [f("-1")] }));
 		expect(reduced.zeros).toEqual([]);

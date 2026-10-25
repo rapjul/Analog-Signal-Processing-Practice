@@ -2,6 +2,7 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
 	import { laplacePlot } from "./laplace-plot";
+
 	/** Completion-only mathematical diagrams. */
 	interface Props {
 		/** Verified exercise. */ problem: LaplaceExercise;

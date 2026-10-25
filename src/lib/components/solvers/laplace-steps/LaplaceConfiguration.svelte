@@ -2,6 +2,7 @@
 	import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 	import LaplaceFactorEditor from "./LaplaceFactorEditor.svelte";
 	import LaplaceSignalEditor from "./LaplaceSignalEditor.svelte";
+
 	/** Editable custom exercise, applied only through explicit validation. */
 	interface Props {
 		/** Draft independent of the active problem. */ spec: LaplaceExerciseSpec;

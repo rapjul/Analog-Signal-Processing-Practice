@@ -4,6 +4,19 @@ CTFT and causal Laplace PFD practice verify supported global answer forms agains
 canonical targets constructed from problem parameters. Displayed solution strings
 and sampled values cannot establish correctness.
 
+The guided Laplace tutor extends this contract with explicit `s`-domain
+verification and interval-based time verification. Its exact factor/PFD engine
+retains original roots, canceled copies, surviving zeros and poles, and the
+constant polynomial quotient. Every decomposition reconstructs the rational
+expression before use. Time answers are compared over every open interval
+between supplied delays, including both unbounded tails; exact impulse locations
+and weights are retained independently. A hidden extra support boundary cannot
+be promoted to correct by finite samples. Impulse derivatives and products with
+discontinuous steps remain unsupported. The original causal-drill and CTFT
+verification entry points keep their existing answer-language boundaries.
+
+See [the Laplace tutor](./laplace-tutor.md) for curriculum and workflow details.
+
 ## Supported Forms
 
 - Finite sums of rational factors multiplying polynomial exponential factors.

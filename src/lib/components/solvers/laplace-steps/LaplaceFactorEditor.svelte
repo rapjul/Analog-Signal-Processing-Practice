@@ -1,6 +1,8 @@
 <script lang="ts">
+	import MathText from "$lib/components/math/MathText.svelte";
 	import { laplaceFactor } from "$lib/math-engine/laplace/generator";
 	import type { LaplaceFactor } from "$lib/math-engine/laplace/types";
+
 	/** Structured factor list inputs. */
 	interface Props {
 		/** Fieldset label. */ label: string;
@@ -12,8 +14,9 @@
 <fieldset>
 	<legend>{label}</legend>
 	<p>
-		A real factor is (s − a). A conjugate factor is (s − a)² + ω². Set ω to
-		zero for a real factor.
+		<MathText
+			text={String.raw`A real factor is $(s-a)$. A conjugate factor is $(s-a)^2+\omega^2$. Set the frequency to zero for a real factor.`}
+		/>
 	</p>
 	{#each factors as factor, index}
 		<div class="factor-row">
@@ -24,7 +27,7 @@
 				/></label
 			>
 			<label
-				>Frequency ω<input
+				>Angular frequency<input
 					aria-label={`${label} ${index + 1} frequency`}
 					bind:value={factor.frequency}
 				/></label

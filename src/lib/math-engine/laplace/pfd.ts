@@ -1,11 +1,11 @@
 import {
-	type Poly,
 	add,
 	divide,
 	expand,
 	factorPoly,
 	fraction,
 	multiply,
+	type Poly,
 	polynomialLatex,
 	rationalLatex,
 	scale,
@@ -80,16 +80,11 @@ export function normalizeFactors(factors: LaplaceFactor[]): LaplaceFactor[] {
 	return result;
 }
 
-/** @param spec - Exact factored input. @returns Reduced expression and verified coefficient identity. */
-export function decompose(
-	spec: RationalSpec,
-	sourceNumerator?: Poly,
-): LaplaceDecomposition {
-	const originalZeros = normalizeFactors(spec.zeros),
-		originalPoles = normalizeFactors(spec.poles);
-	const originalNumerator =
-		sourceNumerator ?? scale(expand(originalZeros), fraction(spec.gain));
-	const originalDenominator = expand(originalPoles);
+/** @param originalNumerator - Expanded numerator. @param originalPoles - Normalized denominator factors. @returns Reduced numerator and exact cancellation metadata. */
+function cancelFactors(
+	originalNumerator: Poly,
+	originalPoles: LaplaceFactor[],
+) {
 	let numerator = originalNumerator;
 	const poles: LaplaceFactor[] = [],
 		canceled: LaplaceFactor[] = [];
@@ -108,33 +103,37 @@ export function decompose(
 				multiplicity: factor.multiplicity - count,
 			});
 	}
-	const zeros = zero(numerator)
-		? []
-		: originalZeros.flatMap((factor) => {
-				const removed =
-					canceled.find((item) =>
-						zero(
-							add(
-								factorPoly(item),
-								scale(factorPoly(factor), fraction(-1)),
-							),
-						),
-					)?.multiplicity ?? 0;
-				return factor.multiplicity > removed
-					? [
-							{
-								...factor,
-								multiplicity: factor.multiplicity - removed,
-							},
-						]
-					: [];
-			});
-	const denominator = expand(poles);
-	const [quotient, remainder] = divide(numerator, denominator);
-	if (quotient.length > 1)
-		throw new Error(
-			"Polynomial quotients requiring impulse derivatives are deferred. Use numerator degree at most denominator degree.",
-		);
+	return { numerator, poles, canceled };
+}
+
+/** @param originalZeros - Original numerator factors. @param canceled - Removed copies. @returns Remaining numerator factors and multiplicities. */
+function survivingZeros(
+	originalZeros: LaplaceFactor[],
+	canceled: LaplaceFactor[],
+): LaplaceFactor[] {
+	return originalZeros.flatMap((factor) => {
+		const removed =
+			canceled.find((item) =>
+				zero(
+					add(
+						factorPoly(item),
+						scale(factorPoly(factor), fraction(-1)),
+					),
+				),
+			)?.multiplicity ?? 0;
+		return factor.multiplicity > removed
+			? [
+					{
+						...factor,
+						multiplicity: factor.multiplicity - removed,
+					},
+				]
+			: [];
+	});
+}
+
+/** @param poles - Reduced denominator factors. @returns Every required repeated or quadratic numerator slot. */
+function createPfdSlots(poles: LaplaceFactor[]): PfdSlot[] {
 	const slots: PfdSlot[] = [];
 	for (const factor of poles) {
 		let divisor = [fraction(1)];
@@ -159,6 +158,17 @@ export function decompose(
 				});
 		}
 	}
+	return slots;
+}
+
+/** @param numerator - Reduced numerator. @param denominator - Reduced denominator. @param quotient - Constant polynomial quotient. @param remainder - Proper numerator. @param slots - Unknowns, populated with verified exact coefficients. */
+function solveAndVerifySlots(
+	numerator: Poly,
+	denominator: Poly,
+	quotient: Poly,
+	remainder: Poly,
+	slots: PfdSlot[],
+): void {
 	const columns = slots.map((slot) =>
 		multiply(divide(denominator, slot.denominator)[0], slot.basis),
 	);
@@ -178,6 +188,33 @@ export function decompose(
 		reconstructed = add(reconstructed, scale(columns[i]!, values[i]!));
 	if (!zero(add(reconstructed, scale(numerator, fraction(-1)))))
 		throw new Error("PFD reconstruction failed.");
+}
+
+/** @param spec - Exact factored input. @param sourceNumerator - Optional independently computed numerator. @returns Reduced expression and verified coefficient identity. */
+export function decompose(
+	spec: RationalSpec,
+	sourceNumerator?: Poly,
+): LaplaceDecomposition {
+	const originalZeros = normalizeFactors(spec.zeros),
+		originalPoles = normalizeFactors(spec.poles);
+	const originalNumerator =
+		sourceNumerator ?? scale(expand(originalZeros), fraction(spec.gain));
+	const originalDenominator = expand(originalPoles);
+	const { numerator, poles, canceled } = cancelFactors(
+		originalNumerator,
+		originalPoles,
+	);
+	const zeros = zero(numerator)
+		? []
+		: survivingZeros(originalZeros, canceled);
+	const denominator = expand(poles);
+	const [quotient, remainder] = divide(numerator, denominator);
+	if (quotient.length > 1)
+		throw new Error(
+			"Polynomial quotients requiring impulse derivatives are deferred. Use numerator degree at most denominator degree.",
+		);
+	const slots = createPfdSlots(poles);
+	solveAndVerifySlots(numerator, denominator, quotient, remainder, slots);
 	/** @param solved - Whether to insert verified coefficients. @returns PFD expression. */
 	const display = (solved: boolean): string =>
 		[
@@ -209,9 +246,18 @@ export function rocBounds(
 	factors: LaplaceFactor[],
 	region: number,
 ): [number, number] {
-	const reals = [
-		...new Set(factors.map((factor) => fraction(factor.real).toNumber())),
-	].sort((a, b) => a - b);
+	const exactReals = new Map<number, string>();
+	for (const factor of factors) {
+		const exact = fraction(factor.real),
+			numeric = exact.toNumber(),
+			key = exact.toLatex();
+		if (exactReals.has(numeric) && exactReals.get(numeric) !== key)
+			throw new Error(
+				"Distinct pole boundaries are too close for the supported numeric display range.",
+			);
+		exactReals.set(numeric, key);
+	}
+	const reals = [...exactReals.keys()].sort((a, b) => a - b);
 	const index = region === -1 ? reals.length : region;
 	if (!Number.isInteger(index) || index < 0 || index > reals.length)
 		throw new Error(
@@ -220,16 +266,26 @@ export function rocBounds(
 	return [reals[index - 1] ?? -Infinity, reals[index] ?? Infinity];
 }
 
-/** @param bounds - Convergence bounds. @returns Region LaTeX. */
-export function formatRoc(bounds: [number, number]): string {
+/** @param bounds - Convergence bounds. @param factors - Exact pole coordinates for boundary notation. @returns Region LaTeX. */
+export function formatRoc(
+	bounds: [number, number],
+	factors: LaplaceFactor[] = [],
+): string {
 	const [lower, upper] = bounds;
+	/** @param boundary - Numeric bound. @returns Exact pole coordinate when available. */
+	const label = (boundary: number) => {
+		const factor = factors.find(
+			(entry) => fraction(entry.real).toNumber() === boundary,
+		);
+		return factor ? fraction(factor.real).toLatex() : String(boundary);
+	};
 	return lower === -Infinity
 		? upper === Infinity
 			? "s\\in\\mathbb C"
-			: `\\operatorname{Re}(s)<${upper}`
+			: `\\operatorname{Re}(s)<${label(upper)}`
 		: upper === Infinity
-			? `\\operatorname{Re}(s)>${lower}`
-			: `${lower}<\\operatorname{Re}(s)<${upper}`;
+			? `\\operatorname{Re}(s)>${label(lower)}`
+			: `${label(lower)}<\\operatorname{Re}(s)<${label(upper)}`;
 }
 
 /** @param value - Nonnegative integer. @returns Exact small factorial. */

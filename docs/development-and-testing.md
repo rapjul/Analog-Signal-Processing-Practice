@@ -162,7 +162,7 @@ npm run test:e2e:production
 npm run test:e2e:production:solvers
 ```
 
-To verify service worker precaching and offline navigation through the three implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
+To verify service worker precaching and offline navigation through the five implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
 
 The production worker explicitly precaches the served root app shell because static HTML is emitted after worker generation. Its revision hashes the HTML template and emitted asset revisions to keep the document and bundled assets in sync; navigation fallback serves that shell when visiting solver routes offline.
 
@@ -242,7 +242,7 @@ BASE_PATH=/Analog-Signal-Processing-Practice npm run test:pages
 
 `npm run test:pages` uses `./playwright.pages.config.ts` and port `33211`. It tests the existing `./build` artifact without rebuilding it or reusing another server. The static host only exposes the configured mount, performs HTML file lookup, and serves `404.html` with HTTP `404` for missing routes. Run the hosting variants sequentially because they share the output directory and test port.
 
-The suite checks all six module links, direct navigation, reloads, query parameters, active navigation, error recovery, manifest resources, worker scope and activation, and offline access through the three stepped solvers. Online checks block service workers so cached pages cannot hide host failures. Network auditing rejects missing resources, unhandled application exceptions, and requests outside the mount. Failure traces and screenshots are written under `./test-results/`.
+The suite checks all six module links, direct navigation, reloads, query parameters, active navigation, error recovery, manifest resources, worker scope and activation, and offline access through the five stepped solvers. Online checks block service workers so cached pages cannot hide host failures. Network auditing rejects missing resources, unhandled application exceptions, and requests outside the mount. Failure traces and screenshots are written under `./test-results/`.
 
 PR verification runs separate root and project smoke jobs. Deployment runs the same suite against its actual Pages build before uploading the artifact, so a failing smoke check prevents deployment.
 

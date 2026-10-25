@@ -7,6 +7,7 @@
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
 	import WorkedSolution from "./WorkedSolution.svelte";
+
 	/** Practice card with isolated attempt and assistance state. */
 	interface Props {
 		/** Active problem. */ problem: LaplaceExercise;
@@ -15,6 +16,13 @@
 	let { problem, onNextProblem }: Props = $props();
 	let completed = $state(false),
 		assisted = $state(false);
+	let attempt = $state(0);
+	/** Starts an independent attempt at the same configured problem. */
+	function restart(): void {
+		completed = false;
+		assisted = false;
+		attempt++;
+	}
 	$effect(() => {
 		void problem;
 		completed = false;
@@ -32,14 +40,20 @@
 				: "Transform Problem"}
 		{onNextProblem}
 	/>
+	<button
+		type="button"
+		class="restart-practice"
+		onclick={restart}>Restart this problem</button
+	>
 	<div class="problem-prompt">
 		<MathBlock math={problem.prompt} />
 		<p><MathText text={problem.conditions} /></p>
 	</div>
-	{#key problem}
+	{#key [problem, attempt]}
 		<LaplaceStepSolver
 			{problem}
 			onComplete={() => (completed = true)}
+			onAssist={() => (assisted = true)}
 		/>
 		{#if completed}<CompletionBanner
 				title={assisted
@@ -94,6 +108,19 @@
 		border-radius: var(--radius-md);
 		min-width: 0;
 		overflow-x: auto;
+	}
+	.restart-practice {
+		align-self: flex-start;
+		padding: 0.6rem 0.8rem;
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+	.restart-practice:focus-visible {
+		outline: 2px solid var(--accent-primary);
+		outline-offset: 3px;
 	}
 	.solution-breakdown,
 	section {

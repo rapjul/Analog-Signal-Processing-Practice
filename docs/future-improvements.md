@@ -158,6 +158,10 @@ structured generated problem parameters.
 
 ### 17. Laplace Transform Tutor
 
+The bounded guided tutor is implemented; its workflows and limits are documented
+in [the Laplace tutor guide](./laplace-tutor.md). Impulse derivatives below remain
+deferred. The following requirements describe the implemented foundation.
+
 - Start with causal inverse transforms using distinct-real-pole PFD: factor the denominator, identify poles, select the expansion, solve each residue, reconstruct the rational expression, apply transform pairs, and assemble the supported time response.
 - Always ask whether common numerator and denominator factors exist, including an explicit "no common factors" answer. Identify original numerator and denominator roots, cancel matching multiplicities only when necessary, then identify the surviving zeros and poles. For example, `(s+1)/((s+1)(s+4)) = 1/(s+4)` has no finite zeros and only the pole `-4`, with causal ROC `Re(s) > -4`. Near-matching factors do not cancel. Preserve original and reduced metadata separately; a canceled location is not automatically a zero or pole.
 - Require separately validated algebraic substeps and exact fractions; diagnose sign errors, missing numerator terms, incorrect residues, and omitted causal support.

@@ -1,7 +1,7 @@
 import {
 	BaseStepSolverState,
-	createStepState,
 	type BaseStepState,
+	createStepState,
 } from "$lib/components/solvers/base-step-solver.svelte";
 import type {
 	LaplaceExercise,

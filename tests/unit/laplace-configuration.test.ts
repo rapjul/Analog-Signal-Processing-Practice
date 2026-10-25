@@ -8,11 +8,25 @@ import {
 	generateLaplaceExercise,
 	LAPLACE_PRESETS,
 } from "$lib/math-engine/laplace/generator";
+import {
+	verifyLaplaceS,
+	verifyLaplaceTime,
+} from "$lib/math-engine/laplace/verification";
 
 describe("reproducible bounded Laplace configuration", () => {
-	it("generates every preset deterministically in every workflow and round-trips URLs", () => {
-		for (const workflow of ["inverse", "forward", "roc", "ode"] as const)
-			for (const preset of LAPLACE_PRESETS) {
+	it("accepts identically zero inverse transforms with a complete verifiable path", () => {
+		const input = generateLaplaceExercise("inverse", 73).spec;
+		if (input.workflow !== "inverse")
+			throw new Error("Expected inverse fixture.");
+		input.rational.gain = "0";
+		const problem = createLaplaceExercise(input);
+		expect(problem.response).toBe("0");
+		expect(problem.poles).toEqual([]);
+		expect(problem.roc).toEqual([-Infinity, Infinity]);
+	});
+	for (const workflow of ["inverse", "forward", "roc", "ode"] as const)
+		for (const preset of LAPLACE_PRESETS)
+			it(`generates and round-trips ${workflow}/${preset} with verifiable tasks`, () => {
 				const problem = generateLaplaceExercise(workflow, 73, preset);
 				expect(
 					generateLaplaceExercise(workflow, 73, preset).transform,
@@ -22,8 +36,24 @@ describe("reproducible bounded Laplace configuration", () => {
 						serializeLaplaceConfiguration(problem.spec),
 					),
 				).toEqual(problem.spec);
-			}
-	});
+				for (const task of problem.stages.flatMap(
+					(stage) => stage.tasks,
+				)) {
+					const result =
+						task.kind === "choice"
+							? task.choices?.includes(task.answer)
+							: (task.kind === "t"
+									? verifyLaplaceTime(
+											task.answer,
+											task.terms ?? problem.terms,
+										)
+									: verifyLaplaceS(task.answer, task.answer)
+								).status === "correct";
+					expect(result, `${workflow}/${preset}/${task.id}`).toBe(
+						true,
+					);
+				}
+			}, 15000);
 	it("explains unsupported versions, excessive orders, malformed literals, and derivative quotients", () => {
 		expect(() =>
 			parseLaplaceConfiguration(new URLSearchParams("v=2&config={}")),

@@ -43,6 +43,26 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 				"scalar",
 				term.delay,
 			),
+			...(term.kind === "impulse"
+				? []
+				: [
+						task(
+							`rate-${index}`,
+							`Find term ${index + 1}'s exponential rate`,
+							"Rewrite the pole factor as s minus the rate; keep its sign.",
+							"scalar",
+							term.rate,
+						),
+						task(
+							`parameter-${index}`,
+							`Find term ${index + 1}'s ${term.kind === "exponential" ? "polynomial power" : "angular frequency"}`,
+							"Use the repeated-pole power rule or the quadratic transform pair.",
+							"scalar",
+							term.kind === "exponential"
+								? String(term.power)
+								: term.frequency,
+						),
+					]),
 			{
 				...task(
 					`inverse-${index}`,
@@ -72,7 +92,7 @@ export function createRationalExercise(
 		delay = fraction(input.delay);
 	const transform = `${delay.numerator ? `e^{-(${delay.toLatex()})s}` : ""}${base}`;
 	const response = responseLatex(terms),
-		rocLatex = formatRoc(roc),
+		rocLatex = formatRoc(roc, data.poles),
 		stable = roc[0] < 0 && roc[1] > 0;
 	const conditions =
 		input.region === -1

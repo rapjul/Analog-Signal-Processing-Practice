@@ -57,91 +57,115 @@ export function generateLaplaceExercise(
 		preset === "random"
 			? LAPLACE_PRESETS[randomInt(random, 0, 6)]!
 			: preset;
-	let spec: LaplaceExerciseSpec;
-	if (workflow === "forward") {
-		const term = laplaceSignal(
-			family === "complex"
-				? "cosine"
-				: family === "impulse"
-					? "impulse"
-					: "exponential",
-		);
-		term.rate = rate;
-		term.amplitude = String(randomInt(random, 1, 4));
-		if (family === "repeated") term.power = randomInt(random, 1, 3);
-		if (family === "delay") term.delay = String(randomInt(random, 1, 3));
-		if (family === "two-sided") {
-			term.side = "left";
-			term.rate = "2";
-		}
-		spec = {
-			workflow,
-			seed,
-			terms:
-				family === "cancellation"
-					? [term, { ...term, amplitude: `-${term.amplitude}` }]
-					: [term],
-		};
-	} else if (workflow === "ode") {
-		const roots =
-			family === "repeated"
-				? [laplaceFactor(rate, 2)]
-				: family === "complex"
-					? [laplaceFactor(rate, 1, "3")]
-					: [laplaceFactor(rate)];
-		const term = laplaceSignal(
-			family === "impulse"
-				? "impulse"
-				: family === "complex"
-					? "cosine"
-					: "exponential",
-		);
-		term.rate = "0";
-		term.amplitude = "2";
-		if (family === "delay") term.delay = "2";
-		spec = {
-			workflow,
-			seed,
-			leading: "1",
-			roots,
-			initial: ["1", "0"],
-			terms: [term],
-		};
-	} else {
-		let poles = [
-				laplaceFactor(rate),
-				laplaceFactor(String(Number(rate) - 2)),
-			],
-			zeros = [laplaceFactor(String(Number(rate) - 3))];
-		if (family === "cancellation") zeros = [laplaceFactor(rate)];
-		if (family === "repeated") {
-			poles = [laplaceFactor(rate, 4)];
-			zeros = [];
-		}
-		if (family === "complex") {
-			poles = [laplaceFactor(rate, 1, "3")];
-			zeros = [];
-		}
-		if (family === "impulse") {
-			poles = [laplaceFactor(rate)];
-			zeros = [laplaceFactor(String(Number(rate) - 3))];
-		}
-		if (family === "two-sided") {
-			poles = [laplaceFactor("-2"), laplaceFactor("3")];
-			zeros = [];
-		}
-		spec = {
-			workflow,
-			seed,
-			system: workflow === "roc",
-			rational: {
-				gain: "2",
-				zeros,
-				poles,
-				delay: family === "delay" ? "2" : "0",
-				region: family === "two-sided" ? 1 : -1,
-			},
-		};
-	}
+	const spec =
+		workflow === "forward"
+			? forwardSpec(seed, family, rate, random)
+			: workflow === "ode"
+				? odeSpec(seed, family, rate)
+				: rationalSpec(workflow, seed, family, rate);
 	return createLaplaceExercise(spec);
+}
+
+/** @param seed - Reproducible seed. @param family - Pair family. @param rate - Generated rate. @param random - Seeded random source. @returns Forward specification. */
+function forwardSpec(
+	seed: number,
+	family: LaplacePreset,
+	rate: string,
+	random: () => number,
+): LaplaceExerciseSpec {
+	const term = laplaceSignal(
+		family === "complex"
+			? "cosine"
+			: family === "impulse"
+				? "impulse"
+				: "exponential",
+	);
+	term.rate = rate;
+	term.amplitude = String(randomInt(random, 1, 4));
+	if (family === "repeated") term.power = randomInt(random, 1, 3);
+	if (family === "delay") term.delay = String(randomInt(random, 1, 3));
+	if (family === "two-sided") {
+		term.side = "left";
+		term.rate = "2";
+	}
+	return {
+		workflow: "forward",
+		seed,
+		terms:
+			family === "cancellation"
+				? [term, { ...term, amplitude: `-${term.amplitude}` }]
+				: [term],
+	};
+}
+
+/** @param seed - Reproducible seed. @param family - Operator/input family. @param rate - Generated root. @returns Initial-value specification. */
+function odeSpec(
+	seed: number,
+	family: LaplacePreset,
+	rate: string,
+): LaplaceExerciseSpec {
+	const roots =
+		family === "repeated"
+			? [laplaceFactor(rate, 2)]
+			: family === "complex"
+				? [laplaceFactor(rate, 1, "3")]
+				: [laplaceFactor(rate)];
+	const term = laplaceSignal(
+		family === "impulse"
+			? "impulse"
+			: family === "complex"
+				? "cosine"
+				: "exponential",
+	);
+	term.rate = "0";
+	term.amplitude = "2";
+	if (family === "delay") term.delay = "2";
+	return {
+		workflow: "ode",
+		seed,
+		leading: "1",
+		roots,
+		initial: ["1", "0"],
+		terms: [term],
+	};
+}
+
+/** @param workflow - Inverse or system analysis. @param seed - Reproducible seed. @param family - Rational family. @param rate - Generated root. @returns Rational specification. */
+function rationalSpec(
+	workflow: "inverse" | "roc",
+	seed: number,
+	family: LaplacePreset,
+	rate: string,
+): LaplaceExerciseSpec {
+	let poles = [laplaceFactor(rate), laplaceFactor(String(Number(rate) - 2))],
+		zeros = [laplaceFactor(String(Number(rate) - 3))];
+	if (family === "cancellation") zeros = [laplaceFactor(rate)];
+	if (family === "repeated") {
+		poles = [laplaceFactor(rate, 4)];
+		zeros = [];
+	}
+	if (family === "complex") {
+		poles = [laplaceFactor(rate, 1, "3")];
+		zeros = [];
+	}
+	if (family === "impulse") {
+		poles = [laplaceFactor(rate)];
+		zeros = [laplaceFactor(String(Number(rate) - 3))];
+	}
+	if (family === "two-sided") {
+		poles = [laplaceFactor("-2"), laplaceFactor("3")];
+		zeros = [];
+	}
+	return {
+		workflow,
+		seed,
+		system: workflow === "roc",
+		rational: {
+			gain: "2",
+			zeros,
+			poles,
+			delay: family === "delay" ? "2" : "0",
+			region: family === "two-sided" ? 1 : -1,
+		},
+	};
 }

@@ -1,7 +1,9 @@
 import { fraction, polynomialLatex } from "../algebra";
 import { solveLaplaceOde } from "../ode";
-import { formatRoc, rocBounds } from "../pfd";
+import { formatRoc } from "../pfd";
+import { analyzeSignalRoc } from "../roc";
 import { responseLatex, signalLatex, signalTransform } from "../signals";
+import { collectTerms } from "../transform";
 import type { LaplaceExercise, LaplaceStage, OdeExercise } from "../types";
 import { blockAnalysis } from "./forward";
 import { pairingStage } from "./inverse";
@@ -27,13 +29,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 			.filter(Boolean)
 			.reverse()
 			.join("+") + `=${spec.terms.map(signalLatex).join("+")}`;
-	const bounds = solution.blocks.map((block) =>
-		rocBounds(block.data.poles, -1),
-	);
-	const roc: [number, number] = [
-		Math.max(-Infinity, ...bounds.map((bound) => bound[0])),
-		Infinity,
-	];
+	const { bounds: roc, poles } = analyzeSignalRoc(terms);
 	const decomposition = solution.blocks.flatMap((block, index) =>
 		[blockAnalysis([block]), ...decompositionStages(block.data)].flatMap(
 			(stage) =>
@@ -44,13 +40,18 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 				})),
 		),
 	);
-	const jumpTasks = spec.terms.flatMap((term, index) =>
+	const impulses = collectTerms(
+		spec.terms
+			.filter((term) => term.kind === "impulse")
+			.map((term) => ({ ...term, rate: "0", frequency: "0", power: 0 })),
+	);
+	const jumpTasks = impulses.flatMap((term, index) =>
 		term.kind === "impulse"
 			? [
 					task(
 						`jump-${index}`,
 						`Check the impulse at $t=${term.delay}$`,
-						`Integrate the ODE across the impulse. The jump in $${order === 1 ? "y" : "y'"}$ equals impulse weight divided by the leading coefficient.`,
+						`Integrate the ODE across this time. Add all coincident impulse weights; the jump in $${order === 1 ? "y" : "y'"}$ equals their combined weight divided by the leading coefficient.`,
 						"scalar",
 						fraction(term.amplitude)
 							.divide(fraction(spec.leading))
@@ -218,10 +219,10 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 		transform: solution.transform,
 		response: solution.response,
 		terms,
-		poles: solution.blocks.flatMap((block) => block.data.poles),
+		poles,
 		canceled: solution.blocks.flatMap((block) => block.data.canceled),
 		roc,
-		rocLatex: formatRoc(roc),
+		rocLatex: formatRoc(roc, poles),
 		stable: false,
 		stages,
 	};

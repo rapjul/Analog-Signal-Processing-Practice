@@ -1,8 +1,8 @@
 import {
 	add,
-	type Rational,
 	expand,
 	fraction,
+	type Rational,
 	rationalLatex,
 	scale,
 } from "./algebra";

@@ -1,6 +1,8 @@
 <script lang="ts">
+	import MathText from "$lib/components/math/MathText.svelte";
 	import { laplaceSignal } from "$lib/math-engine/laplace/generator";
 	import type { LaplaceSignalTerm } from "$lib/math-engine/laplace/types";
+
 	/** Bounded structured standard-pair input. */
 	interface Props {
 		/** Signal list. */ terms: LaplaceSignalTerm[];
@@ -10,8 +12,9 @@
 </script>
 
 <p>
-	Ordinary terms use A(t − d)ⁿ exp(a(t − d)) with the selected support. Sine
-	and cosine use n = 0 and frequency ω.
+	<MathText
+		text={String.raw`Ordinary terms use $A(t-d)^n e^{a(t-d)}$ with the selected support. Sine and cosine use $n=0$ and angular frequency $\omega$.`}
+	/>
 </p>
 {#each terms as term, index}
 	<fieldset>
