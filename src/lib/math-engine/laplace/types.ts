@@ -74,6 +74,7 @@ export interface LaplaceTask {
 	/** Available conceptual choices. */ choices?: string[];
 	/** Three progressive hints. */ hints: string[];
 	/** Relevant formula without task-specific answers. */ formula?: string;
+	/** Independent response parameters for a time-domain substep. */ terms?: LaplaceResponseTerm[];
 }
 
 /** Parent stage containing independently checked tasks. */

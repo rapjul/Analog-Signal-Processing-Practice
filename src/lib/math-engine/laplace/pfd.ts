@@ -81,10 +81,14 @@ export function normalizeFactors(factors: LaplaceFactor[]): LaplaceFactor[] {
 }
 
 /** @param spec - Exact factored input. @returns Reduced expression and verified coefficient identity. */
-export function decompose(spec: RationalSpec): LaplaceDecomposition {
+export function decompose(
+	spec: RationalSpec,
+	sourceNumerator?: Poly,
+): LaplaceDecomposition {
 	const originalZeros = normalizeFactors(spec.zeros),
 		originalPoles = normalizeFactors(spec.poles);
-	const originalNumerator = scale(expand(originalZeros), fraction(spec.gain));
+	const originalNumerator =
+		sourceNumerator ?? scale(expand(originalZeros), fraction(spec.gain));
 	const originalDenominator = expand(originalPoles);
 	let numerator = originalNumerator;
 	const poles: LaplaceFactor[] = [],

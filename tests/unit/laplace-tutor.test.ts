@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
+import {
+	verifyLaplaceS,
+	verifyLaplaceTime,
+} from "$lib/math-engine/laplace/verification";
+import type { RationalExercise } from "$lib/math-engine/laplace/types";
+
+/** @param cancellation - Whether numerator and denominator share a factor. @returns Reproducible inverse problem. */
+export function inverseSpec(cancellation = false): RationalExercise {
+	return {
+		workflow: "inverse",
+		seed: 17,
+		system: false,
+		rational: {
+			gain: "1",
+			zeros: cancellation
+				? [{ real: "-1", frequency: "0", multiplicity: 1 }]
+				: [],
+			poles: [
+				{ real: "-1", frequency: "0", multiplicity: 1 },
+				{ real: "-4", frequency: "0", multiplicity: 1 },
+			],
+			region: -1,
+			delay: "0",
+		},
+	};
+}
+
+describe("Laplace inverse tutoring", () => {
+	it("always asks the same cancellation question without a spoiler header", () => {
+		const problems = [false, true].map((cancellation) =>
+			createRationalExercise(inverseSpec(cancellation)),
+		);
+		const tasks = problems.map((problem) =>
+			problem.stages
+				.flatMap((stage) => stage.tasks)
+				.find((task) => task.id === "cancellation")!,
+		);
+		expect(tasks[0]!.prompt).toBe(tasks[1]!.prompt);
+		expect(tasks[0]!.choices).toEqual(tasks[1]!.choices);
+		expect(tasks.map((task) => task.answer)).toEqual([
+			"No common factors",
+			"Common factors exist",
+		]);
+		for (const problem of problems) {
+			expect(problem.conditions).not.toContain("-4");
+			expect(problem.stages.length).toBeLessThanOrEqual(8);
+		}
+	});
+	it("gives every generated task an independently verifiable target", () => {
+		for (const cancellation of [false, true]) {
+			const problem = createRationalExercise(inverseSpec(cancellation));
+			for (const task of problem.stages.flatMap((stage) => stage.tasks)) {
+				if (task.kind === "choice")
+					expect(task.choices).toContain(task.answer);
+				else
+					expect(
+						task.kind === "t"
+							? verifyLaplaceTime(
+									task.answer,
+									task.terms ?? problem.terms,
+								).status
+							: verifyLaplaceS(task.answer, task.answer).status,
+						task.id,
+					).toBe("correct");
+			}
+		}
+	});
+});
