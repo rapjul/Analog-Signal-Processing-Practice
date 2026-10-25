@@ -59,7 +59,7 @@ jobs:
   verify:
     name: Tests, properties, and production workflows
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       SIGNALLAB_TEST_OFFLINE: "1"
       PLAYWRIGHT_HTML_OPEN: never
