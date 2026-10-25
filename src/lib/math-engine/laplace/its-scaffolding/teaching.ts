@@ -41,6 +41,20 @@ export function teaching(
 
 /** @param id - Stable task family. @param answer - Independently generated target. @returns Explicitly authored curriculum for ordinary tasks. */
 export function taskTeaching(id: string, answer: string): Teaching {
+	const authored =
+		setupTeaching(id, answer) ??
+		initialStateTeaching(id, answer) ??
+		pairTeaching(id, answer) ??
+		decompositionTeaching(id, answer) ??
+		algebraTeaching(id) ??
+		regionTeaching(id) ??
+		expressionTeaching(id);
+	if (authored) return authored;
+	throw new Error(`Missing Laplace teaching for task family: ${id}`);
+}
+
+/** @param id - Task family. @param answer - Exact target. @returns Convention and strategy teaching, when applicable. */
+function setupTeaching(id: string, answer: string): Teaching | undefined {
 	if (id === "method")
 		return teaching(
 			"A method is a route from the reduced transform to known transform pairs. Several routes can be valid for the same expression.",
@@ -73,6 +87,14 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			`Here the supplied pre-input value is $y(0^-)=${answer}$. A later impulse can change a state, but it does not rewrite this given value.`,
 			"Check Initial Output",
 		);
+	return undefined;
+}
+
+/** @param id - Task family. @param answer - Exact initial-state target. @returns Initial-state teaching, when applicable. */
+function initialStateTeaching(
+	id: string,
+	answer: string,
+): Teaching | undefined {
 	if (
 		id === "ode-derivative" ||
 		id === "ode-second" ||
@@ -111,6 +133,11 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			`For this impulse group, the jump is $${answer}$. This follows from leading coefficient times jump equals total impulse area, rather than from a sampled peak.`,
 			"Check Impulse Jump",
 		);
+	return undefined;
+}
+
+/** @param id - Task family. @param answer - Exact pair parameter. @returns Pair and property teaching, when applicable. */
+function pairTeaching(id: string, answer: string): Teaching | undefined {
 	if (id.includes("family") || /^pair-/.test(id))
 		return teaching(
 			"A transform pair links a recognizable time shape to a rational factor: exponential, sine, cosine, or impulse.",
@@ -146,6 +173,14 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			`The checked weight is $${answer}$. For example, $6/(s-a)^4$ has time weight $6/3!=1$, while $2/((s-a)^2+9)$ has sine weight $2/3$.`,
 			"Check Term Weight",
 		);
+	return undefined;
+}
+
+/** @param id - Task family. @param answer - Exact coefficient or quotient. @returns Decomposition teaching, when applicable. */
+function decompositionTeaching(
+	id: string,
+	answer: string,
+): Teaching | undefined {
 	if (id.startsWith("coverup-numerator"))
 		return teaching(
 			"At a simple real pole, multiplying by its factor removes that denominator and lets you substitute the pole location.",
@@ -188,6 +223,11 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			`The constant quotient is $${answer}$. This constant transforms back to an impulse of the same weight; the remaining rational part is inverted separately.`,
 			"Check Polynomial Quotient",
 		);
+	return undefined;
+}
+
+/** @param id - Task family. @returns Algebra and cancellation teaching, when applicable. */
+function algebraTeaching(id: string): Teaching | undefined {
 	if (id === "zero-transform" || id === "original-zeros")
 		return teaching(
 			"The zero polynomial is zero at every value, so it does not have a finite discrete root list.",
@@ -202,6 +242,18 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			"For example, $(s+1)^2/((s+1)(s+4))$ loses one copy of $s+1$ and retains a zero at $-1$. Factors $s+1$ and $s+1.01$ do not cancel.",
 			"Check Common Factors",
 		);
+	if (id.includes("numerator"))
+		return teaching(
+			"A numerator is the polynomial above the fraction bar. When combining fractions, multiply each numerator by the factors missing from its denominator.",
+			"Use the common denominator to build the numerator before reducing factors. Keep different delay exponentials in separate rational blocks.",
+			"For example, $1/(s+3)+1/(s+5)$ has numerator $(s+5)+(s+3)=2s+8$. Adding only the original numerator values would be incorrect.",
+			"Check Combined Numerator",
+		);
+	return undefined;
+}
+
+/** @param id - Task family. @returns ROC and system interpretation teaching, when applicable. */
+function regionTeaching(id: string): Teaching | undefined {
 	if (id.includes("roc") || id === "all-regions")
 		return teaching(
 			"The ROC is the open set of complex values where the transform converges. Poles are excluded; zeros do not set its boundaries.",
@@ -223,13 +275,11 @@ export function taskTeaching(id: string, answer: string): Teaching {
 			"For example, $e^{-t}u(t-2)$ starts at time two and is causal. A left-sided exponential with nonnegative endpoint still extends into negative time.",
 			"Check Support",
 		);
-	if (id.includes("numerator"))
-		return teaching(
-			"A numerator is the polynomial above the fraction bar. When combining fractions, multiply each numerator by the factors missing from its denominator.",
-			"Use the common denominator to build the numerator before reducing factors. Keep different delay exponentials in separate rational blocks.",
-			"For example, $1/(s+3)+1/(s+5)$ has numerator $(s+5)+(s+3)=2s+8$. Adding only the original numerator values would be incorrect.",
-			"Check Combined Numerator",
-		);
+	return undefined;
+}
+
+/** @param id - Task family. @returns Expression assembly teaching, when applicable. */
+function expressionTeaching(id: string): Teaching | undefined {
 	if (
 		id.startsWith("inverse-") ||
 		id.includes("response") ||
@@ -254,7 +304,7 @@ export function taskTeaching(id: string, answer: string): Teaching {
 				? "Check Reduced Expression"
 				: "Check Transform Expression",
 		);
-	throw new Error(`Missing Laplace teaching for task family: ${id}`);
+	return undefined;
 }
 
 /** @param task - Transform-related question. @param term - Actual signal metadata. @returns Problem-specific pair and property guidance. */
