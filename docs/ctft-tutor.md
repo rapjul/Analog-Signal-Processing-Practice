@@ -134,8 +134,10 @@ exercises, persistence, and exam-bank integration remain future work.
   components remain in their shared locations. Tests remain under `../tests/`.
 
 Cross-directory application imports use `$lib`; same-directory siblings may use
-`./` imports. Package consumers specify `/index` explicitly, while internal
-modules import their dependencies directly rather than through the public barrel.
+`./` imports. Consumers importing the package entry point specify `/index`
+explicitly. Consumers needing only specific types or focused helpers may import
+the corresponding submodule directly. Internal modules import their dependencies
+directly rather than through the public barrel.
 This follows the package and import boundaries in
 [ADR 0031](./adrs/0031-explicit-directory-package-boundaries-and-esm-imports.md) and
 [ADR 0035](./adrs/0035-standardized-lib-path-aliases-for-components-and-solvers.md).
