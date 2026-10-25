@@ -14,7 +14,7 @@ import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 import { propertyOptions } from "$lib/testing/property-options";
 
 /** Exact decimal fixtures below their corresponding multiples of pi. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluatePfdResidues } from "$lib/math-engine/laplace";
+import { evaluatePfdResidues } from "$lib/math-engine/laplace/index";
 import { inverseFixtures } from "./laplace-fixtures";
 
 describe("audited Laplace regression examples", () => {

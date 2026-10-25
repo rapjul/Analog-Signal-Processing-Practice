@@ -1,5 +1,5 @@
 /**
- * Laplace Transform & S-Domain Math Engine.
+ * Compatibility API for the original causal Laplace drills.
  * Implements Bilateral & Unilateral Laplace transforms, Partial Fraction Decomposition (PFD),
  * Region of Convergence (ROC) analysis, and BIBO/Asymptotic stability determination for UIUC ECE 210.
  */

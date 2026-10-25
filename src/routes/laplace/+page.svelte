@@ -14,7 +14,7 @@
 		determineStability,
 		generateLaplaceProblem,
 		validateLaplacePfdAnswer,
-	} from "$lib/math-engine/laplace";
+	} from "$lib/math-engine/laplace/index";
 	import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 
 	let currentProblem = $state(generateLaplaceProblem("inverse_pfd"));

@@ -14,7 +14,7 @@ import {
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 
 describe("transform logarithm semantics", () => {
 	/** Parser outputs define operation names and operand order; the verifier must not guess them. */
