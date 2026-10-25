@@ -55,14 +55,15 @@ export interface CanonicalSpectrum {
 
 /** Required independent target and submitted expression representation. */
 export interface CanonicalTransform {
-	/** Allowed independent symbol. */ variable: "t" | "omega";
+	/** Allowed independent symbol. */ variable: "t" | "omega" | "s";
 	/** Expression on the negative half-line. */ left: CanonicalSpectrum;
 	/** Expression on the positive half-line. */ right: CanonicalSpectrum;
 }
 
 /** Explicit variable and half-line for support normalization. */
 interface Context {
-	/** Allowed variable. */ variable: "t" | "omega";
+	/** Allowed variable. */ variable: "t" | "omega" | "s";
+	/** Enables time-domain distributions only for the explicit Laplace verifier. */ laplace?: boolean;
 	/** Negative or positive open half-line. */ side: -1 | 1;
 	/** Optional open interval used only by convolution verification. */ interval?: CanonicalInterval;
 }
@@ -593,7 +594,7 @@ function intervalStep(
 function impulse(args: unknown, context: Context): CanonicalSpectrum {
 	const node = unbox(args);
 	if (
-		context.variable !== "omega" ||
+		(context.variable !== "omega" && !context.laplace) ||
 		!Array.isArray(node) ||
 		node[0] !== "Delimiter" ||
 		node.length !== 2
@@ -922,7 +923,7 @@ function distributionSyntax(op: unknown, participation: boolean[]): boolean {
  */
 export function normalizeCanonicalTransform(
 	ast: unknown,
-	variable: "t" | "omega",
+	variable: "t" | "omega" | "s",
 ): CanonicalTransform {
 	checkStructure(ast, 0, { nodes: 0 });
 	const right = normalize(ast, { variable, side: 1 });
@@ -949,6 +950,58 @@ export function normalizeCanonicalInterval(
 	checkStructure(ast, 0, { nodes: 0 });
 	const spectrum = normalize(ast, { variable: "t", side: 1, interval });
 	if (spectrum.impulses.length) throw unsupported();
+	const result: CanonicalTransform = {
+		variable: "t",
+		left: spectrum,
+		right: spectrum,
+	};
+	checkConstantDomains(result);
+	return result;
+}
+
+/**
+ * Normalizes Laplace responses on an open interval, retaining global impulse data.
+ * Existing CTFT, convolution, and causal-drill contracts remain unchanged.
+ * @param ast - Bounded response AST.
+ * @param interval - One interval between all expected support boundaries.
+ * @returns Regular terms and exact distributions for independent comparison.
+ */
+export function normalizeLaplaceInterval(
+	ast: unknown,
+	interval: CanonicalInterval,
+): CanonicalTransform {
+	if (!(interval.min < interval.max)) throw unsupported();
+	checkStructure(ast, 0, { nodes: 0 });
+	/** @param node - Subtree. @param symbol - Operation/symbol. @returns Whether present. */
+	const contains = (node: unknown, symbol: string): boolean =>
+		node === symbol ||
+		(Array.isArray(node) && node.some((child) => contains(child, symbol)));
+	/** @param node - Subtree. @returns Nothing after refusing ambiguous step/distribution products. */
+	const guard = (node: unknown): void => {
+		if (!Array.isArray(node)) return;
+		const children = node.slice(1);
+		if (
+			(node[0] === "Multiply" || node[0] === "InvisibleOperator") &&
+			children.some(
+				(child, index) =>
+					contains(child, "DiracDelta") &&
+					children.some(
+						(other, otherIndex) =>
+							otherIndex !== index &&
+							contains(other, "Heaviside"),
+					),
+			)
+		)
+			throw unsupported();
+		children.forEach(guard);
+	};
+	guard(ast);
+	const spectrum = normalize(ast, {
+		variable: "t",
+		side: 1,
+		interval,
+		laplace: true,
+	});
 	const result: CanonicalTransform = {
 		variable: "t",
 		left: spectrum,
