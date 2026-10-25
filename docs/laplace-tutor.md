@@ -65,6 +65,10 @@ exact fractional coordinates, and time verification uses exact endpoints on ever
 support interval. Numeric projections serve diagrams and diagnostics only.
 Final ROC analysis checks surviving infinite tails after combining delayed terms
 and ODE contributions, including cancellations that leave finite-duration signals.
+Completion cancellation markers compare the original least common denominator
+with the complete response's surviving poles. Block-specific reductions remain
+inside their derivations. Removed copies and surviving pole multiplicities are
+listed separately when cancellation is partial.
 
 Unit tests check independent standard-pair fixtures, fractional delays, repeated
 and complex poles, near-cancellation, both cancellation decisions, equivalent

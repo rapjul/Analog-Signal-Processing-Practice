@@ -1,7 +1,7 @@
 import { fraction, polynomialLatex } from "../algebra";
 import { solveLaplaceOde } from "../ode";
 import { formatRoc } from "../pfd";
-import { analyzeSignalRoc } from "../roc";
+import { analyzeSignalRoc, totalCanceledFactors } from "../roc";
 import { responseLatex, signalLatex, signalTransform } from "../signals";
 import { collectTerms } from "../transform";
 import type { LaplaceExercise, LaplaceStage, OdeExercise } from "../types";
@@ -247,7 +247,10 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 		response: solution.response,
 		terms,
 		poles,
-		canceled: solution.blocks.flatMap((block) => block.data.canceled),
+		canceled: totalCanceledFactors(
+			solution.blocks.map((block) => block.spec.poles),
+			poles,
+		),
 		roc,
 		rocLatex: formatRoc(roc, poles),
 		stable: false,

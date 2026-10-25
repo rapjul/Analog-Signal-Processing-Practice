@@ -1,6 +1,6 @@
 import { polynomialLatex, rationalLatex } from "../algebra";
 import { formatRoc } from "../pfd";
-import { analyzeSignalRoc } from "../roc";
+import { analyzeSignalRoc, totalCanceledFactors } from "../roc";
 import {
 	responseLatex,
 	signalLatex,
@@ -180,7 +180,10 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 		response,
 		terms,
 		poles,
-		canceled: blocks.flatMap((block) => block.data.canceled),
+		canceled: totalCanceledFactors(
+			blocks.map((block) => block.spec.poles),
+			poles,
+		),
 		roc,
 		rocLatex,
 		stable: false,

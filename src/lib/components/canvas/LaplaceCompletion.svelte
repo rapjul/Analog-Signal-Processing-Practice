@@ -63,7 +63,7 @@
 		<svg
 			viewBox="0 0 320 160"
 			role="img"
-			aria-label="Solved s-plane; crosses are poles, circles are zeros, dashed squares are canceled roots"
+			aria-label="Solved s-plane; crosses are surviving poles, circles are zeros, dashed squares are removed factor copies"
 		>
 			<rect
 				x={plot.rocLeft}
@@ -119,10 +119,16 @@
 			>
 		</svg>
 		<p><MathText text={`ROC: $${problem.rocLatex}$`} /></p>
+		<p>
+			Markers describe the complete response. A dashed square counts
+			removed copies; a cross at the same location still denotes a genuine
+			pole.
+		</p>
 		<ul>
 			{#each plot.roots as marker}<li>{marker.label}.</li>{/each}
 		</ul>
-		{#if problem.spec.workflow === "forward"}<p>
+		{#if problem.spec.workflow === "forward" || problem.spec.workflow === "ode"}<p
+			>
 				Different delay blocks may have additional transcendental zeros;
 				the diagram does not claim a complete zero list for their sum.
 			</p>{/if}

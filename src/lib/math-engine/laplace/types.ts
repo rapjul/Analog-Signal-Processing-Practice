@@ -115,7 +115,7 @@ export interface LaplaceExercise {
 	/** Supported time response. */ response: string;
 	/** Independent structured response terms. */ terms: LaplaceResponseTerm[];
 	/** Exact reduced pole metadata. */ poles: LaplaceFactor[];
-	/** Original roots removed by cancellation. */ canceled: LaplaceFactor[];
+	/** Factor copies removed from the complete response, excluding block-only reductions. */ canceled: LaplaceFactor[];
 	/** ROC bounds, which may be infinite. */ roc: [number, number];
 	/** Formatted convergence region. */ rocLatex: string;
 	/** Whether a system's impulse response defines a BIBO-stable map. */ stable: boolean;

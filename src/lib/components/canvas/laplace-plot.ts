@@ -75,7 +75,7 @@ export function laplacePlot(problem: LaplaceExercise) {
 				(imaginary) => ({
 					x: realX(real),
 					y: 80 - (50 * imaginary) / imaginaryScale,
-					label: `${kind}: ${factor.real}${imaginary ? ` ${imaginary < 0 ? "-" : "+"} j${factor.frequency}` : ""}, multiplicity ${factor.multiplicity}`,
+					label: `${kind === "canceled" ? "removed factor copies" : kind}: ${factor.real}${imaginary ? ` ${imaginary < 0 ? "-" : "+"} j${factor.frequency}` : ""}, ${kind === "canceled" ? "removed" : "surviving"} multiplicity ${factor.multiplicity}`,
 					kind,
 				}),
 			);

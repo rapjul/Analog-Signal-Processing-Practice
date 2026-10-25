@@ -1,5 +1,5 @@
 import { fraction } from "./algebra";
-import { rocBounds } from "./pfd";
+import { normalizeFactors, rocBounds } from "./pfd";
 import { commonFactors, signalFactors } from "./signals";
 import type { LaplaceFactor, LaplaceResponseTerm } from "./types";
 import { laplaceTailOrder } from "./verification";
@@ -11,6 +11,31 @@ export interface SignalRoc {
 		number,
 	];
 	/** Poles remaining after same-mode cancellation across delays. */ poles: LaplaceFactor[];
+}
+
+/** @param original - Original denominator groups before any block reduction. @param surviving - Poles of the complete response. @returns Only copies removed from the combined response's least common denominator. */
+export function totalCanceledFactors(
+	original: LaplaceFactor[][],
+	surviving: LaplaceFactor[],
+): LaplaceFactor[] {
+	/** @param factor - Exact root factor. @returns Canonical factor identity independent of literal spelling. */
+	const key = (factor: LaplaceFactor) =>
+		`${fraction(factor.real).toLatex()}:${fraction(factor.frequency).toLatex()}`;
+	const remaining = new Map(
+		surviving.map((factor) => [key(factor), factor.multiplicity]),
+	);
+	const candidates = new Map<string, LaplaceFactor>();
+	// Metadata may span more original factors than the reduced fourth-order response.
+	for (const group of original)
+		for (const factor of normalizeFactors(group)) {
+			const previous = candidates.get(key(factor));
+			if (!previous || previous.multiplicity < factor.multiplicity)
+				candidates.set(key(factor), { ...factor });
+		}
+	return [...candidates.values()].flatMap((factor) => {
+		const removed = factor.multiplicity - (remaining.get(key(factor)) ?? 0);
+		return removed > 0 ? [{ ...factor, multiplicity: removed }] : [];
+	});
 }
 
 /** @param terms - Structured supported response. @returns ROC proved from the two infinite tails, including finite-duration cancellation. */
