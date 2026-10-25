@@ -312,6 +312,7 @@ export function teachSignal(
 	task: LaplaceSingleTask,
 	term: LaplaceSignalTerm,
 ): LaplaceSingleTask {
+	const inverse = task.kind === "t" || task.id.startsWith("pair-");
 	const pair =
 		term.kind === "impulse"
 			? "An impulse at zero transforms to one."
@@ -322,11 +323,27 @@ export function teachSignal(
 		...task,
 		...teaching(
 			pair,
-			`For $${signalLatex(term)}$, separate weight $${term.amplitude}$, delay $${term.delay}$, and ${term.side}-sided support before applying the pair.`,
-			`The pair with these parameters gives $${signalTransform(term)}$. The delay multiplier is $e^{-(${term.delay})s}$; ${term.side === "left" ? "left-sided support also changes the pair's sign and ROC" : "right-sided support selects convergence to the right of the pole"}.`,
+			inverse
+				? `For $X(s)=${signalTransform(term)}$, separate the delay exponential from the rational pair. Compare its denominator power or completed square and its numerator with the pair above; retain ${term.side}-sided support.`
+				: `For $${signalLatex(term)}$, separate weight $${term.amplitude}$, delay $${term.delay}$, and ${term.side}-sided support before applying the pair.`,
+			inverse
+				? inversePairWork(term)
+				: `The pair with these parameters gives $${signalTransform(term)}$. The delay multiplier is $e^{-(${term.delay})s}$; ${term.side === "left" ? "left-sided support also changes the pair's sign and ROC" : "right-sided support selects convergence to the right of the pole"}.`,
 			task.action ?? "Check Transform Pair",
 		),
 	};
+}
+
+/** @param term - Exact supported inverse term. @returns Explained time-domain pair, normalization, and shift without repeating the question. */
+function inversePairWork(term: LaplaceSignalTerm): string {
+	const shape = signalLatex({ ...term, amplitude: "1", delay: "0" });
+	const sign = term.side === "left" ? " and reverse the left-sided sign" : "";
+	let normalization = `Apply the checked weight $${term.amplitude}$ to this pair.`;
+	if (term.kind === "exponential")
+		normalization = `The pole power $${term.power + 1}$ gives time power $${term.power + 1}-1=${term.power}$. Divide the signed numerator coefficient by $${factorial(term.power)}$${sign}, giving the checked weight $${term.amplitude}$.`;
+	if (term.kind === "sine")
+		normalization = `Divide the signed numerator by frequency $${term.frequency}$${sign}, giving the checked sine weight $${term.amplitude}$.`;
+	return `Before applying weight and delay, the time shape is $${shape}$. ${normalization} Finally replace $t$ by $t-(${term.delay})$ in the shape and its support; an impulse shifts directly without multiplication by a step.`;
 }
 
 /** @param task - Pair-parameter calculation. @param term - Exact term being analyzed. @returns Guidance using the actual numerator, rate, shift, and support. */

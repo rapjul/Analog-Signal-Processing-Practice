@@ -38,6 +38,35 @@ function fixture(
 }
 
 describe("exact learner-built Laplace mathematics", () => {
+	it("works inverse-pair hints in time rather than repeating the transform being inverted", () => {
+		const tasks = ["delay", "two-sided"]
+			.flatMap(
+				(preset) =>
+					generateLaplaceExercise(
+						"inverse",
+						73,
+						preset as "delay" | "two-sided",
+					).stages,
+			)
+			.flatMap((stage) => stage.tasks)
+			.filter(
+				(task) => task.kind === "t" && task.id.startsWith("inverse-"),
+			);
+		expect(tasks.length).toBeGreaterThan(0);
+		for (const task of tasks) {
+			expect(task.hints[1]).toContain("For $X(s)=");
+			expect(task.hints[2]).toContain("the time shape is");
+			expect(task.hints[2]).toContain("in the shape and its support");
+			expect(task.hints[2]).not.toContain(
+				"The pair with these parameters gives",
+			);
+			if (
+				task.terms?.[0]?.side === "left" &&
+				["exponential", "sine"].includes(task.terms[0].kind)
+			)
+				expect(task.hints[2]).toContain("reverse the left-sided sign");
+		}
+	});
 	it("teaches the zero polynomial rather than nonzero-constant hints for a zero initial-state block", () => {
 		const spec = generateLaplaceExercise("ode", 73, "distinct").spec;
 		if (spec.workflow !== "ode") throw new Error("Expected ODE fixture.");
