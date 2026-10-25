@@ -2,13 +2,13 @@ import { createForwardExercise } from "./its-scaffolding/forward";
 import { createRationalExercise } from "./its-scaffolding/inverse";
 import { createOdeExercise } from "./its-scaffolding/ode";
 import { createRocExercise } from "./its-scaffolding/roc";
+import { validateLaplaceTask } from "./task-validation";
 import type {
 	LaplaceExercise,
 	LaplaceExerciseSpec,
 	OdeExercise,
 	RationalExercise,
 } from "./types";
-import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
 
 /** @param value - Untrusted scalar. @returns Whether it is a bounded literal string. */
 function literal(value: unknown): boolean {
@@ -115,16 +115,16 @@ function buildWorkflow(input: unknown): LaplaceExercise {
 export function createLaplaceExercise(input: unknown): LaplaceExercise {
 	const result = buildWorkflow(input);
 	for (const task of result.stages.flatMap((stage) => stage.tasks)) {
+		const values =
+			task.kind === "fields"
+				? Object.fromEntries(
+						task.fields.map((field) => [field.id, field.target]),
+					)
+				: {};
 		const valid =
-			task.kind === "choice"
-				? task.choices?.includes(task.answer)
-				: (task.kind === "t"
-						? verifyLaplaceTime(
-								task.answer,
-								task.terms ?? result.terms,
-							)
-						: verifyLaplaceS(task.answer, task.answer)
-					).status === "correct";
+			(task.kind !== "choice" || task.choices?.includes(task.answer)) &&
+			validateLaplaceTask(task, task.answer, values, result.terms).result
+				.status === "correct";
 		if (!valid)
 			throw new Error(
 				"This configuration exceeds the tutor's exact answer language. Simplify its factors or signal terms before starting.",

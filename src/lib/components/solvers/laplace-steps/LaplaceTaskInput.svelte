@@ -1,5 +1,6 @@
 <script lang="ts">
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
+	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { LaplaceStepSolverState } from "../laplace-solver-state/controller.svelte";
 
@@ -34,26 +35,72 @@
 					>
 				{/each}
 			</fieldset>
+		{:else if solver.task.kind === "fields"}
+			<MathBlock
+				math={solver.preview}
+				compact
+			/>
+			<fieldset class="coefficient-fields">
+				<legend>Initial-condition values</legend>
+				{#each solver.task.fields as field}
+					<label for={`laplace-field-${field.id}`}
+						><MathText text={field.label} /></label
+					>
+					<input
+						id={`laplace-field-${field.id}`}
+						data-field-id={field.id}
+						type="text"
+						autocomplete="off"
+						spellcheck="false"
+						bind:value={solver.fieldInputs[field.id]}
+						oninput={() => solver.clearFeedback()}
+						onkeydown={(event) => {
+							if (event.key === "Enter") solver.check();
+						}}
+						aria-describedby={solver.fieldResults[field.id]
+							? `laplace-feedback-${field.id}`
+							: undefined}
+						aria-invalid={solver.fieldResults[field.id]
+							? solver.fieldResults[field.id]!.status !==
+								"correct"
+							: undefined}
+					/>
+					{#if solver.fieldResults[field.id]}<p
+							id={`laplace-feedback-${field.id}`}
+							data-field-feedback={field.id}
+							data-validation={solver.fieldResults[field.id]!
+								.status}
+							role="status"
+						>
+							{solver.fieldResults[field.id]!.message}
+						</p>{/if}
+				{/each}
+			</fieldset>
 		{:else}
 			<label for="laplace-input"
 				>{solver.task.kind === "scalar"
 					? "Exact value (integer, decimal, fraction, or LaTeX)"
 					: `Expression in ${solver.task.kind} (LaTeX)`}</label
 			>
-			<input
-				id="laplace-input"
-				type="text"
-				autocomplete="off"
-				spellcheck="false"
-				bind:value={solver.input}
-				oninput={() => solver.clearFeedback()}
-				onkeydown={(event) => {
-					if (event.key === "Enter") solver.check();
-				}}
-			/>
-			{#if solver.input.trim()}<div class="preview">
+			<div class="equation-entry">
+				{#if solver.task.lhs}<span class="equation-label"
+						><MathInline math={`${solver.task.lhs}=`} /></span
+					>{/if}
+				<input
+					id="laplace-input"
+					type="text"
+					autocomplete="off"
+					spellcheck="false"
+					bind:value={solver.input}
+					oninput={() => solver.clearFeedback()}
+					onkeydown={(event) => {
+						if (event.key === "Enter") solver.check();
+					}}
+				/>
+			</div>
+			{#if solver.input.trim() || solver.task.lhs}<div class="preview">
 					<span>Input preview</span><MathBlock
-						math={solver.input}
+						math={solver.preview}
 						compact
 					/>
 				</div>{/if}
@@ -91,6 +138,25 @@
 {/if}
 
 <style>
+	/* ── Equation frames and independent coefficient fields ───────────────── */
+	.equation-entry {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+	.equation-entry input {
+		flex: 1 1 12rem;
+	}
+	.equation-label {
+		flex: 0 0 auto;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+	.coefficient-fields input {
+		min-width: 0;
+	}
 	fieldset {
 		min-width: 0;
 		border: 0;

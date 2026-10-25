@@ -27,6 +27,11 @@ export async function answerLaplaceTask(
 		);
 		if (index < 0) throw new Error(`Missing option for ${task.id}`);
 		await radios.nth(index).check();
+	} else if (task.kind === "fields") {
+		for (const field of task.fields)
+			await active
+				.locator(`[data-field-id="${field.id}"]`)
+				.fill(field.target);
 	} else await active.locator("#laplace-input").fill(answer);
 	await active
 		.getByRole("button", { name: "Check Answer", exact: true })

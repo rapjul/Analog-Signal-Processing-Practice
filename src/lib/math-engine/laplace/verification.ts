@@ -11,11 +11,16 @@ import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 import { fraction } from "./algebra";
+import { laplaceExpression } from "./answer-entry";
 import { signalLatex } from "./signals";
 import type { LaplaceResponseTerm } from "./types";
 
-/** @param text - Expression. @param variable - Allowed symbol. @returns Strict parsed AST. */
-function parseExpression(text: string, variable: "s" | "t"): unknown {
+/** @param text - Expression. @param variable - Allowed symbol. @param lhs - Optional matching assignment label. @returns Strict parsed AST. */
+function parseExpression(
+	text: string,
+	variable: "s" | "t",
+	lhs?: string,
+): unknown {
 	if (text.length > 16384)
 		throw new CanonicalError(
 			"unsupported",
@@ -23,13 +28,11 @@ function parseExpression(text: string, variable: "s" | "t"): unknown {
 		);
 	if (!text.trim())
 		throw new CanonicalError("invalid", "Enter an answer before checking.");
+	const body = laplaceExpression(text, variable, lhs);
 	const expression =
 		variable === "t"
-			? normalizeTransformNotation(text, "t")
-			: normalizeTransformNotation(
-					text.replace(/^\s*[XYH]\s*\(s\)\s*=\s*/, ""),
-					"omega",
-				);
+			? normalizeTransformNotation(body, "t")
+			: normalizeTransformNotation(body, "omega");
 	return parseStrictLatex(expression);
 }
 
@@ -54,15 +57,19 @@ function failure(error: unknown): TransformValidationResult {
 			};
 }
 
-/** @param answer - Submitted s-domain expression. @param target - Independently built exact expression. @returns Structural comparison. */
+/** @param answer - Submitted s-domain expression. @param target - Independently built exact expression. @param lhs - Optional task-specific assignment label. @returns Structural comparison. */
 export function verifyLaplaceS(
 	answer: string,
 	target: string,
+	lhs?: string,
 ): TransformValidationResult {
 	try {
 		return outcome(
 			canonicalTransformsMatch(
-				normalizeCanonicalTransform(parseExpression(answer, "s"), "s"),
+				normalizeCanonicalTransform(
+					parseExpression(answer, "s", lhs),
+					"s",
+				),
 				normalizeCanonicalTransform(parseExpression(target, "s"), "s"),
 			),
 		);
@@ -99,13 +106,14 @@ export function laplaceTailOrder(terms: LaplaceResponseTerm[]): number {
 	);
 }
 
-/** @param answer - Submitted response. @param terms - Structured target terms. @returns Global support and distribution comparison. */
+/** @param answer - Submitted response. @param terms - Structured target terms. @param lhs - Optional task-specific assignment label. @returns Global support and distribution comparison. */
 export function verifyLaplaceTime(
 	answer: string,
 	terms: LaplaceResponseTerm[],
+	lhs?: string,
 ): TransformValidationResult {
 	try {
-		const actual = parseExpression(answer, "t");
+		const actual = parseExpression(answer, "t", lhs);
 		// Construct target ASTs term-by-term from solved parameters, independently of the displayed sum.
 		const expected: unknown = terms.length
 			? [

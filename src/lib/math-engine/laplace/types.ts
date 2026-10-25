@@ -64,18 +64,40 @@ export type LaplaceExerciseSpec =
 export interface LaplaceResponseTerm extends LaplaceSignalTerm {}
 
 /** One checked numeric, expression, or conceptual task. */
-export interface LaplaceTask {
+interface LaplaceTaskBase {
 	/** Stable identifier independent of display numbering. */ id: string;
 	/** Human-readable heading. */ title: string;
 	/** Question and mathematical context. */ prompt: string;
-	/** Input control and verification domain. */ kind:
-		"choice" | "scalar" | "s" | "t";
 	/** Exact expected answer or conceptual option value. */ answer: string;
 	/** Available conceptual choices. */ choices?: string[];
 	/** Three progressive hints. */ hints: string[];
 	/** Relevant formula without task-specific answers. */ formula?: string;
 	/** Independent response parameters for a time-domain substep. */ terms?: LaplaceResponseTerm[];
+	/** Displayed assignment label, accepted optionally on submitted expressions. */ lhs?: string;
 }
+
+/** Existing single-answer task controls. */
+export interface LaplaceSingleTask extends LaplaceTaskBase {
+	/** Input control and verification domain. */ kind:
+		"choice" | "scalar" | "s" | "t";
+}
+
+/** One independently graded exact coefficient. */
+export interface LaplaceAnswerField {
+	/** Stable input identifier within this task. */ id: string;
+	/** Accessible label with optional mathematical notation. */ label: string;
+	/** Exact target built from structured initial conditions. */ target: string;
+}
+
+/** A verified rule with blank coefficient slots. */
+export interface LaplaceFieldTask extends LaplaceTaskBase {
+	/** Structured input discriminator. */ kind: "fields";
+	/** Equation containing named slots such as {{y0}}. */ frame: string;
+	/** Ordered independently checked coefficients. */ fields: LaplaceAnswerField[];
+}
+
+/** All supported guided tasks. */
+export type LaplaceTask = LaplaceSingleTask | LaplaceFieldTask;
 
 /** Parent stage containing independently checked tasks. */
 export interface LaplaceStage {

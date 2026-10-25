@@ -3,20 +3,26 @@ import {
 	type BaseStepState,
 	createStepState,
 } from "$lib/components/solvers/base-step-solver.svelte";
+import {
+	laplaceExpression,
+	renderLaplaceFields,
+} from "$lib/math-engine/laplace/answer-entry";
+import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
 	LaplaceExercise,
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
-import {
-	verifyLaplaceS,
-	verifyLaplaceTime,
-} from "$lib/math-engine/laplace/verification";
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 
 /** Reactive checked task controller shared by the four Laplace workflows. */
 export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Current task within the parent stage. */ taskIndex = $state(0);
 	/** Submitted expression or chosen answer. */ input = $state("");
+	/** Independent coefficient drafts, never prefilled in learner controls. */ fieldInputs =
+		$state<Record<string, string>>({});
+	/** Feedback for each checked coefficient. */ fieldResults = $state<
+		Record<string, TransformValidationResult>
+	>({});
 	/** Inputs already established by validation. */ verified = $state<
 		Record<string, string>
 	>({});
@@ -44,6 +50,22 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	get activeHints(): string[] {
 		return this.task?.hints ?? [];
 	}
+	/** @returns A single equation preview with blank slots preserved. */
+	get preview(): string {
+		const task = this.task;
+		if (!task) return "";
+		if (task.kind === "fields")
+			return renderLaplaceFields(task.frame, this.fieldInputs);
+		if (task.kind !== "s" && task.kind !== "t") return this.input;
+		try {
+			const expression =
+				laplaceExpression(this.input, task.kind, task.lhs).trim() ||
+				"\\square";
+			return task.lhs ? `${task.lhs}=${expression}` : expression;
+		} catch {
+			return this.input;
+		}
+	}
 	/** @returns Progress within the active stage. */
 	get progress() {
 		const total =
@@ -57,6 +79,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Clears stale feedback after an edit without validating the new input. */
 	override clearFeedback(): void {
 		this.result = null;
+		this.fieldResults = {};
 		this.state.feedback = null;
 		this.state.feedbackType = null;
 	}
@@ -64,26 +87,14 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	check(): boolean {
 		const task = this.task;
 		if (!task || this.isCompleted) return false;
-		const result: TransformValidationResult = !this.input.trim()
-			? {
-					status: "invalid",
-					message: "Enter or select an answer before checking.",
-				}
-			: task.kind === "choice"
-				? {
-						status:
-							this.input === task.answer
-								? "correct"
-								: "incorrect",
-						message:
-							"Recheck the mathematical distinction in this question.",
-					}
-				: task.kind === "t"
-					? verifyLaplaceTime(
-							this.input,
-							task.terms ?? this.problem.terms,
-						)
-					: verifyLaplaceS(this.input, task.answer);
+		const checked = validateLaplaceTask(
+			task,
+			this.input,
+			this.fieldInputs,
+			this.problem.terms,
+		);
+		const result = checked.result;
+		this.fieldResults = checked.fields;
 		this.result = result;
 		if (result.status !== "correct") {
 			this.state.feedback = result.message;
@@ -95,7 +106,13 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 						: "incorrect";
 			return false;
 		}
-		this.verified = { ...this.verified, [task.id]: this.input };
+		this.verified = {
+			...this.verified,
+			[task.id]:
+				task.kind === "choice" || task.kind === "scalar"
+					? this.input
+					: this.preview,
+		};
 		this.taskIndex++;
 		if (
 			this.taskIndex >=
@@ -105,6 +122,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			this.advanceToStep(this.currentStep + 1);
 		}
 		this.input = "";
+		this.fieldInputs = {};
 		this.hintTier = 0;
 		this.clearFeedback();
 		return true;
@@ -115,6 +133,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		this.taskIndex = 0;
 		this.isCompleted = false;
 		this.input = "";
+		this.fieldInputs = {};
 		this.verified = {};
 		this.hintTier = 0;
 		this.state = createStepState({});
@@ -130,7 +149,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			this.task &&
 			limit++ < 100
 		) {
-			this.input = this.task.answer;
+			this.fillDevelopmentAnswer();
 			if (!this.check()) break;
 		}
 	}
@@ -139,8 +158,17 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		if (!import.meta.env.DEV) return;
 		let limit = 0;
 		while (!this.isCompleted && this.task && limit++ < 300) {
-			this.input = this.task.answer;
+			this.fillDevelopmentAnswer();
 			if (!this.check()) break;
 		}
+	}
+	/** Fills targets only within the development harness; all answers still pass real validation. */
+	private fillDevelopmentAnswer(): void {
+		if (!import.meta.env.DEV || !this.task) return;
+		if (this.task.kind === "fields")
+			this.fieldInputs = Object.fromEntries(
+				this.task.fields.map((field) => [field.id, field.target]),
+			);
+		else this.input = this.task.answer;
 	}
 }

@@ -27,6 +27,17 @@ integration. Each behavior change includes corresponding automated tests.
 
 ## Code organization
 
+Derivative practice first checks the general unilateral rule, then asks learners
+to fill blank initial-condition slots in that verified equation. Coefficients
+are checked independently, including exact zero and fractional values. Hints
+preserve drafts and cannot validate fields. Restarting begins a fresh attempt.
+
+Expression controls display a fixed equation label and preview one complete
+equation. Learners may enter a bare right-hand expression or include its matching
+label. Laplace time answers also accept `x(t)=` and `y(t)=`; transform answers keep
+`X(s)=`, `Y(s)=`, and `H(s)=`. Unrelated and chained assignments are rejected
+locally, without changing other solvers' answer languages.
+
 | Responsibility                                                    | Location                                                |
 | ----------------------------------------------------------------- | ------------------------------------------------------- |
 | Exact algebra, partial fractions, pairs, ROC, and ODE mathematics | `../src/lib/math-engine/laplace/`                       |

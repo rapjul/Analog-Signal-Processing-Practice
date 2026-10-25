@@ -1,3 +1,12 @@
+import {
+	laplaceAnswerLabel,
+	renderLaplaceFields,
+} from "$lib/math-engine/laplace/answer-entry";
+import type {
+	LaplaceAnswerField,
+	LaplaceFieldTask,
+	LaplaceSingleTask,
+} from "$lib/math-engine/laplace/types";
 import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
 import {
 	add,
@@ -18,16 +27,19 @@ export function task(
 	id: string,
 	title: string,
 	prompt: string,
-	kind: LaplaceTask["kind"],
+	kind: LaplaceSingleTask["kind"],
 	answer: string,
 	choices?: string[],
-): LaplaceTask {
+): LaplaceSingleTask {
 	return {
 		id,
 		title,
 		prompt,
 		kind,
 		answer,
+		...(kind === "s" || kind === "t"
+			? { lhs: laplaceAnswerLabel(id, kind) }
+			: {}),
 		...(choices
 			? {
 					choices: shuffleWithRandom(
@@ -48,6 +60,31 @@ export function task(
 			`Use your verified earlier work. ${prompt}`,
 			`Worked guidance: ${kind === "choice" ? answer : `$${answer}$`}. Check your answer to continue.`,
 		],
+	};
+}
+
+/** @param id - Stable ID. @param title - Heading. @param frame - Previously verified rule with blank slots. @param fields - Exact coefficient targets. @returns Independently checked substitution task. */
+export function fieldTask(
+	id: string,
+	title: string,
+	frame: string,
+	fields: LaplaceAnswerField[],
+): LaplaceFieldTask {
+	const answer = renderLaplaceFields(
+		frame,
+		Object.fromEntries(fields.map((field) => [field.id, field.target])),
+	);
+	return {
+		...task(
+			id,
+			title,
+			"Substitute the supplied initial values into the verified rule. Keep each value's sign, including zero.",
+			"s",
+			answer,
+		),
+		kind: "fields",
+		frame,
+		fields,
 	};
 }
 

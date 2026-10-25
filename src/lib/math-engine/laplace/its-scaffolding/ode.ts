@@ -7,7 +7,7 @@ import { collectTerms } from "../transform";
 import type { LaplaceExercise, LaplaceStage, OdeExercise } from "../types";
 import { blockAnalysis } from "./forward";
 import { pairingStage } from "./inverse";
-import { decompositionStages, task } from "./shared";
+import { decompositionStages, fieldTask, task } from "./shared";
 
 /** @param input - Structured unilateral IVP. @returns Eight-stage Laplace ODE tutor. */
 export function createOdeExercise(input: OdeExercise): LaplaceExercise {
@@ -17,8 +17,6 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 		terms = [...solution.zi, ...solution.zs];
 	const y0 = fraction(spec.initial[0]),
 		dy0 = fraction(spec.initial[1]);
-	const derivative = `sY(s)-(${y0.toLatex()})`;
-	const second = `s^2Y(s)-s(${y0.toLatex()})-(${dy0.toLatex()})`;
 	const prompt =
 		solution.operator
 			.map((coefficient, power) =>
@@ -105,23 +103,52 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 				task(
 					"ode-derivative",
 					"Transform the first derivative",
-					"Use $\\mathcal L_+\\{y'\\}=sY-y(0^-)$.",
+					"Choose the general unilateral identity valid for arbitrary initial conditions, before substituting this problem's values.",
 					"choice",
-					`$${derivative}$`,
-					[`$${derivative}$`, `$sY(s)+(${y0.toLatex()})$`, "$sY(s)$"],
+					"$sY(s)-y(0^-)$",
+					["$sY(s)-y(0^-)$", "$sY(s)+y(0^-)$", "$s^2Y(s)-y(0^-)$"],
+				),
+				fieldTask(
+					"ode-derivative-values",
+					"Apply the first-derivative rule",
+					"\\mathcal L_+\\{y'\\}=sY(s)-({{y0}})",
+					[
+						{
+							id: "y0",
+							label: "Initial output $y(0^-)$",
+							target: y0.toLatex(),
+						},
+					],
 				),
 				...(order === 2
 					? [
 							task(
 								"ode-second",
 								"Transform the second derivative",
-								"Use $\\mathcal L_+\\{y''\\}=s^2Y-sy(0^-)-y'(0^-)$.",
+								"Choose the general unilateral identity valid for arbitrary initial output and derivative values.",
 								"choice",
-								`$${second}$`,
+								"$s^2Y(s)-sy(0^-)-y'(0^-)$",
 								[
-									`$${second}$`,
-									"$s^2Y(s)$",
-									`$s^2Y(s)+s(${y0.toLatex()})+(${dy0.toLatex()})$`,
+									"$s^2Y(s)-sy(0^-)-y'(0^-)$",
+									"$s^2Y(s)-y(0^-)-y'(0^-)$",
+									"$s^2Y(s)+sy(0^-)+y'(0^-)$",
+								],
+							),
+							fieldTask(
+								"ode-second-values",
+								"Apply the second-derivative rule",
+								"\\mathcal L_+\\{y''\\}=s^2Y(s)-s({{y0}})-({{dy0}})",
+								[
+									{
+										id: "y0",
+										label: "Initial output $y(0^-)$",
+										target: y0.toLatex(),
+									},
+									{
+										id: "dy0",
+										label: "Initial derivative $y'(0^-)$",
+										target: dy0.toLatex(),
+									},
 								],
 							),
 						]

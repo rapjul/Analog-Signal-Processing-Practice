@@ -7,7 +7,11 @@ import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
-	for (const scenario of ["zero", "coincident impulses"] as const) {
+	for (const scenario of [
+		"zero",
+		"coincident impulses",
+		"second-order fields",
+	] as const) {
 		test(`completes custom ${scenario} with checked response tasks`, async ({
 			page,
 		}) => {
@@ -15,21 +19,50 @@ test.describe("guided Laplace practice", () => {
 			const spec = generateLaplaceExercise(
 				scenario === "zero" ? "inverse" : "ode",
 				73,
-				"impulse",
+				scenario === "second-order fields" ? "repeated" : "impulse",
 			).spec;
 			if (spec.workflow === "inverse") spec.rational.gain = "0";
-			else if (spec.workflow === "ode") {
+			else if (
+				spec.workflow === "ode" &&
+				scenario === "coincident impulses"
+			) {
 				spec.initial = ["0", "0"];
 				spec.terms = [
 					{ ...spec.terms[0]!, amplitude: "2", delay: "1/2" },
 					{ ...spec.terms[0]!, amplitude: "3", delay: "0.5" },
 				];
 			}
+			if (spec.workflow === "ode" && scenario === "second-order fields") {
+				spec.initial = ["-1/2", "0"];
+				await page.setViewportSize({ width: 320, height: 900 });
+			}
 			const problem = createLaplaceExercise(spec);
 			await page.goto(`/laplace?${serializeLaplaceConfiguration(spec)}`);
 			await expect(page.locator(".configuration-error")).toHaveCount(0);
-			await completeLaplaceTasks(page, problem);
+			if (spec.workflow === "ode") {
+				await completeLaplaceTasks(page, problem, "ode-response");
+				const tasks = problem.stages.flatMap((stage) => stage.tasks);
+				for (const task of tasks.slice(
+					tasks.findIndex((task) => task.id === "ode-response"),
+				)) {
+					await answerLaplaceTask(
+						page,
+						task,
+						task.kind === "t"
+							? `${task.lhs} = ${task.answer}`
+							: task.answer,
+					);
+				}
+				await expect(page.locator(".completion-banner")).toBeVisible();
+			} else await completeLaplaceTasks(page, problem);
 			await expect(page.locator(".laplace-visualizations")).toBeVisible();
+			expect(
+				await page.evaluate(
+					() =>
+						document.documentElement.scrollWidth <=
+						document.documentElement.clientWidth,
+				),
+			).toBe(true);
 		});
 	}
 	test("supports keyboard checking and announces the next task without a production harness", async ({
