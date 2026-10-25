@@ -7,7 +7,7 @@ import {
 import type {
 	CtftParameters,
 	CtftSignalType,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/engine";
 
 /**
  * Constructs the expected CTFT using signal parameters, never displayed answer text.

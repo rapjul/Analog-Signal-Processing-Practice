@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createCtftProblem,
 	validateCtftAnswer,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
 import { diagnoseTransformSyntax } from "$lib/math-engine/transform-diagnostics";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 

@@ -10,7 +10,7 @@ import {
 import {
 	createCtftProblem,
 	validateCtftAnswer,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,

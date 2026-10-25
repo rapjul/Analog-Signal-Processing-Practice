@@ -1,15 +1,18 @@
 /** Read-only display helpers; these never establish mathematical correctness. */
-import { factorAt, scalar } from "./canonical-algebra";
-import { normalizeCanonicalTransform } from "./canonical-transform";
+import { factorAt, scalar } from "$lib/math-engine/canonical-algebra";
+import { normalizeCanonicalTransform } from "$lib/math-engine/canonical-transform";
+import {
+	normalizeMathLatex,
+	parseStrictLatex,
+} from "$lib/math-engine/evaluator";
 import type {
 	CtftLessonPart,
 	CtftLessonStage,
 	CtftStageId,
-} from "./ctft-lesson";
-import { validateCtftConstant } from "./ctft-tutor-validation";
-import { normalizeMathLatex, parseStrictLatex } from "./evaluator";
-import type { GeneratedCtftProblem } from "./fourier-transform";
-import { normalizeTransformNotation } from "./transform-notation";
+} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
+import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
+import type { GeneratedCtftProblem } from "./engine";
+import { validateCtftConstant } from "./tutor-validation";
 
 /**
  * Selects compact stage results while detailed derivations remain completion-gated.

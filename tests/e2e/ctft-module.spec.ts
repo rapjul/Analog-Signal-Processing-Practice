@@ -1,6 +1,6 @@
 /** Both CTFT teaching paths, exercised without development-only shortcuts. */
 import { expect, test } from "@playwright/test";
-import type { CtftSignalType } from "$lib/math-engine/fourier-transform";
+import type { CtftSignalType } from "$lib/math-engine/fourier-transform/index";
 import {
 	enterCtftAnswer,
 	expectCtftFeedback,

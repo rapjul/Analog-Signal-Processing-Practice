@@ -1,13 +1,13 @@
 /** Parameter-owned teaching paths for continuous-time Fourier transforms. */
 
-import { buildCtftDerivation } from "./ctft-derivation";
-import { guideCtftLesson } from "./ctft-guidance";
 import {
 	type CtftSignalType,
 	createCtftProblem,
 	type GeneratedCtftProblem,
 	getCtftPairLatex,
-} from "./fourier-transform";
+} from "$lib/math-engine/fourier-transform/engine";
+import { buildCtftDerivation } from "./derivation";
+import { guideCtftLesson } from "./guidance";
 
 /** Supported guided teaching approaches. */
 export type CtftPracticeMode = "derivation" | "pairs-properties";

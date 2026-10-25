@@ -4,15 +4,15 @@ import { tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CtftStepSolver from "$lib/components/solvers/CtftStepSolver.svelte";
 import {
-	buildCtftLesson,
-	type CtftPracticeMode,
-	type CtftStageId,
-} from "$lib/math-engine/ctft-lesson";
-import {
 	type CtftSignalType,
 	createCtftProblem,
 	type GeneratedCtftProblem,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
+import {
+	buildCtftLesson,
+	type CtftPracticeMode,
+	type CtftStageId,
+} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 
 afterEach(cleanup);
 

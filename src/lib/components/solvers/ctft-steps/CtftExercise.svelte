@@ -2,23 +2,23 @@
 	import { tick } from "svelte";
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import type {
+		CtftPartState,
+		CtftStepSolverState,
+	} from "$lib/components/solvers/ctft-step-solver.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import SolverCheckButton from "$lib/components/ui/SolverCheckButton.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
 	import type {
 		CtftLessonPart,
 		CtftStageId,
-	} from "$lib/math-engine/ctft-lesson";
+	} from "$lib/math-engine/fourier-transform/its-scaffolding/lesson";
 	import {
 		ctftCheckLabel,
 		displayCtftInput,
-	} from "$lib/math-engine/ctft-presentation";
+	} from "$lib/math-engine/fourier-transform/presentation";
 	import type { TransformDiagnostic } from "$lib/math-engine/transform-diagnostics";
 	import { transformSyntaxDiagnostics } from "$lib/math-engine/transform-diagnostics";
-	import type {
-		CtftPartState,
-		CtftStepSolverState,
-	} from "./ctft-step-solver.svelte";
 
 	/** One active task; all verification remains in the controller. */
 	interface Props {

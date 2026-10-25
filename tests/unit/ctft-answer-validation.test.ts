@@ -6,7 +6,7 @@ import {
 	type CtftSignalType,
 	createCtftProblem,
 	validateCtftAnswer,
-} from "$lib/math-engine/fourier-transform";
+} from "$lib/math-engine/fourier-transform/index";
 
 describe("CTFT answer validation", () => {
 	/** An earlier zero cannot hide an unsupported product of two impulse factors. */
