@@ -10,6 +10,7 @@
 	import ConvolutionFormulaReference from "./formula-drawer/ConvolutionFormulaReference.svelte";
 	import FourierFormulaReference from "./formula-drawer/FourierFormulaReference.svelte";
 	import OdeFormulaReference from "./formula-drawer/OdeFormulaReference.svelte";
+	import LaplaceFormulaReference from "./formula-drawer/LaplaceFormulaReference.svelte";
 	import TransformsFormulaReference from "./formula-drawer/TransformsFormulaReference.svelte";
 
 	interface Props {
@@ -197,7 +198,8 @@
 			{:else if activeTab === "convolution"}
 				<ConvolutionFormulaReference />
 			{:else if activeTab === "transforms"}
-				<TransformsFormulaReference {activeRoute} />
+				{#if activeRoute.startsWith("/laplace")}<LaplaceFormulaReference
+					/>{:else}<TransformsFormulaReference {activeRoute} />{/if}
 			{/if}
 		</div>
 	</div>
