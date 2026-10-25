@@ -7,11 +7,11 @@
 	 */
 
 	import { tick } from "svelte";
-	import ConvolutionFormulaReference from "./formula-drawer/ConvolutionFormulaReference.svelte";
-	import FourierFormulaReference from "./formula-drawer/FourierFormulaReference.svelte";
-	import LaplaceFormulaReference from "./formula-drawer/LaplaceFormulaReference.svelte";
-	import OdeFormulaReference from "./formula-drawer/OdeFormulaReference.svelte";
-	import TransformsFormulaReference from "./formula-drawer/TransformsFormulaReference.svelte";
+	import ConvolutionFormulaReference from "$lib/components/ui/formula-drawer/ConvolutionFormulaReference.svelte";
+	import FourierFormulaReference from "$lib/components/ui/formula-drawer/FourierFormulaReference.svelte";
+	import LaplaceFormulaReference from "$lib/components/ui/formula-drawer/LaplaceFormulaReference.svelte";
+	import OdeFormulaReference from "$lib/components/ui/formula-drawer/OdeFormulaReference.svelte";
+	import TransformsFormulaReference from "$lib/components/ui/formula-drawer/TransformsFormulaReference.svelte";
 
 	interface Props {
 		/** Whether the drawer overlay is currently open */

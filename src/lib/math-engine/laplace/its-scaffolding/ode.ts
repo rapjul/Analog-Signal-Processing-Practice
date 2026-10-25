@@ -1,10 +1,21 @@
-import { fraction, polynomialLatex } from "../algebra";
-import { solveLaplaceOde } from "../ode";
-import { formatRoc } from "../pfd";
-import { analyzeSignalRoc, totalCanceledFactors } from "../roc";
-import { responseLatex, signalLatex, signalTransform } from "../signals";
-import { collectTerms } from "../transform";
-import type { LaplaceExercise, LaplaceStage, OdeExercise } from "../types";
+import { fraction, polynomialLatex } from "$lib/math-engine/laplace/algebra";
+import { solveLaplaceOde } from "$lib/math-engine/laplace/ode";
+import { formatRoc } from "$lib/math-engine/laplace/pfd";
+import {
+	analyzeSignalRoc,
+	totalCanceledFactors,
+} from "$lib/math-engine/laplace/roc";
+import {
+	responseLatex,
+	signalLatex,
+	signalTransform,
+} from "$lib/math-engine/laplace/signals";
+import { collectTerms } from "$lib/math-engine/laplace/transform";
+import type {
+	LaplaceExercise,
+	LaplaceStage,
+	OdeExercise,
+} from "$lib/math-engine/laplace/types";
 import { blockAnalysis } from "./forward";
 import { pairingStage } from "./inverse";
 import { decompositionStages, fieldTask, task } from "./shared";

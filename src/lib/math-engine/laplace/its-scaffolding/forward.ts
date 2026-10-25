@@ -1,19 +1,29 @@
-import { polynomialLatex, rationalLatex } from "../algebra";
-import { formatRoc } from "../pfd";
-import { analyzeSignalRoc, totalCanceledFactors } from "../roc";
+import {
+	polynomialLatex,
+	rationalLatex,
+} from "$lib/math-engine/laplace/algebra";
+import { formatRoc } from "$lib/math-engine/laplace/pfd";
+import {
+	analyzeSignalRoc,
+	totalCanceledFactors,
+} from "$lib/math-engine/laplace/roc";
 import {
 	responseLatex,
 	signalLatex,
 	signalTransform,
 	validateTerms,
-} from "../signals";
+} from "$lib/math-engine/laplace/signals";
 import {
 	collectTerms,
 	type TransformBlock,
 	transformBlocks,
 	zeroDescription,
-} from "../transform";
-import type { ForwardExercise, LaplaceExercise, LaplaceStage } from "../types";
+} from "$lib/math-engine/laplace/transform";
+import type {
+	ForwardExercise,
+	LaplaceExercise,
+	LaplaceStage,
+} from "$lib/math-engine/laplace/types";
 import { rootList, task } from "./shared";
 
 /** @param blocks - Exact rational blocks. @returns Mandatory cancellation and root analysis for every block. */

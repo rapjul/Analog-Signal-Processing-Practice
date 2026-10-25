@@ -2,7 +2,7 @@
 	import MathBlock from "$lib/components/math/MathBlock.svelte";
 	import MathInline from "$lib/components/math/MathInline.svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
-	import type { LaplaceStepSolverState } from "../laplace-solver-state/controller.svelte";
+	import type { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
 
 	/** Input task and validation controls. */
 	interface Props {

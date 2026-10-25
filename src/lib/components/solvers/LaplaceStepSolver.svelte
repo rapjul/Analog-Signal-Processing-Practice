@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onDestroy, tick, untrack } from "svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
+	import { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
+	import LaplaceTaskInput from "$lib/components/solvers/laplace-steps/LaplaceTaskInput.svelte";
 	import PartProgressPill from "$lib/components/ui/PartProgressPill.svelte";
 	import Progress from "$lib/components/ui/Progress.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import SubStepBlock from "$lib/components/ui/SubStepBlock.svelte";
 	import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
-	import { LaplaceStepSolverState } from "./laplace-solver-state/controller.svelte";
-	import LaplaceTaskInput from "./laplace-steps/LaplaceTaskInput.svelte";
 
 	/** Checked workflow properties. */
 	interface Props {

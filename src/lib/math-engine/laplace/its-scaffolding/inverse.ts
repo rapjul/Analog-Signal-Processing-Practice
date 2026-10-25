@@ -1,18 +1,22 @@
-import { fraction } from "../algebra";
+import { fraction } from "$lib/math-engine/laplace/algebra";
 import {
 	decompose,
 	formatRoc,
 	inverseTerms,
 	originalTransform,
 	rocBounds,
-} from "../pfd";
-import { responseLatex, signalLatex, signalTransform } from "../signals";
+} from "$lib/math-engine/laplace/pfd";
+import {
+	responseLatex,
+	signalLatex,
+	signalTransform,
+} from "$lib/math-engine/laplace/signals";
 import type {
 	LaplaceExercise,
 	LaplaceResponseTerm,
 	LaplaceStage,
 	RationalExercise,
-} from "../types";
+} from "$lib/math-engine/laplace/types";
 import { analysisStage, decompositionStages, task } from "./shared";
 
 /** @param terms - Independently solved terms. @returns Pairing stage with separate weight and support checks. */

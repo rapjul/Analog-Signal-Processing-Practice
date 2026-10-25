@@ -1,7 +1,7 @@
-import { createForwardExercise } from "./its-scaffolding/forward";
-import { createRationalExercise } from "./its-scaffolding/inverse";
-import { createOdeExercise } from "./its-scaffolding/ode";
-import { createRocExercise } from "./its-scaffolding/roc";
+import { createForwardExercise } from "$lib/math-engine/laplace/its-scaffolding/forward";
+import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
+import { createOdeExercise } from "$lib/math-engine/laplace/its-scaffolding/ode";
+import { createRocExercise } from "$lib/math-engine/laplace/its-scaffolding/roc";
 import { validateLaplaceTask } from "./task-validation";
 import type {
 	LaplaceExercise,

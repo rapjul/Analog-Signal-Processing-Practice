@@ -1,6 +1,9 @@
-import { fraction } from "../algebra";
-import { decompose, formatRoc, rocBounds } from "../pfd";
-import type { LaplaceExercise, RationalExercise } from "../types";
+import { fraction } from "$lib/math-engine/laplace/algebra";
+import { decompose, formatRoc, rocBounds } from "$lib/math-engine/laplace/pfd";
+import type {
+	LaplaceExercise,
+	RationalExercise,
+} from "$lib/math-engine/laplace/types";
 import { createRationalExercise } from "./inverse";
 import { analysisStage, task } from "./shared";
 

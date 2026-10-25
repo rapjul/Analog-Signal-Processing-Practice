@@ -1,14 +1,4 @@
 import {
-	laplaceAnswerLabel,
-	renderLaplaceFields,
-} from "$lib/math-engine/laplace/answer-entry";
-import type {
-	LaplaceAnswerField,
-	LaplaceFieldTask,
-	LaplaceSingleTask,
-} from "$lib/math-engine/laplace/types";
-import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
-import {
 	add,
 	divide,
 	fraction,
@@ -17,10 +7,22 @@ import {
 	rationalLatex,
 	scale,
 	zero,
-} from "../algebra";
-import type { LaplaceDecomposition } from "../pfd";
-import { fractionLatex, normalizeFactors } from "../pfd";
-import type { LaplaceFactor, LaplaceStage, LaplaceTask } from "../types";
+} from "$lib/math-engine/laplace/algebra";
+import {
+	laplaceAnswerLabel,
+	renderLaplaceFields,
+} from "$lib/math-engine/laplace/answer-entry";
+import type { LaplaceDecomposition } from "$lib/math-engine/laplace/pfd";
+import { fractionLatex, normalizeFactors } from "$lib/math-engine/laplace/pfd";
+import type {
+	LaplaceAnswerField,
+	LaplaceFactor,
+	LaplaceFieldTask,
+	LaplaceSingleTask,
+	LaplaceStage,
+	LaplaceTask,
+} from "$lib/math-engine/laplace/types";
+import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
 
 /** @param id - Stable ID. @param title - Heading. @param prompt - Question. @param kind - Control. @param answer - Exact target. @param choices - Options. @returns Checked task. */
 export function task(
