@@ -4,16 +4,13 @@ import {
 	type ConstructionFeedback,
 	constructionFeedback,
 } from "./construction-feedback";
+import { validateLaplaceFields } from "./field-validation";
 import type {
 	LaplaceConstruction,
 	LaplaceResponseTerm,
 	LaplaceTask,
 } from "./types";
-import {
-	verifyLaplaceInterval,
-	verifyLaplaceS,
-	verifyLaplaceTime,
-} from "./verification";
+import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
 
 /** Task feedback and independently graded coefficient results. */
 export interface LaplaceTaskValidation {
@@ -48,36 +45,7 @@ export function validateLaplaceTask(
 					: constructionFeedback(task, construction),
 		};
 	}
-	if (task.kind === "fields") {
-		const fields = Object.fromEntries(
-			task.fields.map((field) => {
-				const checked = field.interval
-					? verifyLaplaceInterval(
-							values[field.id] ?? "",
-							field.target,
-							field.interval,
-						)
-					: verifyLaplaceS(values[field.id] ?? "", field.target);
-				return [
-					field.id,
-					{
-						...checked,
-						message: `${field.label}: ${checked.status === "correct" ? "verified exactly." : field.interval || checked.status === "unsupported" ? checked.message : checked.status === "invalid" ? "enter a complete exact value, including zero." : (field.incorrectMessage ?? "check this value's sign and the operation in the displayed formula.")}`,
-					},
-				];
-			}),
-		);
-		const failed = Object.values(fields).find(
-			(result) => result.status !== "correct",
-		);
-		return {
-			fields,
-			result: failed ?? {
-				status: "correct",
-				message: "Every coefficient is verified exactly.",
-			},
-		};
-	}
+	if (task.kind === "fields") return validateLaplaceFields(task, values);
 	let result: TransformValidationResult;
 	switch (task.kind) {
 		case "choice":
