@@ -88,6 +88,14 @@ describe("beginner Laplace teaching interactions", () => {
 			view.getByRole("button", { name: "Check Factorization" }),
 		);
 		expect(solver.result?.status).toBe("incorrect");
+		const coefficient = view.getByLabelText("Row 1 coefficient b");
+		expect(coefficient.getAttribute("aria-invalid")).toBe("true");
+		expect(coefficient.getAttribute("aria-describedby")).toBe(
+			"construction-row-0-first",
+		);
+		expect(
+			view.getByLabelText("Outside gain").getAttribute("aria-invalid"),
+		).toBe("true");
 		await fireEvent.click(view.getByRole("button", { name: /Get Hint/ }));
 		expect(view.getByRole("region", { name: "Hints" })).toBeTruthy();
 		expect(onAssist).toHaveBeenCalledTimes(1);

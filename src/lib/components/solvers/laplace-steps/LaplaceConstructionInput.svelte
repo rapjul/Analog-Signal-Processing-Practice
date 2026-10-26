@@ -9,6 +9,12 @@
 		/** Active controller with learner-owned drafts. */ solver: LaplaceStepSolverState;
 	}
 	let { solver }: Props = $props();
+	/** @param key - Field identity. @returns Its feedback element when an issue exists. */
+	function feedbackId(key: string): string | undefined {
+		return solver.constructionResults[key]
+			? `construction-${key}`
+			: undefined;
+	}
 </script>
 
 {#if solver.task && "construction" in solver.task}
@@ -32,6 +38,9 @@
 			<label
 				>Expression type<select
 					aria-label="Expression type"
+					aria-invalid={!!solver.constructionResults.mode ||
+						undefined}
+					aria-describedby={feedbackId("mode")}
 					bind:value={solver.construction.mode}
 				>
 					<option value="finite"
@@ -46,6 +55,12 @@
 				</select></label
 			>
 		{/if}
+		{#if solver.constructionResults.mode}<p
+				id="construction-mode"
+				role="status"
+			>
+				<MathText text={solver.constructionResults.mode.message} />
+			</p>{/if}
 		{#if solver.construction.mode === "finite"}
 			{#if solver.task.kind !== "roots"}<label
 					>{solver.task.kind === "template"
@@ -55,10 +70,19 @@
 							? "Constant quotient"
 							: "Outside gain"}
 						type="text"
+						aria-invalid={!!solver.constructionResults.gain ||
+							undefined}
+						aria-describedby={feedbackId("gain")}
 						bind:value={solver.construction.gain}
 						autocomplete="off"
 					/></label
 				>{/if}
+			{#if solver.constructionResults.gain}<p
+					id="construction-gain"
+					role="status"
+				>
+					<MathText text={solver.constructionResults.gain.message} />
+				</p>{/if}
 			{#each solver.construction.rows as row, index}
 				<div
 					class="entry-row"
@@ -103,6 +127,10 @@
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "real part" : "coefficient b"}`}
 							type="text"
 							bind:value={row.first}
+							aria-invalid={!!solver.constructionResults[
+								`row-${index}-first`
+							] || undefined}
+							aria-describedby={feedbackId(`row-${index}-first`)}
 							autocomplete="off"
 						/></label
 					>
@@ -115,6 +143,12 @@
 								aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "frequency" : "coefficient c"}`}
 								type="text"
 								bind:value={row.second}
+								aria-invalid={!!solver.constructionResults[
+									`row-${index}-second`
+								] || undefined}
+								aria-describedby={feedbackId(
+									`row-${index}-second`,
+								)}
 								autocomplete="off"
 							/></label
 						>{/if}
@@ -125,6 +159,10 @@
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "multiplicity" : "power"}`}
 							type="text"
 							bind:value={row.power}
+							aria-invalid={!!solver.constructionResults[
+								`row-${index}-power`
+							] || undefined}
+							aria-describedby={feedbackId(`row-${index}-power`)}
 							autocomplete="off"
 						/></label
 					>
@@ -132,6 +170,12 @@
 							>Unknown numerator<select
 								aria-label={`Row ${index + 1} numerator`}
 								bind:value={row.numerator}
+								aria-invalid={!!solver.constructionResults[
+									`row-${index}-numerator`
+								] || undefined}
+								aria-describedby={feedbackId(
+									`row-${index}-numerator`,
+								)}
 								><option value="constant">Constant</option
 								><option value="linear">Linear</option></select
 							></label
@@ -145,6 +189,18 @@
 							solver.clearFeedback();
 						}}>Remove Row</button
 					>
+					{#each ["first", "second", "power", "numerator"] as field}
+						{@const key = `row-${index}-${field}`}
+						{#if solver.constructionResults[key]}<p
+								id={`construction-${key}`}
+								role="status"
+							>
+								<MathText
+									text={solver.constructionResults[key]!
+										.message}
+								/>
+							</p>{/if}
+					{/each}
 				</div>
 			{/each}
 			<button
@@ -162,6 +218,12 @@
 						: "Factor"}</button
 			>
 		{/if}
+		{#if solver.constructionResults.rows}<p
+				id="construction-rows"
+				role="status"
+			>
+				<MathText text={solver.constructionResults.rows.message} />
+			</p>{/if}
 	</fieldset>
 	<div
 		class="preview"

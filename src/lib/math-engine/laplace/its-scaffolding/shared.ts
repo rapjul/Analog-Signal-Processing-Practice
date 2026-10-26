@@ -124,6 +124,9 @@ export function rootTask(
 		kind: "roots",
 		answer,
 		construction: constructionTarget(factors, true),
+		...(id === "original-zeros" || id === "original-poles"
+			? { otherConstruction: constructionTarget(other, true) }
+			: {}),
 		...teaching(
 			"A root is a value that makes a polynomial zero. Multiplicity counts factor copies. The imaginary unit satisfies $j^2=-1$; conjugate roots $a+jb$ and $a-jb$ share real part $a$ and opposite imaginary parts.",
 			`Solve the factors of the ${id.includes("zero") ? "numerator" : "denominator or selected factor list"}, not those of the other polynomial. For a linear factor $s+b$, solve $s+b=0$. Other polynomial roots: ${rootList(other)}.`,

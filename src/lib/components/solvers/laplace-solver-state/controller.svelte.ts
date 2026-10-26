@@ -11,6 +11,7 @@ import {
 	constructionPreview,
 	emptyConstruction,
 } from "$lib/math-engine/laplace/construction";
+import type { ConstructionFeedback } from "$lib/math-engine/laplace/construction-feedback";
 import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
 	LaplaceConstruction,
@@ -22,6 +23,8 @@ import type { TransformValidationResult } from "$lib/math-engine/transform-valid
 /** Reactive checked task controller shared by the four Laplace workflows. */
 export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Current task within the parent stage. */ taskIndex = $state(0);
+	/** Construction errors keyed by row and field. */ constructionResults =
+		$state<ConstructionFeedback>({});
 	/** Submitted expression or chosen answer. */ input = $state("");
 	/** Learner-built factor, root, or template draft. */ construction =
 		$state<LaplaceConstruction>(emptyConstruction());
@@ -123,6 +126,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	}
 	/** Clears stale feedback after an edit without validating the new input. */
 	override clearFeedback(): void {
+		this.constructionResults = {};
 		this.result = null;
 		this.fieldResults = {};
 		this.state.feedback = null;
@@ -142,6 +146,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		);
 		const result = checked.result;
 		this.fieldResults = checked.fields;
+		this.constructionResults = checked.construction ?? {};
 		this.result = result;
 		if (result.status !== "correct") {
 			this.state.feedback = result.message;
@@ -189,6 +194,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	}
 	/** Resets every task, hint, answer, and completion flag. */
 	reset(): void {
+		this.constructionResults = {};
 		this.currentStep = 1;
 		this.taskIndex = 0;
 		this.isCompleted = false;

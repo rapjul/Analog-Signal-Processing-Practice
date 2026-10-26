@@ -1,5 +1,9 @@
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 import { emptyConstruction, validateConstruction } from "./construction";
+import {
+	type ConstructionFeedback,
+	constructionFeedback,
+} from "./construction-feedback";
 import type {
 	LaplaceConstruction,
 	LaplaceResponseTerm,
@@ -9,6 +13,7 @@ import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
 
 /** Task feedback and independently graded coefficient results. */
 export interface LaplaceTaskValidation {
+	/** Field-specific construction diagnostics. */ construction?: ConstructionFeedback;
 	/** Overall task outcome. */ result: TransformValidationResult;
 	/** Per-field outcomes, without advancing the task. */ fields: Record<
 		string,
@@ -29,7 +34,11 @@ export function validateLaplaceTask(
 		task.kind === "roots" ||
 		task.kind === "template"
 	)
-		return { result: validateConstruction(task, construction), fields: {} };
+		return {
+			result: validateConstruction(task, construction),
+			fields: {},
+			construction: constructionFeedback(task, construction),
+		};
 	if (task.kind === "fields") {
 		const fields = Object.fromEntries(
 			task.fields.map((field) => {

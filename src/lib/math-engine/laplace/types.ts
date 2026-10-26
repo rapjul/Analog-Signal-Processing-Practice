@@ -132,6 +132,7 @@ export interface LaplaceConstructionTask extends LaplaceTaskBase {
 	/** Structured mathematical control. */ kind:
 		"factors" | "roots" | "template";
 	/** Canonical target constructed from exact mathematics. */ construction: LaplaceConstruction;
+	/** Other polynomial's roots, used only to diagnose source confusion. */ otherConstruction?: LaplaceConstruction;
 }
 
 /** Parent stage containing independently checked tasks. */
