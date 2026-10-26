@@ -41,6 +41,8 @@ test.describe("guided Laplace practice", () => {
 	test("teaches the annotated example with shared hints and constructive PFD at 320px", async ({
 		page,
 	}) => {
+		// This traverses rational analysis, strategy, three hints, and template construction through ordinary controls.
+		test.setTimeout(90000);
 		const problem = createLaplaceExercise({
 			workflow: "inverse",
 			seed: 73,
@@ -104,7 +106,10 @@ test.describe("guided Laplace practice", () => {
 		test(`completes custom ${scenario} with checked response tasks`, async ({
 			page,
 		}) => {
-			test.setTimeout(90000);
+			// The second-order case traverses both response blocks and every checked elimination row.
+			test.setTimeout(
+				scenario === "second-order fields" ? 180000 : 90000,
+			);
 			const spec = generateLaplaceExercise(
 				scenario === "zero"
 					? "inverse"
