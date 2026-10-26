@@ -27,6 +27,7 @@ import type {
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
 import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
+import { eliminationTasks } from "./elimination";
 import { taskTeaching, teaching } from "./teaching";
 
 /** @param id - Stable ID. @param title - Heading. @param prompt - Question. @param kind - Control. @param answer - Exact target. @param choices - Options. @returns Checked task. */
@@ -417,46 +418,6 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 		...columns.map((column) => column[power] ?? fraction(0)),
 		remainder[power] ?? fraction(0),
 	]);
-	const operations: string[] = [];
-	for (let column = 0; column < data.slots.length; column++) {
-		const pivot = equations.findIndex(
-			(row, index) => index >= column && row[column]!.numerator !== 0n,
-		);
-		if (pivot < 0)
-			throw new Error(
-				"The verified coefficient system must have a pivot.",
-			);
-		if (pivot !== column) {
-			[equations[pivot], equations[column]] = [
-				equations[column]!,
-				equations[pivot]!,
-			];
-			operations.push(
-				`Exchange equations ${pivot + 1} and ${column + 1} to place a nonzero coefficient in the working position.`,
-			);
-		}
-		const divisor = equations[column]![column]!;
-		equations[column] = equations[column]!.map((value) =>
-			value.divide(divisor),
-		);
-		const work = [
-			`Divide equation ${column + 1} by $${divisor.toLatex()}$ so the coefficient of $${data.slots[column]!.label}$ becomes one.`,
-		];
-		for (let row = 0; row < equations.length; row++) {
-			if (row === column) continue;
-			const multiplier = equations[row]![column]!;
-			if (!multiplier.numerator) continue;
-			equations[row] = equations[row]!.map((value, index) =>
-				value.add(
-					equations[column]![index]!.multiply(multiplier).negate(),
-				),
-			);
-			work.push(
-				`Subtract $${multiplier.toLatex()}$ times equation ${column + 1} from equation ${row + 1}; this removes $${data.slots[column]!.label}$ from that equation.`,
-			);
-		}
-		operations.push(work.join(" "));
-	}
 	const result: LaplaceTask[] = [
 		task(
 			"matching-identity",
@@ -497,6 +458,12 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 			),
 		});
 	}
+	result.push(
+		...eliminationTasks(
+			equations,
+			data.slots.map((slot) => slot.label),
+		),
+	);
 	for (const slot of data.slots) {
 		if (
 			fraction(slot.factor.frequency).numerator === 0n &&
@@ -552,8 +519,8 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 			formula: `${polynomialLatex(remainder)}=${identity}`,
 			...teaching(
 				"To solve coefficient equations, divide both sides by a nonzero coefficient and subtract multiples of equations to eliminate one unknown at a time.",
-				`Use your checked coefficient equations for $${identity}=${polynomialLatex(remainder)}$. ${operations[0] ?? "There is one nonzero coefficient to divide by."}`,
-				`${operations.at(-1) ?? "Divide the equation by its coefficient."} Continuing these equality-preserving operations isolates $${slot.label}=${slot.value}$. Substitute it into the original identity to verify it.`,
+				`Read $${slot.label}$ from the isolated row of your checked equation system for $${identity}=${polynomialLatex(remainder)}$.`,
+				`The verified row operations isolate $${slot.label}=${slot.value}$. Substitute this value into the original identity to verify the coefficient.`,
 				"Check Coefficient",
 			),
 		});
