@@ -22,6 +22,12 @@ describe("checked coefficient elimination", () => {
 			"\\frac{1}{2}",
 		]);
 		expect(tasks.at(-1)!.fields.at(-1)!.target).toBe("\\frac{1}{3}");
+		const later = tasks.filter((task) => task.operation!.column > 0);
+		expect(later.length).toBeGreaterThan(0);
+		for (const task of later) {
+			expect(task.hints[2]).toContain("This entry changes");
+			expect(task.hints[2]).not.toContain("\\frac{0}");
+		}
 		for (const task of tasks) {
 			expect(task.operation!.after).toEqual(
 				task.fields.map((field) => field.target),

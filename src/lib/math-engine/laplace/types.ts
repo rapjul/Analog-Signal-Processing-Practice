@@ -92,6 +92,7 @@ export interface LaplaceSingleTask extends LaplaceTaskBase {
 
 /** One independently graded exact coefficient. */
 export interface LaplaceAnswerField {
+	/** Current-task diagnosis for a valid but incorrect entry. */ incorrectMessage?: string;
 	/** Ordinary expression restricted to this exact open time interval; null denotes infinity. */ interval?: {
 		min: string | null;
 		max: string | null;
@@ -107,6 +108,7 @@ export interface LaplaceFieldTask extends LaplaceTaskBase {
 		/** Operation applied to every augmented entry. */ kind:
 			"divide" | "subtract";
 		/** Zero-based affected equation. */ row: number;
+		/** Zero-based pivot column being processed. */ column: number;
 		/** Source equation for subtraction, otherwise null. */ source:
 			number | null;
 		/** Nonzero exact divisor or multiplier. */ factor: string;

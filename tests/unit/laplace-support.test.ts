@@ -49,6 +49,15 @@ describe("checked support interval evidence", () => {
 			expect(
 				validateLaplaceTask(task, "", values, []).result.status,
 			).toBe("correct");
+			const wrongActivity = {
+				...values,
+				"active-0": values["active-0"] === "1" ? "0" : "1",
+			};
+			expect(
+				validateLaplaceTask(task, "", wrongActivity, []).fields[
+					"active-0"
+				]!.message,
+			).toContain("support boundary");
 			values.combined = "u(t)+u(-t)-u(t-1)";
 			expect(
 				validateLaplaceTask(task, "", values, []).result.status,

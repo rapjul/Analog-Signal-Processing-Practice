@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { constructionFeedback } from "$lib/math-engine/laplace/construction-feedback";
+import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
 	LaplaceConstructionTask,
 	LaplaceEntryRow,
@@ -27,6 +28,59 @@ function task(): LaplaceConstructionTask {
 	};
 }
 describe("construction field diagnostics", () => {
+	/** Accepted constructions must never display invalid fields beside Continue. */
+	it("returns no error diagnostics for accepted rational, split, template, and exceptional forms", () => {
+		for (const kind of ["factors", "roots", "template"] as const) {
+			const target = {
+				...task(),
+				kind,
+				construction: {
+					mode: "finite" as const,
+					gain: "1",
+					rows: [row("-2")],
+				},
+			};
+			const draft = {
+				...target.construction,
+				rows: [row("-2/1", "1/1")],
+			};
+			const result = validateLaplaceTask(target, "", {}, [], draft);
+			expect(result.result.status).toBe("correct");
+			expect(result.construction).toEqual({});
+		}
+		const target = task();
+		const split = {
+			...target.construction,
+			rows: [row("-2"), row("-2"), row("-3")],
+		};
+		expect(
+			validateLaplaceTask(target, "", {}, [], split).construction,
+		).toEqual({});
+		for (const mode of ["none", "zero"] as const) {
+			const exceptional = {
+				...target,
+				construction: { mode, gain: "", rows: [] },
+			};
+			expect(
+				validateLaplaceTask(
+					exceptional,
+					"",
+					{},
+					[],
+					exceptional.construction,
+				).result.status,
+			).toBe("correct");
+			expect(
+				validateLaplaceTask(
+					exceptional,
+					"",
+					{},
+					[],
+					exceptional.construction,
+				).construction,
+			).toEqual({});
+		}
+	});
 	/** Separates a wrong quadratic constant from its already correct linear coefficient. */
 	it("identifies the second quadratic field and duplicate PFD terms", () => {
 		const target = {

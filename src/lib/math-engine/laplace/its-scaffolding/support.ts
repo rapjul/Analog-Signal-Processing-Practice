@@ -62,6 +62,7 @@ export function supportTasks(
 				id: `active-${termIndex}`,
 				label: `Term ${termIndex + 1} active on this interval (1 yes, 0 no)`,
 				target: active[i] ? "1" : "0",
+				incorrectMessage: `Compare term ${termIndex + 1}'s ${original[termIndex]!.side === "right" ? "right-sided" : "left-sided"} support boundary $t=${fraction(original[termIndex]!.delay).toLatex()}$ with the current interval $${range}$. Mark 1 only when the step is active throughout this interval.`,
 			})),
 			{
 				id: "combined",

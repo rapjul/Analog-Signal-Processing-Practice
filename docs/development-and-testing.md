@@ -170,9 +170,9 @@ Production runs require port `33210` to be free and never reuse a running develo
 
 Development visual runs disable hot reload and verify the requested active step before capturing its image. Reproducible Fourier visual fixtures include explicit URL seeds, so development and production compare the same problems against shared baselines. Full-page captures reset scrolling and keep the sticky harmonic toolbar in normal flow to avoid compositor pixel jitter; the live site's sticky behavior is unchanged.
 
-The E2E suite tests:
-
 Laplace regressions include current-expression hint content, exceptional zero/constant factorizations, field-level construction errors, every meaningful coefficient-elimination row, and exact support-interval evidence. `tests/unit/laplace-construction-feedback.test.ts`, `tests/unit/laplace-elimination.test.ts`, and `tests/unit/laplace-support.test.ts` provide independent mathematical cases. `tests/e2e/laplace-module.spec.ts` exercises the coefficient-matching alternative and rejects an unchanged support expression through ordinary controls at `320px`.
+
+The E2E suite tests:
 
 - **Module Workflows**: Full step-by-step problem completion across all 6 practice modules.
 - **Accessibility**: Keyboard navigation (`Tab` / `:focus-visible`), ARIA attributes, and live regions (`tests/e2e/accessibility.spec.ts`).

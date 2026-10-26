@@ -37,12 +37,17 @@ export function validateLaplaceTask(
 		task.kind === "factors" ||
 		task.kind === "roots" ||
 		task.kind === "template"
-	)
+	) {
+		const result = validateConstruction(task, construction);
 		return {
-			result: validateConstruction(task, construction),
+			result,
 			fields: {},
-			construction: constructionFeedback(task, construction),
+			construction:
+				result.status === "correct"
+					? {}
+					: constructionFeedback(task, construction),
 		};
+	}
 	if (task.kind === "fields") {
 		const fields = Object.fromEntries(
 			task.fields.map((field) => {
@@ -57,7 +62,7 @@ export function validateLaplaceTask(
 					field.id,
 					{
 						...checked,
-						message: `${field.label}: ${checked.status === "correct" ? "verified exactly." : field.interval || checked.status === "unsupported" ? checked.message : checked.status === "invalid" ? "enter a complete exact value, including zero." : "check this value's sign and the operation in the displayed formula."}`,
+						message: `${field.label}: ${checked.status === "correct" ? "verified exactly." : field.interval || checked.status === "unsupported" ? checked.message : checked.status === "invalid" ? "enter a complete exact value, including zero." : (field.incorrectMessage ?? "check this value's sign and the operation in the displayed formula.")}`,
 					},
 				];
 			}),
