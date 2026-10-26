@@ -9,7 +9,11 @@ import type {
 	LaplaceResponseTerm,
 	LaplaceTask,
 } from "./types";
-import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
+import {
+	verifyLaplaceInterval,
+	verifyLaplaceS,
+	verifyLaplaceTime,
+} from "./verification";
 
 /** Task feedback and independently graded coefficient results. */
 export interface LaplaceTaskValidation {
@@ -42,15 +46,18 @@ export function validateLaplaceTask(
 	if (task.kind === "fields") {
 		const fields = Object.fromEntries(
 			task.fields.map((field) => {
-				const checked = verifyLaplaceS(
-					values[field.id] ?? "",
-					field.target,
-				);
+				const checked = field.interval
+					? verifyLaplaceInterval(
+							values[field.id] ?? "",
+							field.target,
+							field.interval,
+						)
+					: verifyLaplaceS(values[field.id] ?? "", field.target);
 				return [
 					field.id,
 					{
 						...checked,
-						message: `${field.label}: ${checked.status === "correct" ? "verified exactly." : checked.status === "unsupported" ? checked.message : checked.status === "invalid" ? "enter a complete exact value, including zero." : "check this value's sign and the operation in the displayed formula."}`,
+						message: `${field.label}: ${checked.status === "correct" ? "verified exactly." : field.interval || checked.status === "unsupported" ? checked.message : checked.status === "invalid" ? "enter a complete exact value, including zero." : "check this value's sign and the operation in the displayed formula."}`,
 					},
 				];
 			}),

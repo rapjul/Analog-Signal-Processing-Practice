@@ -29,6 +29,7 @@ import type {
 } from "$lib/math-engine/laplace/types";
 import { verifyLaplaceTime } from "$lib/math-engine/laplace/verification";
 import { factorTask, fieldTask, rootList, rootTask, task } from "./shared";
+import { supportTasks } from "./support";
 import { teaching, teachRoc, teachSignal } from "./teaching";
 
 /** @param blocks - Exact rational blocks. @returns Mandatory cancellation and root analysis for every block. */
@@ -378,29 +379,9 @@ function supportRewriteStage(
 	original: LaplaceSignalTerm[],
 	combined: LaplaceSignalTerm[],
 ): LaplaceStage {
-	const response = responseLatex(combined);
-	const boundaries = [...new Set(original.map((term) => term.delay))]
-		.map((delay) => `$${delay}$`)
-		.join(", ");
 	return {
 		id: "combine-support",
 		title: "Combine Time Support Before Transforming",
-		tasks: [
-			{
-				id: "forward-support",
-				title: "Rewrite the complete supported signal",
-				kind: "t",
-				lhs: "x(t)",
-				prompt: "The original components have no common ROC. Combine their time supports first; enter an equivalent complete signal before using termwise pairs.",
-				answer: response,
-				terms: original,
-				...teaching(
-					"Cancellation of infinite tails can make the complete signal transformable even when its original pieces have disjoint convergence regions.",
-					`Split the time line at the supplied delays ${boundaries}. On each open interval, add only the active signal terms. Ordinary values at isolated endpoints do not affect the transform; keep impulses separate.`,
-					`Combining the active terms on these intervals gives $${response}$. This representation is verified across the support intervals and has a common convergence region, so its terms can now be transformed and added.`,
-					"Check Combined Support",
-				),
-			},
-		],
+		tasks: supportTasks(original, combined),
 	};
 }

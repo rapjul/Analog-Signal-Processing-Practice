@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createLaplaceExercise } from "$lib/math-engine/laplace/configuration";
 import { createForwardExercise } from "$lib/math-engine/laplace/its-scaffolding/forward";
 import { createRocExercise } from "$lib/math-engine/laplace/its-scaffolding/roc";
+import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type { LaplaceSignalTerm } from "$lib/math-engine/laplace/types";
 import {
 	verifyLaplaceS,
@@ -57,10 +58,25 @@ describe("forward and ROC workflows", () => {
 					(stage) => stage.id === "combine-support",
 				)!;
 				expect(support).toBeDefined();
-				expect(
-					verifyLaplaceTime(support.tasks[0]!.answer, problem.terms)
-						.status,
-				).toBe("correct");
+				for (const task of support.tasks) {
+					const values =
+						task.kind === "fields"
+							? Object.fromEntries(
+									task.fields.map((field) => [
+										field.id,
+										field.target,
+									]),
+								)
+							: {};
+					expect(
+						validateLaplaceTask(
+							task,
+							task.answer,
+							values,
+							problem.terms,
+						).result.status,
+					).toBe("correct");
+				}
 				const families = problem.stages.find(
 					(stage) => stage.id === "separate",
 				)!.tasks;

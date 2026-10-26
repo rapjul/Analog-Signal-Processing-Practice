@@ -82,6 +82,20 @@ export function commonFactors(factors: LaplaceFactor[][]): LaplaceFactor[] {
 
 /** @param term - Signal term. @returns Exact time-domain expression with explicit support. */
 export function signalLatex(term: LaplaceSignalTerm): string {
+	return formatSignal(term, true);
+}
+
+/** @param term - Active ordinary signal. @returns Its amplitude expression without support; impulses remain separate. */
+export function signalOrdinaryLatex(term: LaplaceSignalTerm): string {
+	if (term.kind === "impulse")
+		throw new Error(
+			"Keep impulses separate from ordinary interval values.",
+		);
+	return formatSignal(term, false);
+}
+
+/** @param term - Signal parameters. @param supported - Whether to include the step factor. @returns Exact signal notation. */
+function formatSignal(term: LaplaceSignalTerm, supported: boolean): string {
 	const delay = fraction(term.delay),
 		amplitude = fractionLatex(term.amplitude).toLatex();
 	const time = delay.numerator ? `(t-(${delay.toLatex()}))` : "t";
@@ -97,7 +111,7 @@ export function signalLatex(term: LaplaceSignalTerm): string {
 		term.kind === "cosine" || term.kind === "sine"
 			? `\\${term.kind === "cosine" ? "cos" : "sin"}((${frequency.toLatex()})${time})`
 			: "";
-	return `(${amplitude})${polynomial}${exponential}${trig}u(${term.side === "left" ? "-" : ""}${time})`;
+	return `(${amplitude})${polynomial}${exponential}${trig}${supported ? `u(${term.side === "left" ? "-" : ""}${time})` : ""}`;
 }
 
 /** @param terms - Verified terms. @returns Supported sum, with no implicit impulse-step product. */

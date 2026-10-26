@@ -57,6 +57,58 @@ function failure(error: unknown): TransformValidationResult {
 			};
 }
 
+/** @param answer - Ordinary expression without support functions. @param target - Independently assembled active terms. @param bounds - Exact open interval. @returns Interval equality retaining strict distribution rejection. */
+export function verifyLaplaceInterval(
+	answer: string,
+	target: string,
+	bounds: { min: string | null; max: string | null },
+): TransformValidationResult {
+	try {
+		const actual = parseExpression(answer, "t");
+		/** @param node - Parsed subtree. @returns Whether interval-only input still contains support or distributions. */
+		const hasSupport = (node: unknown): boolean =>
+			node === "Heaviside" ||
+			node === "DiracDelta" ||
+			(Array.isArray(node) && node.some(hasSupport));
+		if (hasSupport(actual))
+			return {
+				status: "invalid",
+				message:
+					"On this interval, evaluate support functions first. Enter only the ordinary active-term sum; keep impulses separate.",
+			};
+		/** @param value - Exact finite boundary. @returns Scalar identity for interval comparison. */
+		const endpoint = (value: string) => {
+			const q = fraction(value);
+			return literalScalar(String(q.numerator)).divide(
+				literalScalar(String(q.denominator)),
+			);
+		};
+		const interval = {
+			min:
+				bounds.min === null
+					? -Infinity
+					: fraction(bounds.min).toNumber(),
+			max:
+				bounds.max === null
+					? Infinity
+					: fraction(bounds.max).toNumber(),
+			minExact: bounds.min === null ? undefined : endpoint(bounds.min),
+			maxExact: bounds.max === null ? undefined : endpoint(bounds.max),
+		};
+		return outcome(
+			canonicalTransformsMatch(
+				normalizeLaplaceInterval(actual, interval),
+				normalizeLaplaceInterval(
+					parseExpression(target, "t"),
+					interval,
+				),
+			),
+		);
+	} catch (error) {
+		return failure(error);
+	}
+}
+
 /** @param answer - Submitted s-domain expression. @param target - Independently built exact expression. @param lhs - Optional task-specific assignment label. @returns Structural comparison. */
 export function verifyLaplaceS(
 	answer: string,

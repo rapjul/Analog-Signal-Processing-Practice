@@ -92,6 +92,10 @@ export interface LaplaceSingleTask extends LaplaceTaskBase {
 
 /** One independently graded exact coefficient. */
 export interface LaplaceAnswerField {
+	/** Ordinary expression restricted to this exact open time interval; null denotes infinity. */ interval?: {
+		min: string | null;
+		max: string | null;
+	};
 	/** Stable input identifier within this task. */ id: string;
 	/** Accessible label with optional mathematical notation. */ label: string;
 	/** Exact target built from structured initial conditions. */ target: string;
