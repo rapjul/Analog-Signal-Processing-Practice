@@ -29,7 +29,7 @@ automated tests alongside their behavior changes.
 ## Beginner teaching and answer construction
 
 The tutor assumes arithmetic and introduces algebra and transform vocabulary in
-brief explanations. Single-choice cards check on activation, explain successful
+optional first hints. Single-choice cards check on activation, explain successful
 answers, and wait for **Continue**. Incorrect answers retain their drafts and
 receive feedback without mandatory remedial exercises.
 
@@ -46,16 +46,18 @@ Degree comparisons and common-copy counts provide evidence for division and
 cancellation decisions. Supported inversion paths include direct pairs and
 properties, shifted-square rewriting, and partial fractions using either cover-up
 or coefficient matching when applicable. Matching includes checked coefficient
-equations; decomposition templates check every denominator power and numerator
+equations and every meaningful elimination row; decomposition templates check every denominator power and numerator
 shape. Alternative paths are conditional tutor tasks, not changes to serialized
 problem configurations.
 
 Hints use the shared `HintDisclosure` presentation and explicit task-family
 teaching: concept, current setup, and an explained worked intermediate. There is
-no generic fallback hint generator. Assistance cannot check or advance tasks.
+no generic fallback hint generator. Concepts appear in Hint 1, followed by a current-expression setup and an explained intermediate calculation, rather than a repeated always-visible lesson. Zero polynomials and constants have dedicated guidance. Assistance cannot check or advance tasks.
 Completed summaries show verified mathematical results directly. Single-question
 stages omit redundant part labels; multipart stages use step-aware alphabetic
 labels. Fixed equation labels and mixed prose/math use `MathText`.
+
+Construction checks diagnose all provable errors by row and field, including signs, multiplicities, duplicate terms, and numerator/denominator confusion. Edits preserve drafts and clear stale diagnostics. See [ADR 0039](./adrs/0039-laplace-checked-construction-and-interval-evidence.md) for the distinction between structural evidence and final equality checks.
 
 ## Code organization
 
@@ -100,7 +102,7 @@ and ODE contributions, including cancellations that leave finite-duration signal
 When the original forward components have disjoint ROCs, the tutor first proves
 the complete signal's convergence from its surviving tails, independently verifies
 an equivalent support combination, and teaches that rewriting before applying
-termwise pairs. A complete signal with no open ROC remains unsupported.
+termwise pairs. Learners check which terms are active and their combined ordinary expression on every exact open support interval before assembling the supported signal. Step functions must be evaluated in interval fields; impulses remain separate distributions. A complete signal with no open ROC remains unsupported.
 Completion cancellation markers compare the original least common denominator
 with the complete response's surviving poles. Block-specific reductions remain
 inside their derivations. Removed copies and surviving pole multiplicities are

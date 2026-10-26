@@ -39,6 +39,16 @@ describe("Laplace field controls", () => {
 		);
 		expect(solver.fieldResults.y0!.status).toBe("correct");
 		expect(solver.fieldResults.dy0!.status).toBe("invalid");
+		const drafts = { ...solver.fieldInputs };
+		const step = solver.currentStep,
+			taskIndex = solver.taskIndex;
+		await act(() => {
+			solver.reset();
+			expect(solver.fieldResults).toEqual({});
+			solver.currentStep = step;
+			solver.taskIndex = taskIndex;
+			solver.fieldInputs = drafts;
+		});
 		expect(y0.value).toBe("1/1");
 		await fireEvent.input(dy0, { target: { value: "0/5" } });
 		await fireEvent.keyDown(dy0, { key: "Enter" });

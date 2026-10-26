@@ -7,6 +7,29 @@ import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Exercises the alternative coefficient-matching path through production controls. */
+	test("checks every elimination row on the matching path at 320px", async ({
+		page,
+	}) => {
+		test.setTimeout(90000);
+		const problem = generateLaplaceExercise("inverse", 73, "repeated");
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await completeLaplaceTasks(page, problem, undefined, {
+			method: "Partial Fractions: Coefficient Matching",
+		});
+		await expect(page.locator(".completion-banner")).toBeVisible();
+		await expect(page.locator(".katex-error")).toHaveCount(0);
+		expect(
+			await page.evaluate(
+				() =>
+					document.documentElement.scrollWidth <=
+					document.documentElement.clientWidth,
+			),
+		).toBe(true);
+	});
 	test("fills reactive construction targets through the development harness @dev-harness", async ({
 		page,
 	}) => {
@@ -126,6 +149,37 @@ test.describe("guided Laplace practice", () => {
 			const problem = createLaplaceExercise(spec);
 			await page.goto(`/laplace?${serializeLaplaceConfiguration(spec)}`);
 			await expect(page.locator(".configuration-error")).toHaveCount(0);
+			if (spec.workflow === "forward") {
+				await completeLaplaceTasks(
+					page,
+					problem,
+					"forward-support-interval-0-values",
+				);
+				await page
+					.locator('[data-field-id="combined"]')
+					.fill("u(t)+u(-t)-u(t-1)");
+				await page
+					.getByRole("button", {
+						name: "Check Support Interval",
+						exact: true,
+					})
+					.click();
+				await expect(
+					page.getByRole("button", { name: "Continue", exact: true }),
+				).toHaveCount(0);
+				await expect(
+					page.locator('[data-field-id="combined"]'),
+				).toHaveAttribute("aria-invalid", "true");
+				const tasks = problem.stages.flatMap((stage) => stage.tasks);
+				for (const task of tasks.slice(
+					tasks.findIndex(
+						(task) =>
+							task.id === "forward-support-interval-0-values",
+					),
+				))
+					await answerLaplaceTask(page, task);
+				await expect(page.locator(".completion-banner")).toBeVisible();
+			}
 			if (spec.workflow === "ode") {
 				await completeLaplaceTasks(page, problem, "ode-response");
 				const tasks = problem.stages.flatMap((stage) => stage.tasks);
@@ -141,7 +195,8 @@ test.describe("guided Laplace practice", () => {
 					);
 				}
 				await expect(page.locator(".completion-banner")).toBeVisible();
-			} else await completeLaplaceTasks(page, problem);
+			} else if (spec.workflow !== "forward")
+				await completeLaplaceTasks(page, problem);
 			await expect(page.locator(".laplace-visualizations")).toBeVisible();
 			expect(
 				await page.evaluate(

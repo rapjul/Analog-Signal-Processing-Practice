@@ -112,11 +112,12 @@ async function fillConstructionRow(
 			.selectOption(row.numerator);
 }
 
-/** @param page - Browser. @param problem - UI fixture. @param stopAt - Optional task boundary. Completes tasks through real validation. */
+/** @param page - Browser. @param problem - UI fixture. @param stopAt - Optional task boundary. @param selections - Accepted alternative strategy choices. Completes tasks through real validation. */
 export async function completeLaplaceTasks(
 	page: Page,
 	problem: LaplaceExercise,
 	stopAt?: string,
+	selections: Record<string, string> = {},
 ): Promise<void> {
 	const decisions: Record<string, string> = {};
 	for (const task of problem.stages.flatMap((stage) => stage.tasks)) {
@@ -126,8 +127,9 @@ export async function completeLaplaceTasks(
 		)
 			continue;
 		if (task.id === stopAt) return;
-		await answerLaplaceTask(page, task);
-		if (task.kind === "choice") decisions[task.id] = task.answer;
+		const answer = selections[task.id] ?? task.answer;
+		await answerLaplaceTask(page, task, answer);
+		if (task.kind === "choice") decisions[task.id] = answer;
 	}
 	await expect(page.locator(".completion-banner")).toBeVisible();
 }

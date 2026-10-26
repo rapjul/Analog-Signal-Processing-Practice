@@ -103,6 +103,16 @@ export interface LaplaceAnswerField {
 
 /** A verified rule with blank coefficient slots. */
 export interface LaplaceFieldTask extends LaplaceTaskBase {
+	/** Exact elimination evidence, independent of instructional strings. */ operation?: {
+		/** Operation applied to every augmented entry. */ kind:
+			"divide" | "subtract";
+		/** Zero-based affected equation. */ row: number;
+		/** Source equation for subtraction, otherwise null. */ source:
+			number | null;
+		/** Nonzero exact divisor or multiplier. */ factor: string;
+		/** Exact affected row before the operation. */ before: string[];
+		/** Exact affected row afterward. */ after: string[];
+	};
 	/** Structured input discriminator. */ kind: "fields";
 	/** Equation containing named slots such as {{y0}}. */ frame: string;
 	/** Ordered independently checked coefficients. */ fields: LaplaceAnswerField[];

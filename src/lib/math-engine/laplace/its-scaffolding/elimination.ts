@@ -16,15 +16,29 @@ export function eliminationTasks(
 	const rows = initial.map((row) => [...row]),
 		tasks: LaplaceFieldTask[] = [];
 	let exchanges = "";
-	/** @param row - Affected equation. @param instruction - Exact operation. @param calculate - Equality-preserving operation. Records a task before changing the working system. */
+	/** @param row - Affected equation. @param source - Source equation for subtraction, or null for division. @param factor - Exact multiplier or divisor. Records structured evidence before changing the system. */
 	function record(
 		row: number,
-		instruction: string,
-		calculate: () => Poly,
+		source: number | null,
+		factor: Poly[number],
 	): void {
 		const before = systemLatex(rows, labels),
 			previous = rows[row]!,
-			next = calculate();
+			next = previous.map((value, index) =>
+				source === null
+					? value.divide(factor)
+					: value.add(
+							rows[source]![index]!.multiply(factor).negate(),
+						),
+			);
+		const instruction =
+			source === null
+				? `Divide equation ${row + 1} by $${factor.toLatex()}$.`
+				: `Subtract $${factor.toLatex()}$ times equation ${source + 1} from equation ${row + 1}.`;
+		const calculation =
+			source === null
+				? `\\frac{${previous[0]!.toLatex()}}{${factor.toLatex()}}`
+				: `(${previous[0]!.toLatex()})-(${factor.toLatex()})(${rows[source]![0]!.toLatex()})`;
 		const fields = next.map((value, index) => ({
 			id: `entry-${index}`,
 			label:
@@ -38,6 +52,14 @@ export function eliminationTasks(
 			id: `matching-operation-${tasks.length}-values`,
 			title: `Update equation ${row + 1}`,
 			kind: "fields",
+			operation: {
+				kind: source === null ? "divide" : "subtract",
+				row,
+				source,
+				factor: factor.toLatex(),
+				before: previous.map((value) => value.toLatex()),
+				after: next.map((value) => value.toLatex()),
+			},
 			fields,
 			frame,
 			answer: renderLaplaceFields(
@@ -51,7 +73,7 @@ export function eliminationTasks(
 			...teaching(
 				"An equation stays equivalent when both sides are divided by the same nonzero number, or when a multiple of another equation is subtracted from both sides. Apply the operation to every entry, including the right-hand constant.",
 				`${exchanges}${instruction} Work across equation ${row + 1} from its first coefficient through its constant.`,
-				`The first coefficient changes from $${previous[0]!.toLatex()}$ to $${next[0]!.toLatex()}$ under this operation. Apply the same arithmetic to the remaining entries; the displayed unknown names stay unchanged.`,
+				`For the first coefficient, $${calculation}=${next[0]!.toLatex()}$. Apply the same arithmetic to the remaining entries and to the right-hand constant; the displayed unknown names stay unchanged.`,
 				"Check Equation Row",
 			),
 			explanation: `${exchanges}${instruction} The checked equation is $${renderLaplaceFields(frame, Object.fromEntries(fields.map((field) => [field.id, field.target])))}$. This replaces equation ${row + 1} while preserving the system's solution.`,
@@ -73,25 +95,12 @@ export function eliminationTasks(
 		}
 		const divisor = rows[column]![column]!;
 		if (divisor.numerator !== divisor.denominator)
-			record(
-				column,
-				`Divide equation ${column + 1} by $${divisor.toLatex()}$.`,
-				() => rows[column]!.map((value) => value.divide(divisor)),
-			);
+			record(column, null, divisor);
 		for (let row = 0; row < rows.length; row++) {
 			if (row === column) continue;
 			const multiplier = rows[row]![column]!;
 			if (!multiplier.numerator) continue;
-			record(
-				row,
-				`Subtract $${multiplier.toLatex()}$ times equation ${column + 1} from equation ${row + 1}.`,
-				() =>
-					rows[row]!.map((value, index) =>
-						value.add(
-							rows[column]![index]!.multiply(multiplier).negate(),
-						),
-					),
-			);
+			record(row, column, multiplier);
 		}
 	}
 	return tasks;

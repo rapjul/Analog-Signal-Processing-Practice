@@ -172,6 +172,8 @@ Development visual runs disable hot reload and verify the requested active step 
 
 The E2E suite tests:
 
+Laplace regressions include current-expression hint content, exceptional zero/constant factorizations, field-level construction errors, every meaningful coefficient-elimination row, and exact support-interval evidence. `tests/unit/laplace-construction-feedback.test.ts`, `tests/unit/laplace-elimination.test.ts`, and `tests/unit/laplace-support.test.ts` provide independent mathematical cases. `tests/e2e/laplace-module.spec.ts` exercises the coefficient-matching alternative and rejects an unchanged support expression through ordinary controls at `320px`.
+
 - **Module Workflows**: Full step-by-step problem completion across all 6 practice modules.
 - **Accessibility**: Keyboard navigation (`Tab` / `:focus-visible`), ARIA attributes, and live regions (`tests/e2e/accessibility.spec.ts`).
 - **Theme Switching**: Dark and light mode rendering and persistence (`tests/e2e/navigation-and-theme.spec.ts`).

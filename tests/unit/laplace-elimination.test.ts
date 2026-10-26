@@ -23,6 +23,9 @@ describe("checked coefficient elimination", () => {
 		]);
 		expect(tasks.at(-1)!.fields.at(-1)!.target).toBe("\\frac{1}{3}");
 		for (const task of tasks) {
+			expect(task.operation!.after).toEqual(
+				task.fields.map((field) => field.target),
+			);
 			const values = Object.fromEntries(
 				task.fields.map((field) => [field.id, field.target]),
 			);

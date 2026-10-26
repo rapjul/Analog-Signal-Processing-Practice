@@ -27,6 +27,45 @@ function task(): LaplaceConstructionTask {
 	};
 }
 describe("construction field diagnostics", () => {
+	/** Separates a wrong quadratic constant from its already correct linear coefficient. */
+	it("identifies the second quadratic field and duplicate PFD terms", () => {
+		const target = {
+			...task(),
+			kind: "template" as const,
+			construction: {
+				mode: "finite" as const,
+				gain: "0",
+				rows: [
+					{
+						...row("2"),
+						kind: "quadratic" as const,
+						second: "5",
+						numerator: "linear" as const,
+					},
+				],
+			},
+		};
+		const bad = {
+			...target.construction,
+			rows: [{ ...target.construction.rows[0]!, second: "6" }],
+		};
+		expect(
+			constructionFeedback(target, bad)["row-0-second"]!.message,
+		).toContain("second coefficient");
+		const duplicate = {
+			...target.construction,
+			rows: [...target.construction.rows, ...target.construction.rows],
+		};
+		expect(
+			constructionFeedback(target, duplicate)["row-1-power"]!.message,
+		).toContain("duplicates");
+		expect(
+			constructionFeedback(target, {
+				...target.construction,
+				rows: [{ ...target.construction.rows[0]!, power: "1/1" }],
+			}),
+		).toEqual({});
+	});
 	/** Tests simultaneous errors rather than stopping at the first bad row. */
 	it("reports signs, source confusion, and missing copies together", () => {
 		const result = constructionFeedback(task(), {

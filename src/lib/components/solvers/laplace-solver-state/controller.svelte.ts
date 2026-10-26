@@ -195,6 +195,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Resets every task, hint, answer, and completion flag. */
 	reset(): void {
 		this.constructionResults = {};
+		this.fieldResults = {};
 		this.currentStep = 1;
 		this.taskIndex = 0;
 		this.isCompleted = false;

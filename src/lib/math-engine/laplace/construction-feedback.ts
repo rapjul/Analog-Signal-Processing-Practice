@@ -83,37 +83,7 @@ export function constructionFeedback(
 	}
 	const actual = new Map<string, { count: number; indices: number[] }>();
 	for (const [index, row] of draft.rows.entries()) {
-		let valid = true;
-		const names: ("first" | "second" | "power")[] =
-			row.kind === "quadratic"
-				? ["first", "second", "power"]
-				: ["first", "power"];
-		for (const name of names) {
-			try {
-				const value = row[name];
-				if (!value.trim()) throw new Error("blank");
-				if (name === "power") {
-					const q = fraction(value);
-					if (
-						q.denominator !== 1n ||
-						q.numerator < 1n ||
-						q.numerator > 4n
-					)
-						throw new Error("power");
-				} else numberKey(value);
-			} catch {
-				valid = false;
-				issue(
-					fields,
-					`row-${index}-${name}`,
-					name === "power"
-						? "Enter an integer power or multiplicity from one through four."
-						: "Enter a complete exact coefficient, including zero.",
-					true,
-				);
-			}
-		}
-		if (!valid) continue;
+		if (!validateRowFields(row, index, fields)) continue;
 		if (
 			task.kind === "roots" &&
 			row.kind === "quadratic" &&
@@ -132,49 +102,7 @@ export function constructionFeedback(
 				(task.kind === "template"
 					? `:${fraction(row.power).numerator}:${row.numerator}`
 					: "");
-		if (!expected.has(key)) {
-			const same = target.rows.find((entry) => location(entry) === base);
-			if (same && task.kind === "template") {
-				if (
-					!target.rows.some(
-						(entry) =>
-							location(entry) === base &&
-							fraction(entry.power).numerator ===
-								fraction(row.power).numerator,
-					)
-				)
-					issue(
-						fields,
-						`row-${index}-power`,
-						"This denominator power is not required by the verified factorization.",
-					);
-				if (same.numerator !== row.numerator)
-					issue(
-						fields,
-						`row-${index}-numerator`,
-						"Use a numerator degree below the base factor's degree.",
-					);
-			} else {
-				const reversed = {
-					...row,
-					first: fractionLatex(row.first).negate().toLatex(),
-				};
-				const wrongSource = task.otherConstruction?.rows.some(
-					(entry) => location(entry) === base,
-				);
-				issue(
-					fields,
-					`row-${index}-first`,
-					target.rows.some(
-						(entry) => location(entry) === location(reversed),
-					)
-						? "Check this sign: solving s+b=0 requires subtracting b."
-						: wrongSource
-							? "This location belongs to the other polynomial. Recheck numerator versus denominator."
-							: "This row does not match the requested factor or root set. Check its type and coefficients.",
-				);
-			}
-		}
+		if (!expected.has(key)) diagnoseRow(task, row, index, fields);
 		const group = actual.get(key) ?? { count: 0, indices: [] };
 		group.count +=
 			task.kind === "template"
@@ -206,4 +134,117 @@ export function constructionFeedback(
 			"Some required factors, roots, or copies are missing. Recheck the complete polynomial without assuming a row count.",
 		);
 	return fields;
+}
+
+/** @param row - One draft. @param index - Stable index until editing. @param fields - Diagnostics. @returns Whether all required numeric entries can be compared. */
+function validateRowFields(
+	row: LaplaceEntryRow,
+	index: number,
+	fields: ConstructionFeedback,
+): boolean {
+	let valid = true;
+	const names: ("first" | "second" | "power")[] =
+		row.kind === "quadratic"
+			? ["first", "second", "power"]
+			: ["first", "power"];
+	for (const name of names) {
+		try {
+			const value = row[name];
+			if (!value.trim()) throw new Error("blank");
+			if (name === "power") {
+				const q = fraction(value);
+				if (
+					q.denominator !== 1n ||
+					q.numerator < 1n ||
+					q.numerator > 4n
+				)
+					throw new Error("power");
+			} else numberKey(value);
+		} catch {
+			valid = false;
+			issue(
+				fields,
+				`row-${index}-${name}`,
+				name === "power"
+					? "Enter an integer power or multiplicity from one through four."
+					: "Enter a complete exact coefficient, including zero.",
+				true,
+			);
+		}
+	}
+	return valid;
+}
+
+/** @param task - Target context. @param row - Numerically valid draft. @param index - Row identity. @param fields - Diagnostics. Reports only uniquely supported diagnoses. */
+function diagnoseRow(
+	task: LaplaceConstructionTask,
+	row: LaplaceEntryRow,
+	index: number,
+	fields: ConstructionFeedback,
+): void {
+	const base = location(row),
+		target = task.construction;
+	const same = target.rows.find((entry) => location(entry) === base);
+	if (same && task.kind === "template") {
+		if (
+			!target.rows.some(
+				(entry) =>
+					location(entry) === base &&
+					fraction(entry.power).numerator ===
+						fraction(row.power).numerator,
+			)
+		)
+			issue(
+				fields,
+				`row-${index}-power`,
+				"This denominator power is not required by the verified factorization.",
+			);
+		if (same.numerator !== row.numerator)
+			issue(
+				fields,
+				`row-${index}-numerator`,
+				"Use a numerator degree below the base factor's degree.",
+			);
+		return;
+	}
+	const reversed = {
+		...row,
+		first: fractionLatex(row.first).negate().toLatex(),
+	};
+	if (target.rows.some((entry) => location(entry) === location(reversed))) {
+		issue(
+			fields,
+			`row-${index}-first`,
+			"Check this sign: solving s+b=0 requires subtracting b.",
+		);
+		return;
+	}
+	if (
+		task.otherConstruction?.rows.some((entry) => location(entry) === base)
+	) {
+		issue(
+			fields,
+			`row-${index}-first`,
+			"This location belongs to the other polynomial. Recheck numerator versus denominator.",
+		);
+		return;
+	}
+	const candidates = target.rows.filter(
+		(entry) =>
+			entry.kind === row.kind &&
+			numberKey(entry.first) === numberKey(row.first),
+	);
+	if (row.kind === "quadratic" && candidates.length === 1) {
+		issue(
+			fields,
+			`row-${index}-second`,
+			"The first coefficient matches a required row; recheck this row's second coefficient or imaginary frequency.",
+		);
+		return;
+	}
+	issue(
+		fields,
+		`row-${index}-first`,
+		"This row does not match the requested factor or root set. Check its type and coefficients.",
+	);
 }
