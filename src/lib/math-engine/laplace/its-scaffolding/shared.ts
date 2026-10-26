@@ -166,9 +166,13 @@ export function factorTask(
 		construction: target,
 		...teaching(
 			"Factoring rewrites a sum as a product. A linear factor has the form $s+b$; an irreducible quadratic has the form $s^2+bs+c$. The outside gain retains the original leading coefficient.",
-			polynomial.length === 2
-				? `Divide $${polynomialLatex(polynomial)}$ by its leading coefficient $${polynomial[1]!.toLatex()}$. The remaining constant is $(${polynomial[0]!.toLatex()})/(${polynomial[1]!.toLatex()})$. Put the leading coefficient outside and the divided constant in the linear row.`
-				: `The highest-power coefficient of $${polynomialLatex(polynomial)}$ is $${polynomial.at(-1)!.toLatex()}$. Divide by that coefficient before finding monic factors. For a quadratic, seek constants whose sum and product match its coefficients; if real linear factors do not exist, retain a quadratic.`,
+			zero(polynomial)
+				? "All coefficients are zero. Select Identically Zero; dividing by a leading coefficient of zero is undefined."
+				: polynomial.length === 1
+					? `The expression $${polynomialLatex(polynomial)}$ has no variable. Enter this constant as the outside gain and leave the factor rows empty.`
+					: polynomial.length === 2
+						? `Divide $${polynomialLatex(polynomial)}$ by its leading coefficient $${polynomial[1]!.toLatex()}$. The remaining constant is $(${polynomial[0]!.toLatex()})/(${polynomial[1]!.toLatex()})$. Put the leading coefficient outside and the divided constant in the linear row.`
+						: `The highest-power coefficient of $${polynomialLatex(polynomial)}$ is $${polynomial.at(-1)!.toLatex()}$. Divide by that coefficient before finding monic factors. For a quadratic, seek constants whose sum and product match its coefficients; if real linear factors do not exist, retain a quadratic.`,
 			factors[0]
 				? `Divide by the candidate factor $${polynomialLatex(factorPoly(factors[0]))}$: $${polynomialLatex(polynomial)}=(${polynomialLatex(factorPoly(factors[0]))})(${polynomialLatex(divide(polynomial, factorPoly(factors[0]))[0])})$ with zero remainder. Multiplying these pieces verifies the candidate; continue factoring the quotient if it is reducible.`
 				: zero(polynomial)
@@ -347,6 +351,7 @@ export function analysisStage(
 				: "No division needed",
 			["Divide first", "No division needed"],
 		),
+		...divisionTeaching(data),
 	});
 	if (
 		data.numerator.length >= data.denominator.length &&
@@ -366,6 +371,20 @@ export function analysisStage(
 		title: "Analyze Zeros, Poles, and Cancellations",
 		tasks,
 	};
+}
+
+/** @param data - Reduced exact rational expression. @returns Current-expression degree and division guidance. */
+function divisionTeaching(data: LaplaceDecomposition) {
+	const n = data.numerator.length - 1,
+		d = data.denominator.length - 1;
+	return teaching(
+		"A polynomial's degree is its highest power with a nonzero coefficient. A rational expression is proper when its numerator degree is smaller than its denominator degree.",
+		`Compare $N(s)=${polynomialLatex(data.numerator)}$ and $D(s)=${polynomialLatex(data.denominator)}$ after cancellation.`,
+		zero(data.numerator)
+			? "The numerator is zero, so the complete expression is zero. No polynomial division is needed."
+			: `Here $\\deg N=${n}$ and $\\deg D=${d}$. Since $${n}${n < d ? "<" : "\\ge"}${d}$, ${n < d ? "the fraction is proper and no division is needed" : `divide the leading coefficients first to obtain constant quotient $${data.quotient}$`}.`,
+		"Check Division Decision",
+	);
 }
 
 /** @param polynomial - Exact coefficients. @param point - Substitution value. @returns Exact substituted value. */
@@ -625,6 +644,12 @@ export function decompositionStages(
 			[pair, coverup, matching],
 		),
 		accepted: methods,
+		...teaching(
+			"An inversion method rewrites a transform into known pairs. Cover-up applies to distinct real linear poles; coefficient matching also handles repeated and quadratic factors.",
+			`The reduced denominator is $${polynomialLatex(data.denominator)}$, with ${data.poles.length} distinct factor ${data.poles.length === 1 ? "family" : "families"}. Examine their types and powers before choosing.`,
+			`For $${rationalLatex({ n: data.numerator, d: data.denominator })}$, ${direct ? "one denominator family remains, so a direct-pair rewrite is available" : "multiple denominator families remain, so separate them into a sum of pairs"}. ${simple ? "Every pole is real and simple, so both cover-up and coefficient matching apply." : "Repeated or quadratic factors require coefficient matching on the partial-fraction path."}`,
+			"Check Inversion Method",
+		),
 	};
 	return [
 		{
@@ -678,6 +703,7 @@ export function decompositionStages(
 									["Divide first", "No division needed"],
 								),
 								id: "method-division",
+								...divisionTeaching(data),
 							},
 							...(!zero(data.numerator) &&
 							data.numerator.length >= data.denominator.length
@@ -737,7 +763,7 @@ export function decompositionStages(
 					...teaching(
 						"A real root produces a linear factor. A nonreal conjugate pair produces a real irreducible quadratic. Multiplicity counts copies, rather than distinct locations.",
 						`Classify the factors of $${polynomialLatex(data.denominator)}$ from the verified roots.`,
-						"For $(s+1)^2(s^2+4)$, there are two linear copies and one quadratic copy. The PFD must include both linear denominator powers.",
+						`The verified factors are $${data.poles.map((factor) => `(${polynomialLatex(factorPoly(factor))})^{${factor.multiplicity}}`).join("")}$. Count each displayed power as that many copies; each quadratic accounts for a conjugate pair.`,
 						"Check Factor Types",
 					),
 				},
@@ -752,7 +778,7 @@ export function decompositionStages(
 					...teaching(
 						"A proper fraction over a linear factor needs a constant numerator. A proper fraction over an irreducible quadratic needs a general linear numerator.",
 						`Use the factors of $${polynomialLatex(data.denominator)}$. For a repeated factor of power $m$, add a term for each power from one through $m$, even if a solved coefficient might be zero.`,
-						`For $(s+3)(s+5)$, the template is $A/(s+3)+B/(s+5)$. For $(s+3)^2$, use $A/(s+3)+B/(s+3)^2$ instead. The numerator degree stays below each base factor's degree.`,
+						`Start with $${polynomialLatex(factorPoly(data.poles[0]!))}$: include denominator powers $1$ through $${data.poles[0]!.multiplicity}$. Its degree is $${factorPoly(data.poles[0]!).length - 1}$, so choose a ${fraction(data.poles[0]!.frequency).numerator ? "linear" : "constant"} numerator. Repeat this rule for the other verified factors.`,
 						"Check PFD Template",
 					),
 					explanation: `Your construction includes all required factors, powers, and numerator degrees. The next calculations label equivalent terms in fixed factor order as $${data.template}$. A quadratic numerator can be written $A(s-a)+B$ instead of $As+C$, because $C=B-Aa$; the shifted basis prepares it for the transform pairs.`,
@@ -804,7 +830,7 @@ export function decompositionStages(
 								...teaching(
 									"Before applying a direct pair, rewrite the numerator in the same shifted basis as the denominator. This can separate cosine and sine, or lower powers of one repeated real factor.",
 									`For this transform the denominator is $${polynomialLatex(data.denominator)}$. Expand your proposed weighted numerator pieces and equate their coefficients to the displayed numerator. The constant quotient $${data.quotient}$ is separate.`,
-									"For example, $2s+7=2(s+3)+1$. Over $(s+3)^2+4$, the first part matches a cosine numerator and the remaining constant matches a sine numerator after frequency normalization.",
+									`Expanding the pair-ready pieces gives $${polynomialLatex(data.numerator)}=(${data.quotient})(${polynomialLatex(data.denominator)})+${data.slots.map((slot) => `(${slot.value})(${polynomialLatex(multiply(divide(data.denominator, slot.denominator)[0], slot.basis))})`).join("+")}$. Match equal powers to determine each weight, keeping the quotient separate.`,
 									"Check Pair-Ready Numerator",
 								),
 							} satisfies LaplaceTask,
@@ -825,7 +851,7 @@ export function decompositionStages(
 					...task(
 						"reconstruction",
 						"Recombine the fractions",
-						"Enter your PFD sum, including any constant quotient. It must reconstruct the reduced transform.",
+						"Verify the identity using your checked template and coefficients, including the constant quotient. Enter an expression equal to the reduced transform.",
 						"s",
 						rationalLatex({
 							n: data.numerator,

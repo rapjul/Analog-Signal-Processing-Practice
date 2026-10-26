@@ -38,6 +38,51 @@ function fixture(
 }
 
 describe("exact learner-built Laplace mathematics", () => {
+	/** Ensures zero and constant setup never asks for nonexistent polynomial factors. */
+	it("teaches exceptional factorizations before ordinary division", () => {
+		for (const gain of ["0", "3/2"]) {
+			const problem = createLaplaceExercise({
+				workflow: "inverse",
+				seed: 1,
+				system: false,
+				rational: {
+					gain,
+					zeros: [],
+					poles: [],
+					delay: "0",
+					region: -1,
+				},
+			});
+			const task = problem.stages
+				.flatMap((stage) => stage.tasks)
+				.find((entry) => entry.id === "factor-numerator")!;
+			expect(task.hints[1]).toContain(
+				gain === "0"
+					? "dividing by a leading coefficient of zero is undefined"
+					: "outside gain",
+			);
+			expect(task.hints[1]).not.toContain("Divide by that coefficient");
+		}
+	});
+	/** Probes changed coefficients so a fixed worked example cannot satisfy the curriculum contract. */
+	it("uses the actual polynomial in division, method, and template hints", () => {
+		const spec = generateLaplaceExercise("inverse", 42, "repeated").spec;
+		if (spec.workflow !== "inverse")
+			throw new Error("Expected rational fixture.");
+		spec.rational.poles = [{ real: "-7", frequency: "0", multiplicity: 3 }];
+		const tasks = createLaplaceExercise(spec).stages.flatMap(
+			(stage) => stage.tasks,
+		);
+		expect(
+			tasks.find((task) => task.id === "division")!.hints[2],
+		).toContain("\\deg D=3");
+		expect(tasks.find((task) => task.id === "method")!.hints[2]).toContain(
+			"s^{3}+21s^{2}+147s+343",
+		);
+		expect(
+			tasks.find((task) => task.id === "template")!.hints[2],
+		).toContain("s+7");
+	});
 	it("works inverse-pair hints in time rather than repeating the transform being inverted", () => {
 		const tasks = ["delay", "two-sided"]
 			.flatMap(

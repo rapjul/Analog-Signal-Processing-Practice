@@ -40,6 +40,11 @@ describe("beginner Laplace teaching interactions", () => {
 			view.container.querySelector(".step-card.active .subpart-block"),
 		).toBeNull();
 		const first = solver.task!;
+		expect(view.container.querySelector(".lesson")).toBeNull();
+		await fireEvent.click(view.getByRole("button", { name: /Get Hint/ }));
+		expect(
+			view.getByRole("region", { name: "Hints" }).textContent,
+		).toContain("A Laplace transform rewrites a time signal");
 		await fireEvent.click(view.getByRole("button", { name: first.answer }));
 		expect(solver.result?.status).toBe("correct");
 		expect(solver.task?.id).toBe(first.id);

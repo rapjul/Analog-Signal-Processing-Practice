@@ -17,9 +17,6 @@
 
 {#if solver.task}
 	<div data-task-id={solver.task.id}>
-		{#if solver.task.lesson}<p class="lesson">
-				<MathText text={solver.task.lesson} />
-			</p>{/if}
 		<p><MathText text={solver.task.prompt} /></p>
 		{#if solver.task.formula}<MathBlock
 				math={solver.task.formula}
@@ -245,10 +242,6 @@
 	}
 	.choice:hover:not(:disabled) {
 		border-color: var(--accent-primary);
-	}
-	.lesson {
-		color: var(--text-secondary);
-		line-height: 1.6;
 	}
 	.success {
 		margin-block: 1rem;
