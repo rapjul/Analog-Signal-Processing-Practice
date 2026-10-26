@@ -614,12 +614,7 @@ export function decompositionStages(
 			[pair, coverup, matching],
 		),
 		accepted: methods,
-		...teaching(
-			"An inversion method rewrites a transform into known pairs. Cover-up applies to distinct real linear poles; coefficient matching also handles repeated and quadratic factors.",
-			`The reduced denominator is $${polynomialLatex(data.denominator)}$, with ${data.poles.length} distinct factor ${data.poles.length === 1 ? "family" : "families"}. Examine their types and powers before choosing.`,
-			`For $${rationalLatex({ n: data.numerator, d: data.denominator })}$, ${direct ? "one denominator family remains, so a direct-pair rewrite is available" : "multiple denominator families remain, so separate them into a sum of pairs"}. ${simple ? "Every pole is real and simple, so both cover-up and coefficient matching apply." : "Repeated or quadratic factors require coefficient matching on the partial-fraction path."}`,
-			"Check Inversion Method",
-		),
+		...strategyTeaching(data, simple, direct),
 	};
 	return [
 		{
@@ -833,4 +828,18 @@ export function decompositionStages(
 			],
 		},
 	];
+}
+
+/** @param data - Exact reduced expression. @param simple - Distinct real poles. @param direct - One denominator family. @returns Current-expression method guidance without controlling branches. */
+function strategyTeaching(
+	data: LaplaceDecomposition,
+	simple: boolean,
+	direct: boolean,
+) {
+	return teaching(
+		"An inversion method rewrites a transform into known pairs. Cover-up applies to distinct real linear poles; coefficient matching also handles repeated and quadratic factors.",
+		`The reduced denominator is $${polynomialLatex(data.denominator)}$, with ${data.poles.length} distinct factor ${data.poles.length === 1 ? "family" : "families"}. Examine their types and powers before choosing.`,
+		`For $${rationalLatex({ n: data.numerator, d: data.denominator })}$, ${direct ? "one denominator family remains, so a direct-pair rewrite is available" : "multiple denominator families remain, so separate them into a sum of pairs"}. ${simple ? "Every pole is real and simple, so both cover-up and coefficient matching apply." : "Repeated or quadratic factors require coefficient matching on the partial-fraction path."}`,
+		"Check Inversion Method",
+	);
 }

@@ -10,6 +10,9 @@ import type {
 /** Field-keyed diagnostics, cleared whenever rows are edited or removed. */
 export type ConstructionFeedback = Record<string, TransformValidationResult>;
 
+/** Exact row counts and draft indices contributing copies. */
+type RowGroups = Map<string, { count: number; indices: number[] }>;
+
 /** @param value - Exact draft value. @returns Canonical rational identity. */
 function numberKey(value: string): string {
 	const q = fractionLatex(value);
@@ -31,8 +34,8 @@ function issue(
 	fields[key] = { status: invalid ? "invalid" : "incorrect", message };
 }
 
-/** @param task - Independent target. @param draft - Learner rows. @returns All provable errors without revealing missing row counts. */
-export function constructionFeedback(
+/** @param task - Independent target. @param draft - Learner classification and gain. @returns Scalar and exceptional-case diagnostics. */
+function initialFeedback(
 	task: LaplaceConstructionTask,
 	draft: LaplaceConstruction,
 ): ConstructionFeedback {
@@ -70,6 +73,17 @@ export function constructionFeedback(
 			);
 		}
 	}
+	return fields;
+}
+
+/** @param task - Independent target. @param draft - Learner rows. @returns All provable errors without revealing missing row counts. */
+export function constructionFeedback(
+	task: LaplaceConstructionTask,
+	draft: LaplaceConstruction,
+): ConstructionFeedback {
+	const fields = initialFeedback(task, draft),
+		target = task.construction;
+	if (draft.mode !== "finite") return fields;
 	const expected = new Map<string, number>();
 	for (const row of target.rows) {
 		const key =
@@ -81,7 +95,7 @@ export function constructionFeedback(
 				(task.kind === "template" ? 1 : Number(row.power)),
 		);
 	}
-	const actual = new Map<string, { count: number; indices: number[] }>();
+	const actual: RowGroups = new Map();
 	for (const [index, row] of draft.rows.entries()) {
 		if (!validateRowFields(row, index, fields)) continue;
 		if (
@@ -111,6 +125,17 @@ export function constructionFeedback(
 		group.indices.push(index);
 		actual.set(key, group);
 	}
+	diagnoseMultiplicities(task.kind, expected, actual, fields);
+	return fields;
+}
+
+/** @param kind - Construction domain. @param expected - Independent counts. @param actual - Submitted grouped rows. @param fields - Diagnostics receiving count errors. */
+function diagnoseMultiplicities(
+	kind: LaplaceConstructionTask["kind"],
+	expected: Map<string, number>,
+	actual: RowGroups,
+	fields: ConstructionFeedback,
+): void {
 	for (const [key, group] of actual) {
 		const count = expected.get(key);
 		if (count !== undefined && group.count !== count)
@@ -118,7 +143,7 @@ export function constructionFeedback(
 				issue(
 					fields,
 					`row-${index}-power`,
-					task.kind === "template"
+					kind === "template"
 						? "This term duplicates a denominator power; keep one term per required power."
 						: "The combined multiplicity at this location does not match its factor copies.",
 				);
@@ -133,7 +158,6 @@ export function constructionFeedback(
 			"rows",
 			"Some required factors, roots, or copies are missing. Recheck the complete polynomial without assuming a row count.",
 		);
-	return fields;
 }
 
 /** @param row - One draft. @param index - Stable index until editing. @param fields - Diagnostics. @returns Whether all required numeric entries can be compared. */
