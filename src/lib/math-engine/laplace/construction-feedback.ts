@@ -239,7 +239,7 @@ function diagnoseRow(
 		issue(
 			fields,
 			`row-${index}-first`,
-			"Check this sign: solving s+b=0 requires subtracting b.",
+			"Check this sign: solving $s+b=0$ requires subtracting $b$.",
 		);
 		return;
 	}

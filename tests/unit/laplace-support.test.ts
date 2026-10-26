@@ -22,6 +22,19 @@ function term(
 	};
 }
 describe("checked support interval evidence", () => {
+	/** Reproducibility must not leave the correct assembly at one fixed position across problems. */
+	it("shuffles assembly choices reproducibly using problem context", () => {
+		const positions = new Set<number>();
+		for (let amplitude = 1; amplitude <= 16; amplitude++) {
+			const original = [term("left", "0", String(amplitude))];
+			const first = supportTasks(original, original).at(-1)!;
+			const second = supportTasks(original, original).at(-1)!;
+			expect(first.choices).toEqual(second.choices);
+			expect(new Set(first.choices).size).toBe(2);
+			positions.add(first.choices!.indexOf(first.answer));
+		}
+		expect(positions).toEqual(new Set([0, 1]));
+	});
 	/** The reported cross-delay cancellation needs actual interval work. */
 	it("requires activity fields and ordinary sums before assembling a transformable signal", () => {
 		const problem = createLaplaceExercise({

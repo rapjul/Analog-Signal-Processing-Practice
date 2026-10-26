@@ -9,7 +9,7 @@ import type {
 	LaplaceSignalTerm,
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
-import { fieldTask } from "./shared";
+import { fieldTask, taskChoices } from "./shared";
 import { teaching } from "./teaching";
 
 /** @param original - Given signal terms. @param combined - Independently verified transformable representation. @returns Checked activity and ordinary expressions on all open support intervals. */
@@ -66,7 +66,7 @@ export function supportTasks(
 			})),
 			{
 				id: "combined",
-				label: "Combined ordinary expression on this interval (use t; no step or impulse functions)",
+				label: "Combined ordinary expression on this interval (use $t$; no step or impulse functions)",
 				target,
 				interval,
 			},
@@ -96,10 +96,10 @@ export function supportTasks(
 			title: "Assemble the verified supported signal",
 			kind: "choice",
 			answer: "Use the verified interval assembly before termwise pairs",
-			choices: [
+			choices: taskChoices(`forward-support:${responseLatex(original)}`, [
 				"Use the verified interval assembly before termwise pairs",
 				"Transform the original terms without checking a common ROC",
-			],
+			]),
 			prompt: "Your checked intervals assemble the ordinary signal below. The independently verified supported representation has a common ROC; carry it into the transform pairs.",
 			formula: `x_{\\mathrm{regular}}(t)=\\begin{cases}${intervals.join("\\\\")}\\end{cases}`,
 			...teaching(

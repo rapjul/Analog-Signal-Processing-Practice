@@ -48,23 +48,18 @@ export function task(
 		...(kind === "s" || kind === "t"
 			? { lhs: laplaceAnswerLabel(id, kind) }
 			: {}),
-		...(choices
-			? {
-					choices: shuffleWithRandom(
-						[...new Set(choices)],
-						createSeededPrng(
-							[...id].reduce(
-								(hash, character) =>
-									Math.imul(hash, 31) +
-									character.charCodeAt(0),
-								73,
-							),
-						),
-					),
-				}
-			: {}),
+		...(choices ? { choices: taskChoices(id, choices) } : {}),
 		...taskTeaching(id, answer),
 	};
+}
+
+/** @param key - Stable task ID with optional problem context. @param choices - Conceptual options. @returns Reproducibly shuffled unique choices, independent of teaching registration. */
+export function taskChoices(key: string, choices: string[]): string[] {
+	const seed = [...key].reduce(
+		(hash, character) => Math.imul(hash, 31) + character.charCodeAt(0),
+		73,
+	);
+	return shuffleWithRandom([...new Set(choices)], createSeededPrng(seed));
 }
 
 /** @param id - Stable ID. @param title - Heading. @param frame - Previously verified rule with blank slots. @param fields - Exact coefficient targets. @returns Independently checked substitution task. */
