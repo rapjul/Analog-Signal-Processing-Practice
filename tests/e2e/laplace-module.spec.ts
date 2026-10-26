@@ -103,13 +103,12 @@ test.describe("guided Laplace practice", () => {
 		"second-order fields",
 		"cross-delay ROC",
 	] as const) {
+		const timeoutMs = scenario === "second-order fields" ? 180000 : 90000;
 		test(`completes custom ${scenario} with checked response tasks`, async ({
 			page,
 		}) => {
 			// The second-order case traverses both response blocks and every checked elimination row.
-			test.setTimeout(
-				scenario === "second-order fields" ? 180000 : 90000,
-			);
+			test.setTimeout(timeoutMs);
 			const spec = generateLaplaceExercise(
 				scenario === "zero"
 					? "inverse"
