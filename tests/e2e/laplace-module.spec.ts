@@ -487,7 +487,9 @@ test.describe("guided Laplace practice", () => {
 		const task = problem.stages
 			.flatMap((stage) => stage.tasks)
 			.find((part) => part.id === "cancellation")!;
-		await answerLaplaceTask(page, task, "Common factors exist");
+		await expect(
+			answerLaplaceTask(page, task, "Common factors exist"),
+		).rejects.toThrow("Rejected answer for cancellation");
 		await expect(
 			page.locator('[data-validation="incorrect"]').first(),
 		).toHaveAttribute("data-validation", "incorrect");

@@ -37,14 +37,19 @@ export async function answerLaplaceTask(
 				exact: true,
 			})
 			.click();
-	if (
-		await active
-			.getByRole("button", { name: "Continue", exact: true })
-			.isVisible()
-	)
-		await active
-			.getByRole("button", { name: "Continue", exact: true })
-			.click();
+	const proceed = active.getByRole("button", {
+		name: "Continue",
+		exact: true,
+	});
+	const rejected = active.locator(
+		'#laplace-feedback[data-validation]:not([data-validation="correct"])',
+	);
+	await expect(proceed.or(rejected).first()).toBeVisible();
+	if (await rejected.isVisible())
+		throw new Error(
+			`Rejected answer for ${task.id}: ${await rejected.innerText()}`,
+		);
+	await proceed.click();
 }
 
 /** @param active - Active production step. @param task - Exact construction fixture. Fills ordinary visible controls without state shortcuts. */
