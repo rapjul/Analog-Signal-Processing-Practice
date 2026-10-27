@@ -18,7 +18,9 @@ Exact equality verifies a result but cannot prove that a learner performed a req
 - Before transforming components with disjoint ROCs, check term activity and ordinary expressions on every exact support interval. Reject unevaluated steps and distributions in these fields and retain impulses separately.
 - Keep prerequisite concepts in optional first hints, followed by current-expression setup and an explained intermediate. Hints and full reveal cannot validate work.
 - Retain semantic equality for final identity checks once structural evidence has already been established.
+- Reuse unchanged verified results instead of requiring duplicate entry. A checked cancellation decision may carry original roots forward; changed surviving sets still require construction. Derive copy totals from checked locations and multiplicities.
+- Record derived conclusions only after successful source validation and explicit continuation. Group related new pair parameters using the existing fields contract; retain calculations that change coefficients through normalization or sidedness.
 
 ## Consequences and Verification
 
-Guided paths contain more calculation tasks but introduce no mandatory remedial exercises. Existing canonical transform comparison remains shared and unchanged; Laplace interval validation adds local restrictions. Unit, component, and production browser tests cover structured errors, elimination operations, exact interval boundaries, assistance, continuation, keyboard access, and narrow layouts.
+Guided paths retain necessary calculation evidence while avoiding re-entry of unchanged work and introducing no mandatory remedial exercises. Canonical transform comparison remains shared; unary negative Dirac notation receives the same exact interpretation as subtraction, while Laplace interval validation retains local restrictions. Unit, component, and production browser tests cover independent answers, structured errors, elimination operations, exact interval boundaries, derived-result lifecycle, assistance, continuation, keyboard access, and narrow layouts.

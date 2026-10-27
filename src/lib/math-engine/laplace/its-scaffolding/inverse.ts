@@ -1,12 +1,12 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
 import {
 	decompose,
+	factorial,
 	formatRoc,
+	fractionLatex,
 	inverseTerms,
 	originalTransform,
 	rocBounds,
-	factorial,
-	fractionLatex,
 } from "$lib/math-engine/laplace/pfd";
 import {
 	responseLatex,
@@ -16,12 +16,12 @@ import {
 import type {
 	LaplaceExercise,
 	LaplaceResponseTerm,
-	LaplaceTask,
 	LaplaceStage,
+	LaplaceTask,
 	RationalExercise,
 } from "$lib/math-engine/laplace/types";
 import { analysisStage, decompositionStages, fieldTask, task } from "./shared";
-import { teachRoc, teachSignal, teaching } from "./teaching";
+import { teaching, teachRoc, teachSignal } from "./teaching";
 
 /** @param terms - Independently solved terms after checked algebra. @returns Family choices and grouped new parameter calculations. */
 export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {

@@ -148,7 +148,14 @@ export function createLaplaceExercise(input: unknown): LaplaceExercise {
 export function serializeLaplaceConfiguration(
 	spec: LaplaceExerciseSpec,
 ): URLSearchParams {
-	createLaplaceExercise(spec);
+	return serializeLaplaceExercise(createLaplaceExercise(spec));
+}
+
+/** @param exercise - Already checked exercise from a workflow factory; never an unvalidated draft. @returns Reproducible parameters without rebuilding its task plan. */
+export function serializeLaplaceExercise(
+	exercise: LaplaceExercise,
+): URLSearchParams {
+	const spec = exercise.spec;
 	return new URLSearchParams({
 		v: "1",
 		seed: String(spec.seed),

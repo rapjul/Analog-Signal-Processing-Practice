@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateConstruction } from "$lib/math-engine/laplace/construction";
-import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
-import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import { laplaceGoal } from "$lib/math-engine/laplace/answer-entry";
+import { validateConstruction } from "$lib/math-engine/laplace/construction";
+import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
+import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
 import type { RationalExercise } from "$lib/math-engine/laplace/types";
 import {
 	verifyLaplaceS,
@@ -31,6 +31,25 @@ function inverseSpec(cancellation = false): RationalExercise {
 }
 
 describe("Laplace inverse tutoring", () => {
+	/** Zero gain takes precedence over stale numerator factor metadata in every hint tier. */
+	it("keeps zero-factor guidance consistent even when numerator factors are supplied", () => {
+		const spec = inverseSpec(true);
+		spec.rational.gain = "0";
+		const factor = createRationalExercise(spec)
+			.stages.flatMap((stage) => stage.tasks)
+			.find((part) => part.id === "factor-numerator")!;
+		expect(factor.hints[1]).toContain("Identically Zero");
+		expect(factor.hints[2]).toContain("Every coefficient is zero");
+		expect(factor.hints[2]).not.toContain("candidate factor");
+	});
+	/** Repeated complex factors remain explicitly outside the agreed mathematical families. */
+	it("rejects repeated quadratics before a misleading tutor can start", () => {
+		const spec = inverseSpec();
+		spec.rational.poles = [{ real: "0", frequency: "1", multiplicity: 2 }];
+		expect(() => createRationalExercise(spec)).toThrow(
+			"nonrepeated complex-conjugate",
+		);
+	});
 	/** Counts only the default supported path, independently of progress UI numbering. */
 	it("keeps a direct pair to fourteen checks and groups only new parameters", () => {
 		const spec = inverseSpec();

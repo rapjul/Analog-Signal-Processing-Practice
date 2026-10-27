@@ -65,7 +65,7 @@ export interface LaplaceResponseTerm extends LaplaceSignalTerm {}
 
 /** One checked numeric, expression, or conceptual task. */
 interface LaplaceTaskBase {
-	/** Consequences of checked source work, shown only after explicit continuation. */ conclusions?: string[];
+	/** Consequences retained as checked work only after source validation and continuation. */ conclusions?: string[];
 	/** Stable identifier independent of display numbering. */ id: string;
 	/** Human-readable heading. */ title: string;
 	/** Question and mathematical context. */ prompt: string;
@@ -100,7 +100,7 @@ export interface LaplaceAnswerField {
 	};
 	/** Stable input identifier within this task. */ id: string;
 	/** Accessible label with optional mathematical notation. */ label: string;
-	/** Exact target built from structured initial conditions. */ target: string;
+	/** Exact target built independently from structured mathematics. */ target: string;
 }
 
 /** A verified rule with blank coefficient slots. */

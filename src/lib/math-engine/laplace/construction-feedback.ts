@@ -125,16 +125,28 @@ export function constructionFeedback(
 		group.indices.push(index);
 		actual.set(key, group);
 	}
-	diagnoseMultiplicities(task.kind, expected, actual, fields);
+	const allRowsComparable =
+		[...actual.values()].reduce(
+			(sum, group) => sum + group.indices.length,
+			0,
+		) === draft.rows.length;
+	diagnoseMultiplicities(
+		task.kind,
+		expected,
+		actual,
+		fields,
+		allRowsComparable,
+	);
 	return fields;
 }
 
-/** @param kind - Construction domain. @param expected - Independent counts. @param actual - Submitted grouped rows. @param fields - Diagnostics receiving count errors. */
+/** @param kind - Construction domain. @param expected - Independent counts. @param actual - Submitted grouped rows. @param fields - Diagnostics receiving count errors. @param allRowsComparable - Whether every draft row contributed a valid comparable entry. */
 function diagnoseMultiplicities(
 	kind: LaplaceConstructionTask["kind"],
 	expected: Map<string, number>,
 	actual: RowGroups,
 	fields: ConstructionFeedback,
+	allRowsComparable: boolean,
 ): void {
 	for (const [key, group] of actual) {
 		const count = expected.get(key);
@@ -157,7 +169,7 @@ function diagnoseMultiplicities(
 		(sum, group) => sum + group.count,
 		0,
 	);
-	if (submittedCopies < expectedCopies)
+	if (allRowsComparable && submittedCopies < expectedCopies)
 		issue(
 			fields,
 			"rows",

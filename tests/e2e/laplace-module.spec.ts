@@ -4,9 +4,125 @@ import {
 	serializeLaplaceConfiguration,
 } from "$lib/math-engine/laplace/configuration";
 import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
+import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Invalid fixture selections must fail instead of clicking the last option. */
+	test("rejects an absent helper choice without submitting another option", async ({
+		page,
+	}) => {
+		const problem = generateLaplaceExercise("inverse", 73);
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await expect(
+			answerLaplaceTask(
+				page,
+				problem.stages[0]!.tasks[0]!,
+				"Missing choice",
+			),
+		).rejects.toThrow("Missing option");
+		await expect(
+			page.getByRole("button", { name: "Continue", exact: true }),
+		).toHaveCount(0);
+	});
+	for (const scenario of [
+		"negative impulse",
+		"combined forward zeros",
+		"initial-value response",
+	] as const) {
+		/** Supplies final answers independently of the generated teaching targets. */
+		test(`accepts an independently solved ${scenario}`, async ({
+			page,
+		}) => {
+			test.setTimeout(120000);
+			const term = {
+				kind: "exponential" as const,
+				amplitude: "1",
+				rate: "-1",
+				frequency: "0",
+				power: 0,
+				delay: "0",
+				side: "right" as const,
+			};
+			const spec: LaplaceExerciseSpec =
+				scenario === "negative impulse"
+					? {
+							workflow: "inverse",
+							seed: 73,
+							system: true,
+							rational: {
+								gain: "-1",
+								zeros: [
+									{
+										real: "0",
+										frequency: "0",
+										multiplicity: 1,
+									},
+								],
+								poles: [
+									{
+										real: "-1",
+										frequency: "0",
+										multiplicity: 1,
+									},
+								],
+								delay: "0",
+								region: -1,
+							},
+						}
+					: scenario === "combined forward zeros"
+						? {
+								workflow: "forward",
+								seed: 73,
+								terms: [term, { ...term, rate: "-2" }],
+							}
+						: {
+								workflow: "ode",
+								seed: 73,
+								leading: "1",
+								roots: [
+									{
+										real: "-2",
+										frequency: "0",
+										multiplicity: 1,
+									},
+								],
+								initial: ["0", "0"],
+								terms: [{ ...term, kind: "impulse" }],
+							};
+			const problem = createLaplaceExercise(spec);
+			const answers: Record<string, string> =
+				scenario === "negative impulse"
+					? { response: String.raw`h(t)=-\delta(t)+e^{-t}u(t)` }
+					: scenario === "combined forward zeros"
+						? { "forward-final": "X(s)=(2s+3)/((s+1)(s+2))" }
+						: { "ode-response": String.raw`y(t)=e^{-2t}u(t)` };
+			await page.setViewportSize({ width: 320, height: 900 });
+			await page.goto(`/laplace?${serializeLaplaceConfiguration(spec)}`);
+			await expect(page.locator(".problem-goal")).toContainText(
+				scenario === "negative impulse"
+					? "h(t)"
+					: scenario === "combined forward zeros"
+						? "X(s)"
+						: "y(t)",
+			);
+			await completeLaplaceTasks(page, problem, undefined, answers);
+			if (scenario === "combined forward zeros")
+				await expect(
+					page.locator(".laplace-visualizations"),
+				).toContainText("-3/2");
+			await expect(page.locator(".katex-error")).toHaveCount(0);
+			expect(
+				await page.evaluate(
+					() =>
+						document.documentElement.scrollWidth <=
+						document.documentElement.clientWidth,
+				),
+			).toBe(true);
+		});
+	}
 	/** Exercises the alternative coefficient-matching path through production controls. */
 	test("checks every elimination row on the matching path at 320px", async ({
 		page,
@@ -334,5 +450,10 @@ test.describe("guided Laplace practice", () => {
 		await expect(
 			page.locator(".problem-prompt annotation").first(),
 		).toHaveText(prompt!);
+		await page.goto("/laplace?v=2&config=%7B%7D");
+		await expect(page.getByRole("alert")).toContainText(
+			"last valid or default problem",
+		);
+		await expect(page.locator(".step-card.active")).toBeVisible();
 	});
 });

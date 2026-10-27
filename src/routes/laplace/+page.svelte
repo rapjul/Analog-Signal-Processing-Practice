@@ -14,7 +14,7 @@
 		type LaplaceExerciseSpec,
 		type LaplacePreset,
 		parseLaplaceConfiguration,
-		serializeLaplaceConfiguration,
+		serializeLaplaceExercise,
 	} from "$lib/math-engine/laplace/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
 
@@ -51,7 +51,7 @@
 	function syncUrl(): void {
 		if (typeof window !== "undefined")
 			replaceState(
-				`${page.url.pathname}?${serializeLaplaceConfiguration($state.snapshot(current.spec))}`,
+				`${page.url.pathname}?${serializeLaplaceExercise(current)}`,
 				page.state,
 			);
 		shareUrl = "";
@@ -90,7 +90,7 @@
 	}
 	/** Exposes an ordinary text link without requiring clipboard permission. */
 	function share(): void {
-		shareUrl = `${window.location.origin}${page.url.pathname}?${serializeLaplaceConfiguration($state.snapshot(current.spec))}`;
+		shareUrl = `${window.location.origin}${page.url.pathname}?${serializeLaplaceExercise(current)}`;
 	}
 	afterNavigate(() => {
 		if (!error) syncUrl();
@@ -156,8 +156,8 @@
 			role="alert"
 			class="configuration-error"
 		>
-			{error} The previous valid exercise remains below. Change the configuration
-			and apply it again.
+			{error} The exercise below is the last valid or default problem. Change
+			the configuration and apply it again.
 		</div>{/if}
 	<LaplacePracticeCard
 		problem={current}

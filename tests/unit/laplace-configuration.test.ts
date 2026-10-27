@@ -3,6 +3,7 @@ import {
 	createLaplaceExercise,
 	parseLaplaceConfiguration,
 	serializeLaplaceConfiguration,
+	serializeLaplaceExercise,
 } from "$lib/math-engine/laplace/configuration";
 import { validateConstruction } from "$lib/math-engine/laplace/construction";
 import {
@@ -37,6 +38,9 @@ describe("reproducible bounded Laplace configuration", () => {
 						serializeLaplaceConfiguration(problem.spec),
 					),
 				).toEqual(problem.spec);
+				expect(serializeLaplaceExercise(problem).toString()).toBe(
+					serializeLaplaceConfiguration(problem.spec).toString(),
+				);
 				for (const task of problem.stages.flatMap(
 					(stage) => stage.tasks,
 				)) {

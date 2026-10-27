@@ -18,10 +18,10 @@ export async function answerLaplaceTask(
 		task.id,
 	);
 	if (task.kind === "choice") {
-		await active
-			.locator("[data-choice]")
-			.nth(task.choices!.indexOf(answer))
-			.click();
+		const index = task.choices?.indexOf(answer) ?? -1;
+		if (index < 0)
+			throw new Error(`Missing option for ${task.id}: ${answer}`);
+		await active.locator("[data-choice]").nth(index).click();
 	} else if ("construction" in task) {
 		await fillConstruction(active, task);
 	} else if (task.kind === "fields") {

@@ -1,12 +1,12 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
+import { completionZeros } from "$lib/math-engine/laplace/completion";
+import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 import { evaluateResponse } from "$lib/math-engine/laplace/signals";
+import { collectTerms } from "$lib/math-engine/laplace/transform";
 import type {
 	LaplaceExercise,
 	LaplaceFactor,
 } from "$lib/math-engine/laplace/types";
-import { completionZeros } from "$lib/math-engine/laplace/completion";
-import { collectTerms } from "$lib/math-engine/laplace/transform";
-import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 
 /** One accessible root marker in the completed s-plane. */
 export interface LaplaceRootMarker {

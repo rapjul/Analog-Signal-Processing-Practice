@@ -250,6 +250,14 @@ PR verification runs separate root and project smoke jobs. Deployment runs the s
 
 ## 📐 Mathematical & Code Formatting Guidelines
 
+Laplace regressions include independently authored final answers in
+`./../tests/e2e/laplace-module.spec.ts`, alongside generated-target traversal.
+These cover negative impulses, system response labels, combined forward zeros,
+and an initial-value response. Unit and component tests separately check contextual
+teaching, operation-specific feedback, derived-result continuation/reset, grouped
+parameters, signed diagrams, and the fourteen-check direct-pair path. Generated
+targets alone do not establish mathematical or instructional correctness.
+
 ### Universal LaTeX Enforcement
 
 - Never use raw Unicode math symbols ($\sum, \int, \omega, \pi, \sigma$) in UI markup.

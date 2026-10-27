@@ -57,6 +57,31 @@ Completed summaries show verified mathematical results directly. Single-question
 stages omit redundant part labels; multipart stages use step-aware alphabetic
 labels. Fixed equation labels and mixed prose/math use `MathText`.
 
+The problem statement explicitly names the requested result. System inverse
+problems use `h(t)`, signal inverses use `x(t)`, forward problems request `X(s)`,
+and initial-value problems request `y(t)`. Matching labels are accepted on answers.
+Unary negative impulses, subtraction, and explicit negative coefficients have
+the same exact meaning; undefined distribution products remain unsupported.
+
+Cancellation remains a checked decision on every rational-analysis path. After
+a correct no-cancellation decision, original verified roots carry forward as
+zeros and poles without re-entry. Changed surviving sets still require checked
+construction. Canceled locations and multiplicities establish copy totals once.
+Derived conclusions appear only after checked source work and **Continue**;
+they are not additional independently completed tasks. Restart clears them.
+
+Direct standard pairs omit redundant numerator rewriting. Related new pair
+parameters share one checked fields card, while verified coefficients, pole
+locations, and repeated delays carry forward. Factorial normalization, sine
+frequency normalization, and left-sided signs still require calculation. The
+single-pole direct-pair regression has fourteen checked tasks rather than twenty-one.
+
+Completion diagrams use the combined response for forward/ODE zeros. Exact
+rational linear and quadratic locations retain multiplicity. Other zero sets
+show their exact formula or defining polynomial and explain unplotted locations.
+Different delay blocks explicitly disclaim a finite polynomial-zero list.
+Impulse arrows follow signed weights; zero-weight coincident impulses disappear.
+
 Construction checks diagnose all provable errors by row and field, including signs, multiplicities, duplicate terms, and numerator/denominator confusion. Edits preserve drafts and clear stale diagnostics. See [ADR 0039](./adrs/0039-laplace-checked-construction-and-interval-evidence.md) for the distinction between structural evidence and final equality checks.
 
 ## Code organization
@@ -113,3 +138,8 @@ and complex poles, near-cancellation, both cancellation decisions, equivalent
 answers, impulse jumps, and agreement with the completed ODE solver. Production
 browser tests complete all four workflows through ordinary controls and cover
 assistance, replacement, invalid custom input, narrow layouts, and offline use.
+
+URL synchronization serializes an already validated exercise without rebuilding
+its task plan. Untrusted configuration serialization and parsing retain their
+full mathematical preflight checks. Invalid shared links explicitly identify the
+last valid or default exercise shown below the diagnostic.

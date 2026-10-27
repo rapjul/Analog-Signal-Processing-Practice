@@ -193,5 +193,6 @@ describe("construction field diagnostics", () => {
 		expect(result.gain!.status).toBe("invalid");
 		expect(result["row-0-first"]!.status).toBe("invalid");
 		expect(result["row-0-power"]!.status).toBe("invalid");
+		expect(result.rows).toBeUndefined();
 	});
 });

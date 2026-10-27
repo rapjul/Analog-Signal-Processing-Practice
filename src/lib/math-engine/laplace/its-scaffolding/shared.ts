@@ -83,7 +83,7 @@ export function fieldTask(
 			? [
 					"Each blank holds an exact signed coefficient, not a whole derivative expression. Subtracting a negative initial value produces addition; zero must still be entered.",
 					`The supplied values for these slots are ${fields.map((field) => `${field.label}: $${field.target}$`).join("; ")}. Copy each signed value into its matching position rather than changing the sign of the rule.`,
-					`Substituting the first value gives $${renderLaplaceFields(frame, { [fields[0]!.id]: fields[0]!.target })}$. For example, the rule subtracts a supplied $-2$ as $-(-2)=+2$; the slot itself still contains $-2$.`,
+					`Substituting this problem's first initial value gives $${renderLaplaceFields(frame, { [fields[0]!.id]: fields[0]!.target })}$. The rule subtracts the signed value $${fields[0]!.target}$; ${fractionLatex(fields[0]!.target).numerator < 0n ? "subtracting this negative value produces addition" : "retain the subtraction already present in the rule"}. Enter the supplied value itself in the slot.`,
 				]
 			: [],
 	};
@@ -176,10 +176,10 @@ export function factorTask(
 					: polynomial.length === 2
 						? `Divide $${polynomialLatex(polynomial)}$ by its leading coefficient $${polynomial[1]!.toLatex()}$. The remaining constant is $(${polynomial[0]!.toLatex()})/(${polynomial[1]!.toLatex()})$. Put the leading coefficient outside and the divided constant in the linear row.`
 						: `The highest-power coefficient of $${polynomialLatex(polynomial)}$ is $${polynomial.at(-1)!.toLatex()}$. Divide by that coefficient before finding monic factors. For a quadratic, seek constants whose sum and product match its coefficients; if real linear factors do not exist, retain a quadratic.`,
-			factors[0]
-				? `Divide by the candidate factor $${polynomialLatex(factorPoly(factors[0]))}$: $${polynomialLatex(polynomial)}=(${polynomialLatex(factorPoly(factors[0]))})(${polynomialLatex(divide(polynomial, factorPoly(factors[0]))[0])})$ with zero remainder. Multiplying these pieces verifies the candidate; continue factoring the quotient if it is reducible.`
-				: zero(polynomial)
-					? "Every coefficient is zero, so select the identically zero case and do not invent a finite factor list."
+			zero(polynomial)
+				? "Every coefficient is zero, so select the identically zero case and do not invent a finite factor list."
+				: factors[0]
+					? `Divide by the candidate factor $${polynomialLatex(factorPoly(factors[0]))}$: $${polynomialLatex(polynomial)}=(${polynomialLatex(factorPoly(factors[0]))})(${polynomialLatex(divide(polynomial, factorPoly(factors[0]))[0])})$ with zero remainder. Multiplying these pieces verifies the candidate; continue factoring the quotient if it is reducible.`
 					: `This is the constant $${polynomialLatex(polynomial)}$: enter it as the gain and leave the factor rows empty.`,
 			"Check Factorization",
 		),
@@ -709,11 +709,17 @@ export function decompositionStages(
 								id: "quadratic",
 								label: "Total irreducible quadratic factor copies",
 								target: String(
-									data.poles.filter(
-										(factor) =>
-											fraction(factor.frequency)
-												.numerator,
-									).length,
+									data.poles
+										.filter(
+											(factor) =>
+												fraction(factor.frequency)
+													.numerator,
+										)
+										.reduce(
+											(sum, factor) =>
+												sum + factor.multiplicity,
+											0,
+										),
 								),
 							},
 						],
