@@ -548,53 +548,11 @@ export function decompositionStages(
 			power: String(index + 1),
 		})),
 	);
-	const coefficients = coefficientTasks(data).flatMap(
-		(part): LaplaceTask[] => {
-			if (part.id.startsWith("coefficient-") && simple) {
-				const slot = data.slots.find(
-					(candidate) => part.id === `coefficient-${candidate.label}`,
-				)!;
-				const numerator = evaluatePolynomial(
-						data.numerator,
-						slot.factor.real,
-					).toLatex(),
-					denominator = evaluatePolynomial(
-						divide(data.denominator, slot.denominator)[0],
-						slot.factor.real,
-					).toLatex();
-				return [
-					{
-						...part,
-						id: `${part.id}-matching`,
-						when: { id: "method", values: [matching] },
-					},
-					{
-						...part,
-						id: `${part.id}-coverup`,
-						when: { id: "method", values: [coverup] },
-						...teaching(
-							"A simple-pole residue is the evaluated numerator divided by the evaluated remaining denominator.",
-							`Use the numerator value $${numerator}$ and remaining-denominator value $${denominator}$ checked at $s=${slot.factor.real}$. The removed pole factor must not appear in the divisor.`,
-							`$${slot.label}=\\frac{${numerator}}{${denominator}}=${slot.value}$. Dividing the signed values preserves the residue's sign.`,
-							"Check Coefficient",
-						),
-					},
-				];
-			}
-			return [
-				{
-					...part,
-					when: {
-						id: "method",
-						values: part.id.startsWith("coverup-")
-							? [coverup]
-							: part.id.startsWith("matching-")
-								? [matching]
-								: pfdPaths,
-					},
-				},
-			];
-		},
+	const coefficients = methodCoefficientTasks(
+		data,
+		simple,
+		matching,
+		coverup,
 	);
 	const strategy = {
 		...task(
@@ -613,73 +571,7 @@ export function decompositionStages(
 			id: "setup",
 			title: "Choose and Set Up a Method",
 			tasks: [
-				...(includeDegrees
-					? [
-							{
-								...fieldTask(
-									"method-degrees-values",
-									"Compare reduced degrees",
-									"Enter each reduced polynomial's highest nonzero power before choosing whether to divide.",
-									"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
-									[
-										{
-											id: "numerator",
-											label: "Reduced numerator degree (zero polynomial: enter -1)",
-											target: String(
-												zero(data.numerator)
-													? -1
-													: data.numerator.length - 1,
-											),
-										},
-										{
-											id: "denominator",
-											label: "Reduced denominator degree",
-											target: String(
-												data.denominator.length - 1,
-											),
-										},
-									],
-								),
-								...teaching(
-									"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero; enter -1 for the zero polynomial's undefined degree.",
-									`Compare $${polynomialLatex(data.numerator)}$ with $${polynomialLatex(data.denominator)}$ after cancellation.`,
-									`The denominator degree is $${data.denominator.length - 1}$. Divide if the numerator degree is at least this large, before matching proper-fraction pairs.`,
-									"Check Polynomial Degrees",
-								),
-							},
-							{
-								...task(
-									"division",
-									"Decide whether division is needed",
-									"Use the checked degrees to decide whether the block is proper.",
-									"choice",
-									!zero(data.numerator) &&
-										data.numerator.length >=
-											data.denominator.length
-										? "Divide first"
-										: "No division needed",
-									["Divide first", "No division needed"],
-								),
-								id: "method-division",
-								...divisionTeaching(data),
-							},
-							...(!zero(data.numerator) &&
-							data.numerator.length >= data.denominator.length
-								? [
-										{
-											...task(
-												"quotient",
-												"Find the constant quotient",
-												"Divide leading coefficients, then subtract the corresponding denominator multiple.",
-												"scalar",
-												data.quotient,
-											),
-											id: "method-quotient",
-										},
-									]
-								: []),
-						]
-					: []),
+				...(includeDegrees ? methodDegreeTasks(data) : []),
 				strategy,
 				{
 					...fieldTask(
@@ -830,6 +722,127 @@ export function decompositionStages(
 			],
 		},
 	];
+}
+
+/** @param data - Exact reduced rational block. @returns Degree, division, and optional quotient checks for a previously unanalyzed block. */
+function methodDegreeTasks(data: LaplaceDecomposition): LaplaceTask[] {
+	const improper =
+		!zero(data.numerator) &&
+		data.numerator.length >= data.denominator.length;
+	return [
+		{
+			...fieldTask(
+				"method-degrees-values",
+				"Compare reduced degrees",
+				"Enter each reduced polynomial's highest nonzero power before choosing whether to divide.",
+				"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
+				[
+					{
+						id: "numerator",
+						label: "Reduced numerator degree (zero polynomial: enter -1)",
+						target: String(
+							zero(data.numerator)
+								? -1
+								: data.numerator.length - 1,
+						),
+					},
+					{
+						id: "denominator",
+						label: "Reduced denominator degree",
+						target: String(data.denominator.length - 1),
+					},
+				],
+			),
+			...teaching(
+				"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero; enter -1 for the zero polynomial's undefined degree.",
+				`Compare $${polynomialLatex(data.numerator)}$ with $${polynomialLatex(data.denominator)}$ after cancellation.`,
+				`The denominator degree is $${data.denominator.length - 1}$. Divide if the numerator degree is at least this large, before matching proper-fraction pairs.`,
+				"Check Polynomial Degrees",
+			),
+		},
+		{
+			...task(
+				"division",
+				"Decide whether division is needed",
+				"Use the checked degrees to decide whether the block is proper.",
+				"choice",
+				improper ? "Divide first" : "No division needed",
+				["Divide first", "No division needed"],
+			),
+			id: "method-division",
+			...divisionTeaching(data),
+		},
+		...(improper
+			? [
+					{
+						...task(
+							"quotient",
+							"Find the constant quotient",
+							"Divide leading coefficients, then subtract the corresponding denominator multiple.",
+							"scalar",
+							data.quotient,
+						),
+						id: "method-quotient",
+					},
+				]
+			: []),
+	];
+}
+
+/** @param data - Exact coefficient system. @param simple - Whether all poles are simple and real. @param matching - Matching strategy label. @param coverup - Cover-up strategy label. @returns Coefficient tasks scoped to each accepted method. */
+function methodCoefficientTasks(
+	data: LaplaceDecomposition,
+	simple: boolean,
+	matching: string,
+	coverup: string,
+): LaplaceTask[] {
+	const pfdPaths = [matching, coverup];
+	return coefficientTasks(data).flatMap((part): LaplaceTask[] => {
+		if (part.id.startsWith("coefficient-") && simple) {
+			const slot = data.slots.find(
+				(candidate) => part.id === `coefficient-${candidate.label}`,
+			)!;
+			const numerator = evaluatePolynomial(
+				data.numerator,
+				slot.factor.real,
+			).toLatex();
+			const denominator = evaluatePolynomial(
+				divide(data.denominator, slot.denominator)[0],
+				slot.factor.real,
+			).toLatex();
+			return [
+				{
+					...part,
+					id: `${part.id}-matching`,
+					when: { id: "method", values: [matching] },
+				},
+				{
+					...part,
+					id: `${part.id}-coverup`,
+					when: { id: "method", values: [coverup] },
+					...teaching(
+						"A simple-pole residue is the evaluated numerator divided by the evaluated remaining denominator.",
+						`Use the numerator value $${numerator}$ and remaining-denominator value $${denominator}$ checked at $s=${slot.factor.real}$. The removed pole factor must not appear in the divisor.`,
+						`$${slot.label}=\\frac{${numerator}}{${denominator}}=${slot.value}$. Dividing the signed values preserves the residue's sign.`,
+						"Check Coefficient",
+					),
+				},
+			];
+		}
+		return [
+			{
+				...part,
+				when: {
+					id: "method",
+					values: part.id.startsWith("coverup-")
+						? [coverup]
+						: part.id.startsWith("matching-")
+							? [matching]
+							: pfdPaths,
+				},
+			},
+		];
+	});
 }
 
 /** @param data - Exact reduced expression. @param simple - Distinct real poles. @param direct - One denominator family. @returns Current-expression method guidance without controlling branches. */

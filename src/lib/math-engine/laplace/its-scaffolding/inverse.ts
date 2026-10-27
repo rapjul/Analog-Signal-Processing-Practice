@@ -23,6 +23,65 @@ import type {
 import { analysisStage, decompositionStages, fieldTask, task } from "./shared";
 import { teaching, teachRoc, teachSignal } from "./teaching";
 
+/** @param term - Verified transform term. @param newDelay - Whether this delay still needs a check. @returns New numeric fields and unchanged verified parameters. */
+function pairParameters(term: LaplaceResponseTerm, newDelay: boolean) {
+	const newWeight =
+		term.side === "left" ||
+		term.kind === "sine" ||
+		(term.kind === "exponential" && term.power >= 2);
+	const fields = [
+		...(newWeight
+			? [
+					{
+						id: "weight",
+						label: "Normalized signed weight",
+						target: term.amplitude,
+					},
+				]
+			: []),
+		...(newDelay
+			? [
+					{
+						id: "delay",
+						label: "Nonnegative time delay",
+						target: term.delay,
+					},
+				]
+			: []),
+		...(term.kind === "impulse"
+			? []
+			: [
+					{
+						id: "parameter",
+						label:
+							term.kind === "exponential"
+								? "Polynomial time power"
+								: "Positive angular frequency",
+						target:
+							term.kind === "exponential"
+								? String(term.power)
+								: term.frequency,
+					},
+				]),
+	];
+	const carried = [
+		...(newWeight
+			? []
+			: [
+					`The verified algebraic coefficient carries unchanged as weight $${term.amplitude}$.`,
+				]),
+		...(term.kind === "impulse"
+			? []
+			: [
+					`The verified pole location gives exponential rate $${term.rate}$.`,
+				]),
+		...(newDelay
+			? []
+			: [`Reuse the previously checked delay $${term.delay}$.`]),
+	];
+	return { newWeight, fields, carried };
+}
+
 /** @param terms - Independently solved terms after checked algebra. @returns Family choices and grouped new parameter calculations. */
 export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 	const checkedDelays = new Set<string>();
@@ -30,63 +89,13 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 		id: "pairs",
 		title: "Apply Transform Pairs and Properties",
 		tasks: terms.flatMap((term, index): LaplaceTask[] => {
-			const newWeight =
-				term.side === "left" ||
-				term.kind === "sine" ||
-				(term.kind === "exponential" && term.power >= 2);
 			const delayKey = fraction(term.delay).toLatex();
 			const newDelay = !checkedDelays.has(delayKey);
 			checkedDelays.add(delayKey);
-			const fields = [
-				...(newWeight
-					? [
-							{
-								id: "weight",
-								label: "Normalized signed weight",
-								target: term.amplitude,
-							},
-						]
-					: []),
-				...(newDelay
-					? [
-							{
-								id: "delay",
-								label: "Nonnegative time delay",
-								target: term.delay,
-							},
-						]
-					: []),
-				...(term.kind === "impulse"
-					? []
-					: [
-							{
-								id: "parameter",
-								label:
-									term.kind === "exponential"
-										? "Polynomial time power"
-										: "Positive angular frequency",
-								target:
-									term.kind === "exponential"
-										? String(term.power)
-										: term.frequency,
-							},
-						]),
-			];
-			const carried = [
-				...(newWeight
-					? []
-					: [
-							`The verified algebraic coefficient carries unchanged as weight $${term.amplitude}$.`,
-						]),
-				...(term.kind === "impulse"
-					? []
-					: [
-							`The verified pole location gives exponential rate $${term.rate}$.`,
-						]),
-				...(newDelay
-					? []
-					: [`Reuse the previously checked delay $${term.delay}$.`]),
-			];
+			const { newWeight, fields, carried } = pairParameters(
+				term,
+				newDelay,
+			);
 			const normalizer =
 				term.kind === "sine"
 					? fraction(term.frequency)
