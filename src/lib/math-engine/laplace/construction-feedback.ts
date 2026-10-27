@@ -148,11 +148,16 @@ function diagnoseMultiplicities(
 						: "The combined multiplicity at this location does not match its factor copies.",
 				);
 	}
-	if (
-		[...expected].some(
-			([key, count]) => (actual.get(key)?.count ?? 0) < count,
-		)
-	)
+	// A wrong row may replace a required row; do not imply that adding a row fixes it.
+	const expectedCopies = [...expected.values()].reduce(
+		(sum, count) => sum + count,
+		0,
+	);
+	const submittedCopies = [...actual.values()].reduce(
+		(sum, group) => sum + group.count,
+		0,
+	);
+	if (submittedCopies < expectedCopies)
 		issue(
 			fields,
 			"rows",
@@ -239,7 +244,11 @@ function diagnoseRow(
 		issue(
 			fields,
 			`row-${index}-first`,
-			"Check this sign: solving $s+b=0$ requires subtracting $b$.",
+			task.kind === "roots"
+				? "Check this sign: solving $s+b=0$ requires subtracting $b$."
+				: task.kind === "factors"
+					? `Check this factor's signed coefficient $${row.first}$. Multiply the submitted factors back out and compare the coefficients with the original polynomial; a factor coefficient is not its root.`
+					: "Check the sign in this denominator factor against the verified factorization; its coefficient is not its pole location.",
 		);
 		return;
 	}

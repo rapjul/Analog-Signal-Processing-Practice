@@ -28,6 +28,39 @@ function task(): LaplaceConstructionTask {
 	};
 }
 describe("construction field diagnostics", () => {
+	/** A substituted wrong row is not evidence that an additional row is needed. */
+	it("separates factor multiplication advice from root solving and omitted copies", () => {
+		const target = {
+			...task(),
+			kind: "factors" as const,
+			construction: {
+				mode: "finite" as const,
+				gain: "2",
+				rows: [row("6")],
+			},
+		};
+		const feedback = constructionFeedback(target, {
+			...target.construction,
+			rows: [row("-6")],
+		});
+		expect(feedback["row-0-first"]!.message).toContain(
+			"Multiply the submitted factors",
+		);
+		expect(feedback["row-0-first"]!.message).not.toContain("solving");
+		expect(feedback.rows).toBeUndefined();
+		const omitted = constructionFeedback(target, {
+			...target.construction,
+			rows: [],
+		});
+		expect(omitted.rows!.message).toContain("missing");
+		const roots = { ...target, kind: "roots" as const };
+		expect(
+			constructionFeedback(roots, {
+				...roots.construction,
+				rows: [row("-6")],
+			})["row-0-first"]!.message,
+		).toContain("solving");
+	});
 	/** Accepted constructions must never display invalid fields beside Continue. */
 	it("returns no error diagnostics for accepted rational, split, template, and exceptional forms", () => {
 		for (const kind of ["factors", "roots", "template"] as const) {
