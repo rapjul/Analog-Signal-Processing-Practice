@@ -1,10 +1,6 @@
 import { fraction, polynomialLatex } from "$lib/math-engine/laplace/algebra";
-import { factorial, fractionLatex } from "$lib/math-engine/laplace/pfd";
-import {
-	signalLatex,
-	signalRational,
-	signalTransform,
-} from "$lib/math-engine/laplace/signals";
+import { factorial } from "$lib/math-engine/laplace/pfd";
+import { signalLatex, signalTransform } from "$lib/math-engine/laplace/signals";
 import type {
 	LaplaceFactor,
 	LaplaceSignalTerm,
@@ -345,74 +341,6 @@ function inversePairWork(term: LaplaceSignalTerm): string {
 	if (term.kind === "sine")
 		normalization = `Divide the signed numerator by frequency $${term.frequency}$${sign}, giving the checked sine weight $${term.amplitude}$.`;
 	return `Before applying weight and delay, the time shape is $${shape}$. ${normalization} Finally replace $t$ by $t-(${term.delay})$ in the shape and its support; an impulse shifts directly without multiplication by a step.`;
-}
-
-/** @param task - Pair-parameter calculation. @param term - Exact term being analyzed. @returns Guidance using the actual numerator, rate, shift, and support. */
-export function teachPairParameter(
-	task: LaplaceSingleTask,
-	term: LaplaceSignalTerm,
-): LaplaceSingleTask {
-	const rational = signalRational(term);
-	const context = `For this term, $X(s)=${signalTransform(term)}$.`;
-	if (task.id.startsWith("weight-")) {
-		const divisor =
-			term.kind === "exponential"
-				? String(factorial(term.power))
-				: term.kind === "sine"
-					? term.frequency
-					: "1";
-		const signedNumerator = fractionLatex(term.amplitude)
-			.multiply(fraction(divisor))
-			.multiply(
-				fraction(
-					term.kind !== "impulse" && term.side === "left" ? -1 : 1,
-				),
-			);
-		return {
-			...task,
-			...teaching(
-				"The weight multiplies the standard time shape. Divide out the pair's factorial or sine-frequency numerator, and apply a minus sign for a left-sided ordinary pair.",
-				`${context} The pair's normalization is $${divisor}$; its support is ${term.side}-sided.`,
-				`The signed coefficient is $${signedNumerator.toLatex()}$. Dividing by $${divisor}$${term.kind !== "impulse" && term.side === "left" ? " and reversing the left-sided sign" : ""} gives the time weight $${term.amplitude}$.`,
-				"Check Term Weight",
-			),
-		};
-	}
-	if (task.id.startsWith("delay-"))
-		return {
-			...task,
-			...teaching(
-				"The delay is the number multiplying $-s$ in the exponential shift factor. A missing exponential shift means zero delay.",
-				`${context} Separate $e^{-ds}$ from the rational fraction; the denominator's constants describe rates, not delay.`,
-				`Here $d=${term.delay}$. Replace time by $t-(${term.delay})$ in both the signal shape and its support, so the whole term moves together.`,
-				"Check Delay",
-			),
-		};
-	if (task.id.startsWith("rate-"))
-		return {
-			...task,
-			...teaching(
-				"Write the pole factor as $s-a$ to identify the signed exponential rate $a$.",
-				`${context} Its rational denominator is $${polynomialLatex(rational.d)}$. Compare the signed shift with $s-a$ before reading the rate.`,
-				`The shifted factor is $s-(${term.rate})$. Therefore the time shape contains $e^{(${term.rate})t}$ before delay; the minus in the denominator is part of the comparison.`,
-				"Check Exponential Rate",
-			),
-		};
-	if (task.id.startsWith("parameter-"))
-		return {
-			...task,
-			...teaching(
-				term.kind === "exponential"
-					? "A linear pole of power m corresponds to a time polynomial of degree m minus one."
-					: "In a completed square $(s-a)^2+w^2$, the positive square root of the remaining constant is angular frequency w.",
-				`${context} Compare its denominator $${polynomialLatex(rational.d)}$ with the appropriate standard form.`,
-				term.kind === "exponential"
-					? `The pole power is $${term.power + 1}$, so the time power is $${term.power + 1}-1=${term.power}$.`
-					: `The completed-square constant is $(${term.frequency})^2=${fraction(term.frequency).multiply(fraction(term.frequency)).toLatex()}$, so the positive frequency is $${term.frequency}$.`,
-				"Check Pair Parameter",
-			),
-		};
-	return task;
 }
 
 /** @param task - Region, support, or stability question. @param poles - Genuine surviving poles. @param bounds - Exact engine's convergence bounds. @param rocLatex - Formatted open region. @param conditions - Supplied support information. @returns Teaching tied to this problem's boundaries and support. */

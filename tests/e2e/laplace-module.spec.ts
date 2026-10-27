@@ -8,6 +8,46 @@ import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Coincident impulses depend on their exact location and weight, never unused signal-shape fields. */
+	test("collects coincident impulses with different unused metadata", async ({
+		page,
+	}) => {
+		const impulse = {
+			kind: "impulse" as const,
+			amplitude: "1",
+			rate: "0",
+			frequency: "0",
+			power: 0,
+			delay: "1",
+			side: "right" as const,
+		};
+		const problem = createLaplaceExercise({
+			workflow: "forward",
+			seed: 73,
+			terms: [
+				impulse,
+				{
+					...impulse,
+					amplitude: "-1",
+					rate: "-2",
+					frequency: "3",
+					power: 2,
+					side: "left",
+				},
+			],
+		});
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await completeLaplaceTasks(page, problem, undefined, {
+			"forward-final": "0",
+		});
+		await expect(
+			page.locator(
+				'.laplace-visualizations svg[aria-label^="Verified time response"] path title',
+			),
+		).toHaveCount(0);
+	});
 	/** A finite pulse shorter than a uniform sample step must remain visible after completion. */
 	test("renders an independently solved short pulse on its support interval", async ({
 		page,

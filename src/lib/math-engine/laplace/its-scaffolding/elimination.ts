@@ -110,7 +110,7 @@ export function eliminationTasks(
 			);
 		if (pivot !== column) {
 			[rows[pivot], rows[column]] = [rows[column]!, rows[pivot]!];
-			exchanges += `Exchange equations ${pivot + 1} and ${column + 1} to place a nonzero coefficient in the working position. `;
+			exchanges += `The displayed system already includes the exchange of equations ${pivot + 1} and ${column + 1} to place a nonzero coefficient in the working position. Do not exchange them again. `;
 		}
 		const divisor = rows[column]![column]!;
 		if (divisor.numerator !== divisor.denominator)

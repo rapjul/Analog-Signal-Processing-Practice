@@ -6,6 +6,36 @@ import { solveLaplaceOde } from "$lib/math-engine/laplace/ode";
 import { totalCanceledFactors } from "$lib/math-engine/laplace/roc";
 
 describe("verified Laplace diagrams", () => {
+	/** Unused impulse rate, frequency, power, and sidedness cannot change a distribution's net weight. */
+	it("combines coincident impulses despite different unused metadata", () => {
+		const term = {
+			kind: "impulse" as const,
+			amplitude: "1",
+			rate: "0",
+			frequency: "0",
+			power: 0,
+			delay: "1",
+			side: "right" as const,
+		};
+		const problem = createLaplaceExercise({
+			workflow: "forward",
+			seed: 73,
+			terms: [
+				term,
+				{
+					...term,
+					amplitude: "-1",
+					rate: "-2",
+					frequency: "3",
+					power: 2,
+					side: "left",
+				},
+			],
+		});
+		expect(problem.transform).toBe("0");
+		expect(laplacePlot(problem).impulses).toEqual([]);
+		expect(laplacePlot(problem).zeroInfo.kind).toBe("zero");
+	});
 	/** The uniform grid must not erase a nonzero interval shorter than one global sample step. */
 	it("samples narrow positive, negative, and left-supported pulses inside every interval", () => {
 		for (const side of ["right", "left"] as const)

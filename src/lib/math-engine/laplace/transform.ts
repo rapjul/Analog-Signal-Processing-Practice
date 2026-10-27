@@ -30,10 +30,20 @@ export interface TransformBlock {
 	/** Supported inverse response. */ terms: LaplaceResponseTerm[];
 }
 
-/** @param terms - Input signal terms. @returns Exact collection of identical terms. */
+/** @param terms - Input signal terms. @returns Exact semantic collection with unused impulse metadata canonicalized. */
 export function collectTerms(terms: LaplaceSignalTerm[]): LaplaceSignalTerm[] {
 	const result: LaplaceSignalTerm[] = [];
-	for (const term of terms) {
+	for (const source of terms) {
+		const term: LaplaceSignalTerm =
+			source.kind === "impulse"
+				? {
+						...source,
+						rate: "0",
+						frequency: "0",
+						power: 0,
+						side: "right",
+					}
+				: source;
 		const key = [
 			term.kind,
 			term.side,
