@@ -167,6 +167,13 @@ export function serializeLaplaceExercise(
 export function parseLaplaceConfiguration(
 	params: URLSearchParams,
 ): LaplaceExerciseSpec | null {
+	return parseLaplaceExercise(params)?.spec ?? null;
+}
+
+/** @param params - Untrusted URL parameters. @returns The complete preflight-validated exercise, or null for an ordinary visit. */
+export function parseLaplaceExercise(
+	params: URLSearchParams,
+): LaplaceExercise | null {
 	const encoded = params.get("config");
 	if (encoded === null) return null;
 	if (params.get("v") !== "1" || encoded.length > 16384)
@@ -174,7 +181,7 @@ export function parseLaplaceConfiguration(
 			"This shared configuration has an unsupported version or length.",
 		);
 	try {
-		return createLaplaceExercise(JSON.parse(encoded)).spec;
+		return createLaplaceExercise(JSON.parse(encoded));
 	} catch (error) {
 		throw new Error(
 			`Cannot open this shared problem: ${error instanceof Error ? error.message : "invalid configuration"}`,

@@ -90,6 +90,8 @@ exchanges already incorporated in the displayed system, so learners apply only
 the remaining arithmetic operation.
 The exported `LaplacePlot` contract names the response samples, exact zero
 information, root markers, and signed impulse markers shared by rendering and tests.
+Shared links return the complete preflight-validated exercise to the route, so
+loading a link constructs and validates its task plan only once.
 The labeled vertical scale follows the sampled response magnitude, including
 amplitudes below one; an identically zero response uses a finite unit-scale fallback.
 

@@ -13,7 +13,7 @@
 		type LaplaceExercise,
 		type LaplaceExerciseSpec,
 		type LaplacePreset,
-		parseLaplaceConfiguration,
+		parseLaplaceExercise,
 		serializeLaplaceExercise,
 	} from "$lib/math-engine/laplace/index";
 	import { createRandomSeed } from "$lib/math-engine/random";
@@ -22,14 +22,12 @@
 	/** @returns Valid shared exercise, or a clearly diagnosed ordinary default. */
 	function initialProblem(): LaplaceExercise {
 		try {
-			const shared = parseLaplaceConfiguration(page.url.searchParams);
+			const shared = parseLaplaceExercise(page.url.searchParams);
 			const rawSeed = page.url.searchParams.get("seed");
 			const seed = rawSeed === null ? 73 : Number(rawSeed);
 			if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
 				throw new Error("Use an unsigned 32-bit integer seed.");
-			return shared
-				? createLaplaceExercise(shared)
-				: generateLaplaceExercise("inverse", seed);
+			return shared ?? generateLaplaceExercise("inverse", seed);
 		} catch (failure) {
 			error =
 				failure instanceof Error

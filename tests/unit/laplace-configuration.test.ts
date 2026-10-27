@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createLaplaceExercise,
 	parseLaplaceConfiguration,
+	parseLaplaceExercise,
 	serializeLaplaceConfiguration,
 	serializeLaplaceExercise,
 } from "$lib/math-engine/laplace/configuration";
@@ -16,6 +17,24 @@ import {
 } from "$lib/math-engine/laplace/verification";
 
 describe("reproducible bounded Laplace configuration", () => {
+	/** Shared links retain their checked task plan, while malformed input still receives full preflight validation. */
+	it("returns a complete validated shared exercise without requiring reconstruction", () => {
+		const problem = generateLaplaceExercise("inverse", 73);
+		expect(parseLaplaceExercise(serializeLaplaceExercise(problem))).toEqual(
+			problem,
+		);
+		expect(parseLaplaceExercise(new URLSearchParams())).toBeNull();
+		for (const params of [
+			new URLSearchParams({ v: "2", config: "{}" }),
+			new URLSearchParams({ v: "1", config: " ".repeat(16385) }),
+			new URLSearchParams({ v: "1", config: "{" }),
+			new URLSearchParams({
+				v: "1",
+				config: JSON.stringify({ workflow: "inverse", seed: -1 }),
+			}),
+		])
+			expect(() => parseLaplaceExercise(params)).toThrow();
+	});
 	it("accepts identically zero inverse transforms with a complete verifiable path", () => {
 		const input = generateLaplaceExercise("inverse", 73).spec;
 		if (input.workflow !== "inverse")
