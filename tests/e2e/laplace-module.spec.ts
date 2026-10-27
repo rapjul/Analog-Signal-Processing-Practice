@@ -8,6 +8,39 @@ import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** A finite pulse shorter than a uniform sample step must remain visible after completion. */
+	test("renders an independently solved short pulse on its support interval", async ({
+		page,
+	}) => {
+		test.setTimeout(90000);
+		const term = {
+			kind: "exponential" as const,
+			amplitude: "1",
+			rate: "0",
+			frequency: "0",
+			power: 0,
+			delay: "1",
+			side: "right" as const,
+		};
+		const problem = createLaplaceExercise({
+			workflow: "forward",
+			seed: 73,
+			terms: [term, { ...term, amplitude: "-1", delay: "1.001" }],
+		});
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await completeLaplaceTasks(page, problem, undefined, {
+			"forward-final": "X(s)=(e^{-s}-e^{-1.001s})/s",
+		});
+		const curve = page.locator(
+			'.laplace-visualizations path[stroke-width="2"]',
+		);
+		await expect(curve).toHaveAttribute("d", /,25\.00/);
+		await expect(curve).toHaveAttribute("stroke-linecap", "round");
+		await expect(page.locator(".katex-error")).toHaveCount(0);
+	});
 	/** Invalid fixture selections must fail instead of clicking the last option. */
 	test("rejects an absent helper choice without submitting another option", async ({
 		page,

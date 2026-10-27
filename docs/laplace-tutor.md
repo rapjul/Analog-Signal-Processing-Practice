@@ -81,6 +81,9 @@ rational linear and quadratic locations retain multiplicity. Other zero sets
 show their exact formula or defining polynomial and explain unplotted locations.
 Different delay blocks explicitly disclaim a finite polynomial-zero list.
 Impulse arrows follow signed weights; zero-weight coincident impulses disappear.
+Regular-response plots sample inside every distinct support interval, including
+near each boundary. Paths do not bridge jumps, and rounded segment ends keep
+short nonzero segments visible even when their width is below a screen pixel.
 
 Construction checks diagnose all provable errors by row and field, including signs, multiplicities, duplicate terms, and numerator/denominator confusion. Edits preserve drafts and clear stale diagnostics. See [ADR 0039](./adrs/0039-laplace-checked-construction-and-interval-evidence.md) for the distinction between structural evidence and final equality checks.
 

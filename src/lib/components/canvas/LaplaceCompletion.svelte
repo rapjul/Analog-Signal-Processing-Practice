@@ -31,6 +31,7 @@
 				fill="none"
 				stroke="var(--accent-primary)"
 				stroke-width="2"
+				stroke-linecap="round"
 			/>
 			{#each plot.impulses as impulse}<path
 					d={`M${impulse.x},80 L${impulse.x},${80 - 58 * impulse.direction} l-4,${8 * impulse.direction} m4,${-8 * impulse.direction} l4,${8 * impulse.direction}`}

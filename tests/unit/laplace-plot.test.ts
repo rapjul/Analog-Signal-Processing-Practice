@@ -6,6 +6,54 @@ import { solveLaplaceOde } from "$lib/math-engine/laplace/ode";
 import { totalCanceledFactors } from "$lib/math-engine/laplace/roc";
 
 describe("verified Laplace diagrams", () => {
+	/** The uniform grid must not erase a nonzero interval shorter than one global sample step. */
+	it("samples narrow positive, negative, and left-supported pulses inside every interval", () => {
+		for (const side of ["right", "left"] as const)
+			for (const amplitude of ["1", "-2"]) {
+				const term = {
+					kind: "exponential" as const,
+					amplitude,
+					rate: "0",
+					frequency: "0",
+					power: 0,
+					delay: "1",
+					side,
+				};
+				const firstWeight =
+					side === "right" ? amplitude : String(-Number(amplitude));
+				const problem = createLaplaceExercise({
+					workflow: "forward",
+					seed: 73,
+					terms: [
+						{ ...term, amplitude: firstWeight },
+						{
+							...term,
+							amplitude: String(-Number(firstWeight)),
+							delay: "1.001",
+						},
+					],
+				});
+				const plot = laplacePlot(problem);
+				const interior = plot.samples.filter(
+					(sample) => sample.t > 1 && sample.t < 1.001,
+				);
+				expect(interior.length).toBeGreaterThan(0);
+				expect(
+					interior.every(
+						(sample) => sample.value === Number(amplitude),
+					),
+				).toBe(true);
+				expect(
+					plot.samples
+						.filter((sample) => sample.t < 1 || sample.t > 1.001)
+						.every((sample) => sample.value === 0),
+				).toBe(true);
+				expect(plot.path).toContain(
+					amplitude === "1" ? ",25.00" : ",135.00",
+				);
+				expect(plot.path).not.toMatch(/NaN|Infinity/);
+			}
+	});
 	/** Verifies exact combined zeros against independently derived rational numerators. */
 	it("plots combined forward and ODE zeros instead of omitting them", () => {
 		const term = {

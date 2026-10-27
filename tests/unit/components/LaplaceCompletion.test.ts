@@ -26,5 +26,10 @@ describe("signed completion distributions", () => {
 		expect(impulse.textContent).toContain("impulse weight -1");
 		expect(view.getByText(/No finite zeros/)).toBeTruthy();
 		expect(view.container.querySelector(".katex-error")).toBeNull();
+		expect(
+			view.container
+				.querySelector('path[stroke-width="2"]')!
+				.getAttribute("stroke-linecap"),
+		).toBe("round");
 	});
 });
