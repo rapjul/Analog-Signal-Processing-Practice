@@ -103,7 +103,8 @@ export function laplacePlot(problem: LaplaceExercise): LaplacePlot {
 	const timeX = (t: number): number => 20 + (280 * (t - min)) / (max - min);
 	const samples = responseSamples(problem, min, max);
 	const finite = samples.filter((point) => Number.isFinite(point.value));
-	const peak = Math.max(1, ...finite.map((point) => Math.abs(point.value)));
+	const peak =
+		Math.max(0, ...finite.map((point) => Math.abs(point.value))) || 1;
 	let path = "",
 		open = false,
 		previousInterval = -1;
@@ -113,7 +114,7 @@ export function laplacePlot(problem: LaplaceExercise): LaplacePlot {
 			continue;
 		}
 		if (sample.interval !== previousInterval) open = false;
-		path += `${open ? "L" : "M"}${timeX(sample.t).toFixed(2)},${(80 - (55 * sample.value) / peak).toFixed(2)} `;
+		path += `${open ? "L" : "M"}${timeX(sample.t).toFixed(2)},${(80 - 55 * (sample.value / peak)).toFixed(2)} `;
 		open = true;
 		previousInterval = sample.interval;
 	}

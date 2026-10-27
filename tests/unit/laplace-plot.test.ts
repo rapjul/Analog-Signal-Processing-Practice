@@ -6,6 +6,40 @@ import { solveLaplaceOde } from "$lib/math-engine/laplace/ode";
 import { totalCanceledFactors } from "$lib/math-engine/laplace/roc";
 
 describe("verified Laplace diagrams", () => {
+	/** Nonzero responses below unit amplitude must remain visible on the labeled vertical scale. */
+	it("scales small signed responses and retains a finite zero-response fallback", () => {
+		for (const amplitude of ["1/1000000", "-1/1000000", "0"]) {
+			const problem = createLaplaceExercise({
+				workflow: "forward",
+				seed: 73,
+				terms: [
+					{
+						kind: "exponential",
+						amplitude,
+						rate: "0",
+						frequency: "0",
+						power: 0,
+						delay: "0",
+						side: "right",
+					},
+				],
+			});
+			const plot = laplacePlot(problem);
+			expect(plot.peak).toBe(amplitude === "0" ? 1 : 0.000001);
+			expect(plot.path).toContain(
+				amplitude === "0"
+					? ",80.00"
+					: amplitude.startsWith("-")
+						? ",135.00"
+						: ",25.00",
+			);
+			expect(plot.path).not.toMatch(/NaN|Infinity/);
+			if (amplitude === "0")
+				expect(plot.samples.every((sample) => sample.value === 0)).toBe(
+					true,
+				);
+		}
+	});
 	/** Unused impulse rate, frequency, power, and sidedness cannot change a distribution's net weight. */
 	it("combines coincident impulses despite different unused metadata", () => {
 		const term = {

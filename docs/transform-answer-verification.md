@@ -15,6 +15,11 @@ be promoted to correct by finite samples. Impulse derivatives and products with
 discontinuous steps remain unsupported. The original causal-drill and CTFT
 verification entry points keep their existing answer-language boundaries.
 
+Completion-plot regression tests independently check small positive and negative
+responses, the zero-response scale fallback, and support-interval samples. Plot
+scaling and rounded SVG coordinates are presentation only; they never determine
+answer correctness.
+
 See [the Laplace tutor](./laplace-tutor.md) for curriculum and workflow details.
 
 ## Supported Forms

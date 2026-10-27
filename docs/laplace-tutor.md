@@ -90,6 +90,8 @@ exchanges already incorporated in the displayed system, so learners apply only
 the remaining arithmetic operation.
 The exported `LaplacePlot` contract names the response samples, exact zero
 information, root markers, and signed impulse markers shared by rendering and tests.
+The labeled vertical scale follows the sampled response magnitude, including
+amplitudes below one; an identically zero response uses a finite unit-scale fallback.
 
 Construction checks diagnose all provable errors by row and field, including signs, multiplicities, duplicate terms, and numerator/denominator confusion. Edits preserve drafts and clear stale diagnostics. See [ADR 0039](./adrs/0039-laplace-checked-construction-and-interval-evidence.md) for the distinction between structural evidence and final equality checks.
 
