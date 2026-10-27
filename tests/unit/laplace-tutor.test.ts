@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateConstruction } from "$lib/math-engine/laplace/construction";
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
+import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import type { RationalExercise } from "$lib/math-engine/laplace/types";
 import {
 	verifyLaplaceS,
@@ -29,6 +30,30 @@ function inverseSpec(cancellation = false): RationalExercise {
 }
 
 describe("Laplace inverse tutoring", () => {
+	/** Audits learner-facing instructions independently of generated target strings. */
+	it("keeps algebra prompts and surviving-root hints in their actual context", () => {
+		for (const workflow of ["inverse", "forward", "roc", "ode"] as const) {
+			const problem = generateLaplaceExercise(workflow, 73);
+			for (const task of problem.stages.flatMap((stage) => stage.tasks)) {
+				if (task.kind === "fields" && !task.id.startsWith("ode-"))
+					expect(task.prompt).not.toMatch(
+						/initial values|initial output/,
+					);
+				expect(task.hints).toHaveLength(3);
+				expect(task.explanation).not.toContain(
+					"Your submitted result satisfies",
+				);
+				if (task.id.startsWith("surviving-")) {
+					expect(task.hints[1]).toContain(
+						"Subtract only matching canceled copies",
+					);
+					expect(task.hints[1]).not.toContain(
+						"Other polynomial roots",
+					);
+				}
+			}
+		}
+	});
 	it("always asks the same cancellation question without a spoiler header", () => {
 		const problems = [false, true].map((cancellation) =>
 			createRationalExercise(inverseSpec(cancellation)),

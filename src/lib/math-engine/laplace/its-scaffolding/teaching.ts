@@ -34,7 +34,8 @@ export function teaching(
 	return {
 		lesson,
 		hints: [lesson, setup, worked],
-		explanation: `${worked} Your submitted result satisfies this check.`,
+		explanation:
+			"Your result passes the exact check for this task. The verified result is now available for the next calculation.",
 		action,
 	};
 }

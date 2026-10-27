@@ -75,6 +75,7 @@ export function supportTasks(
 			...fieldTask(
 				`forward-support-interval-${index}-values`,
 				`Combine the interval $${range}$`,
+				`On $${range}$, mark each ordinary term active or inactive, then enter their combined expression.`,
 				`x(t)={{combined}},\\quad ${ordinary.map(({ index: termIndex }) => `m_{${termIndex + 1}}={{active-${termIndex}}}`).join(",\\quad ")}`,
 				fields,
 			),

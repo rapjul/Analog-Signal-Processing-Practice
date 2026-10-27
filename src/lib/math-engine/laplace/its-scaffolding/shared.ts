@@ -62,10 +62,11 @@ export function taskChoices(key: string, choices: string[]): string[] {
 	return shuffleWithRandom([...new Set(choices)], createSeededPrng(seed));
 }
 
-/** @param id - Stable ID. @param title - Heading. @param frame - Previously verified rule with blank slots. @param fields - Exact coefficient targets. @returns Independently checked substitution task. */
+/** @param id - Stable ID. @param title - Heading. @param prompt - Context-specific instruction. @param frame - Verified rule with blank slots. @param fields - Exact coefficient targets. @returns Independently checked fields. */
 export function fieldTask(
 	id: string,
 	title: string,
+	prompt: string,
 	frame: string,
 	fields: LaplaceAnswerField[],
 ): LaplaceFieldTask {
@@ -74,21 +75,17 @@ export function fieldTask(
 		Object.fromEntries(fields.map((field) => [field.id, field.target])),
 	);
 	return {
-		...task(
-			id,
-			title,
-			"Substitute the supplied initial values into the verified rule. Keep each value's sign, including zero.",
-			"s",
-			answer,
-		),
+		...task(id, title, prompt, "s", answer),
 		kind: "fields",
 		frame,
 		fields,
-		hints: [
-			"Each blank holds an exact signed coefficient, not a whole derivative expression. Subtracting a negative initial value produces addition; zero must still be entered.",
-			`The supplied values for these slots are ${fields.map((field) => `${field.label}: $${field.target}$`).join("; ")}. Copy each signed value into its matching position rather than changing the sign of the rule.`,
-			`Substituting the first value gives $${renderLaplaceFields(frame, { [fields[0]!.id]: fields[0]!.target })}$. For example, the rule subtracts a supplied $-2$ as $-(-2)=+2$; the slot itself still contains $-2$.`,
-		],
+		hints: id.startsWith("ode-")
+			? [
+					"Each blank holds an exact signed coefficient, not a whole derivative expression. Subtracting a negative initial value produces addition; zero must still be entered.",
+					`The supplied values for these slots are ${fields.map((field) => `${field.label}: $${field.target}$`).join("; ")}. Copy each signed value into its matching position rather than changing the sign of the rule.`,
+					`Substituting the first value gives $${renderLaplaceFields(frame, { [fields[0]!.id]: fields[0]!.target })}$. For example, the rule subtracts a supplied $-2$ as $-(-2)=+2$; the slot itself still contains $-2$.`,
+				]
+			: [],
 	};
 }
 
@@ -104,7 +101,7 @@ export function rootList(factors: LaplaceFactor[]): string {
 		: "No finite roots";
 }
 
-/** @param title - Heading. @param id - Stable ID. @param factors - Roots. @param other - Distractor. @returns Root-set question. */
+/** @param title - Heading. @param id - Stable ID. @param factors - Roots. @param other - Comparison roots. @returns Contextual root-set question. */
 export function rootTask(
 	title: string,
 	id: string,
@@ -113,6 +110,13 @@ export function rootTask(
 ): LaplaceConstructionTask {
 	const answer = rootList(factors);
 	const first = factors[0];
+	const surviving = id.startsWith("surviving-");
+	const canceled = id === "canceled-factors";
+	const setup = surviving
+		? `Start from the verified original ${id.includes("zero") ? "numerator" : "denominator"} roots ${rootList(other)}. Subtract only matching canceled copies. The remaining copies define the reduced expression's ${id.includes("zero") ? "zeros" : "poles"}; a location can remain after partial cancellation.`
+		: canceled
+			? `Compare the verified numerator and denominator factors at each exact location. Remove the smaller number of copies, once from each polynomial. Original denominator roots: ${rootList(other)}.`
+			: `Solve factors of the ${id.includes("zero") ? "numerator" : "denominator"}. For a linear factor $s+b$, solve $s+b=0$. The opposite polynomial has roots ${rootList(other)}; these are not the requested polynomial.`;
 	return {
 		id,
 		title,
@@ -125,7 +129,7 @@ export function rootTask(
 			: {}),
 		...teaching(
 			"A root is a value that makes a polynomial zero. Multiplicity counts factor copies. The imaginary unit satisfies $j^2=-1$; conjugate roots $a+jb$ and $a-jb$ share real part $a$ and opposite imaginary parts.",
-			`Solve the factors of the ${id.includes("zero") ? "numerator" : "denominator or selected factor list"}, not those of the other polynomial. For a linear factor $s+b$, solve $s+b=0$. Other polynomial roots: ${rootList(other)}.`,
+			setup,
 			first
 				? `For the factor $${polynomialLatex(factorPoly(first))}$, ${fraction(first.frequency).numerator ? `complete the square to obtain $(s-(${first.real}))^2+(${first.frequency})^2=0$, giving the pair $${first.real}\\pm j(${first.frequency})$` : `subtract its constant from both sides to obtain $s=${first.real}$`}. Count its copies separately from solving its location.`
 				: "A nonzero constant cannot equal zero, so it has no finite roots. This differs from the zero polynomial, which vanishes at every value.",
@@ -240,6 +244,7 @@ export function analysisStage(
 		...fieldTask(
 			"common-copies-values",
 			"Count matching factor copies",
+			"Compare exact factor locations and count only matching copies, using the smaller multiplicity at each location.",
 			"\\text{Common factor copies}={{copies}}",
 			[
 				{
@@ -315,6 +320,7 @@ export function analysisStage(
 		...fieldTask(
 			"degrees-values",
 			"Compare the reduced polynomial degrees",
+			"Enter the highest nonzero power in each reduced polynomial; use -1 only for the zero polynomial.",
 			"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
 			[
 				{
@@ -442,6 +448,7 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 			...fieldTask(
 				`matching-power-${power}-values`,
 				`Match the coefficient of $s^{${power}}$`,
+				`Expand each unknown's multiplier and enter its coefficient of $s^{${power}}$, including zeros.`,
 				`${fields.map((field, index) => `({{${field.id}}})${data.slots[index]!.label}`).join("+")}=${(remainder[power] ?? fraction(0)).toLatex()}`,
 				fields,
 			),
@@ -622,6 +629,7 @@ export function decompositionStages(
 								...fieldTask(
 									"method-degrees-values",
 									"Compare reduced degrees",
+									"Enter each reduced polynomial's highest nonzero power before choosing whether to divide.",
 									"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
 									[
 										{
@@ -687,6 +695,7 @@ export function decompositionStages(
 					...fieldTask(
 						"factor-counts-values",
 						"Classify the denominator factors",
+						"Count linear and irreducible quadratic factor copies in the verified reduced denominator.",
 						"\\text{Linear copies}={{linear}},\\quad\\text{Quadratic copies}={{quadratic}}",
 						[
 							{
@@ -749,6 +758,7 @@ export function decompositionStages(
 								...fieldTask(
 									"square-values",
 									"Rewrite the quadratic as a shifted square",
+									"Complete the square in the reduced denominator and enter its signed shift and positive frequency.",
 									"(s-({{rate}}))^2+({{frequency}})^2",
 									[
 										{
@@ -779,6 +789,7 @@ export function decompositionStages(
 								...fieldTask(
 									"direct-weights-values",
 									"Rewrite the numerator in pair-ready terms",
+									"Expand the displayed weighted pieces and match their coefficients to the proper remainder's numerator.",
 									`${polynomialLatex(add(data.numerator, scale(data.denominator, fractionLatex(data.quotient).negate())))}=${data.slots.map((slot, index) => `({{weight-${index}}})(${polynomialLatex(multiply(divide(data.denominator, slot.denominator)[0], slot.basis))})`).join("+")}`,
 									data.slots.map((slot, index) => ({
 										id: `weight-${index}`,

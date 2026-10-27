@@ -144,6 +144,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 				fieldTask(
 					"ode-derivative-values",
 					"Apply the first-derivative rule",
+					"Substitute the supplied initial output into the verified rule, retaining its sign, including zero.",
 					"\\mathcal L_+\\{y'\\}=sY(s)-({{y0}})",
 					[
 						{
@@ -170,6 +171,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 							fieldTask(
 								"ode-second-values",
 								"Apply the second-derivative rule",
+								"Substitute the supplied initial output and derivative into their matching slots, retaining their signs, including zeros.",
 								"\\mathcal L_+\\{y''\\}=s^2Y(s)-s({{y0}})-({{dy0}})",
 								[
 									{
