@@ -33,7 +33,7 @@
 				stroke-width="2"
 			/>
 			{#each plot.impulses as impulse}<path
-					d={`M${impulse.x},80 L${impulse.x},22 l-4,8 m4,-8 l4,8`}
+					d={`M${impulse.x},80 L${impulse.x},${80 - 58 * impulse.direction} l-4,${8 * impulse.direction} m4,${-8 * impulse.direction} l4,${8 * impulse.direction}`}
 					fill="none"
 					stroke="currentColor"><title>{impulse.label}</title></path
 				>{/each}
@@ -127,11 +127,7 @@
 		<ul>
 			{#each plot.roots as marker}<li>{marker.label}.</li>{/each}
 		</ul>
-		{#if problem.spec.workflow === "forward" || problem.spec.workflow === "ode"}<p
-			>
-				Different delay blocks may have additional transcendental zeros;
-				the diagram does not claim a complete zero list for their sum.
-			</p>{/if}
+		<p><MathText text={plot.zeroInfo.description} /></p>
 	</figure>
 </div>
 

@@ -1,10 +1,12 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
-import { decompose } from "$lib/math-engine/laplace/pfd";
 import { evaluateResponse } from "$lib/math-engine/laplace/signals";
 import type {
 	LaplaceExercise,
 	LaplaceFactor,
 } from "$lib/math-engine/laplace/types";
+import { completionZeros } from "$lib/math-engine/laplace/completion";
+import { collectTerms } from "$lib/math-engine/laplace/transform";
+import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 
 /** One accessible root marker in the completed s-plane. */
 export interface LaplaceRootMarker {
@@ -47,10 +49,8 @@ export function laplacePlot(problem: LaplaceExercise) {
 		open = true;
 		previous = sample.t;
 	}
-	const zeros =
-		problem.spec.workflow === "inverse" || problem.spec.workflow === "roc"
-			? decompose(problem.spec.rational).zeros
-			: [];
+	const zeroInfo = completionZeros(problem);
+	const zeros = zeroInfo.factors;
 	const all = [...problem.poles, ...problem.canceled, ...zeros];
 	const realScale = Math.max(
 		1,
@@ -81,6 +81,7 @@ export function laplacePlot(problem: LaplaceExercise) {
 			);
 		});
 	return {
+		zeroInfo,
 		path,
 		min,
 		max,
@@ -93,10 +94,12 @@ export function laplacePlot(problem: LaplaceExercise) {
 		],
 		rocLeft: realX(problem.roc[0]),
 		rocRight: realX(problem.roc[1]),
-		impulses: problem.terms
+		impulses: collectTerms(problem.terms)
 			.filter((term) => term.kind === "impulse")
 			.map((term) => ({
 				x: timeX(fraction(term.delay).toNumber()),
+				direction:
+					fractionLatex(term.amplitude).numerator < 0n ? -1 : 1,
 				label: `At t=${term.delay}: impulse weight ${term.amplitude}`,
 			})),
 	};
