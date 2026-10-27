@@ -630,9 +630,18 @@ function product(args: unknown[], context: Context): CanonicalSpectrum {
 	let result = constant(scalar(1));
 	for (let index = 0; index < args.length; index++) {
 		const item = unbox(args[index]);
+		// The parser attaches a leading minus to the bare operator before its argument.
+		const negativeImpulse =
+			Array.isArray(item) &&
+			item.length === 2 &&
+			item[0] === "Negate" &&
+			item[1] === "DiracDelta";
 		const next =
-			item === "DiracDelta"
-				? impulse(args[++index], context)
+			item === "DiracDelta" || negativeImpulse
+				? multiply(
+						constant(scalar(negativeImpulse ? -1 : 1)),
+						impulse(args[++index], context),
+					)
 				: normalize(args[index], context);
 		result = multiply(result, next);
 	}

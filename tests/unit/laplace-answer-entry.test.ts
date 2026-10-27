@@ -12,6 +12,38 @@ import {
 } from "$lib/math-engine/laplace/verification";
 
 describe("guided Laplace answer entry", () => {
+	/** Checks independent equivalent notation rather than the engine's displayed answer. */
+	it("accepts unary negative impulses without permitting distribution products", () => {
+		const terms = [
+			{
+				kind: "impulse" as const,
+				amplitude: "-1/2",
+				rate: "0",
+				frequency: "0",
+				power: 0,
+				delay: "2",
+				side: "right" as const,
+			},
+		];
+		for (const answer of [
+			String.raw`-\delta(t-2)/2`,
+			String.raw`(-1/2)\delta(t-2)`,
+			String.raw`0-\delta(t-2)/2`,
+			String.raw`-1/2*\delta(t-2)`,
+		])
+			expect(verifyLaplaceTime(answer, terms).status, answer).toBe(
+				"correct",
+			);
+		expect(verifyLaplaceTime(String.raw`\delta(t-2)/2`, terms).status).toBe(
+			"incorrect",
+		);
+		for (const answer of [
+			String.raw`-\delta(t)^2`,
+			String.raw`-\delta(t)u(t)`,
+			String.raw`-\delta(t)\delta(t)`,
+		])
+			expect(verifyLaplaceTime(answer, terms).status).not.toBe("correct");
+	});
 	for (const initial of [
 		["0", "0"],
 		["0", "2"],
