@@ -130,10 +130,17 @@ describe("Laplace inverse tutoring", () => {
 				response.lhs,
 			).status,
 		).toBe("invalid");
-		for (const workflow of ["inverse", "forward", "ode", "roc"] as const)
+		for (const workflow of ["inverse", "forward", "ode", "roc"] as const) {
 			expect(
 				laplaceGoal(generateLaplaceExercise(workflow, 73).spec),
 			).toMatch(/Find|Solve|Analyze/);
+			if (workflow === "forward")
+				expect(
+					generateLaplaceExercise(workflow, 73)
+						.stages.flatMap((stage) => stage.tasks)
+						.find((task) => task.id === "forward-final")!.lhs,
+				).toBe("X(s)");
+		}
 	});
 	/** Audits learner-facing instructions independently of generated target strings. */
 	it("keeps algebra prompts and surviving-root hints in their actual context", () => {

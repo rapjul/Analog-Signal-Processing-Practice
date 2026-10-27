@@ -61,6 +61,7 @@ export function renderLaplaceFields(
 /** @param id - Stable task identifier. @param kind - Expression domain. @returns Meaningful fixed assignment label. */
 export function laplaceAnswerLabel(id: string, kind: "s" | "t"): string {
 	const labels: Record<string, string> = {
+		"forward-final": "X(s)",
 		"factor-numerator": "N(s)",
 		"factor-denominator": "D(s)",
 		"ode-zi": "Y_{\\mathrm{ZI}}(s)",
