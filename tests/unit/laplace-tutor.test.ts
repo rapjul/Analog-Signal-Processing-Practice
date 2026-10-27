@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateConstruction } from "$lib/math-engine/laplace/construction";
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
 import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
+import { laplaceGoal } from "$lib/math-engine/laplace/answer-entry";
 import type { RationalExercise } from "$lib/math-engine/laplace/types";
 import {
 	verifyLaplaceS,
@@ -30,6 +31,42 @@ function inverseSpec(cancellation = false): RationalExercise {
 }
 
 describe("Laplace inverse tutoring", () => {
+	/** Checks natural system notation against an independently supplied answer. */
+	it("uses the system response label and describes the requested result", () => {
+		const spec = inverseSpec(true);
+		spec.system = true;
+		const problem = createRationalExercise(spec);
+		const response = problem.stages
+			.flatMap((stage) => stage.tasks)
+			.find((part) => part.id === "response")!;
+		expect(response.lhs).toBe("h(t)");
+		expect(laplaceGoal(spec)).toContain("$h(t)$");
+		expect(
+			verifyLaplaceTime(
+				String.raw`h(t)=e^{-4t}u(t)`,
+				problem.terms,
+				response.lhs,
+			).status,
+		).toBe("correct");
+		expect(
+			verifyLaplaceTime(
+				String.raw`z(t)=e^{-4t}u(t)`,
+				problem.terms,
+				response.lhs,
+			).status,
+		).toBe("invalid");
+		expect(
+			verifyLaplaceTime(
+				String.raw`h(t)=x(t)=e^{-4t}u(t)`,
+				problem.terms,
+				response.lhs,
+			).status,
+		).toBe("invalid");
+		for (const workflow of ["inverse", "forward", "ode", "roc"] as const)
+			expect(
+				laplaceGoal(generateLaplaceExercise(workflow, 73).spec),
+			).toMatch(/Find|Solve|Analyze/);
+	});
 	/** Audits learner-facing instructions independently of generated target strings. */
 	it("keeps algebra prompts and surviving-root hints in their actual context", () => {
 		for (const workflow of ["inverse", "forward", "roc", "ode"] as const) {

@@ -188,6 +188,10 @@ export function createRationalExercise(
 			),
 		},
 	].filter((stage) => stage.tasks.length);
+	if (spec.system)
+		for (const stage of stages)
+			for (const part of stage.tasks)
+				if (part.kind === "t") part.lhs = "h(t)";
 	return {
 		spec,
 		prompt: `${spec.system ? "H" : "X"}(s)=${transform}`,

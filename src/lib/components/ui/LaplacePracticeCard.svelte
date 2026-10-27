@@ -4,6 +4,7 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import LaplaceStepSolver from "$lib/components/solvers/LaplaceStepSolver.svelte";
 	import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
+	import { laplaceGoal } from "$lib/math-engine/laplace/answer-entry";
 	import CompletionBanner from "./CompletionBanner.svelte";
 	import ProblemHeader from "./ProblemHeader.svelte";
 	import WorkedSolution from "./WorkedSolution.svelte";
@@ -46,6 +47,9 @@
 		onclick={restart}>Restart this problem</button
 	>
 	<div class="problem-prompt">
+		<p class="problem-goal">
+			<MathText text={laplaceGoal(problem.spec)} />
+		</p>
 		<MathBlock math={problem.prompt} />
 		<p><MathText text={problem.conditions} /></p>
 	</div>

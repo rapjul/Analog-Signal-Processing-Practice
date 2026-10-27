@@ -1,4 +1,16 @@
 import { CanonicalError } from "$lib/math-engine/canonical-algebra";
+import type { LaplaceExerciseSpec } from "./types";
+
+/** @param spec - Validated workflow context. @returns Explicit learner-facing goal with mathematical labels. */
+export function laplaceGoal(spec: LaplaceExerciseSpec): string {
+	if (spec.workflow === "forward")
+		return "Find the transform $X(s)$ and its region of convergence.";
+	if (spec.workflow === "ode")
+		return "Solve for $y(t)$ and verify the equation and initial conditions.";
+	if (spec.workflow === "roc")
+		return "Analyze the system's zeros, poles, region of convergence, causality, and BIBO stability.";
+	return `Find the ${spec.system ? "impulse response $h(t)$" : "signal $x(t)$"} with the supplied support or region of convergence.`;
+}
 
 /** @param answer - Raw submission. @param variable - Verification variable. @param lhs - Optional task-specific equation label. @returns Only the right-hand expression, refusing other assignments. */
 export function laplaceExpression(
