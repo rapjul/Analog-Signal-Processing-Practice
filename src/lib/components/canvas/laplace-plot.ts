@@ -1,5 +1,8 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
-import { completionZeros } from "$lib/math-engine/laplace/completion";
+import {
+	type CompletionZeros,
+	completionZeros,
+} from "$lib/math-engine/laplace/completion";
 import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 import { evaluateResponse } from "$lib/math-engine/laplace/signals";
 import { collectTerms } from "$lib/math-engine/laplace/transform";
@@ -17,10 +20,32 @@ export interface LaplaceRootMarker {
 }
 
 /** One ordinary-response sample belonging to an open support interval. */
-interface ResponseSample {
+export interface LaplaceResponseSample {
 	/** Actual evaluation time. */ t: number;
 	/** Regular response, excluding distributions. */ value: number;
 	/** Interval identity; paths never bridge different support intervals. */ interval: number;
+}
+
+/** One completed distribution marker; its arrow direction follows its exact signed weight. */
+export interface LaplaceImpulseMarker {
+	/** Horizontal SVG coordinate of the impulse location. */ x: number;
+	/** Upward positive or downward negative arrow. */ direction: 1 | -1;
+	/** Accessible exact location and weight description. */ label: string;
+}
+
+/** Stable completion-diagram contract shared by the renderer and verification tests. */
+export interface LaplacePlot {
+	/** Ordinary samples, retaining their support-interval identities. */ samples: LaplaceResponseSample[];
+	/** Exact zero characterization, including unplotted sets. */ zeroInfo: CompletionZeros;
+	/** Finite ordinary-response SVG path, broken at discontinuities. */ path: string;
+	/** Left endpoint of the displayed time window. */ min: number;
+	/** Right endpoint of the displayed time window. */ max: number;
+	/** Positive displayed vertical scale. */ peak: number;
+	/** Whether nonfinite ordinary samples were omitted. */ omitted: boolean;
+	/** Surviving and removed root markers with exact labels. */ roots: LaplaceRootMarker[];
+	/** Left horizontal coordinate of the ROC shading. */ rocLeft: number;
+	/** Right horizontal coordinate of the ROC shading. */ rocRight: number;
+	/** Combined nonzero impulses, separate from the ordinary curve. */ impulses: LaplaceImpulseMarker[];
 }
 
 /** @param problem - Verified response. @param min - Plot window start. @param max - Plot window end. @returns Uniform and one-sided interior samples on every distinct support interval. */
@@ -28,7 +53,7 @@ function responseSamples(
 	problem: LaplaceExercise,
 	min: number,
 	max: number,
-): ResponseSample[] {
+): LaplaceResponseSample[] {
 	const boundaries = [
 		...new Set([
 			min,
@@ -67,7 +92,7 @@ function responseSamples(
 }
 
 /** @param problem - Completed exercise. @returns Finite SVG paths, root markers, and exact impulse metadata. */
-export function laplacePlot(problem: LaplaceExercise) {
+export function laplacePlot(problem: LaplaceExercise): LaplacePlot {
 	const maxDelay = Math.max(
 		0,
 		...problem.terms.map((term) => fraction(term.delay).toNumber()),
@@ -140,7 +165,7 @@ export function laplacePlot(problem: LaplaceExercise) {
 		rocRight: realX(problem.roc[1]),
 		impulses: collectTerms(problem.terms)
 			.filter((term) => term.kind === "impulse")
-			.map((term) => ({
+			.map((term): LaplaceImpulseMarker => ({
 				x: timeX(fraction(term.delay).toNumber()),
 				direction:
 					fractionLatex(term.amplitude).numerator < 0n ? -1 : 1,

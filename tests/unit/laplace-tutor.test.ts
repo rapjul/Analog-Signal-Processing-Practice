@@ -94,6 +94,7 @@ describe("Laplace inverse tutoring", () => {
 		const repeated = createRationalExercise(spec)
 			.stages.flatMap((stage) => stage.tasks)
 			.find((part) => part.id === "pair-parameters-0-values")!;
+		expect(repeated.kind).toBe("fields");
 		if (repeated.kind === "fields")
 			expect(repeated.fields.map((field) => field.id)).toContain(
 				"weight",
