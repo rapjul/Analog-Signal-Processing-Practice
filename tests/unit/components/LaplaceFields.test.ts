@@ -6,6 +6,32 @@ import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 
 describe("Laplace field controls", () => {
 	afterEach(() => cleanup());
+	/** Derived conclusions must follow checked source work and explicit continuation. */
+	it("records carried results only on continuation and clears them on reset", async () => {
+		const problem = generateLaplaceExercise("inverse", 73, "distinct");
+		render(LaplaceStepSolver, { problem });
+		const solver = window.__signalLabDev!
+			.activeSolver as LaplaceStepSolverState;
+		const index = problem.stages.findIndex(
+			(stage) => stage.id === "analysis",
+		);
+		await act(() => {
+			solver.currentStep = index + 1;
+			solver.taskIndex = problem.stages[index]!.tasks.findIndex(
+				(part) => part.id === "cancellation",
+			);
+			solver.input = "No common factors";
+			solver.check();
+		});
+		expect(solver.carried).toEqual({});
+		await act(() => solver.continue());
+		expect(solver.carried.cancellation?.join(" ")).toContain(
+			"remain the poles",
+		);
+		expect(solver.verified["surviving-poles"]).toBeUndefined();
+		await act(() => solver.reset());
+		expect(solver.carried).toEqual({});
+	});
 	it("keeps fields blank and preserves drafts through hints and feedback, then clears them on advancement and reset", async () => {
 		const problem = generateLaplaceExercise("ode", 73, "repeated");
 		const view = render(LaplaceStepSolver, { problem });

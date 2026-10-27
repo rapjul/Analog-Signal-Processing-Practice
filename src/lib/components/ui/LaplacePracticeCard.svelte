@@ -90,7 +90,10 @@
 								/>{/if}
 							<p>
 								<MathText text={task.explanation ?? ""} />
-							</p>{/each}
+							</p>
+							{#each task.conclusions ?? [] as conclusion}<p>
+									<MathText text={conclusion} />
+								</p>{/each}{/each}
 					</section>{/each}
 				<MathBlock
 					math={problem.response}

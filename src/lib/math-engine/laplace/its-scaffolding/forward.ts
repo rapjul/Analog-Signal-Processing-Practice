@@ -114,13 +114,28 @@ export function blockAnalysis(blocks: TransformBlock[]): LaplaceStage {
 					block.data.poles,
 					[],
 				),
-			].map((part) => ({
-				...part,
-				id:
-					part.id === "cancellation"
-						? `block-${index}-cancellation`
-						: part.id,
-			})),
+			]
+				.filter(
+					(part) =>
+						block.data.canceled.length ||
+						(part.id !== `block-${index}-copies-values` &&
+							part.id !== `block-${index}-reduced`),
+				)
+				.map((part) => ({
+					...part,
+					id:
+						part.id === "cancellation"
+							? `block-${index}-cancellation`
+							: part.id,
+					...(part.id === "cancellation" &&
+					!block.data.canceled.length
+						? {
+								conclusions: [
+									`No copies cancel; retain the verified rational block $${rationalLatex({ n: block.data.numerator, d: block.data.denominator })}$.`,
+								],
+							}
+						: {}),
+				})),
 		),
 	};
 }

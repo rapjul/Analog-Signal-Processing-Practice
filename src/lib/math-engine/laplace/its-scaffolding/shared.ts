@@ -240,41 +240,27 @@ export function analysisStage(
 			["Common factors exist", "No common factors"],
 		),
 	];
-	tasks.push({
-		...fieldTask(
-			"common-copies-values",
-			"Count matching factor copies",
-			"Compare exact factor locations and count only matching copies, using the smaller multiplicity at each location.",
-			"\\text{Common factor copies}={{copies}}",
-			[
-				{
-					id: "copies",
-					label: "Number of exact common factor copies",
-					target: String(
-						data.canceled.reduce(
-							(sum, factor) => sum + factor.multiplicity,
-							0,
-						),
-					),
-				},
-			],
-		),
-		...teaching(
-			"A matching factor can be removed once from the numerator and once from the denominator. Count only the smaller multiplicity at each matching location.",
-			`Compare numerator roots ${rootList(originalZeros)} with denominator roots ${rootList(originalPoles)}. A matching location identifies the same monic factor.`,
-			`These polynomials share ${data.canceled.reduce((sum, factor) => sum + factor.multiplicity, 0)} factor copies in total. For instance, powers three and one at the same location allow only one cancellation.`,
-			"Check Common Copies",
-		),
-	});
+	const cancellationTask = tasks.at(-1)!;
+	if (!data.canceled.length && !zero(data.numerator)) {
+		cancellationTask.conclusions = [
+			`No matching factor copies exist. The expression remains $${rationalLatex({ n: data.numerator, d: data.denominator })}$.`,
+			`The verified numerator roots remain the zeros: ${rootList(data.zeros)}.`,
+			`The verified denominator roots remain the poles: ${rootList(data.poles)}.`,
+		];
+		cancellationTask.explanation = cancellationTask.conclusions.join(" ");
+	}
 	if (data.canceled.length) {
-		tasks.push(
-			rootTask(
+		tasks.push({
+			...rootTask(
 				"Identify canceled factors and copies",
 				"canceled-factors",
 				data.canceled,
 				originalPoles,
 			),
-		);
+			conclusions: [
+				`The checked locations and multiplicities remove ${data.canceled.reduce((sum, factor) => sum + factor.multiplicity, 0)} matching factor copies in total.`,
+			],
+		});
 		tasks.push(
 			task(
 				"reduced-expression",
@@ -299,7 +285,7 @@ export function analysisStage(
 				],
 			),
 		);
-	else
+	else if (data.canceled.length)
 		tasks.push(
 			rootTask(
 				"Identify surviving zeros",
@@ -308,14 +294,15 @@ export function analysisStage(
 				originalZeros,
 			),
 		);
-	tasks.push(
-		rootTask(
-			"Identify genuine poles",
-			"surviving-poles",
-			data.poles,
-			originalPoles,
-		),
-	);
+	if (!zero(data.numerator) && data.canceled.length)
+		tasks.push(
+			rootTask(
+				"Identify genuine poles",
+				"surviving-poles",
+				data.poles,
+				originalPoles,
+			),
+		);
 	tasks.push({
 		...fieldTask(
 			"degrees-values",
@@ -542,6 +529,9 @@ export function decompositionStages(
 			factor.multiplicity === 1,
 	);
 	const direct = data.poles.length === 1;
+	const needsNumeratorRewrite =
+		data.slots.filter((slot) => fractionLatex(slot.value).numerator !== 0n)
+			.length > 1;
 	const matching = "Partial Fractions: Coefficient Matching",
 		coverup = "Partial Fractions: Cover-Up",
 		pair = "Direct Transform Pairs";
@@ -783,7 +773,7 @@ export function decompositionStages(
 							} satisfies LaplaceTask,
 						]
 					: []),
-				...(direct
+				...(direct && needsNumeratorRewrite
 					? [
 							{
 								...fieldTask(

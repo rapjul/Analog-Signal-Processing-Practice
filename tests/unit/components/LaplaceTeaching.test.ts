@@ -139,7 +139,7 @@ describe("beginner Laplace teaching interactions", () => {
 			await act(() => solver.continue());
 			expect(solver.decisions.method).toBe(method);
 			if (method === "Direct Transform Pairs")
-				expect(solver.task?.id).toBe("direct-weights-values");
+				expect(solver.task?.id).toBe("pair-0");
 			else expect(solver.task?.id).toBe("factor-counts-values");
 			await act(() => solver.devSolveAll());
 			expect(solver.isCompleted).toBe(true);

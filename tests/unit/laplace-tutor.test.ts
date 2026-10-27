@@ -31,6 +31,55 @@ function inverseSpec(cancellation = false): RationalExercise {
 }
 
 describe("Laplace inverse tutoring", () => {
+	/** Counts only the default supported path, independently of progress UI numbering. */
+	it("keeps a direct pair to fourteen checks and groups only new parameters", () => {
+		const spec = inverseSpec();
+		spec.rational.poles = [{ real: "-2", frequency: "0", multiplicity: 1 }];
+		const problem = createRationalExercise(spec);
+		const decisions: Record<string, string> = {};
+		const path = problem.stages
+			.flatMap((stage) => stage.tasks)
+			.filter((part) => {
+				if (
+					part.when &&
+					!part.when.values.includes(decisions[part.when.id] ?? "")
+				)
+					return false;
+				if (part.kind === "choice") decisions[part.id] = part.answer;
+				return true;
+			});
+		expect(path).toHaveLength(14);
+		expect(path.map((part) => part.id)).not.toEqual(
+			expect.arrayContaining([
+				"common-copies-values",
+				"surviving-zeros",
+				"surviving-poles",
+				"direct-weights-values",
+			]),
+		);
+		const parameters = path.find(
+			(part) => part.id === "pair-parameters-0-values",
+		)!;
+		expect(parameters.kind).toBe("fields");
+		if (parameters.kind === "fields")
+			expect(parameters.fields.map((field) => field.id)).toEqual([
+				"delay",
+				"parameter",
+			]);
+		expect(
+			path
+				.find((part) => part.id === "cancellation")!
+				.conclusions?.join(" "),
+		).toContain("remain the poles");
+		spec.rational.poles[0]!.multiplicity = 4;
+		const repeated = createRationalExercise(spec)
+			.stages.flatMap((stage) => stage.tasks)
+			.find((part) => part.id === "pair-parameters-0-values")!;
+		if (repeated.kind === "fields")
+			expect(repeated.fields.map((field) => field.id)).toContain(
+				"weight",
+			);
+	});
 	/** Checks natural system notation against an independently supplied answer. */
 	it("uses the system response label and describes the requested result", () => {
 		const spec = inverseSpec(true);

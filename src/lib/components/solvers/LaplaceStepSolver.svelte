@@ -100,7 +100,10 @@
 									? (solver.verified[task.id] ?? "")
 									: `$${solver.verified[task.id] ?? ""}$`}
 							/>
-						</p>{/each}
+						</p>
+						{#each solver.carried[task.id] ?? [] as conclusion}<p>
+								<MathText text={conclusion} />
+							</p>{/each}{/each}
 				</div>{/snippet}
 			{#snippet headerExtra()}{#if solver.currentStep === index + 1 && tasks.length > 1}<PartProgressPill
 						progress={solver.progress}
@@ -118,6 +121,10 @@
 										? solver.verified[task.id]!
 										: `$${solver.verified[task.id]}$`}
 								/>
+								{#each solver.carried[task.id] ?? [] as conclusion}<p
+									>
+										<MathText text={conclusion} />
+									</p>{/each}
 							</div>{/snippet}
 					</SubStepBlock>
 				{:else if solver.task?.id === task.id}

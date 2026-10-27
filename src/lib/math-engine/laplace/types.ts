@@ -65,6 +65,7 @@ export interface LaplaceResponseTerm extends LaplaceSignalTerm {}
 
 /** One checked numeric, expression, or conceptual task. */
 interface LaplaceTaskBase {
+	/** Consequences of checked source work, shown only after explicit continuation. */ conclusions?: string[];
 	/** Stable identifier independent of display numbering. */ id: string;
 	/** Human-readable heading. */ title: string;
 	/** Question and mathematical context. */ prompt: string;

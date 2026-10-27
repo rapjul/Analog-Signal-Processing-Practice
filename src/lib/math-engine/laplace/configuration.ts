@@ -115,6 +115,12 @@ function buildWorkflow(input: unknown): LaplaceExercise {
 export function createLaplaceExercise(input: unknown): LaplaceExercise {
 	const result = buildWorkflow(input);
 	for (const task of result.stages.flatMap((stage) => stage.tasks)) {
+		if (
+			!task.prompt.trim() ||
+			task.hints.length !== 3 ||
+			task.hints.some((hint) => !hint.trim())
+		)
+			throw new Error(`Missing contextual teaching for task ${task.id}.`);
 		const values =
 			task.kind === "fields"
 				? Object.fromEntries(

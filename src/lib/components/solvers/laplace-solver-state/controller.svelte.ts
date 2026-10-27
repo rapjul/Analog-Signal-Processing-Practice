@@ -38,6 +38,8 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Inputs already established by validation. */ verified = $state<
 		Record<string, string>
 	>({});
+	/** Derived summaries recorded after checked source work, never independent passes. */ carried =
+		$state<Record<string, string[]>>({});
 	/** Current feedback and validation state. */ state = $state(
 		createStepState({}),
 	);
@@ -175,6 +177,8 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 					? this.input
 					: this.preview,
 		};
+		if (task.conclusions)
+			this.carried = { ...this.carried, [task.id]: task.conclusions };
 		this.taskIndex++;
 		if (this.taskIndex >= this.tasksForStage(this.currentStep - 1).length) {
 			this.taskIndex = 0;
@@ -202,6 +206,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		this.input = "";
 		this.fieldInputs = {};
 		this.verified = {};
+		this.carried = {};
 		this.decisions = {};
 		this.construction = emptyConstruction();
 		this.hintTier = 0;

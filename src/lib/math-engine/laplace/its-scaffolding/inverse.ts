@@ -5,6 +5,8 @@ import {
 	inverseTerms,
 	originalTransform,
 	rocBounds,
+	factorial,
+	fractionLatex,
 } from "$lib/math-engine/laplace/pfd";
 import {
 	responseLatex,
@@ -14,19 +16,89 @@ import {
 import type {
 	LaplaceExercise,
 	LaplaceResponseTerm,
+	LaplaceTask,
 	LaplaceStage,
 	RationalExercise,
 } from "$lib/math-engine/laplace/types";
-import { analysisStage, decompositionStages, task } from "./shared";
-import { teachPairParameter, teachRoc, teachSignal } from "./teaching";
+import { analysisStage, decompositionStages, fieldTask, task } from "./shared";
+import { teachRoc, teachSignal, teaching } from "./teaching";
 
-/** @param terms - Independently solved terms. @returns Pairing stage with separate weight and support checks. */
+/** @param terms - Independently solved terms after checked algebra. @returns Family choices and grouped new parameter calculations. */
 export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
+	const checkedDelays = new Set<string>();
 	return {
 		id: "pairs",
 		title: "Apply Transform Pairs and Properties",
-		tasks: terms.flatMap((term, index) =>
-			[
+		tasks: terms.flatMap((term, index): LaplaceTask[] => {
+			const newWeight =
+				term.side === "left" ||
+				term.kind === "sine" ||
+				(term.kind === "exponential" && term.power >= 2);
+			const delayKey = fraction(term.delay).toLatex();
+			const newDelay = !checkedDelays.has(delayKey);
+			checkedDelays.add(delayKey);
+			const fields = [
+				...(newWeight
+					? [
+							{
+								id: "weight",
+								label: "Normalized signed weight",
+								target: term.amplitude,
+							},
+						]
+					: []),
+				...(newDelay
+					? [
+							{
+								id: "delay",
+								label: "Nonnegative time delay",
+								target: term.delay,
+							},
+						]
+					: []),
+				...(term.kind === "impulse"
+					? []
+					: [
+							{
+								id: "parameter",
+								label:
+									term.kind === "exponential"
+										? "Polynomial time power"
+										: "Positive angular frequency",
+								target:
+									term.kind === "exponential"
+										? String(term.power)
+										: term.frequency,
+							},
+						]),
+			];
+			const carried = [
+				...(newWeight
+					? []
+					: [
+							`The verified algebraic coefficient carries unchanged as weight $${term.amplitude}$.`,
+						]),
+				...(term.kind === "impulse"
+					? []
+					: [
+							`The verified pole location gives exponential rate $${term.rate}$.`,
+						]),
+				...(newDelay
+					? []
+					: [`Reuse the previously checked delay $${term.delay}$.`]),
+			];
+			const normalizer =
+				term.kind === "sine"
+					? fraction(term.frequency)
+					: fraction(
+							term.kind === "exponential"
+								? factorial(term.power)
+								: 1,
+						);
+			const coefficient = fractionLatex(term.amplitude)
+				.multiply(normalizer)
+				.multiply(fraction(term.side === "left" ? -1 : 1));
+			return [
 				teachSignal(
 					task(
 						`pair-${index}`,
@@ -38,40 +110,35 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 					),
 					term,
 				),
-				task(
-					`weight-${index}`,
-					`Find term ${index + 1}'s weight`,
-					"Include the factorial, frequency normalization, and any left-sided minus sign.",
-					"scalar",
-					term.amplitude,
-				),
-				task(
-					`delay-${index}`,
-					`Determine term ${index + 1}'s delay`,
-					"The factor is $e^{-ds}$; enter $d$.",
-					"scalar",
-					term.delay,
-				),
-				...(term.kind === "impulse"
-					? []
-					: [
-							task(
-								`rate-${index}`,
-								`Find term ${index + 1}'s exponential rate`,
-								"Rewrite the pole factor as $s$ minus the rate; keep its sign.",
-								"scalar",
-								term.rate,
-							),
-							task(
-								`parameter-${index}`,
-								`Find term ${index + 1}'s ${term.kind === "exponential" ? "polynomial power" : "angular frequency"}`,
-								"Use the repeated-pole power rule or the quadratic transform pair.",
-								"scalar",
-								term.kind === "exponential"
-									? String(term.power)
-									: term.frequency,
-							),
-						]),
+				...(fields.length
+					? [
+							{
+								...fieldTask(
+									`pair-parameters-${index}-values`,
+									`Calculate term ${index + 1}'s remaining parameters`,
+									"Use the verified transform and enter only the new pair parameters. Retain normalization and support signs.",
+									fields
+										.map(
+											(field) =>
+												`\\text{${field.label}}={{${field.id}}}`,
+										)
+										.join(",\\quad "),
+									fields,
+								),
+								...teaching(
+									term.kind === "exponential"
+										? "For $C/(s-a)^m$, $m$ is the denominator power, the time power is $m-1$, and the right-sided weight is $C/(m-1)!$. The factorial multiplies the positive integers up to that power, with $0!=1$."
+										: term.kind === "sine"
+											? "A sine pair has its angular frequency in the numerator. Divide the coefficient by that frequency to obtain the time-domain weight."
+											: "The delay multiplier $e^{-ds}$ shifts the entire pair by $d$ in time, including its support. Cosine pairs retain their numerator coefficient on right-sided support.",
+									`Apply the selected pair to $${signalTransform(term)}$. ${carried.join(" ")} Check the denominator power or frequency, and any delay multiplier.`,
+									`${term.kind === "exponential" ? `The denominator power is $${term.power + 1}$, so the time power is $${term.power + 1}-1=${term.power}$.` : `The delay multiplier here is $e^{-(${term.delay})s}$, so replace $t$ by $t-(${term.delay})$ in the entire pair.`} ${newWeight ? `The numerator coefficient is $${coefficient.toLatex()}$; divide by $${normalizer.toLatex()}$${term.side === "left" ? " and apply the left-sided minus sign" : ""} to obtain the signed weight $${term.amplitude}$.` : "The verified coefficient needs no extra normalization."}`,
+									"Check Pair Parameters",
+								),
+								conclusions: carried,
+							} satisfies LaplaceTask,
+						]
+					: []),
 				{
 					...teachSignal(
 						task(
@@ -84,14 +151,13 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 						term,
 					),
 					terms: [term],
+					conclusions: fields.length ? [] : carried,
 				},
 			].map((part) => ({
-				...(part.kind === "scalar"
-					? teachPairParameter(part, term)
-					: part),
+				...part,
 				formula: signalTransform(term),
-			})),
-		),
+			}));
+		}),
 	};
 }
 
