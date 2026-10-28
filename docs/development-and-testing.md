@@ -253,6 +253,14 @@ identities, or mismatched task/branch/phase metadata. These are generated local
 baselines, not evidence of a regression comparison; comparison results belong
 in the associated PR verification record. No video recording is required.
 
+Full-matrix verification also exposed two existing CTFT timing issues. The
+responsive-width check now samples both rectangles in one frame and polls the
+same half-pixel requirement through reflow. The adversarial spectrum batch
+budgets its total duration by the number of independent submissions. Each batch
+input/submit interaction is bounded to five seconds, and assertions retain
+their existing five-second bounds. No
+candidate, grading assertion, browser profile, or completion check is omitted.
+
 The initial seed-73 inspection confirmed separate tier-1/2/3 images, actual
 validation banners, verified work awaiting Continue, and correctly numbered
 parts at 320px. It also identified follow-up teaching improvements: cancellation

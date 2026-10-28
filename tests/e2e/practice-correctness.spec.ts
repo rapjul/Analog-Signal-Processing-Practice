@@ -31,6 +31,22 @@ async function reveal(page: Page) {
 test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", async ({
 	page,
 }, info) => {
+	const invalidSpectra = [
+		"garbage",
+		"0",
+		"(1,99)",
+		String.raw`\frac{1}{`,
+		String.raw`1+|\omega-100|+\omega-100`,
+		String.raw`1+\sqrt{(\omega-100)^2}+\omega-100`,
+		String.raw`1+\sqrt[4]{(\omega-100)^4}+\omega-100`,
+		String.raw`1+((\omega-100)^2)^{1/2}+\omega-100`,
+		...transformAdversaries("omega").map(
+			/** @param attack - Shared adversarial spelling. @returns Submitted delta-spectrum candidate. */
+			(attack) => `1+(${attack.expression})`,
+		),
+	];
+	// Budget the full parsing/grading/rendering batch without extending individual checks.
+	test.setTimeout(30_000 + invalidSpectra.length * 1_000);
 	await page.goto("/fourier-transform");
 	await page.locator(".drill-summary").click();
 	await page.locator("#signal-type-select").selectOption("delta");
@@ -47,41 +63,27 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 			.click();
 	}
 	const input = page.locator("#ctft-input");
-	for (const answer of [
-		"garbage",
-		"0",
-		"(1,99)",
-		String.raw`\frac{1}{`,
-		String.raw`1+|\omega-100|+\omega-100`,
-		String.raw`1+\sqrt{(\omega-100)^2}+\omega-100`,
-		String.raw`1+\sqrt[4]{(\omega-100)^4}+\omega-100`,
-		String.raw`1+((\omega-100)^2)^{1/2}+\omega-100`,
-		...transformAdversaries("omega").map(
-			/**
-			 * @param attack - Shared attack spelling.
-			 * @returns Submitted delta-spectrum candidate.
-			 */
-			(attack) => `1+(${attack.expression})`,
-		),
-	]) {
-		await input.fill(answer);
+	for (const answer of invalidSpectra) {
+		await input.fill(answer, { timeout: 5000 });
 		await page
 			.getByRole("button", { name: "Check final spectrum →" })
-			.click();
+			.click({ timeout: 5000 });
 		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
 			"data-validation",
 			"correct",
 		);
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}
-	await input.fill("3.14");
-	await page.getByRole("button", { name: "Check final spectrum →" }).click();
+	await input.fill("3.14", { timeout: 5000 });
+	await page
+		.getByRole("button", { name: "Check final spectrum →" })
+		.click({ timeout: 5000 });
 	await expect(page.locator(".feedback-box")).toContainText(
 		"If you intended the constant pi, type 'pi' (lowercase)",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
-	await input.fill(String.raw`X\,\left[jw\right]=2/2`);
-	await input.press("Enter");
+	await input.fill(String.raw`X\,\left[jw\right]=2/2`, { timeout: 5000 });
+	await input.press("Enter", { timeout: 5000 });
 	await expect(
 		page.getByRole("heading", { name: "CTFT solution verified" }),
 	).toBeVisible();
