@@ -7,6 +7,7 @@ import type {
 	SolverVisualStateMetadata,
 } from "$lib/components/solvers/base-step-solver.svelte";
 import { laplaceVisualArchetypes } from "$lib/testing/laplace-visual-fixtures";
+import { solverVisualFileName } from "$lib/testing/solver-visual-files";
 import {
 	getAutomatedHintSourceIds,
 	isFinalHintState,
@@ -412,13 +413,6 @@ async function measureVisualPhase<Result>(
 	return runTimingRecorder.measure(phase, context, operation);
 }
 
-function safeFileSegment(value: string): string {
-	return value
-		.toLowerCase()
-		.replace(/[^a-z0-9.-]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
 function resetCurrentRunDirectory(): void {
 	if (
 		path.basename(CURRENT_RUN_DIR) !== "current" ||
@@ -686,7 +680,7 @@ function artifactPath(
 	theme: Theme,
 	viewport: ViewportDefinition,
 ): { absolute: string; relative: string } {
-	const fileName = `${safeFileSegment(stateId)}__${theme}__${viewport.name}.png`;
+	const fileName = solverVisualFileName(stateId, theme, viewport.name);
 	const relative = path.join(
 		"current",
 		archetype.module,
@@ -790,7 +784,7 @@ function snapshotName(
 	return [
 		archetype.module,
 		archetype.slug,
-		`${safeFileSegment(stateId)}__${theme}__${viewport.name}.png`,
+		solverVisualFileName(stateId, theme, viewport.name),
 	];
 }
 
@@ -830,15 +824,12 @@ async function assertAndRecordPageMilestone(args: {
 			detail: "milestone",
 		},
 		async () => {
-			// String names let Playwright bound diagnostic attachment paths for long branch IDs.
-			await expect
-				.soft(args.page)
-				.toHaveScreenshot(path.join(...segments), {
-					fullPage: true,
-					animations: "disabled",
-					caret: "hide",
-					scale: "css",
-				});
+			await expect.soft(args.page).toHaveScreenshot(segments, {
+				fullPage: true,
+				animations: "disabled",
+				caret: "hide",
+				scale: "css",
+			});
 		},
 	);
 	await recordArtifact({
@@ -907,14 +898,11 @@ async function assertAndRecordActiveState(
 			detail: "state",
 		},
 		async () => {
-			// Preserve baseline paths while allowing Playwright to shorten attachment names.
-			await expect
-				.soft(activeCard)
-				.toHaveScreenshot(path.join(...segments), {
-					animations: "disabled",
-					caret: "hide",
-					scale: "css",
-				});
+			await expect.soft(activeCard).toHaveScreenshot(segments, {
+				animations: "disabled",
+				caret: "hide",
+				scale: "css",
+			});
 		},
 	);
 	await recordArtifact({

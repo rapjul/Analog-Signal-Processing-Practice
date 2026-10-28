@@ -242,6 +242,16 @@ real validators; separate development and production E2E tests exercise ordinary
 keyboard controls, hint assistance, explicit continuation, and URL navigation.
 Laplace capture timeouts scale with the reachable catalog and viewport count;
 the assertion deadlines and other solvers' timeout budgets are unchanged.
+Snapshot names preserve existing short filenames and shorten unusually long
+branch IDs with a stable hash, leaving room for Playwright's diagnostic suffixes.
+Full task and branch identities remain in the manifest.
+
+The expanded full-profile inspection generated 8,236 images: 8,092 task-state
+images and 144 full-page milestones. A separate inventory audit matched every
+task image to its mathematical catalog and found no missing images, duplicate
+identities, or mismatched task/branch/phase metadata. These are generated local
+baselines, not evidence of a regression comparison; comparison results belong
+in the associated PR verification record. No video recording is required.
 
 The initial seed-73 inspection confirmed separate tier-1/2/3 images, actual
 validation banners, verified work awaiting Continue, and correctly numbered

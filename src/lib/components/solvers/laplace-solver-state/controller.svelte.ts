@@ -240,7 +240,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			this.continue();
 		}
 	}
-	/** Fills targets only within the development harness; all answers still pass real validation. */
+	/** @param answer - Optional accepted strategy choice. Fills development targets that still pass real validation. */
 	private fillDevelopmentAnswer(answer?: string): void {
 		if (!import.meta.env.DEV || !this.task) return;
 		if (this.task.kind === "fields")
@@ -267,13 +267,30 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			(candidate) => candidate.id === stateId,
 		);
 		if (!scene) return false;
-		const sameTask =
+		this.prepareVisualReplay(scene);
+		let guard = 0;
+		while (this.task && guard++ < 1000) {
+			if (this.isAtVisualScene(scene))
+				return this.applyVisualScene(scene);
+			this.fillDevelopmentAnswer(scene.decisions[this.task.id]);
+			if (!this.check()) return false;
+			this.continue();
+		}
+		return false;
+	}
+	/** @param scene - Requested task and stage. @returns Whether the live controller is at that exact task. */
+	private isAtVisualScene(scene: LaplaceVisualScene): boolean {
+		return (
 			this.task?.id === scene.taskId &&
-			this.problem.stages[this.currentStep - 1]?.id === scene.stageId;
+			this.problem.stages[this.currentStep - 1]?.id === scene.stageId
+		);
+	}
+	/** @param scene - Requested branch. Resets incompatible prerequisites or clears only the current draft when verified work can be reused. */
+	private prepareVisualReplay(scene: LaplaceVisualScene): void {
 		const samePath = Object.entries(this.decisions).every(
 			([id, answer]) => scene.decisions[id] === answer,
 		);
-		if (!sameTask || !samePath) this.reset();
+		if (!this.isAtVisualScene(scene) || !samePath) this.reset();
 		else {
 			this.input = "";
 			this.fieldInputs = {};
@@ -281,33 +298,22 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			this.hintTier = 0;
 			this.clearFeedback();
 		}
-		let guard = 0;
-		while (this.task && guard++ < 1000) {
-			if (
-				this.task.id === scene.taskId &&
-				this.problem.stages[this.currentStep - 1]?.id === scene.stageId
-			) {
-				if (scene.phase === "diagnostic" && scene.draft) {
-					this.input = scene.draft.input;
-					this.fieldInputs = { ...scene.draft.fields };
-					this.construction = structuredClone(
-						scene.draft.construction,
-					);
-					this.check();
-					return this.result?.status === scene.feedbackStatus;
-				}
-				if (scene.phase === "success") {
-					this.fillDevelopmentAnswer(scene.decisions[this.task.id]);
-					return this.check();
-				}
-				for (let tier = 0; tier < (scene.hintTier ?? 0); tier++)
-					this.revealNextHint();
-				return true;
-			}
-			this.fillDevelopmentAnswer(scene.decisions[this.task.id]);
-			if (!this.check()) return false;
-			this.continue();
+	}
+	/** @param scene - Reachable capture phase. @returns Whether real validation or hint revelation prepared the advertised state. */
+	private applyVisualScene(scene: LaplaceVisualScene): boolean {
+		if (scene.phase === "diagnostic" && scene.draft) {
+			this.input = scene.draft.input;
+			this.fieldInputs = { ...scene.draft.fields };
+			this.construction = structuredClone(scene.draft.construction);
+			this.check();
+			return this.result?.status === scene.feedbackStatus;
 		}
-		return false;
+		if (scene.phase === "success") {
+			this.fillDevelopmentAnswer(scene.decisions[scene.taskId]);
+			return this.check();
+		}
+		for (let tier = 0; tier < (scene.hintTier ?? 0); tier++)
+			this.revealNextHint();
+		return true;
 	}
 }
