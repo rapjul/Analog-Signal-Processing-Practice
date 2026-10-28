@@ -7,8 +7,12 @@ import {
 import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
+	LaplaceAnswerField,
 	LaplaceConstruction,
+	LaplaceConstructionTask,
 	LaplaceExercise,
+	LaplaceFieldTask,
+	LaplaceSingleTask,
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
 
@@ -118,51 +122,77 @@ function diagnosticDrafts(task: LaplaceTask): [string, LaplaceVisualDraft][] {
 				laplaceCorrectDraft(task, answer),
 			]);
 	const blank = { input: "", fields: {}, construction: emptyConstruction() };
+	const diagnostics =
+		task.kind === "fields"
+			? fieldDiagnostics(task)
+			: "construction" in task
+				? constructionDiagnostics(task)
+				: expressionDiagnostics(task);
+	return [["blank", blank], ...diagnostics];
+}
+
+/** @param field - Independently targeted entry domain. @returns A reachable wrong value rather than an impossible numeric draft. */
+function wrongFieldValue(field: LaplaceAnswerField): string {
+	if (field.entry?.kind === "boolean")
+		return field.target === "1" ? "0" : "1";
+	if (field.entry?.kind === "degree" || field.entry?.kind === "integer")
+		return String(Math.max(0, Number(field.target) + 1));
+	return `(${field.target})+1`;
+}
+
+/** @param task - Mixed-domain field card. @returns Applicable malformed mathematics and a wrong but reachable value. */
+function fieldDiagnostics(
+	task: LaplaceFieldTask,
+): [string, LaplaceVisualDraft][] {
 	const malformed = laplaceCorrectDraft(task);
 	const wrong = laplaceCorrectDraft(task);
-	let canEnterMalformed = true;
-	if (task.kind === "fields") {
-		const first = task.fields[0]!;
-		const mathematical = task.fields.find(
-			(field) =>
-				!field.entry ||
-				["exact", "expression"].includes(field.entry.kind),
-		);
-		canEnterMalformed = !!mathematical;
-		if (mathematical) malformed.fields[mathematical.id] = "(";
-		wrong.fields[first.id] =
-			first.entry?.kind === "boolean"
-				? first.target === "1"
-					? "0"
-					: "1"
-				: first.entry?.kind === "degree" ||
-					  first.entry?.kind === "integer"
-					? String(Math.max(0, Number(first.target) + 1))
-					: `(${first.target})+1`;
-	} else if ("construction" in task) {
-		canEnterMalformed = task.kind === "template";
-		malformed.construction.mode = "finite";
-		if (task.kind === "template") malformed.construction.gain = "(";
-		else if (malformed.construction.rows[0])
-			malformed.construction.rows[0].first = "(";
-		else malformed.construction.gain = "(";
-		wrong.construction = wrongConstruction(task.construction);
-	} else {
-		canEnterMalformed =
-			!task.entry || ["exact", "expression"].includes(task.entry.kind);
-		malformed.input = "(";
-		wrong.input =
-			task.entry?.kind === "integer"
-				? String(Number(task.answer) + 1)
-				: `(${task.answer})+1`;
-	}
+	const first = task.fields[0]!;
+	const mathematical = task.fields.find(
+		(field) =>
+			!field.entry || ["exact", "expression"].includes(field.entry.kind),
+	);
+	if (mathematical) malformed.fields[mathematical.id] = "(";
+	wrong.fields[first.id] = wrongFieldValue(first);
 	return [
-		["blank", blank],
-		...(canEnterMalformed
+		...(mathematical
 			? [["malformed", malformed] as [string, LaplaceVisualDraft]]
 			: []),
 		["mathematical-error", wrong],
 	];
+}
+
+/** @param task - Numeric construction. @returns A malformed quotient only where exact arithmetic is permitted, plus a valid but incorrect construction. */
+function constructionDiagnostics(
+	task: LaplaceConstructionTask,
+): [string, LaplaceVisualDraft][] {
+	const drafts: [string, LaplaceVisualDraft][] = [];
+	if (task.kind === "template") {
+		const malformed = laplaceCorrectDraft(task);
+		malformed.construction.mode = "finite";
+		malformed.construction.gain = "(";
+		drafts.push(["malformed", malformed]);
+	}
+	const wrong = laplaceCorrectDraft(task);
+	wrong.construction = wrongConstruction(task.construction);
+	return [...drafts, ["mathematical-error", wrong]];
+}
+
+/** @param task - Single mathematical input. @returns Diagnostic drafts respecting its declared domain. */
+function expressionDiagnostics(
+	task: LaplaceSingleTask,
+): [string, LaplaceVisualDraft][] {
+	const drafts: [string, LaplaceVisualDraft][] = [];
+	if (!task.entry || ["exact", "expression"].includes(task.entry.kind)) {
+		const malformed = laplaceCorrectDraft(task);
+		malformed.input = "(";
+		drafts.push(["malformed", malformed]);
+	}
+	const wrong = laplaceCorrectDraft(task);
+	wrong.input =
+		task.entry?.kind === "integer"
+			? String(Number(task.answer) + 1)
+			: `(${task.answer})+1`;
+	return [...drafts, ["mathematical-error", wrong]];
 }
 
 /** @param problem - Independently checked exercise. @returns Complete branch-aware input, feedback, progressive-hint, and success scenes. */

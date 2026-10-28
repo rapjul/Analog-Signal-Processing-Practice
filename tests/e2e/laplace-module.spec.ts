@@ -20,6 +20,12 @@ test.describe("guided Laplace practice", () => {
 		);
 		await completeLaplaceTasks(page, problem, "degrees-values");
 		const numerator = page.locator('[data-field-id="numerator"]');
+		await numerator.fill("");
+		await numerator.pressSequentially("1.5");
+		await expect(numerator).toHaveValue("1");
+		await numerator.press("ControlOrMeta+A");
+		await numerator.pressSequentially("2");
+		await expect(numerator).toHaveValue("2");
 		await numerator.fill("2");
 		for (const text of ["(", "1.5", "1/2", "1e2", "-1"]) {
 			await numerator.selectText();

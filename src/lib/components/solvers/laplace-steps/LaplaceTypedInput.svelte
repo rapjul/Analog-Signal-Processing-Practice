@@ -29,6 +29,7 @@
 		...attributes
 	}: Props = $props();
 	let issue = $state("");
+	let rejectedRun = false;
 	const uid = $props.id();
 	let draft = $derived(
 		numericValue === undefined
@@ -40,19 +41,59 @@
 	$effect(() => {
 		void draft;
 		issue = "";
+		rejectedRun = false;
 	});
+	/** @param event - Keyboard insertion or explicit correction. Prevents a rejected decimal separator from silently turning the rest of a typing run into an integer. */
+	function keydown(
+		event: KeyboardEvent & { currentTarget: HTMLInputElement },
+	): void {
+		const input = event.currentTarget;
+		const replacing = input.selectionStart !== input.selectionEnd;
+		const correction =
+			replacing ||
+			event.ctrlKey ||
+			event.metaKey ||
+			[
+				"Backspace",
+				"Delete",
+				"ArrowLeft",
+				"ArrowRight",
+				"Home",
+				"End",
+				"Tab",
+			].includes(event.key);
+		if (correction) rejectedRun = false;
+		if (
+			rejectedRun &&
+			(entry.kind === "integer" || entry.kind === "degree") &&
+			/^\d$/.test(event.key)
+		) {
+			event.preventDefault();
+			return;
+		}
+		attributes.onkeydown?.(event);
+	}
+	/** @param event - Deliberate pointer repositioning. Starts a new editing gesture without discarding the retained draft. */
+	function reposition(
+		event: MouseEvent & { currentTarget: HTMLInputElement },
+	): void {
+		rejectedRun = false;
+		attributes.onclick?.(event);
+	}
 	/** @param event - Proposed complete insertion. Reject unsupported notation without stripping it. */
 	function edit(event: Event & { currentTarget: HTMLInputElement }): void {
 		const proposed = event.currentTarget.value;
 		if (!permitsEntryDraft(proposed, entry)) {
 			event.currentTarget.value = draft;
-			issue = entryInstruction(entry);
+			issue = `${entryInstruction(entry)}${entry.kind === "integer" || entry.kind === "degree" ? " Select or delete to start a new entry." : ""}`;
+			rejectedRun = true;
 			return;
 		}
 		if (numericValue !== undefined)
 			onnumericedit?.(proposed ? Number(proposed) : Number.NaN);
 		else value = proposed;
 		issue = "";
+		rejectedRun = false;
 		onedit?.();
 	}
 </script>
@@ -71,6 +112,8 @@
 		.join(" ") || undefined}
 	value={permitsEntryDraft(draft, entry) ? draft : ""}
 	oninput={edit}
+	onkeydown={keydown}
+	onclick={reposition}
 />
 {#if issue}<span
 		id={`${uid}-issue`}

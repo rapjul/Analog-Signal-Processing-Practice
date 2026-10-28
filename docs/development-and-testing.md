@@ -292,8 +292,8 @@ against independently authored time and transform expressions, including signed
 and delayed impulses. No video tooling is involved.
 
 Typed-input verification on 2026-10-28 passed **1,825 tests across 146 files**.
-Full coverage measured **89.54% statements, 84.41% branches, 88.85% functions,
-and 92.03% lines**; no numeric coverage threshold is configured. Types, import
+Full coverage measured **89.55% statements, 84.42% branches, 88.85% functions,
+and 92.05% lines**; no numeric coverage threshold is configured. Types, import
 organization, formatting, verification-document checks, and the production build
 passed. The ordinary-control browser regression caught and corrected an overflow
 in the undefined-degree selector at `320px`. Production dependency auditing found

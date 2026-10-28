@@ -57,18 +57,33 @@ export function entryIssue(
 					message: "Choose whether this term is active.",
 				};
 	if (!value) return { status: "invalid", message: entryInstruction(entry) };
-	if (entry.kind === "integer" || entry.kind === "degree") {
-		if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)))
-			return { status: "invalid", message: entryInstruction(entry) };
-		const min = entry.kind === "integer" ? (entry.min ?? 0) : 0;
-		const max = entry.kind === "integer" ? entry.max : undefined;
-		if (Number(value) < min || (max !== undefined && Number(value) > max))
-			return {
-				status: "invalid",
-				message: `Enter a whole number ${max === undefined ? `at least ${min}` : `from ${min} through ${max}`}.`,
-			};
-		return null;
-	}
+	if (entry.kind === "integer" || entry.kind === "degree")
+		return integerIssue(value, entry);
+	return literalIssue(value, entry);
+}
+
+/** @param value - Trimmed whole-number notation. @param entry - Integer bounds or degree semantics. @returns A precise notation or bound issue. */
+function integerIssue(
+	value: string,
+	entry: Extract<LaplaceEntry, { kind: "integer" | "degree" }>,
+): TransformValidationResult | null {
+	if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)))
+		return { status: "invalid", message: entryInstruction(entry) };
+	const min = entry.kind === "integer" ? (entry.min ?? 0) : 0;
+	const max = entry.kind === "integer" ? entry.max : undefined;
+	if (Number(value) < min || (max !== undefined && Number(value) > max))
+		return {
+			status: "invalid",
+			message: `Enter a whole number ${max === undefined ? `at least ${min}` : `from ${min} through ${max}`}.`,
+		};
+	return null;
+}
+
+/** @param value - Trimmed numeric literal. @param entry - Literal-domain instructions. @returns Whether exact bounded literal parsing succeeds. */
+function literalIssue(
+	value: string,
+	entry: LaplaceEntry,
+): TransformValidationResult | null {
 	try {
 		if (!permitsEntryDraft(value, entry))
 			throw new Error("Invalid numeric notation");

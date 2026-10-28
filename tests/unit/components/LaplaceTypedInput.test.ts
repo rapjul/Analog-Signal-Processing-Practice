@@ -29,6 +29,14 @@ describe("Laplace domain-aware controls", () => {
 		expect(view.queryByRole("status")).toBeNull();
 		await fireEvent.input(input, { target: { value: "1.5" } });
 		expect(view.getByRole("status")).not.toBeNull();
+		const continuation = new KeyboardEvent("keydown", {
+			key: "5",
+			bubbles: true,
+			cancelable: true,
+		});
+		await fireEvent(input, continuation);
+		expect(continuation.defaultPrevented).toBe(true);
+		await fireEvent.keyDown(input, { key: "Backspace" });
 		await view.rerender({
 			value: "",
 			entry: { kind: "integer", min: 0 },

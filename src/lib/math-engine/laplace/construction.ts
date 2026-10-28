@@ -10,6 +10,53 @@ import type {
 	LaplaceEntryRow,
 	LaplaceFactor,
 } from "./types";
+
+/** @param row - Untrusted numeric fields. @param kind - Requested construction operation. Checks exact literals and bounded multiplicity before row comparison. */
+function validateRowEntry(
+	row: LaplaceEntryRow,
+	kind: LaplaceConstructionTask["kind"],
+): void {
+	const entries: [string, LaplaceEntry][] = [
+		[row.first, { kind: "literal" }],
+		[row.power, { kind: "integer", min: 1, max: 4 }],
+	];
+	if (row.kind === "quadratic")
+		entries.push([row.second, { kind: "literal" }]);
+	for (const [value, entry] of entries) {
+		const issue = entryIssue(value, entry);
+		if (issue) throw new Error(issue.message);
+	}
+	if (
+		kind === "roots" &&
+		row.kind === "quadratic" &&
+		fraction(row.second).numerator <= 0n
+	)
+		throw new Error(
+			"A conjugate pair needs a positive imaginary frequency; use a real-root row for zero.",
+		);
+}
+
+/** @param task - Independent target and operation. @param draft - Learner gain or quotient. @returns An exact coefficient failure, or null when no gain check is needed. */
+function constructionGainIssue(
+	task: LaplaceConstructionTask,
+	draft: LaplaceConstruction,
+): TransformValidationResult | null {
+	if (task.kind === "roots") return null;
+	if (task.kind === "template") {
+		const checked = verifyLaplaceScalar(draft.gain, task.construction.gain);
+		return checked.status === "correct" ? null : checked;
+	}
+	const issue = entryIssue(draft.gain, { kind: "literal" });
+	if (issue) throw new Error(issue.message);
+	if (canonical(draft.gain) === canonical(task.construction.gain))
+		return null;
+	return {
+		status: "incorrect",
+		message:
+			"Check the outside gain or constant quotient. Each factor row is monic, so its highest-power coefficient is one.",
+	};
+}
+
 import { verifyLaplaceScalar } from "./verification";
 
 /** @returns An empty learner draft without target-dependent row counts. */
@@ -78,41 +125,8 @@ function rowSet(
 	if (draft.rows.length > 8) throw new Error("Use at most eight rows.");
 	const rows = new Map<string, number>();
 	for (const row of draft.rows) {
-		const entries: [string, LaplaceEntry][] = [
-			[row.first, { kind: "literal" }],
-			[row.power, { kind: "integer", min: 1, max: 4 }],
-		];
-		if (row.kind === "quadratic")
-			entries.push([row.second, { kind: "literal" }]);
-		for (const [value, entry] of entries) {
-			const issue = entryIssue(value, entry);
-			if (issue) throw new Error(issue.message);
-		}
-		if (
-			!row.first.trim() ||
-			!row.power.trim() ||
-			(row.kind === "quadratic" && !row.second.trim())
-		)
-			throw new Error(
-				"Complete every coefficient and power in each row, including zero.",
-			);
+		validateRowEntry(row, task.kind);
 		const power = fraction(row.power);
-		if (
-			power.denominator !== 1n ||
-			power.numerator < 1n ||
-			power.numerator > 4n
-		)
-			throw new Error(
-				"Enter an integer power or multiplicity from one through four.",
-			);
-		if (
-			task.kind === "roots" &&
-			row.kind === "quadratic" &&
-			fraction(row.second).toNumber() <= 0
-		)
-			throw new Error(
-				"A conjugate pair needs a positive imaginary frequency; use a real-root row for zero.",
-			);
 		const key = `${row.kind}:${canonical(row.first)}:${row.kind === "quadratic" ? canonical(row.second) : "0"}${task.kind === "template" ? `:${power.numerator}:${row.numerator}` : ""}`;
 		rows.set(
 			key,
@@ -152,23 +166,8 @@ export function validateConstruction(
 		}
 		const actual = rowSet(draft, task),
 			expected = rowSet(target, task);
-		if (task.kind !== "roots") {
-			if (task.kind === "template") {
-				const checked = verifyLaplaceScalar(draft.gain, target.gain);
-				if (checked.status !== "correct") return checked;
-			} else {
-				const gainIssue = entryIssue(draft.gain, { kind: "literal" });
-				if (gainIssue) throw new Error(gainIssue.message);
-				if (!draft.gain.trim())
-					throw new Error("Enter the outside gain, including one.");
-				if (canonical(draft.gain) !== canonical(target.gain))
-					return {
-						status: "incorrect",
-						message:
-							"Check the outside gain or constant quotient. Each factor row is monic, so its highest-power coefficient is one.",
-					};
-			}
-		}
+		const gainIssue = constructionGainIssue(task, draft);
+		if (gainIssue) return gainIssue;
 		if (
 			actual.size !== expected.size ||
 			[...expected].some(([key, count]) => actual.get(key) !== count)
