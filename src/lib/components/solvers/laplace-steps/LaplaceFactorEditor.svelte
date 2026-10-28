@@ -2,6 +2,7 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import { laplaceFactor } from "$lib/math-engine/laplace/generator";
 	import type { LaplaceFactor } from "$lib/math-engine/laplace/types";
+	import LaplaceTypedInput from "./LaplaceTypedInput.svelte";
 
 	/** Structured factor list inputs. */
 	interface Props {
@@ -21,24 +22,23 @@
 	{#each factors as factor, index}
 		<div class="factor-row">
 			<label
-				>Real part a<input
+				>Real part a<LaplaceTypedInput
 					aria-label={`${label} ${index + 1} real part`}
 					bind:value={factor.real}
 				/></label
 			>
 			<label
-				>Angular frequency<input
+				>Angular frequency<LaplaceTypedInput
 					aria-label={`${label} ${index + 1} frequency`}
 					bind:value={factor.frequency}
 				/></label
 			>
 			<label
-				>Multiplicity<input
+				>Multiplicity<LaplaceTypedInput
 					aria-label={`${label} ${index + 1} multiplicity`}
-					type="number"
-					min="1"
-					max="4"
-					bind:value={factor.multiplicity}
+					entry={{ kind: "integer", min: 1, max: 4 }}
+					numericValue={factor.multiplicity}
+					onnumericedit={(value) => (factor.multiplicity = value)}
 				/></label
 			>
 			<button
@@ -77,15 +77,6 @@
 		min-width: 0;
 		flex-direction: column;
 		gap: 0.3rem;
-	}
-	input {
-		box-sizing: border-box;
-		width: 100%;
-		min-width: 0;
-		padding: 0.5rem;
-		background: var(--bg-input);
-		color: var(--text-primary);
-		border: 1px solid var(--border-color);
 	}
 	button {
 		padding: 0.5rem;

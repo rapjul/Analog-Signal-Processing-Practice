@@ -65,6 +65,7 @@ export interface LaplaceResponseTerm extends LaplaceSignalTerm {}
 
 /** One checked numeric, expression, or conceptual task. */
 interface LaplaceTaskBase {
+	/** Explicit scalar entry semantics; independent of labels and expected values. */ entry?: LaplaceEntry;
 	/** Consequences retained as checked work only after source validation and continuation. */ conclusions?: string[];
 	/** Stable identifier independent of display numbering. */ id: string;
 	/** Human-readable heading. */ title: string;
@@ -85,6 +86,15 @@ interface LaplaceTaskBase {
 	/** Specific action label. */ action?: string;
 }
 
+/** Semantic controls shared by tutor fields and structured configuration. */
+export type LaplaceEntry =
+	| { kind: "integer"; min?: number; max?: number }
+	| { kind: "degree"; zero: boolean }
+	| { kind: "boolean" }
+	| { kind: "literal" }
+	| { kind: "exact" }
+	| { kind: "expression" };
+
 /** Existing single-answer task controls. */
 export interface LaplaceSingleTask extends LaplaceTaskBase {
 	/** Input control and verification domain. */ kind:
@@ -93,6 +103,7 @@ export interface LaplaceSingleTask extends LaplaceTaskBase {
 
 /** One independently graded exact coefficient. */
 export interface LaplaceAnswerField {
+	/** Numeric, Boolean, or expression input semantics. */ entry?: LaplaceEntry;
 	/** Current-task diagnosis for a valid but incorrect entry. */ incorrectMessage?: string;
 	/** Ordinary expression restricted to this exact open time interval; null denotes infinity. */ interval?: {
 		min: string | null;

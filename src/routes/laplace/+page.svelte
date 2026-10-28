@@ -13,6 +13,7 @@
 		type LaplaceExercise,
 		type LaplaceExerciseSpec,
 		type LaplacePreset,
+		normalizeLaplaceConfigurationDraft,
 		parseLaplaceExercise,
 		serializeLaplaceExercise,
 	} from "$lib/math-engine/laplace/index";
@@ -91,7 +92,9 @@
 	/** Applies structured custom input only after complete mathematical validation. */
 	function applyCustom(): void {
 		try {
-			const checked = createLaplaceExercise($state.snapshot(draft));
+			const checked = createLaplaceExercise(
+				normalizeLaplaceConfigurationDraft($state.snapshot(draft)),
+			);
 			current = checked;
 			error = "";
 			syncUrl();

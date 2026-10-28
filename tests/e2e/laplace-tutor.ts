@@ -67,10 +67,20 @@ async function fillAnswer(
 	} else if ("construction" in task) {
 		await fillConstruction(active, task);
 	} else if (task.kind === "fields") {
-		for (const field of task.fields)
-			await active
-				.locator(`[data-field-id="${field.id}"]`)
-				.fill(field.target);
+		for (const field of task.fields) {
+			if (field.entry?.kind === "boolean")
+				await active
+					.locator(`[data-field-id="${field.id}"]`)
+					.setChecked(field.target === "1");
+			else if (field.entry?.kind === "degree" && field.target === "-1")
+				await active
+					.locator(`[data-degree-id="${field.id}"]`)
+					.selectOption("zero");
+			else
+				await active
+					.locator(`[data-field-id="${field.id}"]`)
+					.fill(field.target);
+		}
 	} else await active.locator("#laplace-input").fill(answer);
 }
 
@@ -85,7 +95,12 @@ async function submitAnswer(
 		exact: true,
 	});
 	const input =
-		task.kind === "fields"
+		task.kind === "fields" &&
+		!task.fields.some(
+			(field) =>
+				field.entry?.kind === "boolean" ||
+				(field.entry?.kind === "degree" && field.target === "-1"),
+		)
 			? active.locator("[data-field-id]").first()
 			: "construction" in task
 				? check

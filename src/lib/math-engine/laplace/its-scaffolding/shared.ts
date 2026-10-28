@@ -13,8 +13,10 @@ import {
 import {
 	laplaceAnswerLabel,
 	renderLaplaceFields,
+	renderLaplaceFieldTask,
 } from "$lib/math-engine/laplace/answer-entry";
 import { constructionTarget } from "$lib/math-engine/laplace/construction";
+import { entryTarget } from "$lib/math-engine/laplace/input-entry";
 import type { LaplaceDecomposition } from "$lib/math-engine/laplace/pfd";
 import { fractionLatex, normalizeFactors } from "$lib/math-engine/laplace/pfd";
 import type {
@@ -45,6 +47,7 @@ export function task(
 		prompt,
 		kind,
 		answer,
+		...(kind === "scalar" ? { entry: { kind: "exact" as const } } : {}),
 		...(kind === "s" || kind === "t"
 			? { lhs: laplaceAnswerLabel(id, kind) }
 			: {}),
@@ -70,15 +73,26 @@ export function fieldTask(
 	frame: string,
 	fields: LaplaceAnswerField[],
 ): LaplaceFieldTask {
-	const answer = renderLaplaceFields(
-		frame,
-		Object.fromEntries(fields.map((field) => [field.id, field.target])),
+	const typedFields = fields.map((field) => ({
+		...field,
+		entry: field.entry ?? {
+			kind: field.interval ? ("expression" as const) : ("exact" as const),
+		},
+	}));
+	const answer = renderLaplaceFieldTask(
+		{ frame, fields: typedFields },
+		Object.fromEntries(
+			typedFields.map((field) => [
+				field.id,
+				entryTarget(field.target, field.entry),
+			]),
+		),
 	);
 	return {
 		...task(id, title, prompt, "s", answer),
 		kind: "fields",
 		frame,
-		fields,
+		fields: typedFields,
 		hints: id.startsWith("ode-")
 			? [
 					"Each blank holds an exact signed coefficient, not a whole derivative expression. Subtracting a negative initial value produces addition; zero must still be entered.",
@@ -307,12 +321,13 @@ export function analysisStage(
 		...fieldTask(
 			"degrees-values",
 			"Compare the reduced polynomial degrees",
-			"Enter the highest nonzero power in each reduced polynomial; use -1 only for the zero polynomial.",
+			"Enter the highest nonzero power in each reduced polynomial. For a zero numerator, choose Zero polynomial—degree undefined.",
 			"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
 			[
 				{
 					id: "numerator",
-					label: "Reduced numerator degree (zero polynomial: enter -1)",
+					label: "Reduced numerator degree",
+					entry: { kind: "degree", zero: true },
 					target: String(
 						zero(data.numerator) ? -1 : data.numerator.length - 1,
 					),
@@ -320,12 +335,13 @@ export function analysisStage(
 				{
 					id: "denominator",
 					label: "Reduced denominator degree",
+					entry: { kind: "degree", zero: false },
 					target: String(data.denominator.length - 1),
 				},
 			],
 		),
 		...teaching(
-			"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero. For this tutor enter -1 to mark the zero polynomial's undefined degree.",
+			"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero. The zero polynomial has undefined degree; select its explicit option instead of entering a number.",
 			`Find the highest powers in $${polynomialLatex(data.numerator)}$ and $${polynomialLatex(data.denominator)}$ after cancellation.`,
 			`The denominator's highest power is $${data.denominator.length - 1}$. If the numerator degree is at least this large, divide before using proper-fraction pairs.`,
 			"Check Polynomial Degrees",
@@ -583,6 +599,7 @@ export function decompositionStages(
 							{
 								id: "linear",
 								label: "Total linear factor copies",
+								entry: { kind: "integer", min: 0 },
 								target: String(
 									data.poles
 										.filter(
@@ -600,6 +617,7 @@ export function decompositionStages(
 							{
 								id: "quadratic",
 								label: "Total irreducible quadratic factor copies",
+								entry: { kind: "integer", min: 0 },
 								target: String(
 									data.poles
 										.filter(
@@ -739,7 +757,8 @@ function methodDegreeTasks(data: LaplaceDecomposition): LaplaceTask[] {
 				[
 					{
 						id: "numerator",
-						label: "Reduced numerator degree (zero polynomial: enter -1)",
+						label: "Reduced numerator degree",
+						entry: { kind: "degree", zero: true },
 						target: String(
 							zero(data.numerator)
 								? -1
@@ -749,12 +768,13 @@ function methodDegreeTasks(data: LaplaceDecomposition): LaplaceTask[] {
 					{
 						id: "denominator",
 						label: "Reduced denominator degree",
+						entry: { kind: "degree", zero: false },
 						target: String(data.denominator.length - 1),
 					},
 				],
 			),
 			...teaching(
-				"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero; enter -1 for the zero polynomial's undefined degree.",
+				"The degree is the highest power with a nonzero coefficient. A nonzero constant has degree zero; choose Zero polynomial for an undefined degree.",
 				`Compare $${polynomialLatex(data.numerator)}$ with $${polynomialLatex(data.denominator)}$ after cancellation.`,
 				`The denominator degree is $${data.denominator.length - 1}$. Divide if the numerator degree is at least this large, before matching proper-fraction pairs.`,
 				"Check Polynomial Degrees",

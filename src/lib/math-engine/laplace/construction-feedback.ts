@@ -1,11 +1,13 @@
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 import { fraction } from "./algebra";
+import { entryIssue } from "./input-entry";
 import { fractionLatex } from "./pfd";
 import type {
 	LaplaceConstruction,
 	LaplaceConstructionTask,
 	LaplaceEntryRow,
 } from "./types";
+import { verifyLaplaceScalar } from "./verification";
 
 /** Field-keyed diagnostics, cleared whenever rows are edited or removed. */
 export type ConstructionFeedback = Record<string, TransformValidationResult>;
@@ -57,7 +59,14 @@ function initialFeedback(
 		return fields;
 	}
 	if (task.kind !== "roots") {
+		if (task.kind === "template") {
+			const checked = verifyLaplaceScalar(draft.gain, target.gain);
+			if (checked.status !== "correct") fields.gain = checked;
+			return fields;
+		}
 		try {
+			if (entryIssue(draft.gain, { kind: "literal" }))
+				throw new Error("gain");
 			if (numberKey(draft.gain) !== numberKey(target.gain))
 				issue(
 					fields,
@@ -193,6 +202,8 @@ function validateRowFields(
 			const value = row[name];
 			if (!value.trim()) throw new Error("blank");
 			if (name === "power") {
+				if (entryIssue(value, { kind: "integer", min: 1, max: 4 }))
+					throw new Error("power");
 				const q = fraction(value);
 				if (
 					q.denominator !== 1n ||
@@ -200,7 +211,11 @@ function validateRowFields(
 					q.numerator > 4n
 				)
 					throw new Error("power");
-			} else numberKey(value);
+			} else {
+				if (entryIssue(value, { kind: "literal" }))
+					throw new Error("literal");
+				numberKey(value);
+			}
 		} catch {
 			valid = false;
 			issue(

@@ -2,6 +2,8 @@ import { createForwardExercise } from "$lib/math-engine/laplace/its-scaffolding/
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
 import { createOdeExercise } from "$lib/math-engine/laplace/its-scaffolding/ode";
 import { createRocExercise } from "$lib/math-engine/laplace/its-scaffolding/roc";
+import { fraction } from "./algebra";
+import { entryTarget } from "./input-entry";
 import { validateLaplaceTask } from "./task-validation";
 import type {
 	LaplaceExercise,
@@ -9,6 +11,37 @@ import type {
 	OdeExercise,
 	RationalExercise,
 } from "./types";
+
+/** @param input - Editor draft. @returns A copied configuration with neutral values for hidden, mathematically unused parameters. */
+export function normalizeLaplaceConfigurationDraft(
+	input: LaplaceExerciseSpec,
+): LaplaceExerciseSpec {
+	const spec = structuredClone(input);
+	if (spec.workflow === "forward" || spec.workflow === "ode") {
+		for (const term of spec.terms) {
+			if (term.kind === "impulse") {
+				term.rate = "0";
+				term.frequency = "0";
+				term.power = 0;
+				term.side = "right";
+			} else if (term.kind === "exponential") term.frequency = "0";
+			else term.power = 0;
+			if (spec.workflow === "ode") term.side = "right";
+		}
+	}
+	if (
+		spec.workflow === "ode" &&
+		spec.roots.reduce(
+			(sum, factor) =>
+				sum +
+				factor.multiplicity *
+					(fraction(factor.frequency).numerator === 0n ? 1 : 2),
+			0,
+		) === 1
+	)
+		spec.initial[1] = "0";
+	return spec;
+}
 
 /** @param value - Untrusted scalar. @returns Whether it is a bounded literal string. */
 function literal(value: unknown): boolean {
@@ -124,7 +157,10 @@ export function createLaplaceExercise(input: unknown): LaplaceExercise {
 		const values =
 			task.kind === "fields"
 				? Object.fromEntries(
-						task.fields.map((field) => [field.id, field.target]),
+						task.fields.map((field) => [
+							field.id,
+							entryTarget(field.target, field.entry),
+						]),
 					)
 				: {};
 		const valid =

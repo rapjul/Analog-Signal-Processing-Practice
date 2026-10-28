@@ -1,5 +1,7 @@
 import { CanonicalError } from "$lib/math-engine/canonical-algebra";
-import type { LaplaceExerciseSpec } from "./types";
+import { parseStrictLatex } from "$lib/math-engine/evaluator";
+import { entryIssue, ZERO_POLYNOMIAL } from "./input-entry";
+import type { LaplaceExerciseSpec, LaplaceFieldTask } from "./types";
 
 /** @param spec - Validated workflow context. @returns Explicit learner-facing goal with mathematical labels. */
 export function laplaceGoal(spec: LaplaceExerciseSpec): string {
@@ -56,6 +58,34 @@ export function renderLaplaceFields(
 		/\{\{([a-z0-9-]+)\}\}/g,
 		(_match, id: string) => values[id]?.trim() || "\\square",
 	);
+}
+
+/** @param task - Typed equation slots. @param values - Current drafts. @returns A complete equation with explicit undefined degree and safe incomplete placeholders. */
+export function renderLaplaceFieldTask(
+	task: Pick<LaplaceFieldTask, "fields" | "frame">,
+	values: Record<string, string>,
+): string {
+	const visible = Object.fromEntries(
+		task.fields.map((field) => {
+			const value = values[field.id] ?? "";
+			if (field.entry?.kind === "degree" && value === ZERO_POLYNOMIAL)
+				return [field.id, "\\mathrm{undefined}"];
+			if (field.entry?.kind === "boolean")
+				return [
+					field.id,
+					value === "1" ? "\\text{Active}" : "\\text{Inactive}",
+				];
+			try {
+				if (entryIssue(value, field.entry ?? { kind: "exact" }))
+					return [field.id, "\\square"];
+				parseStrictLatex(value);
+				return [field.id, value];
+			} catch {
+				return [field.id, "\\square"];
+			}
+		}),
+	);
+	return renderLaplaceFields(task.frame, visible);
 }
 
 /** @param id - Stable task identifier. @param kind - Expression domain. @returns Meaningful fixed assignment label. */

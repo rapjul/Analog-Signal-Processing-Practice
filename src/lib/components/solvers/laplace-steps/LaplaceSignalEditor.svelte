@@ -2,6 +2,7 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import { laplaceSignal } from "$lib/math-engine/laplace/generator";
 	import type { LaplaceSignalTerm } from "$lib/math-engine/laplace/types";
+	import LaplaceTypedInput from "./LaplaceTypedInput.svelte";
 
 	/** Bounded structured standard-pair input. */
 	interface Props {
@@ -28,9 +29,10 @@
 				><option value="impulse">Dirac impulse</option></select
 			></label
 		>
-		{#each ["amplitude", "rate", "frequency", "delay"] as field}
+		{#each ["amplitude", ...(term.kind !== "impulse" ? ["rate"] : []), ...(["sine", "cosine"].includes(term.kind) ? ["frequency"] : []), "delay"] as const as field}
 			<label
-				>{field}<input
+				>{field.charAt(0).toUpperCase() +
+					field.slice(1)}<LaplaceTypedInput
 					aria-label={`Term ${index + 1} ${field}`}
 					bind:value={
 						term[
@@ -41,23 +43,22 @@
 				/></label
 			>
 		{/each}
-		<label
-			>Polynomial power<input
-				type="number"
-				min="0"
-				max="3"
-				bind:value={term.power}
-			/></label
-		>
-		<label
-			>Support<select
-				bind:value={term.side}
-				disabled={unilateral}
-				><option value="right">Right-sided</option><option value="left"
-					>Left-sided</option
-				></select
-			></label
-		>
+		{#if term.kind === "exponential"}<label
+				>Polynomial power<LaplaceTypedInput
+					entry={{ kind: "integer", min: 0, max: 3 }}
+					numericValue={term.power}
+					onnumericedit={(value) => (term.power = value)}
+				/></label
+			>{/if}
+		{#if term.kind !== "impulse"}<label
+				>Support<select
+					bind:value={term.side}
+					disabled={unilateral}
+					><option value="right">Right-sided</option><option
+						value="left">Left-sided</option
+					></select
+				></label
+			>{/if}
 		<button
 			type="button"
 			disabled={terms.length === 1}
@@ -90,7 +91,6 @@
 		flex-direction: column;
 		gap: 0.3rem;
 	}
-	input,
 	select {
 		box-sizing: border-box;
 		width: 100%;

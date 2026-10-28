@@ -2,6 +2,7 @@
 	import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 	import LaplaceFactorEditor from "./LaplaceFactorEditor.svelte";
 	import LaplaceSignalEditor from "./LaplaceSignalEditor.svelte";
+	import LaplaceTypedInput from "./LaplaceTypedInput.svelte";
 
 	/** Editable custom exercise, applied only through explicit validation. */
 	interface Props {
@@ -18,7 +19,11 @@
 		limited to four; impulse derivatives are deferred.
 	</p>
 	{#if spec.workflow === "inverse" || spec.workflow === "roc"}
-		<label>Numerator gain<input bind:value={spec.rational.gain} /></label>
+		<label
+			>Numerator gain<LaplaceTypedInput
+				bind:value={spec.rational.gain}
+			/></label
+		>
 		<LaplaceFactorEditor
 			label="Numerator"
 			bind:factors={spec.rational.zeros}
@@ -27,7 +32,9 @@
 			label="Denominator"
 			bind:factors={spec.rational.poles}
 		/>
-		<label>Delay<input bind:value={spec.rational.delay} /></label>
+		<label
+			>Delay<LaplaceTypedInput bind:value={spec.rational.delay} /></label
+		>
 		<label
 			>ROC region<select bind:value={spec.rational.region}
 				><option value={-1}>Right of all surviving poles</option><option
@@ -50,22 +57,25 @@
 	{:else if spec.workflow === "forward"}
 		<LaplaceSignalEditor bind:terms={spec.terms} />
 	{:else if spec.workflow === "ode"}
-		<label>Leading ODE coefficient<input bind:value={spec.leading} /></label
+		<label
+			>Leading ODE coefficient<LaplaceTypedInput
+				bind:value={spec.leading}
+			/></label
 		>
 		<LaplaceFactorEditor
 			label="Operator"
 			bind:factors={spec.roots}
 		/>
 		<label
-			>Initial output at zero minus<input
+			>Initial output at zero minus<LaplaceTypedInput
 				bind:value={spec.initial[0]}
 			/></label
 		>
-		<label
-			>Initial derivative at zero minus (second order)<input
-				bind:value={spec.initial[1]}
-			/></label
-		>
+		{#if spec.roots.reduce((sum, factor) => sum + factor.multiplicity * (Number(factor.frequency) === 0 ? 1 : 2), 0) > 1}<label
+				>Initial derivative at zero minus (second order)<LaplaceTypedInput
+					bind:value={spec.initial[1]}
+				/></label
+			>{/if}
 		<LaplaceSignalEditor
 			bind:terms={spec.terms}
 			unilateral

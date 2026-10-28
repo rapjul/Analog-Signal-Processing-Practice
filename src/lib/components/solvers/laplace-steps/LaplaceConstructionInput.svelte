@@ -3,6 +3,7 @@
 	import MathText from "$lib/components/math/MathText.svelte";
 	import type { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
 	import { emptyRow } from "$lib/math-engine/laplace/construction";
+	import LaplaceTypedInput from "./LaplaceTypedInput.svelte";
 
 	/** Structured entry properties. */
 	interface Props {
@@ -65,11 +66,16 @@
 			{#if solver.task.kind !== "roots"}<label
 					>{solver.task.kind === "template"
 						? "Constant quotient"
-						: "Outside gain"}<input
+						: "Outside gain"}<LaplaceTypedInput
 						aria-label={solver.task.kind === "template"
 							? "Constant quotient"
 							: "Outside gain"}
-						type="text"
+						entry={{
+							kind:
+								solver.task.kind === "template"
+									? "exact"
+									: "literal",
+						}}
 						aria-invalid={!!solver.constructionResults.gain ||
 							undefined}
 						aria-describedby={feedbackId("gain")}
@@ -123,9 +129,9 @@
 							text={solver.task.kind === "roots"
 								? "Real part $a$"
 								: "Signed coefficient $b$"}
-						/><input
+						/><LaplaceTypedInput
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "real part" : "coefficient b"}`}
-							type="text"
+							entry={{ kind: "literal" }}
 							bind:value={row.first}
 							aria-invalid={!!solver.constructionResults[
 								`row-${index}-first`
@@ -139,9 +145,9 @@
 								text={solver.task.kind === "roots"
 									? "Positive frequency $b$"
 									: "Signed constant $c$"}
-							/><input
+							/><LaplaceTypedInput
 								aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "frequency" : "coefficient c"}`}
-								type="text"
+								entry={{ kind: "literal" }}
 								bind:value={row.second}
 								aria-invalid={!!solver.constructionResults[
 									`row-${index}-second`
@@ -155,9 +161,9 @@
 					<label
 						>{solver.task.kind === "roots"
 							? "Multiplicity"
-							: "Power"}<input
+							: "Power"}<LaplaceTypedInput
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "multiplicity" : "power"}`}
-							type="text"
+							entry={{ kind: "integer", min: 1, max: 4 }}
 							bind:value={row.power}
 							aria-invalid={!!solver.constructionResults[
 								`row-${index}-power`
@@ -267,7 +273,6 @@
 		gap: 0.4rem;
 		min-width: 0;
 	}
-	input,
 	select {
 		width: 100%;
 		min-width: 0;

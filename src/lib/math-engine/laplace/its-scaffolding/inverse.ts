@@ -53,6 +53,10 @@ function pairParameters(term: LaplaceResponseTerm, newDelay: boolean) {
 			: [
 					{
 						id: "parameter",
+						entry:
+							term.kind === "exponential"
+								? { kind: "integer" as const, min: 0 }
+								: { kind: "exact" as const },
 						label:
 							term.kind === "exponential"
 								? "Polynomial time power"

@@ -58,14 +58,16 @@ export function supportTasks(
 		const range = `${min?.toLatex() ?? "-\\infty"}<t<${max?.toLatex() ?? "\\infty"}`;
 		intervals.push(`${target}&${range}`);
 		const fields: LaplaceAnswerField[] = [
-			...ordinary.map(({ index: termIndex }, i) => ({
+			...ordinary.map(({ index: termIndex, term }, i) => ({
 				id: `active-${termIndex}`,
-				label: `Term ${termIndex + 1} active on this interval (1 yes, 0 no)`,
+				entry: { kind: "boolean" as const },
+				label: `Term ${termIndex + 1}: $${signalLatex(term)}$ active on this interval`,
 				target: active[i] ? "1" : "0",
-				incorrectMessage: `Compare term ${termIndex + 1}'s ${original[termIndex]!.side === "right" ? "right-sided" : "left-sided"} support boundary $t=${fraction(original[termIndex]!.delay).toLatex()}$ with the current interval $${range}$. Mark 1 only when the step is active throughout this interval.`,
+				incorrectMessage: `Compare term ${termIndex + 1}'s ${original[termIndex]!.side === "right" ? "right-sided" : "left-sided"} support boundary $t=${fraction(original[termIndex]!.delay).toLatex()}$ with $${range}$. Select the term only when its support covers this entire interval.`,
 			})),
 			{
 				id: "combined",
+				entry: { kind: "expression" },
 				label: "Combined ordinary expression on this interval (use $t$; no step or impulse functions)",
 				target,
 				interval,
@@ -76,10 +78,10 @@ export function supportTasks(
 				`forward-support-interval-${index}-values`,
 				`Combine the interval $${range}$`,
 				`On $${range}$, mark each ordinary term active or inactive, then enter their combined expression.`,
-				`x(t)={{combined}},\\quad ${ordinary.map(({ index: termIndex }) => `m_{${termIndex + 1}}={{active-${termIndex}}}`).join(",\\quad ")}`,
+				"x(t)={{combined}}",
 				fields,
 			),
-			prompt: `On $${range}$, check each term's support, then add only its ordinary active expression. Mark activity with 1 or 0. Impulses are separate distributions, not interval values.`,
+			prompt: `On $${range}$, select each active ordinary term, then add their expressions without step factors. An unchecked term is inactive. Impulses remain separate distributions, not interval values.`,
 			formula: `x(t)=${original.map(signalLatex).join("+")}`,
 			...teaching(
 				"The unit step $u(t-d)$ is one after $d$ and zero before $d$; $u(d-t)$ is one before $d$. Between support boundaries, evaluate these steps before adding the remaining ordinary expressions.",

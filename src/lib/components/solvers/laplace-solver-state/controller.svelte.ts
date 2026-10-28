@@ -3,15 +3,17 @@ import {
 	type BaseStepState,
 	createStepState,
 } from "$lib/components/solvers/base-step-solver.svelte";
+import { parseStrictLatex } from "$lib/math-engine/evaluator";
 import {
 	laplaceExpression,
-	renderLaplaceFields,
+	renderLaplaceFieldTask,
 } from "$lib/math-engine/laplace/answer-entry";
 import {
 	constructionPreview,
 	emptyConstruction,
 } from "$lib/math-engine/laplace/construction";
 import type { ConstructionFeedback } from "$lib/math-engine/laplace/construction-feedback";
+import { entryIssue, entryTarget } from "$lib/math-engine/laplace/input-entry";
 import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
 	LaplaceConstruction,
@@ -108,15 +110,22 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		)
 			return constructionPreview(task, this.construction);
 		if (task.kind === "fields")
-			return renderLaplaceFields(task.frame, this.fieldInputs);
-		if (task.kind !== "s" && task.kind !== "t") return this.input;
+			return renderLaplaceFieldTask(task, this.fieldInputs);
+		if (task.kind === "choice") return this.input;
 		try {
+			if (task.kind === "scalar") {
+				if (entryIssue(this.input, task.entry ?? { kind: "exact" }))
+					return "\\square";
+				parseStrictLatex(this.input);
+				return this.input;
+			}
 			const expression =
 				laplaceExpression(this.input, task.kind, task.lhs).trim() ||
 				"\\square";
+			if (expression !== "\\square") parseStrictLatex(expression);
 			return task.lhs ? `${task.lhs}=${expression}` : expression;
 		} catch {
-			return this.input;
+			return task.lhs ? `${task.lhs}=\\square` : "\\square";
 		}
 	}
 	/** @returns Progress within the active stage. */
@@ -245,7 +254,10 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		if (!import.meta.env.DEV || !this.task) return;
 		if (this.task.kind === "fields")
 			this.fieldInputs = Object.fromEntries(
-				this.task.fields.map((field) => [field.id, field.target]),
+				this.task.fields.map((field) => [
+					field.id,
+					entryTarget(field.target, field.entry),
+				]),
 			);
 		else if ("construction" in this.task)
 			this.construction = structuredClone(

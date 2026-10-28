@@ -1,12 +1,15 @@
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 import { factorPoly, fraction } from "./algebra";
+import { entryIssue, rationalLiteral } from "./input-entry";
 import { fractionLatex } from "./pfd";
 import type {
 	LaplaceConstruction,
 	LaplaceConstructionTask,
+	LaplaceEntry,
 	LaplaceEntryRow,
 	LaplaceFactor,
 } from "./types";
+import { verifyLaplaceScalar } from "./verification";
 
 /** @returns An empty learner draft without target-dependent row counts. */
 export function emptyConstruction(): LaplaceConstruction {
@@ -33,7 +36,7 @@ export function constructionTarget(
 ): LaplaceConstruction {
 	return {
 		mode: isZero ? "zero" : roots && !factors.length ? "none" : "finite",
-		gain,
+		gain: rationalLiteral(gain),
 		rows: isZero
 			? []
 			: factors.map((factor) => {
@@ -41,14 +44,18 @@ export function constructionTarget(
 						quadratic = poly.length === 3;
 					return {
 						kind: quadratic ? "quadratic" : "linear",
-						first: roots
-							? factor.real
-							: poly[quadratic ? 1 : 0]!.toLatex(),
-						second: roots
-							? factor.frequency
-							: quadratic
-								? poly[0]!.toLatex()
-								: "0",
+						first: rationalLiteral(
+							roots
+								? factor.real
+								: poly[quadratic ? 1 : 0]!.toLatex(),
+						),
+						second: rationalLiteral(
+							roots
+								? factor.frequency
+								: quadratic
+									? poly[0]!.toLatex()
+									: "0",
+						),
 						power: String(factor.multiplicity),
 						numerator: quadratic ? "linear" : "constant",
 					};
@@ -70,6 +77,16 @@ function rowSet(
 	if (draft.rows.length > 8) throw new Error("Use at most eight rows.");
 	const rows = new Map<string, number>();
 	for (const row of draft.rows) {
+		const entries: [string, LaplaceEntry][] = [
+			[row.first, { kind: "literal" }],
+			[row.power, { kind: "integer", min: 1, max: 4 }],
+		];
+		if (row.kind === "quadratic")
+			entries.push([row.second, { kind: "literal" }]);
+		for (const [value, entry] of entries) {
+			const issue = entryIssue(value, entry);
+			if (issue) throw new Error(issue.message);
+		}
 		if (
 			!row.first.trim() ||
 			!row.power.trim() ||
@@ -135,18 +152,21 @@ export function validateConstruction(
 		const actual = rowSet(draft, task),
 			expected = rowSet(target, task);
 		if (task.kind !== "roots") {
-			if (!draft.gain.trim())
-				throw new Error(
-					task.kind === "template"
-						? "Enter the constant quotient, including zero."
-						: "Enter the outside gain, including one.",
-				);
-			if (canonical(draft.gain) !== canonical(target.gain))
-				return {
-					status: "incorrect",
-					message:
-						"Check the outside gain or constant quotient. Each factor row is monic, so its highest-power coefficient is one.",
-				};
+			if (task.kind === "template") {
+				const checked = verifyLaplaceScalar(draft.gain, target.gain);
+				if (checked.status !== "correct") return checked;
+			} else {
+				const gainIssue = entryIssue(draft.gain, { kind: "literal" });
+				if (gainIssue) throw new Error(gainIssue.message);
+				if (!draft.gain.trim())
+					throw new Error("Enter the outside gain, including one.");
+				if (canonical(draft.gain) !== canonical(target.gain))
+					return {
+						status: "incorrect",
+						message:
+							"Check the outside gain or constant quotient. Each factor row is monic, so its highest-power coefficient is one.",
+					};
+			}
 		}
 		if (
 			actual.size !== expected.size ||
@@ -186,7 +206,11 @@ export function constructionPreview(
 		return draft.mode === "zero"
 			? "\\text{Identically zero}"
 			: "\\text{No finite roots}";
-	const slot = (value: string): string => value.trim() || "\\square";
+	/** @param value - Incomplete literal. @returns Safe exact preview or an empty slot. */
+	const slot = (value: string): string =>
+		entryIssue(value, { kind: "literal" })
+			? "\\square"
+			: fraction(value).toLatex();
 	const rows = draft.rows.map((row, index) => {
 		const a = slot(row.first),
 			b = slot(row.second),

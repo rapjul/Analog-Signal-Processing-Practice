@@ -1,5 +1,9 @@
 import type { SolverVisualStateDescriptor } from "$lib/components/solvers/base-step-solver.svelte";
 import { emptyConstruction } from "$lib/math-engine/laplace/construction";
+import {
+	entryTarget,
+	rationalLiteral,
+} from "$lib/math-engine/laplace/input-entry";
 import { fractionLatex } from "$lib/math-engine/laplace/pfd";
 import { validateLaplaceTask } from "$lib/math-engine/laplace/task-validation";
 import type {
@@ -70,7 +74,10 @@ export function laplaceCorrectDraft(
 		fields:
 			task.kind === "fields"
 				? Object.fromEntries(
-						task.fields.map((field) => [field.id, field.target]),
+						task.fields.map((field) => [
+							field.id,
+							entryTarget(field.target, field.entry),
+						]),
 					)
 				: {},
 		construction:
@@ -85,13 +92,15 @@ function wrongConstruction(draft: LaplaceConstruction): LaplaceConstruction {
 	const changed = structuredClone(draft);
 	if (changed.mode !== "finite") changed.mode = "finite";
 	else if (changed.rows[0])
-		changed.rows[0].first = fractionLatex(changed.rows[0].first)
-			.add(fractionLatex("1"))
-			.toLatex();
+		changed.rows[0].first = rationalLiteral(
+			fractionLatex(changed.rows[0].first)
+				.add(fractionLatex("1"))
+				.toLatex(),
+		);
 	else
-		changed.gain = fractionLatex(changed.gain)
-			.add(fractionLatex("1"))
-			.toLatex();
+		changed.gain = rationalLiteral(
+			fractionLatex(changed.gain).add(fractionLatex("1")).toLatex(),
+		);
 	return changed;
 }
 
@@ -111,23 +120,46 @@ function diagnosticDrafts(task: LaplaceTask): [string, LaplaceVisualDraft][] {
 	const blank = { input: "", fields: {}, construction: emptyConstruction() };
 	const malformed = laplaceCorrectDraft(task);
 	const wrong = laplaceCorrectDraft(task);
+	let canEnterMalformed = true;
 	if (task.kind === "fields") {
 		const first = task.fields[0]!;
-		malformed.fields[first.id] = "(";
-		wrong.fields[first.id] = `(${first.target})+1`;
+		const mathematical = task.fields.find(
+			(field) =>
+				!field.entry ||
+				["exact", "expression"].includes(field.entry.kind),
+		);
+		canEnterMalformed = !!mathematical;
+		if (mathematical) malformed.fields[mathematical.id] = "(";
+		wrong.fields[first.id] =
+			first.entry?.kind === "boolean"
+				? first.target === "1"
+					? "0"
+					: "1"
+				: first.entry?.kind === "degree" ||
+					  first.entry?.kind === "integer"
+					? String(Math.max(0, Number(first.target) + 1))
+					: `(${first.target})+1`;
 	} else if ("construction" in task) {
+		canEnterMalformed = false;
 		malformed.construction.mode = "finite";
 		if (malformed.construction.rows[0])
 			malformed.construction.rows[0].first = "(";
 		else malformed.construction.gain = "(";
 		wrong.construction = wrongConstruction(task.construction);
 	} else {
+		canEnterMalformed =
+			!task.entry || ["exact", "expression"].includes(task.entry.kind);
 		malformed.input = "(";
-		wrong.input = `(${task.answer})+1`;
+		wrong.input =
+			task.entry?.kind === "integer"
+				? String(Number(task.answer) + 1)
+				: `(${task.answer})+1`;
 	}
 	return [
 		["blank", blank],
-		["malformed", malformed],
+		...(canEnterMalformed
+			? [["malformed", malformed] as [string, LaplaceVisualDraft]]
+			: []),
 		["mathematical-error", wrong],
 	];
 }

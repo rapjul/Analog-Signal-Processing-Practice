@@ -5,12 +5,17 @@ import {
 	constructionFeedback,
 } from "./construction-feedback";
 import { validateLaplaceFields } from "./field-validation";
+import { entryIssue } from "./input-entry";
 import type {
 	LaplaceConstruction,
 	LaplaceResponseTerm,
 	LaplaceTask,
 } from "./types";
-import { verifyLaplaceS, verifyLaplaceTime } from "./verification";
+import {
+	verifyLaplaceS,
+	verifyLaplaceScalar,
+	verifyLaplaceTime,
+} from "./verification";
 
 /** Task feedback and independently graded coefficient results. */
 export interface LaplaceTaskValidation {
@@ -66,6 +71,10 @@ export function validateLaplaceTask(
 			};
 			break;
 		case "scalar":
+			result =
+				entryIssue(input, task.entry ?? { kind: "exact" }) ??
+				verifyLaplaceScalar(input, task.answer);
+			break;
 		case "s":
 			result = verifyLaplaceS(input, task.answer, task.lhs);
 			break;

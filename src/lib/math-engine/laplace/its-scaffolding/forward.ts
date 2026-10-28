@@ -79,6 +79,7 @@ export function blockAnalysis(blocks: TransformBlock[]): LaplaceStage {
 						[
 							{
 								id: "copies",
+								entry: { kind: "integer", min: 0 },
 								label: "Number of exact common factor copies",
 								target: String(
 									block.data.canceled.reduce(

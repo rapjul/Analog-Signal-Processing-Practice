@@ -75,7 +75,7 @@ describe("construction field diagnostics", () => {
 			};
 			const draft = {
 				...target.construction,
-				rows: [row("-2/1", "1/1")],
+				rows: [row("-2/1", "1")],
 			};
 			const result = validateLaplaceTask(target, "", {}, [], draft);
 			expect(result.result.status).toBe("correct");
@@ -150,8 +150,8 @@ describe("construction field diagnostics", () => {
 			constructionFeedback(target, {
 				...target.construction,
 				rows: [{ ...target.construction.rows[0]!, power: "1/1" }],
-			}),
-		).toEqual({});
+			})["row-0-power"]?.status,
+		).toBe("invalid");
 	});
 	/** Tests simultaneous errors rather than stopping at the first bad row. */
 	it("reports signs, source confusion, and missing copies together", () => {

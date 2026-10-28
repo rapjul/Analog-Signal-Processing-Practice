@@ -4,7 +4,9 @@
 	import type { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import { ZERO_POLYNOMIAL } from "$lib/math-engine/laplace/input-entry";
 	import LaplaceConstructionInput from "./LaplaceConstructionInput.svelte";
+	import LaplaceTypedInput from "./LaplaceTypedInput.svelte";
 
 	/** Input task and validation controls. */
 	interface Props {
@@ -56,30 +58,96 @@
 				class="coefficient-fields"
 				disabled={solver.awaitingContinue}
 			>
-				<legend>Enter each exact value</legend>
+				<legend
+					>{solver.task.fields.some(
+						(field) => field.entry?.kind === "boolean",
+					)
+						? "Select active terms and enter their combined expression"
+						: "Enter each requested value"}</legend
+				>
 				{#each solver.task.fields as field}
-					<label for={`laplace-field-${field.id}`}
-						><MathText text={field.label} /></label
-					>
-					<input
-						id={`laplace-field-${field.id}`}
-						data-field-id={field.id}
-						type="text"
-						autocomplete="off"
-						spellcheck="false"
-						bind:value={solver.fieldInputs[field.id]}
-						oninput={() => solver.clearFeedback()}
-						onkeydown={(event) => {
-							if (event.key === "Enter") solver.check();
-						}}
-						aria-describedby={solver.fieldResults[field.id]
-							? `laplace-feedback-${field.id}`
-							: undefined}
-						aria-invalid={solver.fieldResults[field.id]
-							? solver.fieldResults[field.id]!.status !==
-								"correct"
-							: undefined}
-					/>
+					{#if field.entry?.kind === "boolean"}
+						<label class="activity-row">
+							<input
+								type="checkbox"
+								id={`laplace-field-${field.id}`}
+								data-field-id={field.id}
+								checked={solver.fieldInputs[field.id] === "1"}
+								aria-describedby={solver.fieldResults[field.id]
+									? `laplace-feedback-${field.id}`
+									: undefined}
+								aria-invalid={solver.fieldResults[field.id]
+									? solver.fieldResults[field.id]!.status !==
+										"correct"
+									: undefined}
+								onchange={(event) => {
+									solver.fieldInputs[field.id] = event
+										.currentTarget.checked
+										? "1"
+										: "0";
+									solver.clearFeedback();
+								}}
+							/>
+							<MathText text={field.label} />
+						</label>
+					{:else}
+						<label
+							for={solver.fieldInputs[field.id] ===
+							ZERO_POLYNOMIAL
+								? `laplace-degree-${field.id}`
+								: `laplace-field-${field.id}`}
+							><MathText text={field.label} /></label
+						>
+						{#if field.entry?.kind === "degree" && field.entry.zero}
+							<select
+								id={`laplace-degree-${field.id}`}
+								aria-label={`${field.label} polynomial case`}
+								data-degree-id={field.id}
+								value={solver.fieldInputs[field.id] ===
+								ZERO_POLYNOMIAL
+									? "zero"
+									: "nonzero"}
+								aria-describedby={solver.fieldResults[field.id]
+									? `laplace-feedback-${field.id}`
+									: undefined}
+								onchange={(event) => {
+									solver.fieldInputs[field.id] =
+										event.currentTarget.value === "zero"
+											? ZERO_POLYNOMIAL
+											: "";
+									solver.clearFeedback();
+								}}
+							>
+								<option value="nonzero"
+									>Nonzero polynomial—enter its degree</option
+								>
+								<option value="zero"
+									>Zero polynomial—degree undefined</option
+								>
+							</select>
+						{/if}
+						{#if solver.fieldInputs[field.id] !== ZERO_POLYNOMIAL}
+							<LaplaceTypedInput
+								id={`laplace-field-${field.id}`}
+								data-field-id={field.id}
+								entry={field.entry ?? { kind: "exact" }}
+								autocomplete="off"
+								spellcheck="false"
+								bind:value={solver.fieldInputs[field.id]}
+								onedit={() => solver.clearFeedback()}
+								onkeydown={(event) => {
+									if (event.key === "Enter") solver.check();
+								}}
+								aria-describedby={solver.fieldResults[field.id]
+									? `laplace-feedback-${field.id}`
+									: undefined}
+								aria-invalid={solver.fieldResults[field.id]
+									? solver.fieldResults[field.id]!.status !==
+										"correct"
+									: undefined}
+							/>
+						{/if}
+					{/if}
 					{#if solver.fieldResults[field.id]}<p
 							id={`laplace-feedback-${field.id}`}
 							data-field-feedback={field.id}
@@ -108,9 +176,11 @@
 				{#if solver.task.lhs}<span class="equation-label"
 						><MathText text={`$${solver.task.lhs}=$`} /></span
 					>{/if}
-				<input
+				<LaplaceTypedInput
 					id="laplace-input"
-					type="text"
+					entry={solver.task.kind === "scalar"
+						? (solver.task.entry ?? { kind: "exact" })
+						: { kind: "expression" }}
 					autocomplete="off"
 					spellcheck="false"
 					disabled={solver.awaitingContinue}
@@ -121,7 +191,7 @@
 						? "laplace-feedback"
 						: undefined}
 					bind:value={solver.input}
-					oninput={() => solver.clearFeedback()}
+					onedit={() => solver.clearFeedback()}
 					onkeydown={(event) => {
 						if (event.key === "Enter") solver.check();
 					}}
@@ -196,7 +266,7 @@
 		gap: 0.5rem;
 		min-width: 0;
 	}
-	.equation-entry input {
+	.equation-entry :global(input) {
 		flex: 1 1 12rem;
 	}
 	.equation-label {
@@ -206,6 +276,19 @@
 	}
 	.coefficient-fields input {
 		min-width: 0;
+	}
+	.activity-row {
+		display: flex;
+		align-items: start;
+		gap: 0.75rem;
+		min-height: 2.75rem;
+		cursor: pointer;
+	}
+	.activity-row input {
+		width: 1.1rem;
+		height: 1.1rem;
+		flex: 0 0 auto;
+		accent-color: var(--accent-primary);
 	}
 	fieldset {
 		min-width: 0;
@@ -248,16 +331,6 @@
 		border: 1px solid var(--color-success, #22c55e);
 		border-radius: var(--radius-sm);
 		padding: 0.85rem;
-	}
-	input[type="text"] {
-		width: 100%;
-		min-width: 0;
-		box-sizing: border-box;
-		background: var(--bg-input);
-		color: var(--text-primary);
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: 0.75rem;
 	}
 	.actions {
 		display: flex;

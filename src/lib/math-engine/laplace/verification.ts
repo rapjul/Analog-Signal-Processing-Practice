@@ -130,6 +130,33 @@ export function verifyLaplaceS(
 	}
 }
 
+/** @param answer - Exact constant calculation. @param target - Independent exact target. @returns Strict scalar comparison without accepting canceled free variables. */
+export function verifyLaplaceScalar(
+	answer: string,
+	target: string,
+): TransformValidationResult {
+	try {
+		const ast = parseExpression(answer, "s");
+		/** @param node - Parsed expression subtree. @returns Whether a free symbol occurs before any simplification. */
+		const hasVariable = (node: unknown): boolean => {
+			if (Array.isArray(node)) return node.slice(1).some(hasVariable);
+			return (
+				typeof node === "string" &&
+				!["Pi", "ExponentialE"].includes(node) &&
+				!/^[+-]?[0-9.]+$/.test(node)
+			);
+		};
+		if (hasVariable(ast))
+			return {
+				status: "invalid",
+				message: "Enter a constant calculation without variables.",
+			};
+		return verifyLaplaceS(answer, target);
+	} catch (error) {
+		return failure(error);
+	}
+}
+
 /** @param terms - One mode and support direction. @returns Surviving pole multiplicity on its infinite tail, or zero after exact cancellation. */
 export function laplaceTailOrder(terms: LaplaceResponseTerm[]): number {
 	if (!terms.length) return 0;
