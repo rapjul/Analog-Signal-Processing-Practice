@@ -10,6 +10,7 @@ import {
 	type SolverVisualStateDescriptor,
 } from "$lib/components/solvers/base-step-solver.svelte";
 import { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
+import { CtftStepSolverState } from "$lib/components/solvers/ctft-step-solver.svelte";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
 import { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
 import type { LaplaceVisualScene } from "$lib/components/solvers/laplace-solver-state/visual";
@@ -23,6 +24,7 @@ import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
 } from "$lib/math-engine/fourier-series/index";
+import { createCtftProblem } from "$lib/math-engine/fourier-transform/index";
 import { createLaplaceExercise } from "$lib/math-engine/laplace/configuration";
 import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
 import {
@@ -36,6 +38,52 @@ import {
 	laplaceVisualArchetypes,
 	laplaceVisualFixtures,
 } from "$lib/testing/laplace-visual-fixtures";
+import { getAutomatedHintSourceIds } from "$lib/testing/solver-visual-states";
+
+/** Actual registered capture sources must expose real guidance, including any diagnostic-only legacy source. */
+it("reveals hints for every selected source in the existing solver archetypes", () => {
+	const convolution = generateConfiguredConvolutionProblem(
+		{ x: convolutionBase, h: convolutionBase },
+		{ seed: 3101 },
+	);
+	const fourier = generateFourierSeriesProblem("square_even", {
+		seed: 2101,
+		A: 4,
+		T0: 2,
+	});
+	const ode = generateOdeProblem({
+		order: 2,
+		rootType: "distinct_real",
+		forcingType: "exponential",
+		leadingCoefficient: "monic",
+		seed: 210,
+	});
+	const solvers: BaseStepSolverState[] = [
+		new ConvolutionStepSolverState(() => convolution),
+		new FourierSeriesStepSolverState(() => fourier),
+		new OdeStepSolverState(() => ode),
+		new CtftStepSolverState(
+			createCtftProblem("cos", { a: 2, T: 4, w0: 3, t0: -1 }),
+			"derivation",
+		),
+	];
+	for (const solver of solvers) {
+		const states = solver.devGetVisualStates();
+		const sources = new Set([
+			...getAutomatedHintSourceIds(states),
+			...states
+				.filter((state) => state.kind === "hint")
+				.map((state) => state.id),
+		]);
+		for (const id of sources) {
+			expect(solver.devGoToVisualState(id), id).toBe(true);
+			expect(
+				solver.activeHints.length,
+				`${id} has available guidance`,
+			).toBeGreaterThan(0);
+		}
+	}
+});
 
 /** @param problem - Independent mathematical task inventory. @param scenes - Registered capture catalog. Rejects omissions without deriving expectations from that catalog. */
 function assertLaplaceTaskCoverage(

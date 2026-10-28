@@ -204,6 +204,12 @@ npm run capture:solvers:dark
 # Fastest curated check: dark mode with all available hints shown; no tablet
 npm run capture:solvers:quick
 
+# Capture all four Laplace workflows, including every task and hint tier
+npm run capture:solvers:laplace
+
+# Compare those Laplace captures with existing local baselines
+npm run test:e2e:solvers:laplace
+
 # Later runs: compare every named solver state against the existing local baselines
 # without rewriting the gallery artifacts
 npm run test:e2e:solvers
@@ -213,6 +219,37 @@ npm run gallery:solvers
 ```
 
 Every named ODE and Fourier state, plus an automatically derived all-hints variant for every step and conditional sub-step, is compared at desktop and narrow-mobile widths in dark mode. The suite discovers those states from the developer harness, expands each hint sequence to its final tier, verifies that the hint content is visible, and captures it without requiring a second manually maintained scenario list. Initial, representative diagnostic, and completed full-page milestones cover all three viewports in both themes.
+
+Laplace is also a stepped solver in this registry. Eight bounded archetypes cover
+the supplied seed-73 inverse problem, repeated and quadratic poles, partial
+cancellation, a delayed impulse quotient, forward support intervals, two-sided
+system analysis, and second-order initial-value problems. Every reachable task
+on every accepted method path has an initial scene, genuine diagnostic
+submissions, separate hint tiers, and a verified scene awaiting **Continue**.
+Incorrect multiple-choice options are captured separately. Stable task and branch
+identities keep conditional parts distinct even when displayed step numbers
+change. Coverage tests derive their expected inventory from the mathematical
+tasks and reject deliberately omitted tasks, branches, or hint tiers.
+
+Full and dark profiles retain the separate Laplace tiers; quick captures only
+the final tier. Other solvers keep their existing catalog and all-hints behavior.
+The scoped Laplace command replaces the current gallery with its selected
+archetypes, without changing other solvers' baselines. Gallery ordering includes
+branch, task sequence, and phase; existing version-2 manifests remain readable.
+Laplace completion readiness checks its banner and SVG diagrams rather than a
+canvas-only completion container. The visual harness prepares states through
+real validators; separate development and production E2E tests exercise ordinary
+keyboard controls, hint assistance, explicit continuation, and URL navigation.
+Laplace capture timeouts scale with the reachable catalog and viewport count;
+the assertion deadlines and other solvers' timeout budgets are unchanged.
+
+The initial seed-73 inspection confirmed separate tier-1/2/3 images, actual
+validation banners, verified work awaiting Continue, and correctly numbered
+parts at 320px. It also identified follow-up teaching improvements: cancellation
+setup hints could name the current factors explicitly, generic row-mismatch
+messages could explain the submitted numerical difference, and long verified
+root lists require horizontal scrolling inside their compact result container.
+These are inspection findings rather than changes to mathematical grading.
 
 The solver gallery is focused on the problem-solving interface, so the Playwright suite hides the application navbar only inside the visual-capture page. Production and normal development rendering are unchanged. Milestones remain full-page captures, while named steps and sub-steps capture the active step card. Each loaded solver page is also checked for document-level horizontal overflow at its configured viewport, including narrow mobile. Artifact-generating capture commands warn and continue so existing layout problems remain available in a complete inspection gallery; `npm run test:e2e:solvers` treats the same overflow as a regression failure.
 

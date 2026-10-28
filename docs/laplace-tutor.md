@@ -90,10 +90,23 @@ exchanges already incorporated in the displayed system, so learners apply only
 the remaining arithmetic operation.
 The exported `LaplacePlot` contract names the response samples, exact zero
 information, root markers, and signed impulse markers shared by rendering and tests.
-Shared links return the complete preflight-validated exercise to the route, so
-loading a link constructs and validates its task plan only once.
 The labeled vertical scale follows the sampled response magnitude, including
 amplitudes below one; an identically zero response uses a finite unit-scale fallback.
+
+Shared links return the complete preflight-validated exercise to the route, so
+loading a link constructs and validates its task plan only once.
+Client-side navigation between shared Laplace URLs loads the destination problem,
+workflow, and custom-input draft before synchronizing its URL. Malformed
+destinations retain the previous valid exercise and display the request error;
+Back/Forward navigation and reloads use the destination configuration.
+
+Development-only visual scenes identify the exact task, accepted strategy branch,
+hint tier, and capture phase. Prerequisites and diagnostic drafts pass through
+the same validators used by ordinary practice. The screenshot suite covers all
+four workflows and checks each registered scene against an independently derived
+task inventory. Keyboard E2E checks use ordinary controls and preserve explicit
+Continue and assistance tracking. See the [testing guide](./development-and-testing.md)
+for capture and comparison commands.
 
 Construction checks diagnose all provable errors by row and field, including signs, multiplicities, duplicate terms, and numerator/denominator confusion. Edits preserve drafts and clear stale diagnostics. See [ADR 0039](./adrs/0039-laplace-checked-construction-and-interval-evidence.md) for the distinction between structural evidence and final equality checks.
 

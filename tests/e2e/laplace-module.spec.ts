@@ -5,9 +5,92 @@ import {
 } from "$lib/math-engine/laplace/configuration";
 import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
+import { laplaceVisualFixtures } from "$lib/testing/laplace-visual-fixtures";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Keyboard submissions must preserve diagnostics and assistance until checked work is explicitly continued. */
+	test("checks every supplied-problem task with Enter and progressive hints", async ({
+		page,
+	}) => {
+		test.setTimeout(120000);
+		const problem = createLaplaceExercise(laplaceVisualFixtures()[0]!.spec);
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		const decisions: Record<string, string> = {};
+		let first = true;
+		for (const task of problem.stages.flatMap((stage) => stage.tasks)) {
+			if (
+				task.when &&
+				!task.when.values.includes(decisions[task.when.id] ?? "")
+			)
+				continue;
+			const active = page.locator(".step-card.active");
+			await expect(active.locator("[data-task-id]")).toHaveAttribute(
+				"data-task-id",
+				task.id,
+			);
+			if (!first) {
+				const heading = active
+					.locator(
+						"[data-single-heading], .subpart-block:not(.subpart-done) [data-progress-heading]",
+					)
+					.first();
+				await expect(heading).toBeFocused();
+				await heading.press("Enter");
+				await expect(
+					active.locator("#laplace-feedback"),
+				).not.toHaveAttribute("data-validation", /.+/);
+			}
+			first = false;
+			if (task.kind === "choice") {
+				const wrong = task.choices!.findIndex(
+					(choice) =>
+						!(task.accepted ?? [task.answer]).includes(choice),
+				);
+				if (wrong >= 0) {
+					const option = active.locator("[data-choice]").nth(wrong);
+					await option.focus();
+					await option.press("Enter");
+					await expect(
+						active.locator("#laplace-feedback"),
+					).toHaveAttribute("data-validation", "incorrect");
+				}
+			} else {
+				const check = active.getByRole("button", {
+					name: task.action ?? `Check ${task.title}`,
+					exact: true,
+				});
+				await check.focus();
+				await check.press("Enter");
+				await expect(
+					active.locator("#laplace-feedback"),
+				).toHaveAttribute("data-validation", /invalid|incorrect/);
+			}
+			for (let tier = 1; tier <= 3; tier++) {
+				await active.locator(".hint-toggle-btn").click();
+				await expect(active.locator(".hint-line")).toHaveCount(tier);
+				await expect(
+					active.getByRole("button", {
+						name: "Continue",
+						exact: true,
+					}),
+				).toHaveCount(0);
+			}
+			await answerLaplaceTask(page, task, task.answer, "enter");
+			if (task.kind === "choice") decisions[task.id] = task.answer;
+		}
+		await expect(page.locator(".completion-banner")).toContainText(
+			"Assistance",
+		);
+		await page
+			.getByRole("button", { name: "Restart this problem", exact: true })
+			.click();
+		await expect(page.locator(".step-card.completed")).toHaveCount(0);
+		await expect(page.locator(".hint-line")).toHaveCount(0);
+	});
 	/** Same-route links and history must replace the exercise rather than restore stale URL state. */
 	test("loads shared destinations through client navigation and history", async ({
 		page,

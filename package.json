@@ -27,6 +27,8 @@
     "test:e2e:production:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_INITIAL_ONLY=1 playwright test --config playwright.production.config.ts --project Solver-Visual-Snapshots --update-snapshots none",
     "test:e2e:screenshots": "playwright test tests/e2e/visual-screenshots.spec.ts",
     "test:e2e:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts",
+    "test:e2e:solvers:laplace": "SIGNALLAB_VISUAL_REGRESSION=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts --grep laplace-",
+    "capture:solvers:laplace": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts --grep laplace- --update-snapshots && node scripts/generate-solver-gallery.ts",
     "capture:solvers": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS=1 playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
     "capture:solvers:dark": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS=1 SIGNALLAB_VISUAL_PROFILE=dark playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
     "capture:solvers:quick": "SIGNALLAB_VISUAL_REGRESSION=1 SIGNALLAB_VISUAL_ARTIFACTS=1 SIGNALLAB_VISUAL_COPY_ACCEPTED_SNAPSHOTS=1 SIGNALLAB_VISUAL_PROFILE=quick playwright test tests/e2e/solver-visual-snapshots.spec.ts --update-snapshots && node scripts/generate-solver-gallery.ts",
