@@ -43,7 +43,27 @@
 							solver.input = choice;
 							solver.clearFeedback();
 							solver.check();
-						}}><MathText text={choice} /></button
+						}}
+						><span
+							class="choice-marker"
+							aria-hidden="true">•</span
+						><span class="choice-content"
+							><MathText
+								text={solver.task.choicePresentation?.[choice]
+									?.label ?? choice}
+							/>
+							{#if solver.task.choicePresentation?.[choice]?.math}<span
+									class="choice-math"
+									><MathText
+										text={`$${solver.task.choicePresentation[choice]!.math}$`}
+									/></span
+								>{/if}
+							{#if solver.task.choicePresentation?.[choice]?.description}<span
+									class="choice-description"
+									>{solver.task.choicePresentation[choice]!
+										.description}</span
+								>{/if}
+						</span></button
 					>
 				{/each}
 			</fieldset>
@@ -217,6 +237,7 @@
 			</div>{/if}
 		<div
 			id="laplace-feedback"
+			class:visible-feedback={!!solver.result && !solver.awaitingContinue}
 			data-validation={solver.result?.status}
 		>
 			<StepFeedback {solver} />
@@ -322,6 +343,27 @@
 	.choice.selected {
 		border-color: var(--accent-primary);
 		background: var(--accent-subtle, rgba(6, 182, 212, 0.12));
+	}
+	.choice-content {
+		display: grid;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+	.choice-marker {
+		flex: 0 0 auto;
+		color: var(--accent-primary);
+	}
+	.choice-description {
+		font-size: 0.9em;
+		color: var(--text-secondary);
+		font-weight: 400;
+	}
+	.choice-math {
+		overflow-x: auto;
+		max-width: 100%;
+	}
+	.visible-feedback {
+		margin-top: 1rem;
 	}
 	.choice:hover:not(:disabled) {
 		border-color: var(--accent-primary);

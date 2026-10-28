@@ -184,9 +184,24 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		this.verified = {
 			...this.verified,
 			[task.id]:
-				task.kind === "choice" || task.kind === "scalar"
-					? this.input
-					: this.preview,
+				task.kind === "choice"
+					? (task.choicePresentation?.[this.input]?.label ??
+						this.input)
+					: task.kind === "scalar"
+						? this.input
+						: this.preview +
+							(task.kind === "fields"
+								? task.fields
+										.filter(
+											(field) =>
+												field.entry?.kind === "boolean",
+										)
+										.map(
+											(field, index) =>
+												`\\quad\\text{Term ${index + 1}: ${this.fieldInputs[field.id] === "1" ? "Active" : "Inactive"}}`,
+										)
+										.join("")
+								: ""),
 		};
 		if (task.conclusions)
 			this.carried = { ...this.carried, [task.id]: task.conclusions };

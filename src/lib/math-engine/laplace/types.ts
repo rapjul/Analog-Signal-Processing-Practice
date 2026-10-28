@@ -72,6 +72,10 @@ interface LaplaceTaskBase {
 	/** Question and mathematical context. */ prompt: string;
 	/** Exact expected answer or conceptual option value. */ answer: string;
 	/** Available conceptual choices. */ choices?: string[];
+	/** Presentation keyed by stable choice values, independent of accepted alternatives. */ choicePresentation?: Record<
+		string,
+		LaplaceChoicePresentation
+	>;
 	/** Three progressive hints. */ hints: string[];
 	/** Relevant formula without task-specific answers. */ formula?: string;
 	/** Independent response parameters for a time-domain substep. */ terms?: LaplaceResponseTerm[];
@@ -84,6 +88,13 @@ interface LaplaceTaskBase {
 	/** Short first-use prerequisite teaching. */ lesson?: string;
 	/** Explanation shown after independent validation, before continuation. */ explanation?: string;
 	/** Specific action label. */ action?: string;
+}
+
+/** Readable choice content without encoding correctness in its presentation. */
+export interface LaplaceChoicePresentation {
+	/** Human-readable family or method name. */ label: string;
+	/** Optional mathematical shape using the supplied support direction. */ math?: string;
+	/** Brief always-visible description of the method. */ description?: string;
 }
 
 /** Semantic controls shared by tutor fields and structured configuration. */

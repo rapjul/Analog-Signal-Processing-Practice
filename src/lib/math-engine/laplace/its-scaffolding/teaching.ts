@@ -318,8 +318,11 @@ export function teachSignal(
 				: `A damped ${term.kind} uses $(s-(${term.rate}))^2+(${term.frequency})^2$; cosine has numerator $s-(${term.rate})$, while sine has numerator $${term.frequency}$.`;
 	return {
 		...task,
+		...(task.kind === "choice"
+			? { choicePresentation: signalFamilyChoices(term.side) }
+			: {}),
 		...teaching(
-			pair,
+			`${pair}${term.kind === "exponential" ? " The step case has time power $n=0$ and exponential rate $a=0$, leaving only its weight and support." : ""}`,
 			inverse
 				? `For $X(s)=${signalTransform(term)}$, separate the delay exponential from the rational pair. Compare its denominator power or completed square and its numerator with the pair above; retain ${term.side}-sided support.`
 				: `For $${signalLatex(term)}$, separate weight $${term.amplitude}$, delay $${term.delay}$, and ${term.side}-sided support before applying the pair.`,
@@ -328,6 +331,28 @@ export function teachSignal(
 				: `The pair with these parameters gives $${signalTransform(term)}$. The delay multiplier is $e^{-(${term.delay})s}$; ${term.side === "left" ? "left-sided support also changes the pair's sign and ROC" : "right-sided support selects convergence to the right of the pole"}.`,
 			task.action ?? "Check Transform Pair",
 		),
+	};
+}
+
+/** @param side - Supplied support direction. @returns Mathematical forms for all choices without revealing the correct family. */
+export function signalFamilyChoices(
+	side: LaplaceSignalTerm["side"],
+): NonNullable<LaplaceSingleTask["choicePresentation"]> {
+	const support = side === "left" ? "u(d-t)" : "u(t-d)";
+	return {
+		impulse: { label: "Impulse", math: "A\\delta(t-d)" },
+		exponential: {
+			label: "Step / polynomial exponential",
+			math: `A(t-d)^n e^{a(t-d)}${support}`,
+		},
+		cosine: {
+			label: "Damped cosine",
+			math: `Ae^{a(t-d)}\\cos(\\omega(t-d))${support}`,
+		},
+		sine: {
+			label: "Damped sine",
+			math: `Ae^{a(t-d)}\\sin(\\omega(t-d))${support}`,
+		},
 	};
 }
 

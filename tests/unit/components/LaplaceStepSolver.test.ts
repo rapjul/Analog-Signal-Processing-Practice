@@ -28,6 +28,14 @@ describe("Laplace checked workflow", () => {
 		const problem = createRationalExercise(fixture()),
 			onComplete = vi.fn();
 		const view = render(LaplaceStepSolver, { problem, onComplete });
+		expect(view.container.querySelectorAll(".choice-marker")).toHaveLength(
+			2,
+		);
+		expect(
+			view.container
+				.querySelector(".choice-marker")
+				?.getAttribute("aria-hidden"),
+		).toBe("true");
 		await fireEvent.click(
 			view.getByRole("button", {
 				name: "Unilateral transform using initial conditions",
@@ -38,6 +46,11 @@ describe("Laplace checked workflow", () => {
 				.querySelector('[data-validation="incorrect"]')
 				?.getAttribute("data-validation"),
 		).toBe("incorrect");
+		expect(
+			view.container
+				.querySelector("#laplace-feedback")
+				?.classList.contains("visible-feedback"),
+		).toBe(true);
 		await act(() => {
 			const solver = window.__signalLabDev!.activeSolver!;
 			solver.devSolveAll();

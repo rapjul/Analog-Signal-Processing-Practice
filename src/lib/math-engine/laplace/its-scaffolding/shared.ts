@@ -580,6 +580,23 @@ export function decompositionStages(
 			[pair, coverup, matching],
 		),
 		accepted: methods,
+		choicePresentation: {
+			[pair]: {
+				label: pair,
+				description:
+					"Recognize a standard pair and apply scaling, shifts, delays, and support.",
+			},
+			[coverup]: {
+				label: coverup,
+				description:
+					"Cancel a simple linear pole factor and substitute its root to find a coefficient.",
+			},
+			[matching]: {
+				label: matching,
+				description:
+					"Clear denominators, compare powers, and solve the coefficient equations.",
+			},
+		},
 		...strategyTeaching(data, simple, direct),
 	};
 	return [
