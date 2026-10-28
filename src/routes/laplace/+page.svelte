@@ -19,15 +19,27 @@
 	import { createRandomSeed } from "$lib/math-engine/random";
 
 	let error = $state("");
+	/** @param url - Destination URL. @returns Relevant request fields, excluding harmless fragment changes. */
+	function requestKey(url: URL): string {
+		return JSON.stringify(
+			["v", "seed", "config"].map((key) => url.searchParams.get(key)),
+		);
+	}
+	/** @param params - Untrusted destination parameters. @returns One fully validated exercise. */
+	function readProblem(params: URLSearchParams): LaplaceExercise {
+		const rawSeed = params.get("seed");
+		const seed = rawSeed === null ? 73 : Number(rawSeed);
+		if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
+			throw new Error("Use an unsigned 32-bit integer seed.");
+		return (
+			parseLaplaceExercise(params) ??
+			generateLaplaceExercise("inverse", seed)
+		);
+	}
 	/** @returns Valid shared exercise, or a clearly diagnosed ordinary default. */
 	function initialProblem(): LaplaceExercise {
 		try {
-			const shared = parseLaplaceExercise(page.url.searchParams);
-			const rawSeed = page.url.searchParams.get("seed");
-			const seed = rawSeed === null ? 73 : Number(rawSeed);
-			if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
-				throw new Error("Use an unsigned 32-bit integer seed.");
-			return shared ?? generateLaplaceExercise("inverse", seed);
+			return readProblem(page.url.searchParams);
 		} catch (failure) {
 			error =
 				failure instanceof Error
@@ -37,6 +49,7 @@
 		}
 	}
 	let current = $state(untrack(initialProblem));
+	let loadedRequest = untrack(() => requestKey(page.url));
 	let workflow = $state<LaplaceExerciseSpec["workflow"]>(
 		untrack(() => current.spec.workflow),
 	);
@@ -47,11 +60,14 @@
 	let shareUrl = $state("");
 	/** Synchronizes the active validated problem with a reproducible URL. */
 	function syncUrl(): void {
-		if (typeof window !== "undefined")
-			replaceState(
+		if (typeof window !== "undefined") {
+			const destination = new URL(
 				`${page.url.pathname}?${serializeLaplaceExercise(current)}`,
-				page.state,
+				page.url,
 			);
+			loadedRequest = requestKey(destination);
+			replaceState(destination, page.state);
+		}
 		shareUrl = "";
 	}
 	/** Creates a fresh generated exercise in the selected curriculum. */
@@ -90,7 +106,25 @@
 	function share(): void {
 		shareUrl = `${window.location.origin}${page.url.pathname}?${serializeLaplaceExercise(current)}`;
 	}
-	afterNavigate(() => {
+	afterNavigate(({ to }) => {
+		if (!to) return;
+		const key = requestKey(to.url);
+		if (key !== loadedRequest) {
+			loadedRequest = key;
+			try {
+				const checked = readProblem(to.url.searchParams);
+				current = checked;
+				workflow = checked.spec.workflow;
+				draft = structuredClone($state.snapshot(checked.spec));
+				error = "";
+			} catch (failure) {
+				error =
+					failure instanceof Error
+						? failure.message
+						: "Invalid shared configuration.";
+				return;
+			}
+		}
 		if (!error) syncUrl();
 	});
 </script>

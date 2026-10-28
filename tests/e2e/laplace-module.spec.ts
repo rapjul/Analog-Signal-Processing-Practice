@@ -8,6 +8,60 @@ import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Same-route links and history must replace the exercise rather than restore stale URL state. */
+	test("loads shared destinations through client navigation and history", async ({
+		page,
+	}) => {
+		const inverse = generateLaplaceExercise("inverse", 73);
+		const forward = generateLaplaceExercise("forward", 74);
+		const first = `/laplace?${serializeLaplaceConfiguration(inverse.spec)}`;
+		const second = `/laplace?${serializeLaplaceConfiguration(forward.spec)}`;
+		await page.goto(first);
+		await answerLaplaceTask(page, inverse.stages[0]!.tasks[0]!);
+		await expect(page.locator(".step-card.completed")).toHaveCount(1);
+		await page.evaluate((href) => {
+			const link = document.createElement("a");
+			link.id = "shared-destination";
+			link.href = href;
+			link.textContent = "Open shared exercise";
+			document.body.append(link);
+		}, second);
+		await page.locator("#shared-destination").click();
+		await expect(page).toHaveURL(new RegExp("seed=74"));
+		await expect(page.locator(".problem-goal")).toContainText("X");
+		await expect(page.locator(".step-card.completed")).toHaveCount(0);
+		await page.locator(".drill-summary").click();
+		await expect(page.getByLabel("Workflow")).toHaveValue("forward");
+		await page.locator(".drill-summary").click();
+		await page.goBack();
+		await expect(page).toHaveURL(new RegExp("seed=73"));
+		await expect(page.locator("[data-task-id]")).toHaveAttribute(
+			"data-task-id",
+			"convention",
+		);
+		await page.goForward();
+		await expect(page).toHaveURL(new RegExp("seed=74"));
+		await page.reload();
+		await expect(page.locator(".configuration-error")).toHaveCount(0);
+		const before = await page.locator(".problem-prompt").innerText();
+		await page.evaluate(() => {
+			const link = document.createElement("a");
+			link.id = "invalid-destination";
+			link.href = "/laplace?v=2&config={}";
+			link.textContent = "Open invalid exercise";
+			document.body.append(link);
+		});
+		await page.locator("#invalid-destination").click();
+		await expect(page.locator(".configuration-error")).toContainText(
+			"unsupported version",
+		);
+		await expect
+			.poll(() => page.locator(".problem-prompt").innerText())
+			.toBe(before);
+		await expect(page).toHaveURL(/v=2/);
+		await page.goBack();
+		await expect(page.locator(".configuration-error")).toHaveCount(0);
+	});
 	/** Coincident impulses depend on their exact location and weight, never unused signal-shape fields. */
 	test("collects coincident impulses with different unused metadata", async ({
 		page,
