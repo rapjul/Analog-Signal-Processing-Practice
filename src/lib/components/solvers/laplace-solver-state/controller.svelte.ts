@@ -19,6 +19,7 @@ import type {
 	LaplaceTask,
 } from "$lib/math-engine/laplace/types";
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
+import { type LaplaceVisualScene, laplaceVisualScenes } from "./visual";
 
 /** Reactive checked task controller shared by the four Laplace workflows. */
 export class LaplaceStepSolverState extends BaseStepSolverState {
@@ -46,6 +47,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 	/** Exact grading status, retained separately from pedagogical feedback. */ result =
 		$state<TransformValidationResult | null>(null);
 	/** Active immutable exercise. */ readonly problem: LaplaceExercise;
+	/** Lazily prepared development-only scene catalog. */ private visualScenes?: LaplaceVisualScene[];
 
 	/** @param problem - Validated exercise. @param onComplete - Completion notification. */
 	constructor(problem: LaplaceExercise, onComplete?: () => void) {
@@ -239,7 +241,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		}
 	}
 	/** Fills targets only within the development harness; all answers still pass real validation. */
-	private fillDevelopmentAnswer(): void {
+	private fillDevelopmentAnswer(answer?: string): void {
 		if (!import.meta.env.DEV || !this.task) return;
 		if (this.task.kind === "fields")
 			this.fieldInputs = Object.fromEntries(
@@ -249,6 +251,63 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 			this.construction = structuredClone(
 				$state.snapshot(this.task.construction),
 			);
-		else this.input = this.task.answer;
+		else this.input = answer ?? this.task.answer;
+	}
+	/** @returns Every reachable task phase on each accepted strategy branch, in teaching order. */
+	override devGetVisualStates(): LaplaceVisualScene[] {
+		if (!import.meta.env.DEV) return [];
+		return (this.visualScenes ??= laplaceVisualScenes(
+			$state.snapshot(this.problem),
+		));
+	}
+	/** @param stateId - Stable branch/task/phase identity. @returns Whether checked prerequisite replay reached the requested scene. */
+	override devGoToVisualState(stateId: string): boolean {
+		if (!import.meta.env.DEV) return false;
+		const scene = this.devGetVisualStates().find(
+			(candidate) => candidate.id === stateId,
+		);
+		if (!scene) return false;
+		const sameTask =
+			this.task?.id === scene.taskId &&
+			this.problem.stages[this.currentStep - 1]?.id === scene.stageId;
+		const samePath = Object.entries(this.decisions).every(
+			([id, answer]) => scene.decisions[id] === answer,
+		);
+		if (!sameTask || !samePath) this.reset();
+		else {
+			this.input = "";
+			this.fieldInputs = {};
+			this.construction = emptyConstruction();
+			this.hintTier = 0;
+			this.clearFeedback();
+		}
+		let guard = 0;
+		while (this.task && guard++ < 1000) {
+			if (
+				this.task.id === scene.taskId &&
+				this.problem.stages[this.currentStep - 1]?.id === scene.stageId
+			) {
+				if (scene.phase === "diagnostic" && scene.draft) {
+					this.input = scene.draft.input;
+					this.fieldInputs = { ...scene.draft.fields };
+					this.construction = structuredClone(
+						scene.draft.construction,
+					);
+					this.check();
+					return this.result?.status === scene.feedbackStatus;
+				}
+				if (scene.phase === "success") {
+					this.fillDevelopmentAnswer(scene.decisions[this.task.id]);
+					return this.check();
+				}
+				for (let tier = 0; tier < (scene.hintTier ?? 0); tier++)
+					this.revealNextHint();
+				return true;
+			}
+			this.fillDevelopmentAnswer(scene.decisions[this.task.id]);
+			if (!this.check()) return false;
+			this.continue();
+		}
+		return false;
 	}
 }
