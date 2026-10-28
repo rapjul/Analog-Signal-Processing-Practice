@@ -12,6 +12,7 @@ import {
 	solveLinear,
 	zero,
 } from "./algebra";
+import { sumLatex } from "./formatting";
 import type { LaplaceFactor, LaplaceResponseTerm, RationalSpec } from "./types";
 
 /** Exact reduction and decomposition of a bounded factored rational expression. */
@@ -217,15 +218,17 @@ export function decompose(
 	solveAndVerifySlots(numerator, denominator, quotient, remainder, slots);
 	/** @param solved - Whether to insert verified coefficients. @returns PFD expression. */
 	const display = (solved: boolean): string =>
-		[
+		sumLatex([
 			quotient[0]!.numerator ? quotient[0]!.toLatex() : "",
-			...slots.map(
-				(slot) =>
-					`\\frac{(${solved ? slot.value : slot.label})(${polynomialLatex(slot.basis)})}{${polynomialLatex(slot.denominator)}}`,
+			...slots.map((slot) =>
+				solved
+					? rationalLatex({
+							n: scale(slot.basis, fractionLatex(slot.value)),
+							d: slot.denominator,
+						})
+					: `\\frac{${slot.label}${slot.basis.length === 1 && slot.basis[0]!.numerator === slot.basis[0]!.denominator ? "" : `(${polynomialLatex(slot.basis)})`}}{${polynomialLatex(slot.denominator)}}`,
 			),
-		]
-			.filter(Boolean)
-			.join("+") || "0";
+		]);
 	return {
 		originalNumerator,
 		originalDenominator,

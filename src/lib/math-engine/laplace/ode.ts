@@ -3,17 +3,16 @@ import {
 	expand,
 	fraction,
 	type Poly,
-	polynomialLatex,
 	rationalLatex,
 	scale,
 } from "./algebra";
+import { delayedLatex, sumLatex } from "./formatting";
 import { normalizeFactors } from "./pfd";
 import {
 	commonFactors,
 	responseLatex,
 	signalFactors,
 	signalRational,
-	signalTransform,
 	validateTerms,
 } from "./signals";
 import { solveBlock, type TransformBlock } from "./transform";
@@ -77,13 +76,17 @@ export function solveLaplaceOde(spec: OdeExercise): LaplaceOdeSolution {
 	const zi = ziBlock.terms,
 		zs = forced.flatMap((block) => block.terms);
 	const ziTransform = rationalLatex({ n: initialNumerator, d: operator });
-	const zsTransform =
-		terms
-			.map(
-				(term) =>
-					`(${signalTransform(term)})/(${polynomialLatex(operator)})`,
-			)
-			.join("+") || "0";
+	const zsTransform = sumLatex(
+		forced.map((block) =>
+			delayedLatex(
+				rationalLatex({
+					n: block.data.numerator,
+					d: block.data.denominator,
+				}),
+				block.spec.delay,
+			),
+		),
+	);
 	return {
 		operator,
 		initialNumerator,
@@ -92,7 +95,7 @@ export function solveLaplaceOde(spec: OdeExercise): LaplaceOdeSolution {
 		zs,
 		ziTransform,
 		zsTransform,
-		transform: `(${ziTransform})+(${zsTransform})`,
+		transform: sumLatex([ziTransform, zsTransform]),
 		response: responseLatex([...zi, ...zs]),
 	};
 }

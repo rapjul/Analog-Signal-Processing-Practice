@@ -1,4 +1,5 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
+import { sumLatex } from "$lib/math-engine/laplace/formatting";
 import {
 	responseLatex,
 	signalLatex,
@@ -46,11 +47,11 @@ export function supportTasks(
 				: max !== null &&
 					max.add(fraction(term.delay).negate()).numerator <= 0n,
 		);
-		const target =
+		const target = sumLatex(
 			ordinary
 				.filter((_entry, i) => active[i])
-				.map(({ term }) => signalOrdinaryLatex(term))
-				.join("+") || "0";
+				.map(({ term }) => signalOrdinaryLatex(term)),
+		);
 		const interval = {
 			min: min === null ? null : `${min.numerator}/${min.denominator}`,
 			max: max === null ? null : `${max.numerator}/${max.denominator}`,
@@ -82,7 +83,7 @@ export function supportTasks(
 				fields,
 			),
 			prompt: `On $${range}$, select each active ordinary term, then add their expressions without step factors. An unchecked term is inactive. Impulses remain separate distributions, not interval values.`,
-			formula: `x(t)=${original.map(signalLatex).join("+")}`,
+			formula: `x(t)=${sumLatex(original.map(signalLatex))}`,
 			...teaching(
 				"The unit step $u(t-d)$ is one after $d$ and zero before $d$; $u(d-t)$ is one before $d$. Between support boundaries, evaluate these steps before adding the remaining ordinary expressions.",
 				`On $${range}$, compare every supplied delay with this interval. Write zero for an inactive term; remove the step factor from an active term.`,

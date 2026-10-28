@@ -16,6 +16,7 @@ import {
 	renderLaplaceFieldTask,
 } from "$lib/math-engine/laplace/answer-entry";
 import { constructionTarget } from "$lib/math-engine/laplace/construction";
+import { factorProductLatex } from "$lib/math-engine/laplace/formatting";
 import { entryTarget } from "$lib/math-engine/laplace/input-entry";
 import type { LaplaceDecomposition } from "$lib/math-engine/laplace/pfd";
 import { fractionLatex, normalizeFactors } from "$lib/math-engine/laplace/pfd";
@@ -165,21 +166,12 @@ export function factorTask(
 		polynomial.at(-1)!.toLatex(),
 		zero(polynomial),
 	);
-	const product =
-		factors
-			.map(
-				(factor) =>
-					`(${polynomialLatex(factorPoly(factor))})^{${factor.multiplicity}}`,
-			)
-			.join("") || "1";
 	return {
 		id,
 		title,
 		kind: "factors",
 		prompt: `Factor $${polynomialLatex(polynomial)}$. Choose a factor type, then enter its signed coefficients and power. Each factor has leading coefficient one; put the remaining gain outside.`,
-		answer: zero(polynomial)
-			? "0"
-			: `(${target.gain})${factors.length ? product : ""}`,
+		answer: factorProductLatex(factors, target.gain),
 		construction: target,
 		...teaching(
 			"Factoring rewrites a sum as a product. A linear factor has the form $s+b$; an irreducible quadratic has the form $s^2+bs+c$. The outside gain retains the original leading coefficient.",
@@ -655,7 +647,7 @@ export function decompositionStages(
 					...teaching(
 						"A real root produces a linear factor. A nonreal conjugate pair produces a real irreducible quadratic. Multiplicity counts copies, rather than distinct locations.",
 						`Classify the factors of $${polynomialLatex(data.denominator)}$ from the verified roots.`,
-						`The verified factors are $${data.poles.map((factor) => `(${polynomialLatex(factorPoly(factor))})^{${factor.multiplicity}}`).join("")}$. Count each displayed power as that many copies; each quadratic accounts for a conjugate pair.`,
+						`The verified factors are $${factorProductLatex(data.poles)}$. Count each power as that many copies (an omitted power is one); each quadratic accounts for a conjugate pair.`,
 						"Check Factor Types",
 					),
 				},

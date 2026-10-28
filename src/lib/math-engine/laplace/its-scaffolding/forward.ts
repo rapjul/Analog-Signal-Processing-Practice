@@ -3,6 +3,7 @@ import {
 	polynomialLatex,
 	rationalLatex,
 } from "$lib/math-engine/laplace/algebra";
+import { sumLatex } from "$lib/math-engine/laplace/formatting";
 import { formatRoc } from "$lib/math-engine/laplace/pfd";
 import {
 	analyzeSignalRoc,
@@ -246,7 +247,7 @@ export function createForwardExercise(input: ForwardExercise): LaplaceExercise {
 	const blocks = practice.rewritten
 		? transformBlocks(practice.terms)
 		: originalBlocks;
-	const transform = practice.terms.map(signalTransform).join("+") || "0",
+	const transform = sumLatex(practice.terms.map(signalTransform)),
 		response = responseLatex(terms);
 	const { bounds: roc, poles } = analyzeSignalRoc(terms);
 	const rocLatex = formatRoc(roc, poles);

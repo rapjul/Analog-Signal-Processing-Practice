@@ -1,5 +1,10 @@
 import { fraction } from "$lib/math-engine/laplace/algebra";
 import {
+	delayedLatex,
+	delayLatex,
+	shiftedTime,
+} from "$lib/math-engine/laplace/formatting";
+import {
 	decompose,
 	factorial,
 	formatRoc,
@@ -145,7 +150,7 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 											? "A sine pair has its angular frequency in the numerator. Divide the coefficient by that frequency to obtain the time-domain weight."
 											: "The delay multiplier $e^{-ds}$ shifts the entire pair by $d$ in time, including its support. Cosine pairs retain their numerator coefficient on right-sided support.",
 									`Apply the selected pair to $${signalTransform(term)}$. ${carried.join(" ")} Check the denominator power or frequency, and any delay multiplier.`,
-									`${term.kind === "exponential" ? `The denominator power is $${term.power + 1}$, so the time power is $${term.power + 1}-1=${term.power}$.` : `The delay multiplier here is $e^{-(${term.delay})s}$, so replace $t$ by $t-(${term.delay})$ in the entire pair.`} ${newWeight ? `The numerator coefficient is $${coefficient.toLatex()}$; divide by $${normalizer.toLatex()}$${term.side === "left" ? " and apply the left-sided minus sign" : ""} to obtain the signed weight $${term.amplitude}$.` : "The verified coefficient needs no extra normalization."}`,
+									`${term.kind === "exponential" ? `The denominator power is $${term.power + 1}$, so the time power is $${term.power + 1}-1=${term.power}$.` : `The delay multiplier here is $${delayLatex(term.delay) || "1"}$, so replace $t$ by $${shiftedTime(term.delay)}$ in the entire pair.`} ${newWeight ? `The numerator coefficient is $${coefficient.toLatex()}$; divide by $${normalizer.toLatex()}$${term.side === "left" ? " and apply the left-sided minus sign" : ""} to obtain the signed weight $${term.amplitude}$.` : "The verified coefficient needs no extra normalization."}`,
 									"Check Pair Parameters",
 								),
 								conclusions: carried,
@@ -185,9 +190,7 @@ export function createRationalExercise(
 	const data = decompose(input),
 		roc = rocBounds(data.poles, input.region),
 		terms = inverseTerms(data, input);
-	const base = originalTransform(data),
-		delay = fraction(input.delay);
-	const transform = `${delay.numerator ? `e^{-(${delay.toLatex()})s}` : ""}${base}`;
+	const transform = delayedLatex(originalTransform(data), input.delay);
 	const response = responseLatex(terms),
 		rocLatex = formatRoc(roc, data.poles),
 		stable = roc[0] < 0 && roc[1] > 0;

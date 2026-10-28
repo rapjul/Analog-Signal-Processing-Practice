@@ -6,6 +6,7 @@ import {
 	rationalLatex,
 	scale,
 } from "./algebra";
+import { delayedLatex, scaledLatex, shiftedTime, sumLatex } from "./formatting";
 import { factorial, fractionLatex, normalizeFactors } from "./pfd";
 import type {
 	LaplaceFactor,
@@ -97,37 +98,46 @@ export function signalOrdinaryLatex(term: LaplaceSignalTerm): string {
 /** @param term - Signal parameters. @param supported - Whether to include the step factor. @returns Exact signal notation. */
 function formatSignal(term: LaplaceSignalTerm, supported: boolean): string {
 	const delay = fraction(term.delay),
-		amplitude = fractionLatex(term.amplitude).toLatex();
-	const time = delay.numerator ? `(t-(${delay.toLatex()}))` : "t";
-	if (term.kind === "impulse") return `(${amplitude})\\delta(${time})`;
+		amplitude = fractionLatex(term.amplitude);
+	const time = shiftedTime(term.delay);
+	if (term.kind === "impulse")
+		return scaledLatex(amplitude, `\\delta(${time})`);
 	const rate = fraction(term.rate),
 		frequency = fraction(term.frequency);
 	const polynomial =
 		term.kind === "exponential" && term.power
-			? `${time}^{${term.power}}`
+			? `${delay.numerator ? `(${time})` : time}${term.power === 1 ? "" : `^{${term.power}}`}`
 			: "";
-	const exponential = rate.numerator ? `e^{(${rate.toLatex()})${time}}` : "";
+	const exponential = rate.numerator
+		? `e^{${scaledLatex(rate, time, !!delay.numerator)}}`
+		: "";
 	const trig =
 		term.kind === "cosine" || term.kind === "sine"
-			? `\\${term.kind === "cosine" ? "cos" : "sin"}((${frequency.toLatex()})${time})`
+			? `\\${term.kind === "cosine" ? "cos" : "sin"}(${scaledLatex(frequency, time, !!delay.numerator)})`
 			: "";
-	return `(${amplitude})${polynomial}${exponential}${trig}${supported ? `u(${term.side === "left" ? "-" : ""}${time})` : ""}`;
+	const support =
+		term.side === "left"
+			? `${delay.numerator ? delay.toLatex() : ""}-t`
+			: time;
+	return scaledLatex(
+		amplitude,
+		`${polynomial}${exponential}${trig}${supported ? `u(${support})` : ""}` ||
+			"1",
+	);
 }
 
 /** @param terms - Verified terms. @returns Supported sum, with no implicit impulse-step product. */
 export function responseLatex(terms: LaplaceResponseTerm[]): string {
-	return (
+	return sumLatex(
 		terms
 			.filter((term) => fractionLatex(term.amplitude).numerator !== 0n)
-			.map(signalLatex)
-			.join("+") || "0"
+			.map(signalLatex),
 	);
 }
 
 /** @param term - Standard pair. @returns Forward transform including delay. */
 export function signalTransform(term: LaplaceSignalTerm): string {
-	const delay = fraction(term.delay);
-	return `${delay.numerator ? `e^{-(${delay.toLatex()})s}` : ""}${rationalLatex(signalRational(term))}`;
+	return delayedLatex(rationalLatex(signalRational(term)), term.delay);
 }
 
 /** @param terms - Standard supported terms. @returns Common open convergence region. */

@@ -1,4 +1,5 @@
 import { fraction, polynomialLatex } from "$lib/math-engine/laplace/algebra";
+import { scaledLatex, sumLatex } from "$lib/math-engine/laplace/formatting";
 import { solveLaplaceOde } from "$lib/math-engine/laplace/ode";
 import { formatRoc } from "$lib/math-engine/laplace/pfd";
 import {
@@ -30,15 +31,23 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 	const y0 = fraction(spec.initial[0]),
 		dy0 = fraction(spec.initial[1]);
 	const prompt =
-		solution.operator
-			.map((coefficient, power) =>
-				coefficient.numerator
-					? `(${coefficient.toLatex()})${power === 2 ? "y''(t)" : power === 1 ? "y'(t)" : "y(t)"}`
-					: "",
-			)
-			.filter(Boolean)
-			.reverse()
-			.join("+") + `=${spec.terms.map(signalLatex).join("+")}`;
+		sumLatex(
+			solution.operator
+				.map((coefficient, power) =>
+					coefficient.numerator
+						? scaledLatex(
+								coefficient,
+								power === 2
+									? "y''(t)"
+									: power === 1
+										? "y'(t)"
+										: "y(t)",
+							)
+						: "",
+				)
+				.filter(Boolean)
+				.reverse(),
+		) + `=${sumLatex(spec.terms.map(signalLatex))}`;
 	const { bounds: roc, poles } = analyzeSignalRoc(terms);
 	const decomposition = solution.blocks.flatMap((block, index) =>
 		[
@@ -291,7 +300,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 					part,
 					teaching(
 						"The same differential operator acts on the initial-state and forcing contributions. Their transforms add by linearity.",
-						`Here $D(s)=${polynomialLatex(solution.operator)}$, the initial numerator is $I(s)=${polynomialLatex(solution.initialNumerator)}$, and $F(s)=${spec.terms.map(signalTransform).join("+")}$. ${part.id === "ode-zi" ? "Use I and omit F." : part.id === "ode-zs" ? "Use F and omit I." : "Retain both I and F."}`,
+						`Here $D(s)=${polynomialLatex(solution.operator)}$, the initial numerator is $I(s)=${polynomialLatex(solution.initialNumerator)}$, and $F(s)=${sumLatex(spec.terms.map(signalTransform))}$. ${part.id === "ode-zi" ? "Use I and omit F." : part.id === "ode-zs" ? "Use F and omit I." : "Retain both I and F."}`,
 						`Dividing the initial part gives $Y_{ZI}(s)=${solution.ziTransform}$; dividing the input part gives $Y_{ZS}(s)=${solution.zsTransform}$. Keep delay factors attached to their input blocks before adding the parts.`,
 						"Check Response Transform",
 					),

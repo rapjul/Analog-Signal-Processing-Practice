@@ -1,4 +1,5 @@
 import { fraction, polynomialLatex } from "$lib/math-engine/laplace/algebra";
+import { delayLatex, shiftedTime } from "$lib/math-engine/laplace/formatting";
 import { factorial } from "$lib/math-engine/laplace/pfd";
 import { signalLatex, signalTransform } from "$lib/math-engine/laplace/signals";
 import type {
@@ -146,7 +147,7 @@ function pairTeaching(id: string, answer: string): Teaching | undefined {
 		return teaching(
 			"A nonnegative time delay $d$ shifts the whole signal and introduces $e^{-ds}$ in its transform.",
 			"Read the shift in $t-d$, or the coefficient of $-s$ in the delay exponential. Do not confuse it with the exponential decay rate.",
-			`The delay in this term is $d=${answer}$. Its support begins or ends at that time, and the transform multiplier is $e^{-(${answer})s}$.`,
+			`The delay in this term is $d=${answer}$. Its support begins or ends at that time, and the transform multiplier is $${delayLatex(answer) || "1"}$.`,
 			"Check Delay",
 		);
 	if (id.startsWith("rate-"))
@@ -314,7 +315,7 @@ export function teachSignal(
 		term.kind === "impulse"
 			? "An impulse at zero transforms to one."
 			: term.kind === "exponential"
-				? `$t^{${term.power}}e^{(${term.rate})t}$ uses the denominator power $${term.power + 1}$ and factorial $${term.power}!$.`
+				? `$${signalLatex({ ...term, amplitude: "1", delay: "0" })}$ uses the denominator power $${term.power + 1}$ and factorial $${term.power}!$.`
 				: `A damped ${term.kind} uses $(s-(${term.rate}))^2+(${term.frequency})^2$; cosine has numerator $s-(${term.rate})$, while sine has numerator $${term.frequency}$.`;
 	return {
 		...task,
@@ -328,7 +329,7 @@ export function teachSignal(
 				: `For $${signalLatex(term)}$, separate weight $${term.amplitude}$, delay $${term.delay}$, and ${term.side}-sided support before applying the pair.`,
 			inverse
 				? inversePairWork(term)
-				: `The pair with these parameters gives $${signalTransform(term)}$. The delay multiplier is $e^{-(${term.delay})s}$; ${term.side === "left" ? "left-sided support also changes the pair's sign and ROC" : "right-sided support selects convergence to the right of the pole"}.`,
+				: `The pair with these parameters gives $${signalTransform(term)}$. The delay multiplier is $${delayLatex(term.delay) || "1"}$; ${term.side === "left" ? "left-sided support also changes the pair's sign and ROC" : "right-sided support selects convergence to the right of the pole"}.`,
 			task.action ?? "Check Transform Pair",
 		),
 	};
@@ -365,7 +366,7 @@ function inversePairWork(term: LaplaceSignalTerm): string {
 		normalization = `The pole power $${term.power + 1}$ gives time power $${term.power + 1}-1=${term.power}$. Divide the signed numerator coefficient by $${factorial(term.power)}$${sign}, giving the checked weight $${term.amplitude}$.`;
 	if (term.kind === "sine")
 		normalization = `Divide the signed numerator by frequency $${term.frequency}$${sign}, giving the checked sine weight $${term.amplitude}$.`;
-	return `Before applying weight and delay, the time shape is $${shape}$. ${normalization} Finally replace $t$ by $t-(${term.delay})$ in the shape and its support; an impulse shifts directly without multiplication by a step.`;
+	return `Before applying weight and delay, the time shape is $${shape}$. ${normalization} Finally replace $t$ by $${shiftedTime(term.delay)}$ in the shape and its support; an impulse shifts directly without multiplication by a step.`;
 }
 
 /** @param task - Region, support, or stability question. @param poles - Genuine surviving poles. @param bounds - Exact engine's convergence bounds. @param rocLatex - Formatted open region. @param conditions - Supplied support information. @returns Teaching tied to this problem's boundaries and support. */

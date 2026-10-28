@@ -47,9 +47,9 @@ describe("checked support interval evidence", () => {
 		)!.tasks;
 		const intervals = tasks.filter((task) => task.kind === "fields");
 		expect(intervals.map((task) => task.fields.at(-1)!.target)).toEqual([
-			"(1)",
-			"(1)",
-			"(1)+(-1)",
+			"1",
+			"1",
+			"1-1",
 		]);
 		for (const task of intervals) {
 			expect(

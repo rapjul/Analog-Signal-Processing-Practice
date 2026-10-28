@@ -1,5 +1,6 @@
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
-import { factorPoly, fraction } from "./algebra";
+import { factorPoly, fraction, polynomialLatex } from "./algebra";
+import { scaledLatex, sumLatex } from "./formatting";
 import { entryIssue, rationalLiteral } from "./input-entry";
 import { fractionLatex } from "./pfd";
 import type {
@@ -216,16 +217,41 @@ export function constructionPreview(
 			b = slot(row.second),
 			p = slot(row.power);
 		if (task.kind === "roots")
-			return `${a}${row.kind === "quadratic" ? `\\pm j(${b})` : ""}\\quad\\text{multiplicity }${p}`;
-		const factor =
-			row.kind === "linear" ? `s+(${a})` : `s^2+(${a})s+(${b})`;
+			return `${a}${row.kind === "quadratic" ? `\\pm j${b === "1" ? "" : b}` : ""}\\quad\\text{multiplicity }${p}`;
+		const complete =
+			!entryIssue(row.first, { kind: "literal" }) &&
+			(row.kind === "linear" ||
+				!entryIssue(row.second, { kind: "literal" }));
+		const factor = complete
+			? polynomialLatex(
+					row.kind === "linear"
+						? [fraction(row.first), fraction(1)]
+						: [
+								fraction(row.second),
+								fraction(row.first),
+								fraction(1),
+							],
+				)
+			: row.kind === "linear"
+				? `s+${a}`
+				: `s^2+(${a})s+${b}`;
+		const power = p === "1" ? factor : `(${factor})^{${p}}`;
 		if (task.kind === "template")
-			return `\\frac{${row.numerator === "linear" ? `A_{${index + 1}}s+B_{${index + 1}}` : `C_{${index + 1}}`}}{(${factor})^{${p}}}`;
-		return `(${factor})^{${p}}`;
+			return `\\frac{${row.numerator === "linear" ? `A_{${index + 1}}s+B_{${index + 1}}` : `C_{${index + 1}}`}}{${power}}`;
+		return p === "1" && (draft.rows.length > 1 || draft.gain !== "1")
+			? `(${factor})`
+			: power;
 	});
+	const gain =
+		task.kind === "template" &&
+		verifyLaplaceScalar(draft.gain, draft.gain).status === "correct"
+			? draft.gain
+			: slot(draft.gain);
 	return task.kind === "roots"
 		? rows.join(";\\quad ") || "\\square"
 		: task.kind === "template"
-			? [slot(draft.gain), ...rows].join("+")
-			: `${slot(draft.gain)}${rows.join("")}`;
+			? sumLatex([gain, ...rows])
+			: gain === "\\square"
+				? `\\square${rows.join("")}`
+				: scaledLatex(fraction(draft.gain), rows.join("") || "1");
 }

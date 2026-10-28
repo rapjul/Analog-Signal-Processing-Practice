@@ -150,7 +150,14 @@ export function polynomialLatex(p: Poly, variable = "s"): string {
 
 /** @param value - Rational expression. @returns Fraction with explicit polynomial coefficients. */
 export function rationalLatex(value: Rational): string {
-	return `\\frac{${polynomialLatex(value.n)}}{${polynomialLatex(value.d)}}`;
+	if (zero(value.n)) return "0";
+	if (
+		value.d.length === 1 &&
+		value.d[0]!.numerator === value.d[0]!.denominator
+	)
+		return polynomialLatex(value.n);
+	const negative = value.n.at(-1)!.numerator < 0n;
+	return `${negative ? "-" : ""}\\frac{${polynomialLatex(negative ? scale(value.n, fraction(-1)) : value.n)}}{${polynomialLatex(value.d)}}`;
 }
 
 /** @param rows - Square augmented matrix. @returns Exact unique solution. */
