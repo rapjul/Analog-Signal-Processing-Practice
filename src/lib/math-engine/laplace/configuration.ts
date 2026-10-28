@@ -8,9 +8,25 @@ import { validateLaplaceTask } from "./task-validation";
 import type {
 	LaplaceExercise,
 	LaplaceExerciseSpec,
+	LaplaceFactor,
 	OdeExercise,
 	RationalExercise,
 } from "./types";
+
+/** @param roots - Editable operator factors, possibly incomplete. @returns Exact draft order, or null until all locations are valid literals. */
+export function laplaceDraftOrder(roots: LaplaceFactor[]): number | null {
+	try {
+		return roots.reduce(
+			(sum, factor) =>
+				sum +
+				factor.multiplicity *
+					(fraction(factor.frequency).numerator === 0n ? 1 : 2),
+			0,
+		);
+	} catch {
+		return null;
+	}
+}
 
 /** @param input - Editor draft. @returns A copied configuration with neutral values for hidden, mathematically unused parameters. */
 export function normalizeLaplaceConfigurationDraft(
@@ -29,16 +45,7 @@ export function normalizeLaplaceConfigurationDraft(
 			if (spec.workflow === "ode") term.side = "right";
 		}
 	}
-	if (
-		spec.workflow === "ode" &&
-		spec.roots.reduce(
-			(sum, factor) =>
-				sum +
-				factor.multiplicity *
-					(fraction(factor.frequency).numerator === 0n ? 1 : 2),
-			0,
-		) === 1
-	)
+	if (spec.workflow === "ode" && laplaceDraftOrder(spec.roots) === 1)
 		spec.initial[1] = "0";
 	return spec;
 }

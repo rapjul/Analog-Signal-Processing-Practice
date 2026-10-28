@@ -139,6 +139,41 @@ graders; the guided workflows use the focused engine modules.
 
 ## Reproducibility and validation
 
+### Input domains and choice presentation
+
+Task and field contracts declare their mathematical entry domain independently
+of labels and expected values. Degrees and counts accept nonnegative whole-number
+notation; multiplicities and denominator powers accept positive integers through
+four. Numerator degrees offer **Zero polynomial—degree undefined** explicitly.
+The internal degree sentinel is adapted only when checking mathematics and is
+never displayed as a negative degree.
+
+Root locations, factor coefficients, and custom numeric parameters accept signed
+integers, exact decimals, and plain fractions such as `-3/2`. Calculated
+coefficients and initial-state slots also accept supported exact constant
+arithmetic and LaTeX fractions. Free variables and equation assignments cannot
+satisfy a coefficient field. Expression tasks retain their strict variable and
+support verifiers. Invalid integer insertions are rejected intact: `1.5` cannot
+become `15`. Incomplete numeric or mathematical drafts remain unverified and do
+not produce broken completed previews.
+
+Support-interval cards use term-labeled checkboxes and independently check the
+combined ordinary expression. Unchecked means inactive; an interval with no
+active terms still requires an explicit zero expression. Feedback identifies
+each field, preserves drafts, and clears after edits. Hints never check fields.
+
+Single-choice cards display bullet markers, immediate feedback, and explicit
+**Continue** after success. Family choices include mathematical forms with the
+supplied support direction. Method choices describe their operations without
+identifying which alternatives are valid before checking. Mathematical display
+omits redundant unit products and first powers while preserving signs, exact
+fractions, standalone constants, and necessary grouping.
+
+Custom controls hide parameters unused by the selected family or ODE order.
+Applying a draft assigns neutral values to these unused fields on a copy;
+serialized configurations retain the existing version and schema. Shared problem
+links remain read-only.
+
 The URL carries an unsigned 32-bit `seed`, configuration version `v=1`, and a
 serialized structured `config`. Custom edits remain drafts until every
 mathematical task can be checked by the strict answer language. Unsupported

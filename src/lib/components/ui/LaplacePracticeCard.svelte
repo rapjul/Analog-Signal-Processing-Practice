@@ -83,7 +83,13 @@
 								</p>{/if}
 							{#if task.kind === "choice" || task.kind === "roots"}<p
 								>
-									<MathText text={task.answer} />
+									<MathText
+										text={task.choicePresentation?.[
+											task.answer
+										]
+											? `${task.choicePresentation[task.answer]!.label}${task.choicePresentation[task.answer]!.math ? `: $${task.choicePresentation[task.answer]!.math}$` : ""}`
+											: task.answer}
+									/>
 								</p>{:else}<MathBlock
 									math={task.answer}
 									compact

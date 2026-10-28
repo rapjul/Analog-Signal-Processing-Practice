@@ -136,6 +136,12 @@ export function verifyLaplaceScalar(
 	target: string,
 ): TransformValidationResult {
 	try {
+		if (answer.includes("="))
+			return {
+				status: "invalid",
+				message:
+					"Enter only the constant calculation, without an equation label.",
+			};
 		const ast = parseExpression(answer, "s");
 		/** @param node - Parsed expression subtree. @returns Whether a free symbol occurs before any simplification. */
 		const hasVariable = (node: unknown): boolean => {

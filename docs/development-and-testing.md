@@ -275,6 +275,35 @@ The `dark` profile keeps every named state and milestone but omits light-mode mi
 
 The process is both automated and deterministic: automation enumerates the live state catalog and hint variants, while stable problem seeds, explicit canvas readiness markers, and harness-driven state preparation make repeated images comparable. Local baselines live in `tests/e2e/solver-visual-baselines/` and are git-ignored, so each developer or CI environment must run `npm run capture:solvers` once before comparison runs. Git-ignored current-run artifacts and `manifest.json` live in `tests/e2e/screenshots/solvers/current/`. The gallery at `tests/e2e/screenshots/solvers/index.html` reads only that manifest, so artifacts from older runs cannot appear as current coverage.
 
+Laplace visual diagnostics respect the declared input domains. Integer and literal
+controls use blank or valid-but-wrong drafts; malformed-expression captures remain
+for exact-arithmetic and mathematical-expression fields, including the PFD
+quotient. A catalog regression verifies that field diagnostics are reachable
+through the ordinary controls. Correct replay drafts adapt the explicit zero
+polynomial selection and activity checkboxes without bypassing validation.
+Legacy solvers retain their existing screenshot depth.
+
+The Laplace browser suite checks whole-insertion rejection, explicit undefined
+degree, activity selections and interval sums, feedback spacing, keyboard focus,
+explicit continuation, and `320px` reflow. Unit/component regressions additionally
+cover fractional roots, equivalent exact arithmetic, hidden custom parameters,
+zero-active intervals, assistance, and draft lifecycle. Formatting checks compare
+against independently authored time and transform expressions, including signed
+and delayed impulses. No video tooling is involved.
+
+Typed-input verification on 2026-10-28 passed **1,825 tests across 146 files**.
+Full coverage measured **89.54% statements, 84.41% branches, 88.85% functions,
+and 92.03% lines**; no numeric coverage threshold is configured. Types, import
+organization, formatting, verification-document checks, and the production build
+passed. The ordinary-control browser regression caught and corrected an overflow
+in the undefined-degree selector at `320px`. Production dependency auditing found
+zero advisories; the full audit retained thirteen existing development advisories.
+The unused-dependency scanner cannot resolve `$lib` or parse these Svelte files
+fully and flags the configured commit/format tools. No shell scripts changed, so
+ShellCheck is not applicable. Capture generation and later regression comparison
+results are recorded separately in PR #19, along with the final browser matrix
+and the existing documented WebKit offline skips.
+
 Artifact-generating runs also write `tests/e2e/screenshots/solvers/current/timings.json` with phase totals, complete suite time, and unattributed time. Snapshot-update captures reuse Playwright's accepted baseline PNG for the inspection artifact; comparison runs keep a separate artifact screenshot. The suite reuses one page per archetype by default after three counterbalanced benchmark cycles; set `SIGNALLAB_VISUAL_PAGE_MODE=isolated` to request the original fresh-page behavior. See [Solver visual capture performance](./solver-visual-performance.md) for the preservation scheme, benchmark command, timing waterfalls, and measured results.
 
 ---

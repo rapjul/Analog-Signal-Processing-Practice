@@ -37,6 +37,10 @@
 				? String(numericValue)
 				: "",
 	);
+	$effect(() => {
+		void draft;
+		issue = "";
+	});
 	/** @param event - Proposed complete insertion. Reject unsupported notation without stripping it. */
 	function edit(event: Event & { currentTarget: HTMLInputElement }): void {
 		const proposed = event.currentTarget.value;

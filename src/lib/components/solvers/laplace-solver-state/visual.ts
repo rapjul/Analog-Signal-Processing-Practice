@@ -140,9 +140,10 @@ function diagnosticDrafts(task: LaplaceTask): [string, LaplaceVisualDraft][] {
 					? String(Math.max(0, Number(first.target) + 1))
 					: `(${first.target})+1`;
 	} else if ("construction" in task) {
-		canEnterMalformed = false;
+		canEnterMalformed = task.kind === "template";
 		malformed.construction.mode = "finite";
-		if (malformed.construction.rows[0])
+		if (task.kind === "template") malformed.construction.gain = "(";
+		else if (malformed.construction.rows[0])
 			malformed.construction.rows[0].first = "(";
 		else malformed.construction.gain = "(";
 		wrong.construction = wrongConstruction(task.construction);

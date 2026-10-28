@@ -45,7 +45,7 @@ describe("declared Laplace input domains", () => {
 			expect(verifyLaplaceScalar(value, "3/4").status, value).toBe(
 				"correct",
 			);
-		for (const value of ["s-s+3/4", "t", "Y(s)", "("])
+		for (const value of ["s-s+3/4", "t", "Y(s)", "(", "X(s)=3/4"])
 			expect(verifyLaplaceScalar(value, "3/4").status, value).not.toBe(
 				"correct",
 			);

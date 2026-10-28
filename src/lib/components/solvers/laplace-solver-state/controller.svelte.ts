@@ -197,8 +197,8 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 												field.entry?.kind === "boolean",
 										)
 										.map(
-											(field, index) =>
-												`\\quad\\text{Term ${index + 1}: ${this.fieldInputs[field.id] === "1" ? "Active" : "Inactive"}}`,
+											(field) =>
+												`\\quad\\text{Term ${Number(field.id.slice("active-".length)) + 1}: ${this.fieldInputs[field.id] === "1" ? "Active" : "Inactive"}}`,
 										)
 										.join("")
 								: ""),

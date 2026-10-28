@@ -319,6 +319,18 @@
 		display: grid;
 		gap: 0.6rem;
 	}
+	select {
+		box-sizing: border-box;
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		padding: 0.6rem;
+		background: var(--bg-input);
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		font: inherit;
+	}
 	legend,
 	label {
 		font-weight: 600;

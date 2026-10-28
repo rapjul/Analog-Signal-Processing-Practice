@@ -27,6 +27,15 @@ describe("Laplace domain-aware controls", () => {
 		await fireEvent.input(input, { target: { value: "3" } });
 		expect(input.value).toBe("3");
 		expect(view.queryByRole("status")).toBeNull();
+		await fireEvent.input(input, { target: { value: "1.5" } });
+		expect(view.getByRole("status")).not.toBeNull();
+		await view.rerender({
+			value: "",
+			entry: { kind: "integer", min: 0 },
+			"aria-label": "Degree",
+		});
+		expect(input.value).toBe("");
+		expect(view.queryByRole("status")).toBeNull();
 	});
 	/** Exact literal entry supports fractional locations and partial negative signs. */
 	it("retains fractions and clears an incomplete sign only through editing", async () => {

@@ -9,6 +9,112 @@ import { laplaceVisualFixtures } from "$lib/testing/laplace-visual-fixtures";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Integer insertions are rejected intact, and zero degree is an explicit checked alternative. */
+	test("restricts degree notation through ordinary keyboard and paste-like insertion", async ({
+		page,
+	}) => {
+		const problem = createLaplaceExercise(laplaceVisualFixtures()[0]!.spec);
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await completeLaplaceTasks(page, problem, "degrees-values");
+		const numerator = page.locator('[data-field-id="numerator"]');
+		await numerator.fill("2");
+		for (const text of ["(", "1.5", "1/2", "1e2", "-1"]) {
+			await numerator.selectText();
+			await page.keyboard.insertText(text);
+			await expect(numerator).toHaveValue("2");
+			await expect(
+				page
+					.getByRole("status")
+					.filter({ hasText: "Enter a nonnegative whole number" }),
+			).toBeVisible();
+		}
+		const choice = page.locator('[data-degree-id="numerator"]');
+		await choice.selectOption("zero");
+		await expect(numerator).toHaveCount(0);
+		await expect(page.locator(".step-card.active")).toContainText(
+			"undefined",
+		);
+		await page.locator('[data-field-id="denominator"]').fill("2");
+		await page
+			.getByRole("button", {
+				name: "Check Polynomial Degrees",
+				exact: true,
+			})
+			.click();
+		await expect(
+			page.locator('[data-field-feedback="numerator"]'),
+		).toHaveAttribute("data-validation", "incorrect");
+		await choice.selectOption("nonzero");
+		await numerator.fill("1");
+		await numerator.press("Enter");
+		await expect(
+			page.getByRole("button", { name: "Continue", exact: true }),
+		).toBeVisible();
+		await expect(page.locator(".step-card.active")).toHaveJSProperty(
+			"scrollWidth",
+			await page
+				.locator(".step-card.active")
+				.evaluate((node) => node.clientWidth),
+		);
+	});
+	/** Boolean activity is checked together with a nonblank ordinary sum, including a zero-active interval. */
+	test("checks term activity selections and the interval expression together", async ({
+		page,
+	}) => {
+		const fixture = laplaceVisualFixtures().find(
+			(item) => item.spec.workflow === "forward",
+		)!;
+		const problem = createLaplaceExercise(fixture.spec);
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.goto(
+			`/laplace?${serializeLaplaceConfiguration(problem.spec)}`,
+		);
+		await completeLaplaceTasks(
+			page,
+			problem,
+			"forward-support-interval-0-values",
+		);
+		const active = page.locator(".step-card.active");
+		await expect(active.getByRole("checkbox")).toHaveCount(3);
+		await expect(active.getByRole("checkbox").first()).toHaveAccessibleName(
+			/Term 1/,
+		);
+		await active
+			.getByRole("button", {
+				name: "Check Support Interval",
+				exact: true,
+			})
+			.click();
+		await expect(
+			active.getByRole("button", { name: "Continue", exact: true }),
+		).toHaveCount(0);
+		await active.locator('[data-field-id="combined"]').fill("1");
+		await active.getByRole("checkbox").first().check();
+		await active
+			.getByRole("button", {
+				name: "Check Support Interval",
+				exact: true,
+			})
+			.click();
+		await expect(active.getByRole("checkbox").first()).toHaveAttribute(
+			"aria-invalid",
+			"true",
+		);
+		await active.getByRole("checkbox").first().uncheck();
+		await active.getByRole("checkbox").nth(1).check();
+		await active.locator(".hint-toggle-btn").click();
+		await expect(active.getByRole("checkbox").nth(1)).toBeChecked();
+		await active.locator('[data-field-id="combined"]').press("Enter");
+		await expect(
+			active.getByRole("button", { name: "Continue", exact: true }),
+		).toBeVisible();
+		await expect(
+			active.locator('[data-field-feedback="active-0"]'),
+		).toContainText("Inactive");
+	});
 	/** Keyboard submissions must preserve diagnostics and assistance until checked work is explicitly continued. */
 	test("checks every supplied-problem task with Enter and progressive hints", async ({
 		page,
@@ -57,6 +163,16 @@ test.describe("guided Laplace practice", () => {
 					await expect(
 						active.locator("#laplace-feedback"),
 					).toHaveAttribute("data-validation", "incorrect");
+					const gap = await active.evaluate((node) => {
+						const choices = node
+							.querySelector("fieldset")!
+							.getBoundingClientRect();
+						const feedback = node
+							.querySelector(".feedback-alert")!
+							.getBoundingClientRect();
+						return feedback.top - choices.bottom;
+					});
+					expect(gap).toBeGreaterThanOrEqual(15);
 				}
 			} else {
 				const check = active.getByRole("button", {

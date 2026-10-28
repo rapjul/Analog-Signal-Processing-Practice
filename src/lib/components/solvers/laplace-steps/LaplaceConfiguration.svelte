@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { laplaceDraftOrder } from "$lib/math-engine/laplace/configuration";
 	import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 	import LaplaceFactorEditor from "./LaplaceFactorEditor.svelte";
 	import LaplaceSignalEditor from "./LaplaceSignalEditor.svelte";
@@ -71,7 +72,7 @@
 				bind:value={spec.initial[0]}
 			/></label
 		>
-		{#if spec.roots.reduce((sum, factor) => sum + factor.multiplicity * (Number(factor.frequency) === 0 ? 1 : 2), 0) > 1}<label
+		{#if laplaceDraftOrder(spec.roots) !== 1}<label
 				>Initial derivative at zero minus (second order)<LaplaceTypedInput
 					bind:value={spec.initial[1]}
 				/></label

@@ -22,6 +22,28 @@ function term(
 	};
 }
 describe("checked support interval evidence", () => {
+	/** Unchecked terms can correctly describe an empty interval, but a blank sum is never verified. */
+	it("requires an explicit zero sum for an interval with no active ordinary terms", () => {
+		const original = [term("right", "1")];
+		const first = supportTasks(original, original)[0]!;
+		if (first.kind !== "fields")
+			throw new Error("Expected interval fields");
+		expect(first.fields[0]!.entry?.kind).toBe("boolean");
+		expect(validateLaplaceTask(first, "", {}, []).result.status).toBe(
+			"invalid",
+		);
+		expect(
+			validateLaplaceTask(first, "", { combined: "0" }, []).result.status,
+		).toBe("correct");
+		expect(
+			validateLaplaceTask(
+				first,
+				"",
+				{ combined: "0", "active-0": "1" },
+				[],
+			).result.status,
+		).toBe("incorrect");
+	});
 	/** Reproducibility must not leave the correct assembly at one fixed position across problems. */
 	it("shuffles assembly choices reproducibly using problem context", () => {
 		const positions = new Set<number>();
