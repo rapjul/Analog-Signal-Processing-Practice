@@ -319,9 +319,13 @@ and polynomial powers at `320px`. Constant-preview tests cover fractions,
 arithmetic, incomplete expressions, assignments, canceled free variables,
 unsupported operations, and nonfinite values; preview eligibility never counts
 as a successful answer check.
+Construction regressions retain row diagnostics after rejected insertions and
+clear them after accepted edits or selection changes. Keyboard traversal also
+submits activity checkboxes and explicit undefined degrees from their visible
+check buttons; task-omission regressions assert each forbidden task separately.
 
-The 2026-10-29 review follow-up passed **1,831 tests across 147 files**, with
-**90.06% statement, 84.51% branch, 89.71% function, and 92.30% line coverage**.
+The 2026-10-29 review follow-up passed **1,832 tests across 147 files**, with
+**90.06% statement, 84.56% branch, 89.67% function, and 92.27% line coverage**.
 The focused accessibility browser test passed in all four development profiles.
 Production, visual comparison, deployment-mount, and hosted check results are
 recorded in PR #19 after completion. No coverage threshold or grading tolerance

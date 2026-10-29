@@ -68,14 +68,14 @@ describe("Laplace inverse tutoring", () => {
 				return true;
 			});
 		expect(path).toHaveLength(14);
-		expect(path.map((part) => part.id)).not.toEqual(
-			expect.arrayContaining([
-				"common-copies-values",
-				"surviving-zeros",
-				"surviving-poles",
-				"direct-weights-values",
-			]),
-		);
+		const ids = path.map((part) => part.id);
+		for (const omitted of [
+			"canceled-factors",
+			"surviving-zeros",
+			"surviving-poles",
+			"direct-weights-values",
+		])
+			expect(ids, omitted).not.toContain(omitted);
 		const parameters = path.find(
 			(part) => part.id === "pair-parameters-0-values",
 		)!;

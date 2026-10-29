@@ -161,6 +161,9 @@ Typed controls have stable input IDs. Custom fields without explicit accessible
 names use external associated labels, keeping format messages outside the label
 and connected through `aria-describedby`. Rejection, correction, and reset do
 not change the field's accessible name; repeated editors retain unique targets.
+Construction feedback clears only after an accepted numeric edit, selection
+change, or row change. Rejected insertions leave the retained draft and its
+mathematical diagnostics intact.
 
 Template quotient previews use strict constant parsing and unsimplified
 free-variable checks followed by a conservative finite-value check. This check

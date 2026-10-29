@@ -25,8 +25,6 @@
 			? "laplace-feedback"
 			: undefined}
 		disabled={solver.awaitingContinue}
-		oninput={() => solver.clearFeedback()}
-		onchange={() => solver.clearFeedback()}
 	>
 		<legend
 			>{solver.task.kind === "roots"
@@ -43,6 +41,7 @@
 						undefined}
 					aria-describedby={feedbackId("mode")}
 					bind:value={solver.construction.mode}
+					onchange={() => solver.clearFeedback()}
 				>
 					<option value="finite"
 						>{solver.task.kind === "roots"
@@ -80,6 +79,7 @@
 							undefined}
 						aria-describedby={feedbackId("gain")}
 						bind:value={solver.construction.gain}
+						onedit={() => solver.clearFeedback()}
 						autocomplete="off"
 					/></label
 				>{/if}
@@ -100,6 +100,7 @@
 							: "Factor type"}<select
 							aria-label={`Row ${index + 1} type`}
 							bind:value={row.kind}
+							onchange={() => solver.clearFeedback()}
 						>
 							<option value="linear"
 								>{solver.task.kind === "roots"
@@ -133,6 +134,7 @@
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "real part" : "coefficient b"}`}
 							entry={{ kind: "literal" }}
 							bind:value={row.first}
+							onedit={() => solver.clearFeedback()}
 							aria-invalid={!!solver.constructionResults[
 								`row-${index}-first`
 							] || undefined}
@@ -149,6 +151,7 @@
 								aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "frequency" : "coefficient c"}`}
 								entry={{ kind: "literal" }}
 								bind:value={row.second}
+								onedit={() => solver.clearFeedback()}
 								aria-invalid={!!solver.constructionResults[
 									`row-${index}-second`
 								] || undefined}
@@ -165,6 +168,7 @@
 							aria-label={`Row ${index + 1} ${solver.task.kind === "roots" ? "multiplicity" : "power"}`}
 							entry={{ kind: "integer", min: 1, max: 4 }}
 							bind:value={row.power}
+							onedit={() => solver.clearFeedback()}
 							aria-invalid={!!solver.constructionResults[
 								`row-${index}-power`
 							] || undefined}
@@ -176,6 +180,7 @@
 							>Unknown numerator<select
 								aria-label={`Row ${index + 1} numerator`}
 								bind:value={row.numerator}
+								onchange={() => solver.clearFeedback()}
 								aria-invalid={!!solver.constructionResults[
 									`row-${index}-numerator`
 								] || undefined}

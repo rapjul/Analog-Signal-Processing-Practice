@@ -102,7 +102,7 @@ async function submitAnswer(
 				(field.entry?.kind === "degree" && field.target === "-1"),
 		)
 			? active.locator("[data-field-id]").first()
-			: "construction" in task
+			: task.kind === "fields" || "construction" in task
 				? check
 				: active.locator("#laplace-input");
 	await activateControl(submission === "enter" ? input : check, submission);

@@ -12,6 +12,33 @@ import { laplaceVisualFixtures } from "$lib/testing/laplace-visual-fixtures";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Checkbox and explicit undefined-degree cards submit from their real check button with Enter. */
+	test("submits activity and zero-polynomial fields through the keyboard helper", async ({
+		page,
+	}) => {
+		const forward = laplaceVisualFixtures().find(
+			(fixture) => fixture.spec.workflow === "forward",
+		)!.spec;
+		const zero = generateLaplaceExercise("inverse", 73, "distinct").spec;
+		if (zero.workflow !== "inverse")
+			throw new Error("Expected inverse fixture.");
+		zero.rational.gain = "0";
+		for (const [spec, id] of [
+			[forward, "forward-support-interval-0-values"],
+			[zero, "degrees-values"],
+		] as const) {
+			const problem = createLaplaceExercise(spec);
+			await page.goto(`/laplace?${serializeLaplaceConfiguration(spec)}`);
+			await completeLaplaceTasks(page, problem, id);
+			const task = problem.stages
+				.flatMap((stage) => stage.tasks)
+				.find((task) => task.id === id)!;
+			await answerLaplaceTask(page, task, task.answer, "enter");
+			await expect(
+				page.locator(".step-card.active [data-task-id]"),
+			).not.toHaveAttribute("data-task-id", id);
+		}
+	});
 	/** Rejected custom drafts retain stable accessible names at narrow widths without developer shortcuts. */
 	test("keeps custom field names stable while format feedback is visible", async ({
 		page,

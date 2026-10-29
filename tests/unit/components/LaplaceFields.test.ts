@@ -8,6 +8,85 @@ import { laplaceVisualFixtures } from "$lib/testing/laplace-visual-fixtures";
 
 describe("Laplace field controls", () => {
 	afterEach(() => cleanup());
+	/** Whole-insertion rejection is not an edit and must retain every existing field diagnostic. */
+	it("retains construction feedback on rejected insertion and clears it after accepted edits", async () => {
+		const problem = generateLaplaceExercise("inverse", 73, "distinct");
+		const view = render(LaplaceStepSolver, { problem });
+		const solver = window.__signalLabDev!
+			.activeSolver as LaplaceStepSolverState;
+		const scene = solver
+			.devGetVisualStates()
+			.find(
+				(state) =>
+					state.taskId === "factor-denominator" &&
+					state.phase === "initial",
+			)!;
+		await act(() => solver.devGoToVisualState(scene.id));
+		await act(() => {
+			solver.construction = {
+				mode: "finite",
+				gain: "99",
+				rows: [
+					{
+						kind: "linear",
+						first: "99",
+						second: "",
+						power: "2",
+						numerator: "constant",
+					},
+				],
+			};
+			solver.check();
+		});
+		const result = solver.result;
+		const diagnostics = JSON.stringify(solver.constructionResults);
+		expect(result?.status).toBe("incorrect");
+		expect(Object.keys(solver.constructionResults).length).toBeGreaterThan(
+			1,
+		);
+		const power = view.getByRole("textbox", {
+			name: "Row 1 power",
+		}) as HTMLInputElement;
+		await fireEvent.input(power, { target: { value: "1.5" } });
+		await fireEvent.change(power);
+		expect(power.value).toBe("2");
+		expect(solver.result).toEqual(result);
+		expect(JSON.stringify(solver.constructionResults)).toBe(diagnostics);
+		const gain = view.getByRole("textbox", { name: "Outside gain" });
+		await fireEvent.input(gain, { target: { value: "(" } });
+		expect(JSON.stringify(solver.constructionResults)).toBe(diagnostics);
+		await fireEvent.input(gain, { target: { value: "1" } });
+		expect(solver.result).toBeNull();
+		await act(() => solver.check());
+		await fireEvent.input(power, { target: { value: "1" } });
+		expect(solver.result).toBeNull();
+		expect(solver.constructionResults).toEqual({});
+		await act(() => solver.check());
+		await fireEvent.input(
+			view.getByRole("textbox", { name: "Row 1 coefficient b" }),
+			{ target: { value: "1" } },
+		);
+		expect(solver.result).toBeNull();
+		await fireEvent.change(
+			view.getByRole("combobox", { name: "Row 1 type" }),
+			{ target: { value: "quadratic" } },
+		);
+		await act(() => solver.check());
+		const beforeSecond = JSON.stringify(solver.constructionResults);
+		const second = view.getByRole("textbox", {
+			name: "Row 1 coefficient c",
+		});
+		await fireEvent.input(second, { target: { value: "(" } });
+		expect(JSON.stringify(solver.constructionResults)).toBe(beforeSecond);
+		await fireEvent.input(second, { target: { value: "1" } });
+		expect(solver.result).toBeNull();
+		await act(() => solver.check());
+		await fireEvent.change(
+			view.getByRole("combobox", { name: "Expression type" }),
+			{ target: { value: "zero" } },
+		);
+		expect(solver.result).toBeNull();
+	});
 	/** An undefined degree needs an explicit selection and a separate correct denominator degree. */
 	it("checks zero-polynomial selection without showing a negative degree", async () => {
 		const spec = generateLaplaceExercise("inverse", 73, "distinct").spec;
