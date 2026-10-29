@@ -7,7 +7,10 @@ import {
 	normalizeCanonicalTransform,
 	normalizeLaplaceInterval,
 } from "$lib/math-engine/canonical-transform";
-import { parseStrictLatex } from "$lib/math-engine/evaluator";
+import {
+	evaluateMathJsonStrict,
+	parseStrictLatex,
+} from "$lib/math-engine/evaluator";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 import type { TransformValidationResult } from "$lib/math-engine/transform-validation";
 import { fraction } from "./algebra";
@@ -130,33 +133,52 @@ export function verifyLaplaceS(
 	}
 }
 
+/** @param node - Parsed subtree. @returns Whether an unsimplified free symbol occurs. */
+function hasVariable(node: unknown): boolean {
+	if (Array.isArray(node)) return node.slice(1).some(hasVariable);
+	return (
+		typeof node === "string" &&
+		!["Pi", "ExponentialE"].includes(node) &&
+		!/^[+-]?[0-9.]+$/.test(node)
+	);
+}
+
+/** @param answer - Untrusted constant draft. @returns Strict AST without assignments or free symbols, before simplification. */
+function parseConstantExpression(answer: string): unknown {
+	if (answer.includes("="))
+		throw new CanonicalError(
+			"invalid",
+			"Enter only the constant calculation, without an equation label.",
+		);
+	const ast = parseExpression(answer, "s");
+	if (hasVariable(ast))
+		throw new CanonicalError(
+			"invalid",
+			"Enter a constant calculation without variables.",
+		);
+	return ast;
+}
+
+/** @param answer - Live constant draft. @returns Conservative preview eligibility; finite evaluation checks syntax and domain only, never mathematical equality or grading. */
+export function isParsableLaplaceConstant(answer: string): boolean {
+	try {
+		const value = evaluateMathJsonStrict(
+			parseConstantExpression(answer),
+			{},
+		);
+		return value !== null && Number.isFinite(value);
+	} catch {
+		return false;
+	}
+}
+
 /** @param answer - Exact constant calculation. @param target - Independent exact target. @returns Strict scalar comparison without accepting canceled free variables. */
 export function verifyLaplaceScalar(
 	answer: string,
 	target: string,
 ): TransformValidationResult {
 	try {
-		if (answer.includes("="))
-			return {
-				status: "invalid",
-				message:
-					"Enter only the constant calculation, without an equation label.",
-			};
-		const ast = parseExpression(answer, "s");
-		/** @param node - Parsed expression subtree. @returns Whether a free symbol occurs before any simplification. */
-		const hasVariable = (node: unknown): boolean => {
-			if (Array.isArray(node)) return node.slice(1).some(hasVariable);
-			return (
-				typeof node === "string" &&
-				!["Pi", "ExponentialE"].includes(node) &&
-				!/^[+-]?[0-9.]+$/.test(node)
-			);
-		};
-		if (hasVariable(ast))
-			return {
-				status: "invalid",
-				message: "Enter a constant calculation without variables.",
-			};
+		parseConstantExpression(answer);
 		return verifyLaplaceS(answer, target);
 	} catch (error) {
 		return failure(error);

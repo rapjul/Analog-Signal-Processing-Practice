@@ -57,7 +57,7 @@ function constructionGainIssue(
 	};
 }
 
-import { verifyLaplaceScalar } from "./verification";
+import { isParsableLaplaceConstant, verifyLaplaceScalar } from "./verification";
 
 /** @returns An empty learner draft without target-dependent row counts. */
 export function emptyConstruction(): LaplaceConstruction {
@@ -242,8 +242,7 @@ export function constructionPreview(
 			: power;
 	});
 	const gain =
-		task.kind === "template" &&
-		verifyLaplaceScalar(draft.gain, draft.gain).status === "correct"
+		task.kind === "template" && isParsableLaplaceConstant(draft.gain)
 			? draft.gain
 			: slot(draft.gain);
 	return task.kind === "roots"
