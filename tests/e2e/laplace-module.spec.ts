@@ -3,12 +3,74 @@ import {
 	createLaplaceExercise,
 	serializeLaplaceConfiguration,
 } from "$lib/math-engine/laplace/configuration";
-import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
+import {
+	generateLaplaceExercise,
+	laplaceSignal,
+} from "$lib/math-engine/laplace/generator";
 import type { LaplaceExerciseSpec } from "$lib/math-engine/laplace/types";
 import { laplaceVisualFixtures } from "$lib/testing/laplace-visual-fixtures";
 import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 test.describe("guided Laplace practice", () => {
+	/** Rejected custom drafts retain stable accessible names at narrow widths without developer shortcuts. */
+	test("keeps custom field names stable while format feedback is visible", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 320, height: 900 });
+		for (const workflow of ["inverse", "forward", "ode"] as const) {
+			const spec = generateLaplaceExercise(workflow, 73, "repeated").spec;
+			if (spec.workflow === "forward")
+				spec.terms = [laplaceSignal(), laplaceSignal()];
+			await page.goto(`/laplace?${serializeLaplaceConfiguration(spec)}`);
+			await page
+				.getByText("Laplace Practice Configuration", { exact: true })
+				.click();
+			await page
+				.getByText("Structured custom problem", { exact: true })
+				.click();
+			const names =
+				workflow === "inverse"
+					? ["Numerator gain", "Delay"]
+					: workflow === "ode"
+						? [
+								"Leading ODE coefficient",
+								"Initial output at zero minus",
+								"Initial derivative at zero minus (second order)",
+							]
+						: ["Polynomial power"];
+			for (const name of names) {
+				const inputs = page.getByRole("textbox", { name, exact: true });
+				for (const input of await inputs.all()) {
+					const value = await input.inputValue();
+					await input.fill("(");
+					await expect(input).toHaveValue(value);
+					await expect(input).toHaveAccessibleName(name);
+					const describedBy =
+						await input.getAttribute("aria-describedby");
+					expect(describedBy).toBeTruthy();
+					await expect(
+						page.locator(`[id="${describedBy}"]`),
+					).toBeVisible();
+					await input.fill("1");
+					await expect(input).not.toHaveAttribute(
+						"aria-describedby",
+						/.+/,
+					);
+				}
+			}
+			const identities = await page
+				.locator("input[id]")
+				.evaluateAll((inputs) => inputs.map((input) => input.id));
+			expect(new Set(identities).size).toBe(identities.length);
+			expect(
+				await page.evaluate(
+					() =>
+						document.documentElement.scrollWidth <=
+						window.innerWidth,
+				),
+			).toBe(true);
+		}
+	});
 	/** Integer insertions are rejected intact, and zero degree is an explicit checked alternative. */
 	test("restricts degree notation through ordinary keyboard and paste-like insertion", async ({
 		page,

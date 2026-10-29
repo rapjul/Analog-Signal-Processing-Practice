@@ -304,6 +304,29 @@ ShellCheck is not applicable. Capture generation and later regression comparison
 results are recorded separately in PR #19, along with the final browser matrix
 and the existing documented WebKit offline skips.
 
+The completed 2026-10-28 Laplace refresh generated **7,982 images across eight
+fixtures**. An independent manifest audit found no missing images, duplicate
+capture identities, or byte mismatches against the generated baselines. The
+previously outstanding ODE quick-profile comparison passed on 2026-10-29;
+baseline generation and later comparisons remain separate evidence. Gallery
+inspection exercised filtering, image loading, lightbox navigation, fit-width,
+and keyboard dismissal without JavaScript errors.
+
+Accessible-label regressions query exact field names while insertion feedback is
+visible, then verify correction, reset, and unique associations in repeated
+editors. Ordinary-control browser tests exercise custom gains, initial values,
+and polynomial powers at `320px`. Constant-preview tests cover fractions,
+arithmetic, incomplete expressions, assignments, canceled free variables,
+unsupported operations, and nonfinite values; preview eligibility never counts
+as a successful answer check.
+
+The 2026-10-29 review follow-up passed **1,831 tests across 147 files**, with
+**90.06% statement, 84.51% branch, 89.71% function, and 92.30% line coverage**.
+The focused accessibility browser test passed in all four development profiles.
+Production, visual comparison, deployment-mount, and hosted check results are
+recorded in PR #19 after completion. No coverage threshold or grading tolerance
+was changed.
+
 Artifact-generating runs also write `tests/e2e/screenshots/solvers/current/timings.json` with phase totals, complete suite time, and unattributed time. Snapshot-update captures reuse Playwright's accepted baseline PNG for the inspection artifact; comparison runs keep a separate artifact screenshot. The suite reuses one page per archetype by default after three counterbalanced benchmark cycles; set `SIGNALLAB_VISUAL_PAGE_MODE=isolated` to request the original fresh-page behavior. See [Solver visual capture performance](./solver-visual-performance.md) for the preservation scheme, benchmark command, timing waterfalls, and measured results.
 
 ---

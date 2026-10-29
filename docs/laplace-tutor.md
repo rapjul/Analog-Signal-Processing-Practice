@@ -157,6 +157,18 @@ support verifiers. Invalid integer insertions are rejected intact: `1.5` cannot
 become `15`. Incomplete numeric or mathematical drafts remain unverified and do
 not produce broken completed previews.
 
+Typed controls have stable input IDs. Custom fields without explicit accessible
+names use external associated labels, keeping format messages outside the label
+and connected through `aria-describedby`. Rejection, correction, and reset do
+not change the field's accessible name; repeated editors retain unique targets.
+
+Template quotient previews use strict constant parsing and unsimplified
+free-variable checks followed by a conservative finite-value check. This check
+only controls whether a complete draft can be displayed; it does not compare
+against a target or grant validation. Submission still uses canonical answer
+verification and its existing nonzero-coefficient tolerance. Malformed,
+unsupported, assigned, or nonfinite drafts display a blank placeholder.
+
 Support-interval cards use term-labeled checkboxes and independently check the
 combined ordinary expression. Unchecked means inactive; an interval with no
 active terms still requires an explicit zero expression. Feedback identifies
