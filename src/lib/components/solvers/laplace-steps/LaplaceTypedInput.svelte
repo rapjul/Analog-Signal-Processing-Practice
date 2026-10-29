@@ -100,6 +100,7 @@
 
 <input
 	{...attributes}
+	id={attributes.id ?? uid}
 	type="text"
 	inputmode={entry.kind === "integer" || entry.kind === "degree"
 		? "numeric"

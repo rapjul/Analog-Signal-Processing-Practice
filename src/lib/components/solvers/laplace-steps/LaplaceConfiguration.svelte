@@ -11,6 +11,7 @@
 		/** Explicit apply action. */ onApply: () => void;
 	}
 	let { spec = $bindable(), onApply }: Props = $props();
+	const uid = $props.id();
 </script>
 
 <details>
@@ -20,11 +21,12 @@
 		limited to four; impulse derivatives are deferred.
 	</p>
 	{#if spec.workflow === "inverse" || spec.workflow === "roc"}
-		<label
-			>Numerator gain<LaplaceTypedInput
+		<div class="numeric-field">
+			<label for={`${uid}-gain`}>Numerator gain</label><LaplaceTypedInput
+				id={`${uid}-gain`}
 				bind:value={spec.rational.gain}
-			/></label
-		>
+			/>
+		</div>
 		<LaplaceFactorEditor
 			label="Numerator"
 			bind:factors={spec.rational.zeros}
@@ -33,9 +35,12 @@
 			label="Denominator"
 			bind:factors={spec.rational.poles}
 		/>
-		<label
-			>Delay<LaplaceTypedInput bind:value={spec.rational.delay} /></label
-		>
+		<div class="numeric-field">
+			<label for={`${uid}-delay`}>Delay</label><LaplaceTypedInput
+				id={`${uid}-delay`}
+				bind:value={spec.rational.delay}
+			/>
+		</div>
 		<label
 			>ROC region<select bind:value={spec.rational.region}
 				><option value={-1}>Right of all surviving poles</option><option
@@ -58,25 +63,33 @@
 	{:else if spec.workflow === "forward"}
 		<LaplaceSignalEditor bind:terms={spec.terms} />
 	{:else if spec.workflow === "ode"}
-		<label
-			>Leading ODE coefficient<LaplaceTypedInput
+		<div class="numeric-field">
+			<label for={`${uid}-leading`}>Leading ODE coefficient</label
+			><LaplaceTypedInput
+				id={`${uid}-leading`}
 				bind:value={spec.leading}
-			/></label
-		>
+			/>
+		</div>
 		<LaplaceFactorEditor
 			label="Operator"
 			bind:factors={spec.roots}
 		/>
-		<label
-			>Initial output at zero minus<LaplaceTypedInput
+		<div class="numeric-field">
+			<label for={`${uid}-initial-output`}
+				>Initial output at zero minus</label
+			><LaplaceTypedInput
+				id={`${uid}-initial-output`}
 				bind:value={spec.initial[0]}
-			/></label
-		>
-		{#if laplaceDraftOrder(spec.roots) !== 1}<label
-				>Initial derivative at zero minus (second order)<LaplaceTypedInput
+			/>
+		</div>
+		{#if laplaceDraftOrder(spec.roots) !== 1}<div class="numeric-field">
+				<label for={`${uid}-initial-derivative`}
+					>Initial derivative at zero minus (second order)</label
+				><LaplaceTypedInput
+					id={`${uid}-initial-derivative`}
 					bind:value={spec.initial[1]}
-				/></label
-			>{/if}
+				/>
+			</div>{/if}
 		<LaplaceSignalEditor
 			bind:terms={spec.terms}
 			unilateral
@@ -100,6 +113,12 @@
 	label {
 		display: block;
 		margin: 0.7rem 0;
+	}
+	.numeric-field {
+		margin: 0.7rem 0;
+	}
+	.numeric-field label {
+		margin: 0;
 	}
 	input:not([type="checkbox"]),
 	select {

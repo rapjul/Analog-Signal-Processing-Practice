@@ -10,6 +10,7 @@
 		/** Whether support is restricted to the unilateral domain. */ unilateral?: boolean;
 	}
 	let { terms = $bindable(), unilateral = false }: Props = $props();
+	const uid = $props.id();
 </script>
 
 <p>
@@ -43,13 +44,15 @@
 				/></label
 			>
 		{/each}
-		{#if term.kind === "exponential"}<label
-				>Polynomial power<LaplaceTypedInput
+		{#if term.kind === "exponential"}<div class="numeric-field">
+				<label for={`${uid}-power-${index}`}>Polynomial power</label
+				><LaplaceTypedInput
+					id={`${uid}-power-${index}`}
 					entry={{ kind: "integer", min: 0, max: 3 }}
 					numericValue={term.power}
 					onnumericedit={(value) => (term.power = value)}
-				/></label
-			>{/if}
+				/>
+			</div>{/if}
 		{#if term.kind !== "impulse"}<label
 				>Support<select
 					bind:value={term.side}
@@ -84,12 +87,16 @@
 		border: 1px solid var(--border-color);
 		margin: 1rem 0;
 	}
-	label {
+	label,
+	.numeric-field {
 		display: flex;
 		flex: 1 1 8rem;
 		min-width: 0;
 		flex-direction: column;
 		gap: 0.3rem;
+	}
+	.numeric-field label {
+		flex: 0 0 auto;
 	}
 	select {
 		box-sizing: border-box;

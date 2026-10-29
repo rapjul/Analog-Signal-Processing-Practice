@@ -4,6 +4,24 @@ import LaplaceTypedInput from "$lib/components/solvers/laplace-steps/LaplaceType
 
 describe("Laplace domain-aware controls", () => {
 	afterEach(cleanup);
+	/** Generated identities remain stable across resets and honor explicit label associations. */
+	it("provides stable unique IDs and preserves caller IDs", async () => {
+		const first = render(LaplaceTypedInput, { "aria-label": "First" });
+		const second = render(LaplaceTypedInput, {
+			id: "external-field",
+			"aria-label": "Second",
+		});
+		const a = first.getByRole("textbox", { name: "First" });
+		const b = second.getByRole("textbox", { name: "Second" });
+		expect(a.id).not.toBe("");
+		expect(b.id).toBe("external-field");
+		expect(a.id).not.toBe(b.id);
+		const original = a.id;
+		await fireEvent.input(a, { target: { value: "(" } });
+		await first.rerender({ value: "1", "aria-label": "First" });
+		expect(a.id).toBe(original);
+		expect(first.queryByRole("status")).toBeNull();
+	});
 	/** Typing and paste both submit complete insertion candidates through the same input event. */
 	it("rejects whole invalid integer insertions and announces the domain", async () => {
 		const view = render(LaplaceTypedInput, {
