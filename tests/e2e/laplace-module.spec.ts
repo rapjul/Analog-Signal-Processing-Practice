@@ -40,6 +40,9 @@ test.describe("guided Laplace practice", () => {
 						: ["Polynomial power"];
 			for (const name of names) {
 				const inputs = page.getByRole("textbox", { name, exact: true });
+				await expect(inputs).toHaveCount(
+					workflow === "forward" ? 2 : 1,
+				);
 				for (const input of await inputs.all()) {
 					const value = await input.inputValue();
 					await input.fill("(");
