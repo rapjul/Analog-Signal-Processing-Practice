@@ -102,6 +102,7 @@
 </details>
 
 <style>
+	/* ── Configuration disclosure ──────────────────────────── */
 	details {
 		min-width: 0;
 		margin-top: 1rem;
@@ -110,16 +111,19 @@
 		cursor: pointer;
 		font-weight: 600;
 	}
+	/* ── Field labels ──────────────────────────────────────── */
 	label {
 		display: block;
 		margin: 0.7rem 0;
 	}
+	/* ── Numeric field wrappers ────────────────────────────── */
 	.numeric-field {
 		margin: 0.7rem 0;
 	}
 	.numeric-field label {
 		margin: 0;
 	}
+	/* ── Configuration controls ────────────────────────────── */
 	input:not([type="checkbox"]),
 	select {
 		display: block;
@@ -139,6 +143,7 @@
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 	}
+	/* ── Keyboard focus ────────────────────────────────────── */
 	:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 3px;

@@ -79,6 +79,7 @@
 >
 
 <style>
+	/* ── Signal term containers ────────────────────────────── */
 	fieldset {
 		min-width: 0;
 		display: flex;
@@ -87,6 +88,7 @@
 		border: 1px solid var(--border-color);
 		margin: 1rem 0;
 	}
+	/* ── Field wrappers ────────────────────────────────────── */
 	label,
 	.numeric-field {
 		display: flex;
@@ -98,6 +100,7 @@
 	.numeric-field label {
 		flex: 0 0 auto;
 	}
+	/* ── Signal controls ───────────────────────────────────── */
 	select {
 		box-sizing: border-box;
 		width: 100%;
@@ -114,6 +117,7 @@
 		border: 1px solid var(--border-color);
 		cursor: pointer;
 	}
+	/* ── Keyboard focus ────────────────────────────────────── */
 	:focus-visible {
 		outline: 2px solid var(--accent-primary);
 		outline-offset: 2px;
