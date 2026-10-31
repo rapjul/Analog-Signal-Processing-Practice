@@ -3,7 +3,7 @@ import {
 	determineStability,
 	evaluatePfdResidues,
 	generateLaplaceProblem,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 
 describe("Laplace Transform Math Engine (laplace.ts)", () => {
 	describe("Partial Fraction Decomposition (PFD) Residue Solver", () => {

@@ -181,9 +181,24 @@ test("scalar rows and actions use their own container width", async ({
 		name: "Check translation →",
 		exact: true,
 	});
-	const box = await button.boundingBox();
-	const action = await page.locator(".solver-actions").boundingBox();
-	expect(box!.width).toBeCloseTo(action!.width, 0);
+	await expect
+		.poll(
+			/** @returns The original width contract sampled during responsive reflow. */
+			() =>
+				button.evaluate(
+					/** @param element - Responsive action. @returns Same-frame width difference after any reflow. */
+					(element) => {
+						const actions = element.closest(".solver-actions");
+						if (!actions)
+							throw new Error("Missing scalar action container");
+						return Math.abs(
+							element.getBoundingClientRect().width -
+								actions.getBoundingClientRect().width,
+						);
+					},
+				),
+		)
+		.toBeLessThan(0.5);
 });
 
 /** Ordinary keyboard controls expose relevant context, original error ranges, and responsive columns. */

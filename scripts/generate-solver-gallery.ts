@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { SolverVisualStateMetadata } from "$lib/components/solvers/base-step-solver.svelte";
 
 /**
  * Builds a standalone inspection gallery exclusively from the current capture
@@ -20,7 +21,7 @@ type Theme = "dark" | "light";
 type CaptureKind = "state" | "milestone";
 type StateKind = "interactive" | "hint" | "diagnostic" | "milestone";
 
-interface VisualArtifactEntry {
+interface VisualArtifactEntry extends SolverVisualStateMetadata {
 	module: string;
 	archetype: string;
 	archetypeTitle: string;
@@ -629,10 +630,19 @@ const html = `<!doctype html>
       return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER - 1;
     }
 
+    /** @param item - Captured metadata. @returns Milestone order without changing legacy solver ordering. */
+    function milestoneBucket(item) {
+      return item.module === 'laplace' && item.captureKind === 'milestone'
+        ? (item.stateId === 'milestone.initial' ? -1 : 1) : 0;
+    }
+
     function compareArtifacts(a, b) {
       return naturalCollator.compare(a.module, b.module)
         || naturalCollator.compare(a.archetypeTitle, b.archetypeTitle)
+        || milestoneBucket(a) - milestoneBucket(b)
+        || naturalCollator.compare(a.branchId ?? '', b.branchId ?? '')
         || stepNumber(a) - stepNumber(b)
+        || (a.order ?? 0) - (b.order ?? 0)
         || (subStepOrder.get(a.subStep) ?? (a.captureKind === 'milestone' ? 90 : 0))
           - (subStepOrder.get(b.subStep) ?? (b.captureKind === 'milestone' ? 90 : 0))
         || (stateKindOrder.get(a.stateKind) ?? 99) - (stateKindOrder.get(b.stateKind) ?? 99)
@@ -654,6 +664,10 @@ const html = `<!doctype html>
         return { key: 'completed', label: 'Completed solution' };
       }
       const number = stepNumber(item);
+      if (item.branchId && number < Number.MAX_SAFE_INTEGER - 1) {
+        const branch = item.branchId.replace(/-/g, ' ');
+        return { key: item.branchId + ':step-' + number, label: branch + ' · Step ' + number + (item.stageId ? ' · ' + item.stageId : '') };
+      }
       if (number < Number.MAX_SAFE_INTEGER - 1) {
         return { key: 'step-' + number, label: 'Step ' + number };
       }

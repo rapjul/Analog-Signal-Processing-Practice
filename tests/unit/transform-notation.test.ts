@@ -10,7 +10,7 @@ import {
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 import { normalizeTransformNotation } from "$lib/math-engine/transform-notation";
 import { validateTransformAnswer } from "$lib/math-engine/transform-validation";
 import { propertyOptions } from "$lib/testing/property-options";

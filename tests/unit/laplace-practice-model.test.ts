@@ -4,7 +4,7 @@ import {
 	createLaplacePfdProblem,
 	determineStability,
 	validateLaplacePfdAnswer,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 import { propertyOptions } from "$lib/testing/property-options";
 
 describe("Laplace practice model", () => {

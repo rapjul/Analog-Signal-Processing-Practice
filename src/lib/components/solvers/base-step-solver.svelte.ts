@@ -10,11 +10,26 @@ export type StepFeedbackType = "validation" | "misconception" | "incorrect";
 /** Classification used by the visual-regression scenario catalog. */
 export type SolverVisualStateKind = "interactive" | "hint" | "diagnostic";
 
-/**
- * Stable, human-readable description of a solver state that can be prepared by
- * the developer harness. These IDs are part of the visual-regression contract.
- */
-export interface SolverVisualStateDescriptor {
+/** Optional dynamic task metadata shared by catalogs, screenshots, and the inspection gallery. */
+export interface SolverVisualStateMetadata {
+	/** Stable dynamic task identifier when a solver does not use fixed substep maps. */
+	taskId?: string | undefined;
+	/** Stable mathematical stage identifier, independent of displayed numbering. */
+	stageId?: string | undefined;
+	/** Accepted strategy path containing this state. */
+	branchId?: string | undefined;
+	/** Actual rendered task phase, including verified work awaiting Continue. */
+	phase?: "initial" | "diagnostic" | "hint" | "success" | undefined;
+	/** Exact number of progressively revealed hints. */
+	hintTier?: number | undefined;
+	/** Stable pedagogical ordering within a branch. */
+	order?: number | undefined;
+	/** Genuine grading outcome for diagnostic states. */
+	feedbackStatus?: "invalid" | "incorrect" | "unsupported" | undefined;
+}
+
+/** Stable named state prepared by the development harness; identifiers are part of the visual-regression contract. */
+export interface SolverVisualStateDescriptor extends SolverVisualStateMetadata {
 	/** Stable identifier used in snapshot and artifact file names. */
 	id: string;
 	/** Display label used by the inspection gallery. */

@@ -10,7 +10,10 @@ import {
 	type SolverVisualStateDescriptor,
 } from "$lib/components/solvers/base-step-solver.svelte";
 import { ConvolutionStepSolverState } from "$lib/components/solvers/convolution-step-solver.svelte";
+import { CtftStepSolverState } from "$lib/components/solvers/ctft-step-solver.svelte";
 import { FourierSeriesStepSolverState } from "$lib/components/solvers/fourier-series-step-solver.svelte";
+import { LaplaceStepSolverState } from "$lib/components/solvers/laplace-solver-state/controller.svelte";
+import type { LaplaceVisualScene } from "$lib/components/solvers/laplace-solver-state/visual";
 import { OdeStepSolverState } from "$lib/components/solvers/ode-step-solver.svelte";
 import {
 	CONVOLUTION_SIGNAL_TYPES,
@@ -21,6 +24,9 @@ import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	generateFourierSeriesProblem,
 } from "$lib/math-engine/fourier-series/index";
+import { createCtftProblem } from "$lib/math-engine/fourier-transform/index";
+import { createLaplaceExercise } from "$lib/math-engine/laplace/configuration";
+import type { LaplaceExercise } from "$lib/math-engine/laplace/types";
 import {
 	type ForcingType,
 	generateOdeProblem,
@@ -28,6 +34,170 @@ import {
 	type ResonanceType,
 	type SecondOrderRootType,
 } from "$lib/math-engine/odes/index";
+import {
+	laplaceVisualArchetypes,
+	laplaceVisualFixtures,
+} from "$lib/testing/laplace-visual-fixtures";
+import { getAutomatedHintSourceIds } from "$lib/testing/solver-visual-states";
+
+/** Actual registered capture sources must expose real guidance, including any diagnostic-only legacy source. */
+it("reveals hints for every selected source in the existing solver archetypes", () => {
+	const convolution = generateConfiguredConvolutionProblem(
+		{ x: convolutionBase, h: convolutionBase },
+		{ seed: 3101 },
+	);
+	const fourier = generateFourierSeriesProblem("square_even", {
+		seed: 2101,
+		A: 4,
+		T0: 2,
+	});
+	const ode = generateOdeProblem({
+		order: 2,
+		rootType: "distinct_real",
+		forcingType: "exponential",
+		leadingCoefficient: "monic",
+		seed: 210,
+	});
+	const solvers: BaseStepSolverState[] = [
+		new ConvolutionStepSolverState(() => convolution),
+		new FourierSeriesStepSolverState(() => fourier),
+		new OdeStepSolverState(() => ode),
+		new CtftStepSolverState(
+			createCtftProblem("cos", { a: 2, T: 4, w0: 3, t0: -1 }),
+			"derivation",
+		),
+	];
+	for (const solver of solvers) {
+		const states = solver.devGetVisualStates();
+		const sources = new Set([
+			...getAutomatedHintSourceIds(states),
+			...states
+				.filter((state) => state.kind === "hint")
+				.map((state) => state.id),
+		]);
+		for (const id of sources) {
+			expect(solver.devGoToVisualState(id), id).toBe(true);
+			expect(
+				solver.activeHints.length,
+				`${id} has available guidance`,
+			).toBeGreaterThan(0);
+		}
+	}
+});
+
+/** @param problem - Independent mathematical task inventory. @param scenes - Registered capture catalog. Rejects omissions without deriving expectations from that catalog. */
+function assertLaplaceTaskCoverage(
+	problem: LaplaceExercise,
+	scenes: LaplaceVisualScene[],
+): void {
+	const tasks = problem.stages.flatMap((stage) => stage.tasks);
+	const paths: Record<string, string>[] = [];
+	/** @param index - Next inventory task. @param decisions - Accepted prerequisite choices. Enumerates reachable paths independently of visual registration. */
+	function visit(index: number, decisions: Record<string, string>): void {
+		const task = tasks[index];
+		if (!task) {
+			paths.push(decisions);
+			return;
+		}
+		if (
+			task.kind === "choice" &&
+			(!task.when ||
+				task.when.values.includes(decisions[task.when.id] ?? ""))
+		) {
+			for (const answer of task.accepted ?? [task.answer])
+				visit(index + 1, { ...decisions, [task.id]: answer });
+		} else visit(index + 1, decisions);
+	}
+	visit(0, {});
+	/** @param decisions - Path values. @returns Canonical path identity without relying on catalog branch labels. */
+	const key = (decisions: Record<string, string>): string =>
+		JSON.stringify(Object.entries(decisions).sort());
+	expect(
+		new Set(scenes.map((scene) => scene.id)).size,
+		"unique capture identities",
+	).toBe(scenes.length);
+	expect(
+		new Set(scenes.map((scene) => key(scene.decisions))),
+		"complete accepted branches",
+	).toEqual(new Set(paths.map(key)));
+	for (const decisions of paths) {
+		for (const stage of problem.stages)
+			for (const task of stage.tasks) {
+				if (
+					task.when &&
+					!task.when.values.includes(decisions[task.when.id] ?? "")
+				)
+					continue;
+				const matching = scenes.filter(
+					(scene) =>
+						scene.stageId === stage.id &&
+						scene.taskId === task.id &&
+						key(scene.decisions) === key(decisions),
+				);
+				for (const phase of ["initial", "success"])
+					expect(
+						matching.filter((scene) => scene.phase === phase),
+						`${task.id}: ${phase}`,
+					).toHaveLength(1);
+				for (let tier = 1; tier <= task.hints.length; tier++)
+					expect(
+						matching.filter(
+							(scene) =>
+								scene.phase === "hint" &&
+								scene.hintTier === tier,
+						),
+						`${task.id}: hint tier ${tier}`,
+					).toHaveLength(1);
+				if (task.kind === "choice")
+					expect(
+						matching.filter((scene) => scene.phase === "diagnostic")
+							.length,
+					).toBe(
+						(task.choices ?? []).filter(
+							(answer) =>
+								!(task.accepted ?? [task.answer]).includes(
+									answer,
+								),
+						).length,
+					);
+				else
+					expect(
+						matching.some(
+							(scene) =>
+								scene.id.endsWith("mathematical-error") &&
+								scene.feedbackStatus === "incorrect",
+						),
+						`${task.id}: mathematical error`,
+					).toBe(true);
+			}
+	}
+}
+
+describe("Laplace dynamic visual coverage", () => {
+	for (const fixture of laplaceVisualFixtures()) {
+		/** The expected inventory comes from mathematical tasks, not from the advertised scene count. */
+		it(`covers every branch and hint in ${fixture.id}`, () => {
+			const problem = createLaplaceExercise(fixture.spec);
+			assertLaplaceTaskCoverage(
+				problem,
+				new LaplaceStepSolverState(problem).devGetVisualStates(),
+			);
+		});
+	}
+	/** Removing a hint, task, or branch must fail the coverage contract instead of silently reducing screenshots. */
+	it("rejects deliberately incomplete catalogs", () => {
+		const problem = createLaplaceExercise(laplaceVisualFixtures()[0]!.spec);
+		const scenes = new LaplaceStepSolverState(problem).devGetVisualStates();
+		for (const incomplete of [
+			scenes.filter((scene) => scene.hintTier !== 2),
+			scenes.filter((scene) => scene.taskId !== "convention"),
+			scenes.filter((scene) => scene.branchId === scenes[0]!.branchId),
+		])
+			expect(() =>
+				assertLaplaceTaskCoverage(problem, incomplete),
+			).toThrow();
+	});
+});
 
 /**
  * Introspects any BaseStepSolverState instance to dynamically discover all
@@ -646,21 +816,24 @@ describe("Universal Solver Visual State Coverage & Future-Proofing", () => {
 	});
 
 	describe("E2E Problem Archetype Registry Completeness", () => {
-		it("ensures all core project practice modules are represented in visual snapshot tracking", () => {
-			const requiredModules = [
-				"odes",
-				"fourier-series",
-				"convolution",
-				"laplace",
-				"fourier-transform",
-				"circuits",
-			];
-
-			// Validate all 6 main topic areas exist as interactive practice routes
-			expect(requiredModules.length).toBe(6);
-			for (const mod of requiredModules) {
-				expect(typeof mod).toBe("string");
-			}
+		/** Tests the registrations consumed by E2E, rather than a separate list of route names. */
+		it("registers all four Laplace workflows as stepped screenshot archetypes", () => {
+			const entries = laplaceVisualArchetypes();
+			expect(entries).toHaveLength(laplaceVisualFixtures().length);
+			expect(entries.every((entry) => entry.isItsStepper)).toBe(true);
+			expect(
+				new Set(
+					entries.map(
+						(entry) =>
+							JSON.parse(
+								new URL(
+									entry.path,
+									"http://example.test",
+								).searchParams.get("config")!,
+							).workflow,
+					),
+				),
+			).toEqual(new Set(["inverse", "forward", "roc", "ode"]));
 		});
 	});
 });
