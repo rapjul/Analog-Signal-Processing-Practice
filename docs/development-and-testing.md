@@ -23,6 +23,20 @@ npm install
 npm run dev
 ```
 
+### PWA build dependency overrides
+
+`package.json` scopes two cross-major security overrides to their consumers:
+
+- `workbox-build` uses `glob` 14 to address [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and its patched `minimatch` dependency addresses [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+- `filelist` uses `minimatch` 11 to address [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+
+Remove each override when its upstream consumer accepts an unaffected release,
+the lockfile resolves patched versions without the override, and the compatibility
+tests and PWA build and smoke tests pass. The focused tests live in
+`../tests/unit/pwa-build-dependencies.test.ts`.
+The `filelist` compatibility check runs on POSIX systems; `filelist` normalizes
+patterns with Windows separators before matching forward-slash paths.
+
 ### Worktrees and stale development pages
 
 Run the server from the intended checkout and reserve a different port for each
