@@ -100,7 +100,7 @@
 					<span class="module-icon">{mod.icon}</span>
 					<span class="module-badge">{mod.badge}</span>
 				</div>
-				<h3 class="module-title"><MathText text={mod.title} /></h3>
+				<h2 class="module-title"><MathText text={mod.title} /></h2>
 				<p class="module-description">
 					<MathText text={mod.description} />
 				</p>
@@ -220,6 +220,10 @@
 		border-radius: 4px;
 	}
 
+	:global([data-theme="light"]) .module-badge {
+		color: var(--text-secondary);
+	}
+
 	/* ── Module body copy ──────────────────────────────────── */
 
 	.module-title {
@@ -252,6 +256,10 @@
 	/* Ready status — accent primary */
 	.status-indicator.ready {
 		color: var(--accent-primary);
+	}
+
+	:global([data-theme="light"]) .status-indicator.ready {
+		color: var(--accent-hover);
 	}
 
 	/* ── Mobile media query (≤480px) ─────────────────────── */

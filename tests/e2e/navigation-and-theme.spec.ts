@@ -30,6 +30,7 @@ test.describe("Navigation and Layout Shell", () => {
 		// Check 6 module practice cards exist
 		const moduleCards = page.locator(".module-card");
 		await expect(moduleCards).toHaveCount(6);
+		await expect(moduleCards.locator("h2.module-title")).toHaveCount(6);
 
 		// Verify key module titles
 		await expect(
@@ -50,6 +51,95 @@ test.describe("Navigation and Layout Shell", () => {
 		await expect(moduleCards.nth(5).locator(".module-title")).toContainText(
 			"Circuit Analysis & Transfer Functions",
 		);
+	});
+
+	/** Verifies card badge and action text contrast in both color themes. */
+	test("maintains readable dashboard card text in both themes", async ({
+		page,
+	}) => {
+		await page.goto("/");
+		await page.addStyleTag({
+			content: "*, *::before, *::after { transition: none !important; }",
+		});
+
+		for (const theme of ["dark", "light"]) {
+			await page.locator(".theme-toggle").evaluate((button, value) => {
+				if (document.documentElement.dataset.theme !== value) {
+					(button as HTMLButtonElement).click();
+				}
+			}, theme);
+			await expect(page.locator("html")).toHaveAttribute(
+				"data-theme",
+				theme,
+			);
+
+			for (const selector of [
+				".module-badge",
+				".status-indicator.ready",
+			]) {
+				const ratios = await page
+					.locator(selector)
+					.evaluateAll((elements) => {
+						/**
+						 * Returns relative luminance for an opaque computed RGB color.
+						 * @param color Computed RGB color.
+						 * @returns Relative luminance.
+						 */
+						function luminance(color: string): number {
+							const channels = color.match(/\d+(?:\.\d+)?/g);
+							if (!channels || channels.length < 3) {
+								throw new Error(`Unexpected color: ${color}`);
+							}
+							const linear = channels
+								.slice(0, 3)
+								.map((channel) => {
+									const value = Number(channel) / 255;
+									return value <= 0.04045
+										? value / 12.92
+										: ((value + 0.055) / 1.055) ** 2.4;
+								});
+							return linear.reduce(
+								(sum, value, index) =>
+									sum +
+									value *
+										([0.2126, 0.7152, 0.0722][index] ?? 0),
+								0,
+							);
+						}
+
+						return elements.map((element) => {
+							const background = element.classList.contains(
+								"module-badge",
+							)
+								? element
+								: element.closest(".module-card");
+							if (!background)
+								throw new Error("Missing card background");
+							const foregroundLuminance = luminance(
+								getComputedStyle(element).color,
+							);
+							const backgroundLuminance = luminance(
+								getComputedStyle(background).backgroundColor,
+							);
+							return (
+								(Math.max(
+									foregroundLuminance,
+									backgroundLuminance,
+								) +
+									0.05) /
+								(Math.min(
+									foregroundLuminance,
+									backgroundLuminance,
+								) +
+									0.05)
+							);
+						});
+					});
+				expect(ratios).toHaveLength(6);
+				for (const ratio of ratios)
+					expect(ratio).toBeGreaterThanOrEqual(4.5);
+			}
+		}
 	});
 
 	/** Verifies dashboard math, accompanying prose, and module destinations. */
