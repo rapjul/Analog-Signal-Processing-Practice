@@ -5,7 +5,7 @@
 	 * Provides a course overview for UIUC ECE 210 with module launcher cards.
 	 */
 
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 
 	const modules = [
@@ -69,7 +69,7 @@
 			icon: "⚡",
 			status: "Ready",
 		},
-	];
+	] as const;
 </script>
 
 <svelte:head>
@@ -93,7 +93,7 @@
 	<div class="modules-grid">
 		{#each modules as mod}
 			<a
-				href="{base}{mod.link}"
+				href={resolve(mod.link)}
 				class="module-card"
 			>
 				<div class="module-header">

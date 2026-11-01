@@ -6,6 +6,7 @@
  * overflow/underflow, and corrupted query inputs.
  */
 
+import type { ReadonlyURLSearchParams } from "$app/state";
 import { createRandomSeed } from "../math-engine/random";
 
 /**
@@ -98,7 +99,7 @@ export function sanitizeParamString(raw: string | null | undefined): string {
  * @returns SafeParsedParam containing the validated enum value
  */
 export function parseEnumParam<T extends string>(
-	params: URLSearchParams,
+	params: ReadonlyURLSearchParams,
 	options: EnumParamOptions<T>,
 ): SafeParsedParam<T> {
 	const raw = params.get(options.key);
@@ -141,7 +142,7 @@ export function parseEnumParam<T extends string>(
  * @returns SafeParsedParam containing a valid unsigned 32-bit seed
  */
 export function parseSafeSeedParam(
-	params: URLSearchParams,
+	params: ReadonlyURLSearchParams,
 	options?: SeedParamOptions,
 ): SafeParsedParam<number> {
 	const key = options?.key ?? "seed";

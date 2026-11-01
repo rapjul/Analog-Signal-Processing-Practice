@@ -5,6 +5,7 @@
  * root classification, forcing function shape, leading coefficient, and resonance modes.
  */
 
+import type { ReadonlyURLSearchParams } from "$app/state";
 import type {
 	ForcingType,
 	LeadingCoefficientType,
@@ -221,7 +222,7 @@ export function normalizeOdeFilters(
  * @returns Fully normalized OdeFilterSelections ready for generation
  */
 export function parseOdeFilters(
-	searchParams: URLSearchParams,
+	searchParams: ReadonlyURLSearchParams,
 	fallbackSeed?: number,
 ): OdeFilterSelections {
 	const parsedOrderRaw = parseEnumParam(searchParams, {
