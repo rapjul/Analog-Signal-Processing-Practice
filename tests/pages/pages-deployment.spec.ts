@@ -232,8 +232,7 @@ test("worker activates at the mount and serves unvisited solvers offline", async
 		.toBe("activated");
 	await context.setOffline(true);
 	for (const { route, title } of modules) {
-		if (!["/odes", "/fourier-series", "/convolution"].includes(route))
-			continue;
+		if (route === "/circuits") continue;
 		await page.goto(seededModuleURL(route));
 		await page.reload();
 		await expect(page).toHaveURL(

@@ -151,19 +151,32 @@ A running backlog of prospective UX, visual, and architectural improvements to c
 
 ## Deferred Guided Tutors
 
-The remaining tutoring extensions below require detailed planning. Forward CTFT
-now has guided teaching paths; Laplace and circuit tutoring remain deferred.
+Forward CTFT and the bounded Laplace tutor now have guided teaching paths.
+Circuit tutoring and the explicitly deferred extensions below require further planning.
 The shared correctness foundation provides strict transform grading and
 structured generated problem parameters.
 
 ### 17. Laplace Transform Tutor
 
+The bounded guided tutor is implemented; its workflows and limits are documented
+in [the Laplace tutor guide](./laplace-tutor.md). Impulse derivatives below remain
+deferred. The following requirements describe the implemented foundation.
+
 - Start with causal inverse transforms using distinct-real-pole PFD: factor the denominator, identify poles, select the expansion, solve each residue, reconstruct the rational expression, apply transform pairs, and assemble the supported time response.
-- Before identifying poles, add a conditional "simplify and check cancellations" sub-step. Ask students to identify and cancel common numerator/denominator factors, then distinguish original denominator roots from genuine poles. For example, `(s+1)/((s+1)(s+4)) = 1/(s+4)` has only the pole `-4`, with causal ROC `Re(s) > -4`; the canceled root `-1` has a zero residue. Validate the simplified expression and surviving poles separately, diagnose retaining canceled roots, and skip this sub-step when there is no common factor. Implement this teaching workflow when the Laplace tutor is developed. Current genuine-pole and ROC metadata exclude canceled roots: `pfd.poles` and its paired `pfd.residues` contain surviving terms, while `pfd.denominatorRoots` retains the original denominator roots for cancellation diagnosis.
+- Always ask whether common numerator and denominator factors exist, including an explicit "no common factors" answer. Identify original numerator and denominator roots, cancel matching multiplicities only when necessary, then identify the surviving zeros and poles. For example, `(s+1)/((s+1)(s+4)) = 1/(s+4)` has no finite zeros and only the pole `-4`, with causal ROC `Re(s) > -4`. Near-matching factors do not cancel. Preserve original and reduced metadata separately; a canceled location is not automatically a zero or pole.
 - Require separately validated algebraic substeps and exact fractions; diagnose sign errors, missing numerator terms, incorrect residues, and omitted causal support.
 - Follow with repeated and complex poles, direct inverse transforms, forward transforms, and ROC/stability drills.
 - Keep unilateral initial-condition rules separate from bilateral sidedness; give students enough ROC information to make each inverse transform unique.
-- Audit bank answers and engine formulas before translating them into tutor steps; test every derivation path, remediation, reset, and completed solution.
+- Retire the unused production Laplace bank after migrating useful, mathematically audited cases into test-only fixtures. Test every derivation path, remediation, reset, and completed solution.
+- Implement distinct inverse, forward, ROC/system-analysis, and unilateral first-/second-order ODE workflows. Use bounded structured custom problems, exact factors, reproducible seeds, explicit support, and assisted-solution tracking. Do not infer internal stability from a reduced transfer function.
+
+#### Deferred milestone: Impulse derivatives
+
+- Follow ordinary impulses and constant-quotient polynomial division with polynomial quotients through degree two: `1` maps to `δ(t)`, `s` to `δ′(t)`, and `s²` to `δ″(t)` under explicitly documented transform conventions.
+- Include shifted derivatives combined with ordinary inverse-transform terms; represent derivative order, exact location, and coefficient independently.
+- Extend parsing, canonical distribution comparison, scaling rules, notation guidance, and accessible visual explanations before enabling these exercises.
+- Verify distribution identities analytically, never by sampling finite peaks, and continue rejecting undefined distribution products.
+- Add independent tests for derivative order, signs, shifts, scaling, equivalent notation, and unsupported expressions. Keep impulse derivatives outside the initial guided-tutor release.
 
 ### 18. Continuous-Time Fourier Transform Tutor
 

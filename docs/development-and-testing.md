@@ -23,6 +23,20 @@ npm install
 npm run dev
 ```
 
+### PWA build dependency overrides
+
+`package.json` scopes two cross-major security overrides to their consumers:
+
+- `workbox-build` uses `glob` 14 to address [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and its patched `minimatch` dependency addresses [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+- `filelist` uses `minimatch` 11 to address [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+
+Remove each override when its upstream consumer accepts an unaffected release,
+the lockfile resolves patched versions without the override, and the compatibility
+tests and PWA build and smoke tests pass. The focused tests live in
+`../tests/unit/pwa-build-dependencies.test.ts`.
+The `filelist` compatibility check runs on POSIX systems; `filelist` normalizes
+patterns with Windows separators before matching forward-slash paths.
+
 ### Worktrees and stale development pages
 
 Run the server from the intended checkout and reserve a different port for each
@@ -162,13 +176,15 @@ npm run test:e2e:production
 npm run test:e2e:production:solvers
 ```
 
-To verify service worker precaching and offline navigation through the three implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
+To verify service worker precaching and offline navigation through the five implemented stepped solvers, run `SIGNALLAB_TEST_OFFLINE=1 npx playwright test --config playwright.production.config.ts tests/e2e/solver-offline.spec.ts`. The offline case is skipped in development runs because development assets are not precached, and in WebKit because of its [offline-emulation navigation defect](https://github.com/microsoft/playwright/issues/42775). `tests/e2e/solver-audit-regressions.spec.ts` verifies keyboard theme switching and 320-pixel layouts when browser storage is blocked.
 
 The production worker explicitly precaches the served root app shell because static HTML is emitted after worker generation. Its revision hashes the HTML template and emitted asset revisions to keep the document and bundled assets in sync; navigation fallback serves that shell when visiting solver routes offline.
 
 Production runs require port `33210` to be free and never reuse a running development server. Functional tests tagged `@dev-harness` are excluded because their state-selection helpers are available only in development builds; the development suite still runs them. The production solver visual command compares initial problem pages across all configured viewports and both themes, using existing local baselines without updating them. Later solver states still require `npm run test:e2e:solvers`.
 
 Development visual runs disable hot reload and verify the requested active step before capturing its image. Reproducible Fourier visual fixtures include explicit URL seeds, so development and production compare the same problems against shared baselines. Full-page captures reset scrolling and keep the sticky harmonic toolbar in normal flow to avoid compositor pixel jitter; the live site's sticky behavior is unchanged.
+
+Laplace regressions include current-expression hint content, exceptional zero/constant factorizations, field-level construction errors, every meaningful coefficient-elimination row, and exact support-interval evidence. `tests/unit/laplace-construction-feedback.test.ts`, `tests/unit/laplace-elimination.test.ts`, and `tests/unit/laplace-support.test.ts` provide independent mathematical cases. `tests/e2e/laplace-module.spec.ts` exercises the coefficient-matching alternative and rejects an unchanged support expression through ordinary controls at `320px`.
 
 The E2E suite tests:
 
@@ -202,6 +218,12 @@ npm run capture:solvers:dark
 # Fastest curated check: dark mode with all available hints shown; no tablet
 npm run capture:solvers:quick
 
+# Capture all four Laplace workflows, including every task and hint tier
+npm run capture:solvers:laplace
+
+# Compare those Laplace captures with existing local baselines
+npm run test:e2e:solvers:laplace
+
 # Later runs: compare every named solver state against the existing local baselines
 # without rewriting the gallery artifacts
 npm run test:e2e:solvers
@@ -212,11 +234,116 @@ npm run gallery:solvers
 
 Every named ODE and Fourier state, plus an automatically derived all-hints variant for every step and conditional sub-step, is compared at desktop and narrow-mobile widths in dark mode. The suite discovers those states from the developer harness, expands each hint sequence to its final tier, verifies that the hint content is visible, and captures it without requiring a second manually maintained scenario list. Initial, representative diagnostic, and completed full-page milestones cover all three viewports in both themes.
 
+Laplace is also a stepped solver in this registry. Eight bounded archetypes cover
+the supplied seed-73 inverse problem, repeated and quadratic poles, partial
+cancellation, a delayed impulse quotient, forward support intervals, two-sided
+system analysis, and second-order initial-value problems. Every reachable task
+on every accepted method path has an initial scene, genuine diagnostic
+submissions, separate hint tiers, and a verified scene awaiting **Continue**.
+Incorrect multiple-choice options are captured separately. Stable task and branch
+identities keep conditional parts distinct even when displayed step numbers
+change. Coverage tests derive their expected inventory from the mathematical
+tasks and reject deliberately omitted tasks, branches, or hint tiers.
+
+Full and dark profiles retain the separate Laplace tiers; quick captures only
+the final tier. Other solvers keep their existing catalog and all-hints behavior.
+The scoped Laplace command replaces the current gallery with its selected
+archetypes, without changing other solvers' baselines. Gallery ordering includes
+branch, task sequence, and phase; existing version-2 manifests remain readable.
+Laplace completion readiness checks its banner and SVG diagrams rather than a
+canvas-only completion container. The visual harness prepares states through
+real validators; separate development and production E2E tests exercise ordinary
+keyboard controls, hint assistance, explicit continuation, and URL navigation.
+Laplace capture timeouts scale with the reachable catalog and viewport count;
+the assertion deadlines and other solvers' timeout budgets are unchanged.
+Snapshot names preserve existing short filenames and shorten unusually long
+branch IDs with a stable hash, leaving room for Playwright's diagnostic suffixes.
+Full task and branch identities remain in the manifest.
+
+The expanded full-profile inspection generated 8,236 images: 8,092 task-state
+images and 144 full-page milestones. A separate inventory audit matched every
+task image to its mathematical catalog and found no missing images, duplicate
+identities, or mismatched task/branch/phase metadata. These are generated local
+baselines, not evidence of a regression comparison; comparison results belong
+in the associated PR verification record. No video recording is required.
+
+Full-matrix verification also exposed two existing CTFT timing issues. The
+responsive-width check now samples both rectangles in one frame and polls the
+same half-pixel requirement through reflow. The adversarial spectrum batch
+budgets its total duration by the number of independent submissions. Each batch
+input/submit interaction is bounded to five seconds, and assertions retain
+their existing five-second bounds. No
+candidate, grading assertion, browser profile, or completion check is omitted.
+
+The initial seed-73 inspection confirmed separate tier-1/2/3 images, actual
+validation banners, verified work awaiting Continue, and correctly numbered
+parts at 320px. It also identified follow-up teaching improvements: cancellation
+setup hints could name the current factors explicitly, generic row-mismatch
+messages could explain the submitted numerical difference, and long verified
+root lists require horizontal scrolling inside their compact result container.
+These are inspection findings rather than changes to mathematical grading.
+
 The solver gallery is focused on the problem-solving interface, so the Playwright suite hides the application navbar only inside the visual-capture page. Production and normal development rendering are unchanged. Milestones remain full-page captures, while named steps and sub-steps capture the active step card. Each loaded solver page is also checked for document-level horizontal overflow at its configured viewport, including narrow mobile. Artifact-generating capture commands warn and continue so existing layout problems remain available in a complete inspection gallery; `npm run test:e2e:solvers` treats the same overflow as a regression failure.
 
 The `dark` profile keeps every named state and milestone but omits light-mode milestones. The `quick` profile omits the tablet viewport, keeps dark-mode desktop and narrow-mobile milestones, and captures only explicit hint states and automatically derived all-hints variants from the stepped solvers. The gallery builds its viewport options and coverage text from that smaller manifest, so a quick gallery does not offer a tablet filter or claim tablet coverage. These profiles replace the current-run gallery manifest with the subset they captured; run the full command again when you need the complete gallery.
 
 The process is both automated and deterministic: automation enumerates the live state catalog and hint variants, while stable problem seeds, explicit canvas readiness markers, and harness-driven state preparation make repeated images comparable. Local baselines live in `tests/e2e/solver-visual-baselines/` and are git-ignored, so each developer or CI environment must run `npm run capture:solvers` once before comparison runs. Git-ignored current-run artifacts and `manifest.json` live in `tests/e2e/screenshots/solvers/current/`. The gallery at `tests/e2e/screenshots/solvers/index.html` reads only that manifest, so artifacts from older runs cannot appear as current coverage.
+
+Laplace visual diagnostics respect the declared input domains. Integer and literal
+controls use blank or valid-but-wrong drafts; malformed-expression captures remain
+for exact-arithmetic and mathematical-expression fields, including the PFD
+quotient. A catalog regression verifies that field diagnostics are reachable
+through the ordinary controls. Correct replay drafts adapt the explicit zero
+polynomial selection and activity checkboxes without bypassing validation.
+Legacy solvers retain their existing screenshot depth.
+
+The Laplace browser suite checks whole-insertion rejection, explicit undefined
+degree, activity selections and interval sums, feedback spacing, keyboard focus,
+explicit continuation, and `320px` reflow. Unit/component regressions additionally
+cover fractional roots, equivalent exact arithmetic, hidden custom parameters,
+zero-active intervals, assistance, and draft lifecycle. Formatting checks compare
+against independently authored time and transform expressions, including signed
+and delayed impulses. No video tooling is involved.
+
+Typed-input verification on 2026-10-28 passed **1,825 tests across 146 files**.
+Full coverage measured **89.55% statements, 84.42% branches, 88.85% functions,
+and 92.05% lines**; no numeric coverage threshold is configured. Types, import
+organization, formatting, verification-document checks, and the production build
+passed. The ordinary-control browser regression caught and corrected an overflow
+in the undefined-degree selector at `320px`. Production dependency auditing found
+zero advisories; the full audit retained thirteen existing development advisories.
+The unused-dependency scanner cannot resolve `$lib` or parse these Svelte files
+fully and flags the configured commit/format tools. No shell scripts changed, so
+ShellCheck is not applicable. Capture generation and later regression comparison
+results are recorded separately in PR #19, along with the final browser matrix
+and the existing documented WebKit offline skips.
+
+The completed 2026-10-28 Laplace refresh generated **7,982 images across eight
+fixtures**. An independent manifest audit found no missing images, duplicate
+capture identities, or byte mismatches against the generated baselines. The
+previously outstanding ODE quick-profile comparison passed on 2026-10-29;
+baseline generation and later comparisons remain separate evidence. Gallery
+inspection exercised filtering, image loading, lightbox navigation, fit-width,
+and keyboard dismissal without JavaScript errors.
+
+Accessible-label regressions query exact field names while insertion feedback is
+visible, then verify correction, reset, and unique associations in repeated
+editors. Ordinary-control browser tests exercise custom gains, initial values,
+and polynomial powers at `320px`. Constant-preview tests cover fractions,
+arithmetic, incomplete expressions, assignments, canceled free variables,
+unsupported operations, and nonfinite values; preview eligibility never counts
+as a successful answer check.
+Construction regressions retain row diagnostics after rejected insertions and
+clear them after accepted edits or selection changes. Keyboard traversal also
+submits activity checkboxes and explicit undefined degrees from their visible
+check buttons; task-omission regressions assert each forbidden task separately.
+
+The 2026-10-29 review follow-up passed **1,832 tests across 147 files**, with
+**90.06% statement, 84.56% branch, 89.67% function, and 92.27% line coverage**.
+The focused accessibility browser test passed in all four development profiles.
+Production, visual comparison, deployment-mount, and hosted check results are
+recorded in PR #19 after completion. No coverage threshold or grading tolerance
+was changed.
 
 Artifact-generating runs also write `tests/e2e/screenshots/solvers/current/timings.json` with phase totals, complete suite time, and unattributed time. Snapshot-update captures reuse Playwright's accepted baseline PNG for the inspection artifact; comparison runs keep a separate artifact screenshot. The suite reuses one page per archetype by default after three counterbalanced benchmark cycles; set `SIGNALLAB_VISUAL_PAGE_MODE=isolated` to request the original fresh-page behavior. See [Solver visual capture performance](./solver-visual-performance.md) for the preservation scheme, benchmark command, timing waterfalls, and measured results.
 
@@ -242,11 +369,19 @@ BASE_PATH=/Analog-Signal-Processing-Practice npm run test:pages
 
 `npm run test:pages` uses `./playwright.pages.config.ts` and port `33211`. It tests the existing `./build` artifact without rebuilding it or reusing another server. The static host only exposes the configured mount, performs HTML file lookup, and serves `404.html` with HTTP `404` for missing routes. Run the hosting variants sequentially because they share the output directory and test port.
 
-The suite checks all six module links, direct navigation, reloads, query parameters, active navigation, error recovery, manifest resources, worker scope and activation, and offline access through the three stepped solvers. Online checks block service workers so cached pages cannot hide host failures. Network auditing rejects missing resources, unhandled application exceptions, and requests outside the mount. Failure traces and screenshots are written under `./test-results/`.
+The suite checks all six module links, direct navigation, reloads, query parameters, active navigation, error recovery, manifest resources, worker scope and activation, and offline access through the five stepped solvers. Online checks block service workers so cached pages cannot hide host failures. Network auditing rejects missing resources, unhandled application exceptions, and requests outside the mount. Failure traces and screenshots are written under `./test-results/`.
 
 PR verification runs separate root and project smoke jobs. Deployment runs the same suite against its actual Pages build before uploading the artifact, so a failing smoke check prevents deployment.
 
 ## 📐 Mathematical & Code Formatting Guidelines
+
+Laplace regressions include independently authored final answers in
+`./../tests/e2e/laplace-module.spec.ts`, alongside generated-target traversal.
+These cover negative impulses, system response labels, combined forward zeros,
+and an initial-value response. Unit and component tests separately check contextual
+teaching, operation-specific feedback, derived-result continuation/reset, grouped
+parameters, signed diagrams, and the fourteen-check direct-pair path. Generated
+targets alone do not establish mathematical or instructional correctness.
 
 ### Universal LaTeX Enforcement
 

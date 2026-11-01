@@ -39,6 +39,11 @@ test("reloads all implemented solvers offline after caching", async ({
 		{ route: "/odes", heading: "Linear Constant-Coefficient ODEs" },
 		{ route: "/fourier-series", heading: "Fourier Series Analysis" },
 		{ route: "/convolution", heading: "Continuous-Time Convolution" },
+		{ route: "/laplace", heading: "Laplace Transform & s-Domain Analysis" },
+		{
+			route: "/fourier-transform",
+			heading: "Continuous-Time Fourier Transform (CTFT)",
+		},
 	]) {
 		await page.goto(`${route}?seed=10`);
 		await expect(

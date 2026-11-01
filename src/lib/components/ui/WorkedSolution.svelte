@@ -7,9 +7,11 @@
 		verified?: boolean;
 		/** Complete worked solution, mounted only after verification or deliberate reveal. */
 		children: Snippet;
+		/** Notification when a full solution is deliberately revealed before verification. */
+		onAssist?: () => void;
 	}
 
-	let { verified = false, children }: Props = $props();
+	let { verified = false, children, onAssist }: Props = $props();
 	let revealed = $state(false);
 	let assisted = $state(false);
 
@@ -19,7 +21,10 @@
 	function handleToggle(event: Event) {
 		if (!(event.currentTarget as HTMLDetailsElement).open) return;
 		revealed = true;
-		if (!verified) assisted = true;
+		if (!verified && !assisted) {
+			assisted = true;
+			onAssist?.();
+		}
 	}
 </script>
 

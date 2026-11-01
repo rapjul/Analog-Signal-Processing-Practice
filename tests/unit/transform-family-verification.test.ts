@@ -7,7 +7,7 @@ import {
 import {
 	createLaplacePfdProblem,
 	validateLaplacePfdAnswer,
-} from "$lib/math-engine/laplace";
+} from "$lib/math-engine/laplace/index";
 import { transformAdversaries } from "$lib/testing/transform-adversaries";
 
 /**

@@ -2,6 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import type {
+	SolverVisualStateDescriptor,
+	SolverVisualStateMetadata,
+} from "$lib/components/solvers/base-step-solver.svelte";
+import { laplaceVisualArchetypes } from "$lib/testing/laplace-visual-fixtures";
+import { solverVisualFileName } from "$lib/testing/solver-visual-files";
+import {
+	getAutomatedHintSourceIds,
+	isFinalHintState,
+} from "$lib/testing/solver-visual-states";
 import {
 	type VisualTimingContext,
 	type VisualTimingOperation,
@@ -76,15 +86,10 @@ interface ProblemArchetype {
 	isItsStepper: boolean;
 }
 
-interface HarnessVisualState {
-	id: string;
-	label: string;
-	step: number;
-	subStep?: string | undefined;
-	kind: "interactive" | "hint" | "diagnostic";
-}
+/** Shared catalog contract, including optional dynamic branch and hint metadata. */
+type HarnessVisualState = SolverVisualStateDescriptor;
 
-interface VisualArtifactEntry {
+interface VisualArtifactEntry extends SolverVisualStateMetadata {
 	module: string;
 	archetype: string;
 	archetypeTitle: string;
@@ -211,14 +216,7 @@ const PROBLEM_ARCHETYPES: ProblemArchetype[] = [
 		seed: 3101,
 		isItsStepper: true,
 	},
-	{
-		module: "laplace",
-		slug: "laplace-inverse-pfd",
-		title: "Inverse Laplace & PFD",
-		path: "/laplace",
-		seed: 3102,
-		isItsStepper: false,
-	},
+	...laplaceVisualArchetypes(),
 	{
 		module: "fourier-transform",
 		slug: "ctft-guided-derivation",
@@ -415,13 +413,6 @@ async function measureVisualPhase<Result>(
 	return runTimingRecorder.measure(phase, context, operation);
 }
 
-function safeFileSegment(value: string): string {
-	return value
-		.toLowerCase()
-		.replace(/[^a-z0-9.-]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
 function resetCurrentRunDirectory(): void {
 	if (
 		path.basename(CURRENT_RUN_DIR) !== "current" ||
@@ -553,31 +544,52 @@ async function getVisualStates(
 	);
 }
 
-/**
- * Selects one representative state for every unique parent step or sub-step.
- * Interactive states take precedence over diagnostics that exercise the same
- * sub-step. Explicit catalogued hint states retain their stable IDs and are
- * excluded from automatic expansion to avoid duplicate captures.
- */
-function getAutomatedHintSourceIds(states: HarnessVisualState[]): Set<string> {
-	const representativeByStep = new Map<string, HarnessVisualState>();
-	for (const state of states) {
-		if (state.kind === "hint") continue;
-		const key = `${state.step}:${state.subStep ?? "parent"}`;
-		const current = representativeByStep.get(key);
-		if (
-			!current ||
-			(current.kind !== "interactive" && state.kind === "interactive")
-		) {
-			representativeByStep.set(key, state);
-		}
-	}
+/** @param archetype - Selected problem. @param states - Reachable catalog size. @param viewports - Captured state configurations. Budgets expanded matrices without changing other solver limits or assertion timeouts. */
+function budgetLaplaceCaptures(
+	archetype: ProblemArchetype,
+	states: number,
+	viewports: number,
+): void {
+	if (archetype.module !== "laplace") return;
+	test.setTimeout(Math.max(300_000, 60_000 + states * viewports * 1000));
+}
 
-	const catalogIds = new Set(states.map((state) => state.id));
-	return new Set(
-		[...representativeByStep.values()]
-			.filter((state) => !catalogIds.has(`${state.id}.hints`))
-			.map((state) => state.id),
+/** @param archetype - Selected problem. @param states - Independent catalog. @param configurations - Expected state matrix. Verifies that every intended PNG was actually registered exactly once. */
+function assertLaplaceArtifactInventory(
+	archetype: ProblemArchetype,
+	states: HarnessVisualState[],
+	configurations: CaptureConfiguration[],
+): void {
+	if (archetype.module !== "laplace" || !WRITE_INSPECTION_ARTIFACTS) return;
+	const expected = new Set(
+		states
+			.filter(
+				(state) => !CAPTURE_ONLY_HINT_STATES || isFinalHintState(state),
+			)
+			.flatMap((state) =>
+				configurations.map(
+					({ theme, viewport }) =>
+						`${state.id}|${theme}|${viewport.name}`,
+				),
+			),
+	);
+	const actual = runArtifacts
+		.filter(
+			(entry) =>
+				entry.archetype === archetype.slug &&
+				entry.captureKind === "state" &&
+				configurations.some(
+					({ theme, viewport }) =>
+						entry.theme === theme &&
+						entry.viewport === viewport.name,
+				),
+		)
+		.map((entry) => `${entry.stateId}|${entry.theme}|${entry.viewport}`);
+	expect(actual.length, "one artifact per task phase and viewport").toBe(
+		expected.size,
+	);
+	expect(new Set(actual), "complete Laplace screenshot inventory").toEqual(
+		expected,
 	);
 }
 
@@ -607,14 +619,17 @@ async function goToVisualState(
 async function revealAllHints(
 	page: Page,
 	timingContext: VisualTimingContext,
+	hintTier?: number,
 ): Promise<void> {
 	await measureVisualPhase("hint-reveal", timingContext, async () => {
-		await page.evaluate(() => window.__signalLabDev?.revealAllHints());
+		if (hintTier === undefined)
+			await page.evaluate(() => window.__signalLabDev?.revealAllHints());
 		const activeCard = page.locator(".step-card.active");
 		await expect(activeCard.locator(".hints-content")).toBeVisible();
-		await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
-			"All Hints Revealed",
-		);
+		if (hintTier === undefined)
+			await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
+				"All Hints Revealed",
+			);
 		const buttonLabel =
 			(await activeCard.locator(".hint-toggle-btn").textContent()) ?? "";
 		const countMatch = buttonLabel.match(/\((\d+)\/(\d+)\)/);
@@ -624,8 +639,10 @@ async function revealAllHints(
 		).not.toBeNull();
 		const revealedCount = Number(countMatch?.[1]);
 		const totalCount = Number(countMatch?.[2]);
-		expect(revealedCount).toBe(totalCount);
-		expect(await activeCard.locator(".hint-line").count()).toBe(totalCount);
+		expect(revealedCount).toBe(hintTier ?? totalCount);
+		expect(await activeCard.locator(".hint-line").count()).toBe(
+			hintTier ?? totalCount,
+		);
 		expect(totalCount).toBeGreaterThan(0);
 	});
 	await waitForStableLayout(page, timingContext);
@@ -636,6 +653,13 @@ async function waitForCompletionVisuals(
 	timingContext: VisualTimingContext,
 ): Promise<void> {
 	await measureVisualPhase("state-preparation", timingContext, async () => {
+		if (timingContext.module === "laplace") {
+			await expect(page.locator(".completion-banner")).toBeVisible();
+			await expect(
+				page.locator(".laplace-visualizations svg"),
+			).toHaveCount(2);
+			return;
+		}
 		await expect(page.locator(".completion-section")).toBeVisible();
 		const canvases = page.locator(".completion-section canvas");
 		const count = await canvases.count();
@@ -656,7 +680,7 @@ function artifactPath(
 	theme: Theme,
 	viewport: ViewportDefinition,
 ): { absolute: string; relative: string } {
-	const fileName = `${safeFileSegment(stateId)}__${theme}__${viewport.name}.png`;
+	const fileName = solverVisualFileName(stateId, theme, viewport.name);
 	const relative = path.join(
 		"current",
 		archetype.module,
@@ -668,20 +692,22 @@ function artifactPath(
 	return { absolute, relative };
 }
 
-async function recordArtifact(args: {
-	page: Page;
-	locator?: Locator | undefined;
-	archetype: ProblemArchetype;
-	stateId: string;
-	stateLabel: string;
-	stateKind: StateKind;
-	step?: number | undefined;
-	subStep?: string | undefined;
-	theme: Theme;
-	viewport: ViewportDefinition;
-	captureKind: CaptureKind;
-	snapshotSegments: string[];
-}): Promise<void> {
+async function recordArtifact(
+	args: SolverVisualStateMetadata & {
+		page: Page;
+		locator?: Locator | undefined;
+		archetype: ProblemArchetype;
+		stateId: string;
+		stateLabel: string;
+		stateKind: StateKind;
+		step?: number | undefined;
+		subStep?: string | undefined;
+		theme: Theme;
+		viewport: ViewportDefinition;
+		captureKind: CaptureKind;
+		snapshotSegments: string[];
+	},
+): Promise<void> {
 	if (!WRITE_INSPECTION_ARTIFACTS) return;
 	await measureVisualPhase(
 		"artifact-writing",
@@ -725,6 +751,13 @@ async function recordArtifact(args: {
 			}
 
 			runArtifacts.push({
+				taskId: args.taskId,
+				stageId: args.stageId,
+				branchId: args.branchId,
+				phase: args.phase,
+				hintTier: args.hintTier,
+				order: args.order,
+				feedbackStatus: args.feedbackStatus,
 				module: args.archetype.module,
 				archetype: args.archetype.slug,
 				archetypeTitle: args.archetype.title,
@@ -751,7 +784,7 @@ function snapshotName(
 	return [
 		archetype.module,
 		archetype.slug,
-		`${safeFileSegment(stateId)}__${theme}__${viewport.name}.png`,
+		solverVisualFileName(stateId, theme, viewport.name),
 	];
 }
 
@@ -807,26 +840,47 @@ async function assertAndRecordPageMilestone(args: {
 	});
 }
 
-async function assertAndRecordActiveState(args: {
-	page: Page;
-	archetype: ProblemArchetype;
-	stateId: string;
-	stateLabel: string;
-	stateKind: HarnessVisualState["kind"];
-	step: number;
-	subStep?: string | undefined;
-	theme: Theme;
-	viewport: ViewportDefinition;
-}): Promise<void> {
+async function assertAndRecordActiveState(
+	args: SolverVisualStateMetadata & {
+		page: Page;
+		archetype: ProblemArchetype;
+		stateId: string;
+		stateLabel: string;
+		stateKind: HarnessVisualState["kind"];
+		step: number;
+		subStep?: string | undefined;
+		theme: Theme;
+		viewport: ViewportDefinition;
+	},
+): Promise<void> {
 	const activeCard = args.page.locator(".step-card.active");
 	await expect(activeCard.locator(".step-badge")).toHaveText(
 		new RegExp(`^Step\\s+${args.step}(?:\\D|$)`, "i"),
 	);
 	if (args.stateKind === "hint") {
-		await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
-			"All Hints Revealed",
-		);
+		if (args.hintTier === undefined || args.hintTier === 3)
+			await expect(activeCard.locator(".hint-toggle-btn")).toContainText(
+				"All Hints Revealed",
+			);
+		if (args.hintTier !== undefined)
+			await expect(activeCard.locator(".hint-line")).toHaveCount(
+				args.hintTier,
+			);
 	}
+	if (args.taskId)
+		await expect(activeCard.locator("[data-task-id]")).toHaveAttribute(
+			"data-task-id",
+			args.taskId,
+		);
+	if (args.feedbackStatus)
+		await expect(activeCard.locator("#laplace-feedback")).toHaveAttribute(
+			"data-validation",
+			args.feedbackStatus,
+		);
+	if (args.phase === "success")
+		await expect(
+			activeCard.getByRole("button", { name: "Continue", exact: true }),
+		).toBeVisible();
 	const segments = snapshotName(
 		args.archetype,
 		args.stateId,
@@ -1058,6 +1112,7 @@ async function captureReusedStateMatrix(
 			};
 			await switchVisualEnvironment(page, configuration, context);
 			await assertAndRecordActiveState({
+				...state,
 				page,
 				archetype,
 				stateId,
@@ -1132,6 +1187,11 @@ async function captureReusedArchetype(
 		...baseContext,
 		detail: "visual-state-catalog",
 	});
+	budgetLaplaceCaptures(
+		archetype,
+		states.length,
+		STATE_CONFIGURATIONS.length,
+	);
 	expect(states.length).toBeGreaterThan(0);
 	const diagnosticState = states.find((state) => state.kind === "diagnostic");
 	expect(diagnosticState).toBeDefined();
@@ -1147,9 +1207,19 @@ async function captureReusedArchetype(
 
 	const automatedHintSourceIds = getAutomatedHintSourceIds(states);
 	for (const state of states) {
+		if (
+			CAPTURE_ONLY_HINT_STATES &&
+			!isFinalHintState(state) &&
+			!automatedHintSourceIds.has(state.id)
+		)
+			continue;
 		await goToVisualState(page, state.id, baseContext);
 		if (state.kind === "hint") {
-			await revealAllHints(page, { ...baseContext, stateId: state.id });
+			await revealAllHints(
+				page,
+				{ ...baseContext, stateId: state.id },
+				state.hintTier,
+			);
 		}
 		if (!CAPTURE_ONLY_HINT_STATES || state.kind === "hint") {
 			await captureReusedStateMatrix(
@@ -1178,6 +1248,7 @@ async function captureReusedArchetype(
 		}
 	}
 
+	assertLaplaceArtifactInventory(archetype, states, STATE_CONFIGURATIONS);
 	const resetState = states[0];
 	if (!resetState)
 		throw new Error("Cannot reset an empty visual state catalog");
@@ -1310,6 +1381,7 @@ test.describe("Deterministic solver visual states", () => {
 							});
 							expect(states.length).toBeGreaterThan(0);
 
+							budgetLaplaceCaptures(archetype, states.length, 1);
 							const diagnosticState = states.find(
 								(state) => state.kind === "diagnostic",
 							);
@@ -1337,22 +1409,33 @@ test.describe("Deterministic solver visual states", () => {
 								const automatedHintSourceIds =
 									getAutomatedHintSourceIds(states);
 								for (const state of states) {
+									if (
+										CAPTURE_ONLY_HINT_STATES &&
+										!isFinalHintState(state) &&
+										!automatedHintSourceIds.has(state.id)
+									)
+										continue;
 									await goToVisualState(
 										page,
 										state.id,
 										timingContext,
 									);
 									if (state.kind === "hint") {
-										await revealAllHints(page, {
-											...timingContext,
-											stateId: state.id,
-										});
+										await revealAllHints(
+											page,
+											{
+												...timingContext,
+												stateId: state.id,
+											},
+											state.hintTier,
+										);
 									}
 									if (
 										!CAPTURE_ONLY_HINT_STATES ||
 										state.kind === "hint"
 									) {
 										await assertAndRecordActiveState({
+											...state,
 											page,
 											archetype,
 											stateId: state.id,
@@ -1372,6 +1455,7 @@ test.describe("Deterministic solver visual states", () => {
 											stateId: hintStateId,
 										});
 										await assertAndRecordActiveState({
+											...state,
 											page,
 											archetype,
 											stateId: hintStateId,
@@ -1386,6 +1470,12 @@ test.describe("Deterministic solver visual states", () => {
 								}
 							}
 
+							if (capturesAllStates)
+								assertLaplaceArtifactInventory(
+									archetype,
+									states,
+									[{ theme, viewport }],
+								);
 							const completedTimingContext = {
 								...timingContext,
 								stateId: "milestone.completed",

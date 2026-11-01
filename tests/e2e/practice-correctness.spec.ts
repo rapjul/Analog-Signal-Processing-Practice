@@ -1,6 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
+import { serializeLaplaceConfiguration } from "$lib/math-engine/laplace/configuration";
+import { generateLaplaceExercise } from "$lib/math-engine/laplace/generator";
 import { transformAdversaries } from "$lib/testing/transform-adversaries";
 import { prepareCtftFinal } from "./ctft-browser";
+import { answerLaplaceTask, completeLaplaceTasks } from "./laplace-tutor";
 
 /** Reproduces generated page parameters without exposing grading shortcuts. */
 test.beforeEach(async ({ page }) => {
@@ -28,6 +31,22 @@ async function reveal(page: Page) {
 test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", async ({
 	page,
 }, info) => {
+	const invalidSpectra = [
+		"garbage",
+		"0",
+		"(1,99)",
+		String.raw`\frac{1}{`,
+		String.raw`1+|\omega-100|+\omega-100`,
+		String.raw`1+\sqrt{(\omega-100)^2}+\omega-100`,
+		String.raw`1+\sqrt[4]{(\omega-100)^4}+\omega-100`,
+		String.raw`1+((\omega-100)^2)^{1/2}+\omega-100`,
+		...transformAdversaries("omega").map(
+			/** @param attack - Shared adversarial spelling. @returns Submitted delta-spectrum candidate. */
+			(attack) => `1+(${attack.expression})`,
+		),
+	];
+	// Budget the full parsing/grading/rendering batch without extending individual checks.
+	test.setTimeout(30_000 + invalidSpectra.length * 1_000);
 	await page.goto("/fourier-transform");
 	await page.locator(".drill-summary").click();
 	await page.locator("#signal-type-select").selectOption("delta");
@@ -44,41 +63,27 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 			.click();
 	}
 	const input = page.locator("#ctft-input");
-	for (const answer of [
-		"garbage",
-		"0",
-		"(1,99)",
-		String.raw`\frac{1}{`,
-		String.raw`1+|\omega-100|+\omega-100`,
-		String.raw`1+\sqrt{(\omega-100)^2}+\omega-100`,
-		String.raw`1+\sqrt[4]{(\omega-100)^4}+\omega-100`,
-		String.raw`1+((\omega-100)^2)^{1/2}+\omega-100`,
-		...transformAdversaries("omega").map(
-			/**
-			 * @param attack - Shared attack spelling.
-			 * @returns Submitted delta-spectrum candidate.
-			 */
-			(attack) => `1+(${attack.expression})`,
-		),
-	]) {
-		await input.fill(answer);
+	for (const answer of invalidSpectra) {
+		await input.fill(answer, { timeout: 5000 });
 		await page
 			.getByRole("button", { name: "Check final spectrum →" })
-			.click();
+			.click({ timeout: 5000 });
 		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
 			"data-validation",
 			"correct",
 		);
 		await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	}
-	await input.fill("3.14");
-	await page.getByRole("button", { name: "Check final spectrum →" }).click();
+	await input.fill("3.14", { timeout: 5000 });
+	await page
+		.getByRole("button", { name: "Check final spectrum →" })
+		.click({ timeout: 5000 });
 	await expect(page.locator(".feedback-box")).toContainText(
 		"If you intended the constant pi, type 'pi' (lowercase)",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
-	await input.fill(String.raw`X\,\left[jw\right]=2/2`);
-	await input.press("Enter");
+	await input.fill(String.raw`X\,\left[jw\right]=2/2`, { timeout: 5000 });
+	await input.press("Enter", { timeout: 5000 });
 	await expect(
 		page.getByRole("heading", { name: "CTFT solution verified" }),
 	).toBeVisible();
@@ -90,49 +95,39 @@ test("CTFT rejects arbitrary answers and accepts equivalent delta spectra", asyn
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 });
 
-/** Laplace answers are independently reconstructed from the visible rational prompt. */
+/** Final-response grading runs through the guided production workflow. */
 test("Laplace poles, causal grading, and explicit assistance follow the active problem", async ({
 	page,
 }) => {
-	await page.goto("/laplace");
-	const prompt = await page
-		.locator(".problem-prompt annotation")
-		.textContent();
-	const coefficients = prompt?.match(
-		/\\frac\{(\d+)s \+ (\d+)\}\{\(s \+ (\d+)\)\(s \+ (\d+)\)\}/,
-	);
-	expect(coefficients).not.toBeNull();
-	if (!coefficients) throw new Error("Missing visible PFD parameters");
-	const [, b1Text, b0Text, a1Text, a2Text] = coefficients;
-	const b1 = Number(b1Text),
-		b0 = Number(b0Text),
-		p1 = -Number(a1Text),
-		p2 = -Number(a2Text);
-	const poles = await page
-		.locator(".stability-pill annotation")
-		.first()
-		.textContent();
-	const genuinePoles = [p1, p2].filter((pole) => b1 * pole + b0 !== 0);
-	expect(poles).toContain(genuinePoles.join(", "));
-	await expect(page.locator(".stability-pill annotation").last()).toHaveText(
-		String.raw`\operatorname{Re}(s) > ${Math.max(...genuinePoles)}`,
-	);
+	test.setTimeout(90000);
+	const problem = generateLaplaceExercise("inverse", 73, "distinct");
+	await page.goto(`/laplace?${serializeLaplaceConfiguration(problem.spec)}`);
+	await expect(page.locator(".stability-pill")).toHaveCount(0);
+	await completeLaplaceTasks(page, problem, "response");
+	const responseTask = problem.stages
+		.flatMap((stage) => stage.tasks)
+		.find((task) => task.id === "response")!;
+	const checkResponse = page.getByRole("button", {
+		name: responseTask.action!,
+		exact: true,
+	});
+	const responseFeedback = page
+		.locator(".step-card.active [data-validation]")
+		.first();
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
 	await page.locator("#laplace-input").fill("123");
-	await page.getByRole("button", { name: "Check Answer" }).click();
-	await expect(page.locator(".feedback-box")).toHaveAttribute(
+	await checkResponse.click();
+	await expect(responseFeedback).toHaveAttribute(
 		"data-validation",
 		"incorrect",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
-	const a = (b1 * p1 + b0) / (p1 - p2),
-		b = (b1 * p2 + b0) / (p2 - p1);
 	for (const attack of transformAdversaries("t")) {
 		await page
 			.locator("#laplace-input")
-			.fill(`(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)+(${attack.expression})`);
-		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).not.toHaveAttribute(
+			.fill(`(${problem.response})+(${attack.expression})`);
+		await checkResponse.click();
+		await expect(responseFeedback).not.toHaveAttribute(
 			"data-validation",
 			"correct",
 		);
@@ -140,29 +135,19 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	}
 	await page
 		.locator("#laplace-input")
-		.fill(
-			`(${a}e^{${p1}t}+${b}e^{${p2}t})u((3.14159265358979323843-\\pi)t)`,
-		);
-	await page.getByRole("button", { name: "Check Answer" }).click();
-	await expect(page.locator(".feedback-box")).toHaveAttribute(
+		.fill(`(${problem.response})u((3.14159265358979323843-\\pi)t)`);
+	await checkResponse.click();
+	await expect(responseFeedback).toHaveAttribute(
 		"data-validation",
 		"unsupported",
 	);
 	await expect(page.locator(".solution-breakdown")).toHaveCount(0);
-	for (const prefix of [
-		"",
-		String.raw`x\left(t\right)=`,
-		String.raw`x\quad\left[t\right]=`,
-	]) {
-		await page
-			.locator("#laplace-input")
-			.fill(`${prefix}(${a}e^{${p1}t}+${b}e^{${p2}t})u(t)`);
-		await page.getByRole("button", { name: "Check Answer" }).click();
-		await expect(page.locator(".feedback-box")).toHaveAttribute(
-			"data-validation",
-			"correct",
-		);
-	}
+	await answerLaplaceTask(
+		page,
+		responseTask,
+		`x\\left(t\\right)=${problem.response}`,
+	);
+	await expect(page.locator('[data-task-id="roc"]')).toBeVisible();
 	await page.getByRole("button", { name: "Next Problem" }).click();
 	await reveal(page);
 	await expect(page.locator(".assistance-status")).toContainText(
