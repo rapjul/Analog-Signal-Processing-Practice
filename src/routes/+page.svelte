@@ -6,6 +6,7 @@
 	 */
 
 	import { resolve } from "$app/paths";
+	import MathText from "$lib/components/math/MathText.svelte";
 	import Navigation from "$lib/components/ui/Navigation.svelte";
 
 	const modules = [
@@ -13,7 +14,7 @@
 			id: "odes",
 			title: "LCC Ordinary Differential Equations",
 			description:
-				"Master homogeneous solutions y_h(t), particular solutions y_p(t), characteristic roots, and zero-input/zero-state separation.",
+				"Master homogeneous solutions $y_h(t)$, particular solutions $y_p(t)$, characteristic roots, and zero-input/zero-state separation.",
 			badge: "Exam 1 Scope",
 			link: "/odes",
 			icon: "📐",
@@ -23,7 +24,7 @@
 			id: "fourier-series",
 			title: "Fourier Series Analysis",
 			description:
-				"Calculate Trigonometric and Exponential coefficients (a0, an, bn, cn), Parseval power, and observe Gibbs phenomenon overshoot.",
+				"Calculate Trigonometric and Exponential coefficients ($a_0, a_n, b_n, F_n$), Parseval power, and observe Gibbs phenomenon overshoot.",
 			badge: "Exam 2 Scope",
 			link: "/fourier-series",
 			icon: "🎵",
@@ -32,8 +33,7 @@
 		{
 			id: "fourier-transform",
 			title: "Continuous-Time Fourier Transform (CTFT)",
-			description:
-				"Practice CTFT pairs (rect, sinc, exp, delta), operational properties, duality, energy spectra |F(w)|^2, and 3dB bandwidth.",
+			description: String.raw`Practice CTFT pairs ($\operatorname{rect}, \operatorname{sinc}, \exp, \delta$), operational properties, duality, energy spectra $|F(\omega)|^2$, and 3dB bandwidth.`,
 			badge: "Exam 3 Scope",
 			link: "/fourier-transform",
 			icon: "📊",
@@ -51,9 +51,9 @@
 		},
 		{
 			id: "laplace",
-			title: "Laplace Transform & S-Domain Analysis",
+			title: "Laplace Transform & $s$-Domain Analysis",
 			description:
-				"Bilateral/unilateral Laplace, Partial Fraction Decomposition (PFD), ROC analysis, and interactive s-plane pole-zero canvas.",
+				"Bilateral/unilateral Laplace, Partial Fraction Decomposition (PFD), ROC analysis, and interactive $s$-plane pole-zero canvas.",
 			badge: "Final Exam Scope",
 			link: "/laplace",
 			icon: "🎯",
@@ -61,9 +61,9 @@
 		},
 		{
 			id: "circuits",
-			title: "Circuit Analysis & Transfer Functions H(s)",
+			title: "Circuit Analysis & Transfer Functions $H(s)$",
 			description:
-				"Derive RLC transfer functions H(s), steady-state AC phasors, component initial value sources, and Bode plots.",
+				"Derive RLC transfer functions $H(s)$, steady-state AC phasors, component initial value sources, and Bode plots.",
 			badge: "Final Exam Scope",
 			link: "/circuits",
 			icon: "⚡",
@@ -100,8 +100,10 @@
 					<span class="module-icon">{mod.icon}</span>
 					<span class="module-badge">{mod.badge}</span>
 				</div>
-				<h3 class="module-title">{mod.title}</h3>
-				<p class="module-description">{mod.description}</p>
+				<h3 class="module-title"><MathText text={mod.title} /></h3>
+				<p class="module-description">
+					<MathText text={mod.description} />
+				</p>
 				<div class="module-footer">
 					<span
 						class="status-indicator"

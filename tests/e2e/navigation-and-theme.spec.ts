@@ -44,12 +44,63 @@ test.describe("Navigation and Layout Shell", () => {
 		await expect(
 			page.locator("text=Continuous-Time Fourier Transform (CTFT)"),
 		).toBeVisible();
-		await expect(
-			page.locator("text=Laplace Transform & S-Domain Analysis"),
-		).toBeVisible();
-		await expect(
-			page.locator("text=Circuit Analysis & Transfer Functions H(s)"),
-		).toBeVisible();
+		await expect(moduleCards.nth(4).locator(".module-title")).toContainText(
+			"Laplace Transform &",
+		);
+		await expect(moduleCards.nth(5).locator(".module-title")).toContainText(
+			"Circuit Analysis & Transfer Functions",
+		);
+	});
+
+	/** Verifies dashboard math, accompanying prose, and module destinations. */
+	test("renders dashboard mathematical notation and preserves card links", async ({
+		page,
+	}) => {
+		await page.goto("/");
+		const cards = page.locator(".module-card");
+		const cases = [
+			{
+				path: "/odes",
+				prose: "characteristic roots",
+				math: ["y_h(t)", "y_p(t)"],
+			},
+			{
+				path: "/fourier-series",
+				prose: "Parseval power",
+				math: ["a_0, a_n, b_n, F_n"],
+			},
+			{
+				path: "/fourier-transform",
+				prose: "operational properties",
+				math: [
+					String.raw`\operatorname{rect}, \operatorname{sinc}, \exp, \delta`,
+					String.raw`|F(\omega)|^2`,
+				],
+			},
+			{
+				path: "/convolution",
+				prose: "graphical flip-and-shift",
+				math: [],
+			},
+			{ path: "/laplace", prose: "pole-zero canvas", math: ["s", "s"] },
+			{
+				path: "/circuits",
+				prose: "steady-state AC phasors",
+				math: ["H(s)", "H(s)"],
+			},
+		];
+
+		for (const [index, card] of cases.entries()) {
+			const locator = cards.nth(index);
+			await expect(locator).toHaveAttribute("href", card.path);
+			await expect(locator.locator(".module-description")).toContainText(
+				card.prose,
+			);
+			await expect(
+				locator.locator("annotation[encoding='application/x-tex']"),
+			).toHaveText(card.math);
+			await expect(locator.locator(".katex-error")).toHaveCount(0);
+		}
 	});
 
 	/**
