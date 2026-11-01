@@ -1,5 +1,6 @@
 /** Frozen share-state parsing for independently configured convolution signals. */
 
+import type { ReadonlyURLSearchParams } from "$app/state";
 import {
 	CONVOLUTION_SIGNAL_TYPES,
 	type ConvolutionAmplitudeSelection,
@@ -85,7 +86,7 @@ function enumValue<T extends string>(
 }
 
 function parseSignal(
-	params: URLSearchParams,
+	params: ReadonlyURLSearchParams,
 	prefix: "x" | "h",
 	fallback: ConvolutionSignalSelection,
 ): ConvolutionSignalSelection {
@@ -132,7 +133,7 @@ function parseSignal(
 
 /** Parses only versioned Share URLs; bare, legacy, and partial URLs use defaults. */
 export function parseConvolutionFilters(
-	searchParams: URLSearchParams,
+	searchParams: ReadonlyURLSearchParams,
 	fallbackSeed: number = createRandomSeed(),
 ): ConvolutionFilterSelections {
 	const defaults = cloneDefaultSelection();

@@ -5,7 +5,7 @@
 	 * Renders when a requested path is not found or when a requested practice module is under development.
 	 */
 
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import MathInline from "$lib/components/math/MathInline.svelte";
 	import Navigation from "$lib/components/ui/Navigation.svelte";
@@ -126,15 +126,15 @@
 			<span class="notice-heading">Practice Ready Modules:</span>
 			<div class="module-quick-links">
 				<a
-					href="{base}/odes"
+					href={resolve("/odes")}
 					class="quick-link">LCC ODEs</a
 				>
 				<a
-					href="{base}/convolution"
+					href={resolve("/convolution")}
 					class="quick-link">Convolution</a
 				>
 				<a
-					href="{base}/fourier-series"
+					href={resolve("/fourier-series")}
 					class="quick-link">Fourier Series</a
 				>
 			</div>
@@ -142,7 +142,7 @@
 
 		<div class="action-buttons">
 			<a
-				href="{base}/"
+				href={resolve("/")}
 				class="home-button"
 			>
 				Return to Main Dashboard

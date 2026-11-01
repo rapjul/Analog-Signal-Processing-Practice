@@ -6,7 +6,7 @@
 	 */
 
 	import { onMount } from "svelte";
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 
 	interface Props {
 		/** Current active module path */
@@ -126,7 +126,7 @@
 <header class="navbar">
 	<div class="nav-brand">
 		<a
-			href="{base}/"
+			href={resolve("/")}
 			class="brand-link"
 			onclick={closeMenu}
 		>
@@ -140,7 +140,7 @@
 		class:open={isMenuOpen}
 	>
 		<a
-			href="{base}/odes"
+			href={resolve("/odes")}
 			class="nav-link"
 			class:active={activeRoute === "/odes"}
 			onclick={closeMenu}
@@ -148,7 +148,7 @@
 			LCC ODEs
 		</a>
 		<a
-			href="{base}/fourier-series"
+			href={resolve("/fourier-series")}
 			class="nav-link"
 			class:active={activeRoute === "/fourier-series"}
 			onclick={closeMenu}
@@ -156,7 +156,7 @@
 			Fourier Series
 		</a>
 		<a
-			href="{base}/fourier-transform"
+			href={resolve("/fourier-transform")}
 			class="nav-link"
 			class:active={activeRoute === "/fourier-transform"}
 			onclick={closeMenu}
@@ -164,7 +164,7 @@
 			CTFT
 		</a>
 		<a
-			href="{base}/convolution"
+			href={resolve("/convolution")}
 			class="nav-link"
 			class:active={activeRoute === "/convolution"}
 			onclick={closeMenu}
@@ -172,7 +172,7 @@
 			Convolution
 		</a>
 		<a
-			href="{base}/laplace"
+			href={resolve("/laplace")}
 			class="nav-link"
 			class:active={activeRoute === "/laplace"}
 			onclick={closeMenu}
@@ -180,7 +180,7 @@
 			Laplace
 		</a>
 		<a
-			href="{base}/circuits"
+			href={resolve("/circuits")}
 			class="nav-link"
 			class:active={activeRoute === "/circuits"}
 			onclick={closeMenu}

@@ -1,3 +1,4 @@
+import type { ReadonlyURLSearchParams } from "$app/state";
 import { createForwardExercise } from "$lib/math-engine/laplace/its-scaffolding/forward";
 import { createRationalExercise } from "$lib/math-engine/laplace/its-scaffolding/inverse";
 import { createOdeExercise } from "$lib/math-engine/laplace/its-scaffolding/ode";
@@ -208,14 +209,14 @@ export function serializeLaplaceExercise(
 
 /** @param params - URL parameters. @returns Supplied validated configuration, or null for an ordinary visit. */
 export function parseLaplaceConfiguration(
-	params: URLSearchParams,
+	params: ReadonlyURLSearchParams,
 ): LaplaceExerciseSpec | null {
 	return parseLaplaceExercise(params)?.spec ?? null;
 }
 
 /** @param params - Untrusted URL parameters. @returns The complete preflight-validated exercise, or null for an ordinary visit. */
 export function parseLaplaceExercise(
-	params: URLSearchParams,
+	params: ReadonlyURLSearchParams,
 ): LaplaceExercise | null {
 	const encoded = params.get("config");
 	if (encoded === null) return null;

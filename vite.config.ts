@@ -77,6 +77,7 @@ export default defineConfig(({ command, mode }) => {
 		plugins: [
 			playwrightProbePlugin(),
 			sveltekit({
+				alias: { $lib: "src/lib" },
 				compilerOptions: {
 					// Force runes mode for the project, except for libraries. Can be removed in Svelte 6.
 					runes: ({ filename }) =>
@@ -92,6 +93,7 @@ export default defineConfig(({ command, mode }) => {
 				},
 			}),
 			VitePWA({
+				outDir: ".svelte-kit/output/client",
 				strategies: "generateSW",
 				registerType: "prompt",
 				devOptions: {

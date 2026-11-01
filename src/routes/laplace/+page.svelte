@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { afterNavigate, replaceState } from "$app/navigation";
-	import { page } from "$app/state";
+	import { page, type ReadonlyURLSearchParams } from "$app/state";
 	import LaplaceConfiguration from "$lib/components/solvers/laplace-steps/LaplaceConfiguration.svelte";
 	import DrillPanel from "$lib/components/ui/DrillPanel.svelte";
 	import LaplacePracticeCard from "$lib/components/ui/LaplacePracticeCard.svelte";
@@ -21,13 +21,15 @@
 
 	let error = $state("");
 	/** @param url - Destination URL. @returns Relevant request fields, excluding harmless fragment changes. */
-	function requestKey(url: URL): string {
+	function requestKey(url: {
+		searchParams: ReadonlyURLSearchParams;
+	}): string {
 		return JSON.stringify(
 			["v", "seed", "config"].map((key) => url.searchParams.get(key)),
 		);
 	}
 	/** @param params - Untrusted destination parameters. @returns One fully validated exercise. */
-	function readProblem(params: URLSearchParams): LaplaceExercise {
+	function readProblem(params: ReadonlyURLSearchParams): LaplaceExercise {
 		const rawSeed = params.get("seed");
 		const seed = rawSeed === null ? 73 : Number(rawSeed);
 		if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
@@ -64,7 +66,7 @@
 		if (typeof window !== "undefined") {
 			const destination = new URL(
 				`${page.url.pathname}?${serializeLaplaceExercise(current)}`,
-				page.url,
+				page.url.href,
 			);
 			loadedRequest = requestKey(destination);
 			replaceState(destination, page.state);

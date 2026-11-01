@@ -2,6 +2,7 @@
  * URL parsing and serialization for reproducible Fourier Series drills.
  */
 
+import type { ReadonlyURLSearchParams } from "$app/state";
 import {
 	FOURIER_SERIES_WAVEFORM_TYPES,
 	type FourierSeriesWaveformType,
@@ -36,12 +37,12 @@ export interface FourierSeriesFilterSelections {
 
 /**
  * Parses a safe Fourier filter selection from URL query parameters.
- * @param {URLSearchParams} searchParams Route query parameters
+ * @param {ReadonlyURLSearchParams} searchParams Route query parameters
  * @param {number} [fallbackSeed] Optional deterministic fallback seed
  * @returns {FourierSeriesFilterSelections} Validated filter selections
  */
 export function parseFourierSeriesFilters(
-	searchParams: URLSearchParams,
+	searchParams: ReadonlyURLSearchParams,
 	fallbackSeed: number = createRandomSeed(),
 ): FourierSeriesFilterSelections {
 	const waveform = parseEnumParam(searchParams, {
