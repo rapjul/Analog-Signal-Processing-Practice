@@ -201,6 +201,9 @@ describe("FourierSeriesCanvas", () => {
 		expect(
 			thresholdSummary?.querySelector(":scope > .math-text"),
 		).toBeTruthy();
+		expect(thresholdSummary?.querySelectorAll(".katex-error")).toHaveLength(
+			0,
+		);
 
 		await fireEvent.input(view.getByLabelText("Harmonic Limit:"), {
 			target: { value: "41" },

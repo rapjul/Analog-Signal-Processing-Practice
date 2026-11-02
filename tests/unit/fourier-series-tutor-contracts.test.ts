@@ -49,6 +49,21 @@ describe("Fourier tutor contracts", () => {
 		expect(p.itsData.step3.hints.join(" ")).toContain("a_{2k}");
 	});
 
+	/** Ensures the no-parity explanation closes both LaTeX text groups. */
+	it("renders the half-wave-sine symmetry explanation", () => {
+		const problem = generateFourierSeriesProblem("half_wave_sine", {
+			seed: 1,
+		});
+		const latex = problem.solutionSteps[1]!.latex!;
+
+		expect(latex).toContain(
+			String.raw`a_n\text{ and }b_n\text{ must both be evaluated}`,
+		);
+		expect(() =>
+			renderToString(latex, { throwOnError: true }),
+		).not.toThrow();
+	});
+
 	/** Tests both explicit paths even when they differ from the symmetry recommendation. */
 	it.each(["trig", "exp"] as const)(
 		"keeps assigned %s metadata and solution consistent",

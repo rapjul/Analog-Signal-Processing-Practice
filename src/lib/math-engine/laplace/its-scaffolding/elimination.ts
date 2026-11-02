@@ -55,7 +55,7 @@ export function eliminationTasks(
 				: `coefficient of $${labels[focus]}$`;
 		const calculation =
 			source === null
-				? String.raw`\frac{${previous[focus]!.toLatex()}{${factor.toLatex()}`
+				? String.raw`\frac{${previous[focus]!.toLatex()}}{${factor.toLatex()}}`
 				: `(${previous[focus]!.toLatex()})-(${factor.toLatex()})(${rows[source]![focus]!.toLatex()})`;
 		const fields = next.map((value, index) => ({
 			id: `entry-${index}`,

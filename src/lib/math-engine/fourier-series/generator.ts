@@ -127,7 +127,7 @@ export function generateFourierSeriesProblem(
 			title: "Symmetry and Vanishing Terms",
 			description:
 				"Test origin parity and half-wave symmetry independently, then remove coefficient families that must vanish.",
-			latex: String.raw`\begin{gathered}\text{origin parity: }${coeffs.originParity},\qquad \text{half-wave symmetry: }${coeffs.hasHalfWaveSymmetry ? String.raw`\text{yes}` : String.raw`\text{no}`}\\${coeffs.originParity === "odd" ? String.raw`a_0=a_n=0` : coeffs.originParity === "even" ? String.raw`b_n=0` : String.raw`a_n\text{ and }b_n\text{ must both be evaluated`}\end{gathered}`,
+			latex: String.raw`\begin{gathered}\text{origin parity: }${coeffs.originParity},\qquad \text{half-wave symmetry: }${coeffs.hasHalfWaveSymmetry ? String.raw`\text{yes}` : String.raw`\text{no}`}\\${coeffs.originParity === "odd" ? String.raw`a_0=a_n=0` : coeffs.originParity === "even" ? String.raw`b_n=0` : String.raw`a_n\text{ and }b_n\text{ must both be evaluated}`}\end{gathered}`,
 		},
 		{
 			title: "Representation Selection",

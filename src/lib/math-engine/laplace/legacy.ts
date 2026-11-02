@@ -355,7 +355,7 @@ function createTrigonometricInverse(id: string): LaplaceProblem {
 			},
 			{
 				title: "Step 2: Recall Standard Trigonometric Pairs",
-				latex: String.raw`\mathcal{L}^{-1}\left\{\frac{s}{s^2 + ${omega}^2\right\} = \cos(${omega}t) u(t), \quad \mathcal{L}^{-1}\left\{\frac{${omega}}{s^2 + ${omega}^2\right\} = \sin(${omega}t) u(t)`,
+				latex: String.raw`\mathcal{L}^{-1}\left\{\frac{s}{s^2 + ${omega}^2}\right\} = \cos(${omega}t) u(t), \quad \mathcal{L}^{-1}\left\{\frac{${omega}}{s^2 + ${omega}^2}\right\} = \sin(${omega}t) u(t)`,
 			},
 			{
 				title: "Step 3: Combine Terms by Linearity",

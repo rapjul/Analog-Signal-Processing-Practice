@@ -47,6 +47,7 @@ describe("checked coefficient elimination", () => {
 			["A", "B"],
 		);
 		expect(tasks).toHaveLength(4);
+		expect(tasks[0]!.hints[2]).toContain(String.raw`\frac{1}{2}`);
 		expect(tasks[0]!.fields.map((field) => field.target)).toEqual([
 			"1",
 			String.raw`\frac{1}{2}`,

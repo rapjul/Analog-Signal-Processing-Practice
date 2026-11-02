@@ -538,7 +538,7 @@
 
 		<div class="power-threshold-summary">
 			<MathText
-				text={String.raw`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => `$N_{${percent}\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
+				text={String.raw`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => String.raw`$N_{${percent}\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
 			/>
 		</div>
 	</section>
