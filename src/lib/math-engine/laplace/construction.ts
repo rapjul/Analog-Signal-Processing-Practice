@@ -204,19 +204,19 @@ export function constructionPreview(
 ): string {
 	if (draft.mode !== "finite")
 		return draft.mode === "zero"
-			? "\\text{Identically zero}"
-			: "\\text{No finite roots}";
+			? String.raw`\text{Identically zero}`
+			: String.raw`\text{No finite roots}`;
 	/** @param value - Incomplete literal. @returns Safe exact preview or an empty slot. */
 	const slot = (value: string): string =>
 		entryIssue(value, { kind: "literal" })
-			? "\\square"
+			? String.raw`\square`
 			: fraction(value).toLatex();
 	const rows = draft.rows.map((row, index) => {
 		const a = slot(row.first),
 			b = slot(row.second),
 			p = slot(row.power);
 		if (task.kind === "roots")
-			return `${a}${row.kind === "quadratic" ? `\\pm j${b === "1" ? "" : b}` : ""}\\quad\\text{multiplicity }${p}`;
+			return String.raw`${a}${row.kind === "quadratic" ? String.raw`\pm j${b === "1" ? "" : b}` : ""}\quad\text{multiplicity }${p}`;
 		const complete =
 			!entryIssue(row.first, { kind: "literal" }) &&
 			(row.kind === "linear" ||
@@ -236,7 +236,7 @@ export function constructionPreview(
 				: `s^2+(${a})s+${b}`;
 		const power = p === "1" ? factor : `(${factor})^{${p}}`;
 		if (task.kind === "template")
-			return `\\frac{${row.numerator === "linear" ? `A_{${index + 1}}s+B_{${index + 1}}` : `C_{${index + 1}}`}}{${power}}`;
+			return String.raw`\frac{${row.numerator === "linear" ? `A_{${index + 1}}s+B_{${index + 1}}` : `C_{${index + 1}}`}}{${power}}`;
 		return p === "1" && (draft.rows.length > 1 || draft.gain !== "1")
 			? `(${factor})`
 			: power;
@@ -246,10 +246,10 @@ export function constructionPreview(
 			? draft.gain
 			: slot(draft.gain);
 	return task.kind === "roots"
-		? rows.join(";\\quad ") || "\\square"
+		? rows.join(String.raw`;\quad `) || String.raw`\square`
 		: task.kind === "template"
 			? sumLatex([gain, ...rows])
-			: gain === "\\square"
-				? `\\square${rows.join("")}`
+			: gain === String.raw`\square`
+				? String.raw`\square${rows.join("")}`
 				: scaledLatex(fraction(draft.gain), rows.join("") || "1");
 }

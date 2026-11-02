@@ -53,21 +53,21 @@ export function buildEvaluationOptions(
 		},
 		{
 			id: `${target}-scale`,
-			latex: `${label}=\\frac{1}{2}\\left(${resultLatex}\\right)`,
+			latex: String.raw`${label}=\frac{1}{2}\left(${resultLatex}\right)`,
 			isCorrect: false,
 			feedback:
 				"Scale Factor Error: Recheck the Fourier normalization before applying the integration bounds.",
 		},
 		{
 			id: `${target}-sign`,
-			latex: `${label}=-\\left(${resultLatex}\\right)`,
+			latex: String.raw`${label}=-\left(${resultLatex}\right)`,
 			isCorrect: false,
 			feedback:
 				"Sign Error: Re-evaluate the antiderivative at the upper and lower bounds in order.",
 		},
 		{
 			id: `${target}-support`,
-			latex: `${label}=2\\left(${resultLatex}\\right)`,
+			latex: String.raw`${label}=2\left(${resultLatex}\right)`,
 			isCorrect: false,
 			feedback:
 				"Scale Factor Error: Do not apply the Fourier normalization a second time.",
@@ -136,7 +136,7 @@ export function buildStep6Data(
 		carriedCoefficients,
 		hints: [
 			"Apply the antiderivative to every non-zero interval before simplifying the harmonic index.",
-			"Use $\\cos(n\\pi)=(-1)^n$ and $\\sin(n\\pi/2)$ to expose vanished or alternating harmonics.",
+			String.raw`Use $\cos(n\pi)=(-1)^n$ and $\sin(n\pi/2)$ to expose vanished or alternating harmonics.`,
 			form === "exp"
 				? `The exponential integral evaluates to $${getExponentialEvaluationLatex(derivation)}$.`
 				: `The evaluated result is $${derivation.evaluationLatex}$.`,

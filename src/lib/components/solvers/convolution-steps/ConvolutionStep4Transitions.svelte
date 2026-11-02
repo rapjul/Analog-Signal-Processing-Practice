@@ -55,10 +55,10 @@
 	const completedTransitions = $derived(
 		problem.itsData.step4.transitionGroups
 			.map(({ time }) => `t=${time}`)
-			.join(",\\;"),
+			.join(String.raw`,\;`),
 	);
 	const completedIntervals = $derived(
-		problem.itsData.step4.intervalLabels.join(",\\;"),
+		problem.itsData.step4.intervalLabels.join(String.raw`,\;`),
 	);
 
 	/** Names one verified ledger entry by its role in the convolution workflow. */
@@ -115,7 +115,7 @@
 				{#if fixedPart && movingPart}
 					<p>
 						<MathText
-							text={`In Step 1, you found the overall support spans: $${fixedSignal}(\\tau)$ runs from $${formatConvolutionScalar(fixedPart.start)}$ to $${formatConvolutionScalar(fixedPart.end)}$, and $${solver.flippedSignal}(t)$ runs from $${formatConvolutionScalar(movingPart.start)}$ to $${formatConvolutionScalar(movingPart.end)}$. Disconnected signals can have gaps inside these spans.`}
+							text={String.raw`In Step 1, you found the overall support spans: $${fixedSignal}(\tau)$ runs from $${formatConvolutionScalar(fixedPart.start)}$ to $${formatConvolutionScalar(fixedPart.end)}$, and $${solver.flippedSignal}(t)$ runs from $${formatConvolutionScalar(movingPart.start)}$ to $${formatConvolutionScalar(movingPart.end)}$. Disconnected signals can have gaps inside these spans.`}
 						/>
 					</p>
 				{/if}
@@ -235,7 +235,7 @@
 					</p>
 					<div class="contact-context">
 						<MathText
-							text={`Fixed $${fixedSignal}(\\tau)$ breakpoint: $\\tau=${formatConvolutionScalar(activeContact.fixed)}$.`}
+							text={String.raw`Fixed $${fixedSignal}(\tau)$ breakpoint: $\tau=${formatConvolutionScalar(activeContact.fixed)}$.`}
 						/>
 						<MathText
 							text={`Original moving $${solver.flippedSignal}(t)$ breakpoint: $${formatConvolutionScalar(activeContact.moving)}$.`}

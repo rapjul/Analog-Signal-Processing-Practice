@@ -5,7 +5,7 @@ import { teaching } from "./teaching";
 
 /** @param rows - Exact augmented rows. @param labels - Consistent unknown names. @returns Current equations for an elimination task. */
 function systemLatex(rows: Poly[], labels: string[]): string {
-	return `\\begin{aligned}${rows.map((row) => `${labels.map((label, index) => `(${row[index]!.toLatex()})${label}`).join("+")}&=${row.at(-1)!.toLatex()}`).join("\\\\")}\\end{aligned}`;
+	return String.raw`\begin{aligned}${rows.map((row) => `${labels.map((label, index) => `(${row[index]!.toLatex()})${label}`).join("+")}&=${row.at(-1)!.toLatex()}`).join(String.raw`\\`)}\end{aligned}`;
 }
 
 /** @param initial - Independently derived augmented system. @param labels - Canonical coefficient names. @returns Checked rows for every nonidentity Gauss-Jordan operation. */
@@ -55,7 +55,7 @@ export function eliminationTasks(
 				: `coefficient of $${labels[focus]}$`;
 		const calculation =
 			source === null
-				? `\\frac{${previous[focus]!.toLatex()}}{${factor.toLatex()}}`
+				? String.raw`\frac{${previous[focus]!.toLatex()}{${factor.toLatex()}`
 				: `(${previous[focus]!.toLatex()})-(${factor.toLatex()})(${rows[source]![focus]!.toLatex()})`;
 		const fields = next.map((value, index) => ({
 			id: `entry-${index}`,

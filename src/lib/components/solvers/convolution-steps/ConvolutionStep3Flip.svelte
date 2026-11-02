@@ -47,7 +47,7 @@
 	<div class="summary-grid">
 		<div class="summary-note">
 			<MathText
-				text={`Moved $${solver.flippedSignal}(t)$ and kept $${solver.flippedSignal === "x" ? "h" : "x"}(\\tau)$ fixed.`}
+				text={String.raw`Moved $${solver.flippedSignal}(t)$ and kept $${solver.flippedSignal === "x" ? "h" : "x"}(\tau)$ fixed.`}
 			/>
 		</div>
 		<div class="summary-item">

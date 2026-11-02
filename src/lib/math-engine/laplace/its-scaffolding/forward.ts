@@ -76,7 +76,7 @@ export function blockAnalysis(blocks: TransformBlock[]): LaplaceStage {
 						`block-${index}-copies-values`,
 						"Count exact common copies",
 						"Compare this block's numerator and denominator factors and count matching copies only.",
-						"\\text{Common copies}={{copies}}",
+						String.raw`\text{Common copies}={{copies}}`,
 						[
 							{
 								id: "copies",
@@ -190,7 +190,7 @@ function zeroTasks(
 					`block-${index}-zero-formula-values`,
 					"Construct the exact quadratic roots",
 					"Enter the signed linear coefficient, discriminant, and twice the leading coefficient from this reduced numerator.",
-					"s=\\frac{-({{b}})\\pm\\sqrt{ {{disc}} }}{ {{twoa}} }",
+					String.raw`s=\frac{-({{b}})\pm\sqrt{ {{disc}} }}{ {{twoa}} }`,
 					[
 						{
 							id: "b",

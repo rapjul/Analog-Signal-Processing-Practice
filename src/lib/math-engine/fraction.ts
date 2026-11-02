@@ -84,7 +84,7 @@ export function toFractionLatex(
 		return isNegative ? `-${num}` : `${num}`;
 	}
 
-	const fracStr = `\\frac{${num}}{${den}}`;
+	const fracStr = String.raw`\frac{${num}}{${den}}`;
 	return isNegative ? `-${fracStr}` : fracStr;
 }
 

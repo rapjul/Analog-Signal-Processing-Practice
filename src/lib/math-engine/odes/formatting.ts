@@ -24,7 +24,7 @@ export function formatHarmonicScalar(value: number): string {
 	if (!Number.isFinite(value) || value === 0) return ordinary;
 	if (ordinary !== "0" && !/[eE][+-]?\d/.test(ordinary)) return ordinary;
 	const [mantissa, exponent] = value.toExponential().split("e");
-	return `${mantissa} \\times 10^{${Number(exponent)}}`;
+	return String.raw`${mantissa} \times 10^{${Number(exponent)}}`;
 }
 
 /**
@@ -76,12 +76,12 @@ export function formatHomogeneousResponse(
 		case "complex_conjugate": {
 			const term1 = formatSignedLinearTerm(
 				c1,
-				`\\cos(${roots.im ?? 0}t)`,
+				String.raw`\cos(${roots.im ?? 0}t)`,
 				true,
 			);
 			const term2 = formatSignedLinearTerm(
 				c2,
-				`\\sin(${roots.im ?? 0}t)`,
+				String.raw`\sin(${roots.im ?? 0}t)`,
 				false,
 			);
 			const expTerm = roots.r1 !== 0 ? formatExpTerm(roots.r1) : "";

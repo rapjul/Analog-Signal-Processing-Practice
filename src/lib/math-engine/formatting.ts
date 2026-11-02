@@ -114,8 +114,8 @@ export function formatQuadraticPolynomial(
  */
 export function formatOdeLhs(a2: number, a1: number, a0: number): string {
 	const terms: PolynomialTerm[] = [
-		{ coeff: a2, symbol: "\\frac{d^2 y}{dt^2}" },
-		{ coeff: a1, symbol: "\\frac{dy}{dt}" },
+		{ coeff: a2, symbol: String.raw`\frac{d^2 y}{dt^2}` },
+		{ coeff: a1, symbol: String.raw`\frac{dy}{dt}` },
 		{ coeff: a0, symbol: "y(t)" },
 	];
 
@@ -301,7 +301,7 @@ export function sanitizeUnitCoefficients(latex: string): string {
 	// Lookaround ensures we do NOT match multi-digit numbers like j10, j11, -j10, 10j, 31j, 151j, 0.1j
 	s = s.replace(/(?<![\d.])j1(?![0-9])/g, "j");
 	s = s.replace(/(?<![\d.])1j(?![0-9])/g, "j");
-	s = s.replace(/(?<![\d.])\\pm\s*j1(?![0-9])/g, "\\pm j");
+	s = s.replace(/(?<![\d.])\\pm\s*j1(?![0-9])/g, String.raw`\pm j`);
 
 	// Standalone and linear variables:
 	// 1x -> x, -1x -> -x, + 1t -> + t, - 1t -> - t, (1t -> (t, (-1t -> (-t
@@ -320,17 +320,17 @@ export function sanitizeUnitCoefficients(latex: string): string {
 	// Lookahead (?![0-9]) preserves \cos(10t), \cos(11t), \sin(151t)
 	s = s.replace(
 		/\\(cos|sin|tan|cot|sec|csc)\(\s*(-?)1([a-zA-Z])(?![0-9])\s*\)/g,
-		"\\$1($2$3)",
+		String.raw`\$1($2$3)`,
 	);
 	s = s.replace(
 		/\\(cos|sin|tan|cot|sec|csc)\(\s*(-?)j1([a-zA-Z])(?![0-9])\s*\)/g,
-		"\\$1($2j$3)",
+		String.raw`\$1($2j$3)`,
 	);
 
 	// Unit multiplier before functions: 1\cos -> \cos, -1\cos -> -\cos, 1e^{ -> e^{
 	s = s.replace(
 		/(?<![\d.])1\\(cos|sin|tan|cot|sec|csc|exp|frac)(?![0-9])/g,
-		"\\$1",
+		String.raw`\$1`,
 	);
 
 	return s;

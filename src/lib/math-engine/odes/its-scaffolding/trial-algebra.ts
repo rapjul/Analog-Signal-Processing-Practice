@@ -118,7 +118,9 @@ export function formatTrial(
 				? rate === 0
 					? ""
 					: formatExpTerm(rate)
-				: `\\${term.harmonic}(${toFractionLatex(frequency)}t)`;
+				: term.harmonic === "cos"
+					? String.raw`\cos(${toFractionLatex(frequency)}t)`
+					: String.raw`\sin(${toFractionLatex(frequency)}t)`;
 		const symbol = term.symbol === "input" ? "" : term.symbol;
 		fragments.push(
 			formatSignedLinearTerm(

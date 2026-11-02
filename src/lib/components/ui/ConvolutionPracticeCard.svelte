@@ -58,25 +58,25 @@
 					includedEndpoint === "right" || includedEndpoint === "both"
 						? "]"
 						: ")";
-				return `\\tau\\in${left}${leftLatex},${rightLatex}${right}`;
+				return String.raw`\tau\in${left}${leftLatex},${rightLatex}${right}`;
 			})
-			.join("\\\\");
+			.join(String.raw`\\`);
 		const transitions = problem.itsData.step4.transitionGroups
 			.map(({ time }) => `t=${time}`)
-			.join(",\\;");
+			.join(String.raw`,\;`);
 		const setups = problem.itsData.step5.parts
 			.map(
 				(part) =>
 					part.setupBySignal?.[flippedSignal].integralLatex ??
 					"y(t)=0",
 			)
-			.join("\\\\[0.4em]");
+			.join(String.raw`\\[0.4em]`);
 		const evaluated = problem.intervals
 			.map(
 				({ labelLatex, exprLatex }) =>
-					`${labelLatex}:&\\quad y(t)=${exprLatex}`,
+					String.raw`${labelLatex}:&\quad y(t)=${exprLatex}`,
 			)
-			.join("\\\\[0.4em]");
+			.join(String.raw`\\[0.4em]`);
 		return [
 			{
 				title: "Record input and output timing",
@@ -84,7 +84,7 @@
 					"Adding the input starts and ends bounds the possible overlap span. Signed contributions can cancel even while overlap continues.",
 				latex: problem.itsData.step1.parts
 					.map(({ resultLatex }) => resultLatex)
-					.join("\\\\"),
+					.join(String.raw`\\`),
 				aligned: true,
 				responsive: true,
 			},
@@ -101,7 +101,7 @@
 			{
 				title: "Apply the selected flip-and-shift path",
 				description: `The learner selected $${flippedSignal}(t)$ as the moving signal; this same path controls every later bound.`,
-				latex: `${formula}\\\\${transformedSections}`,
+				latex: String.raw`${formula}\\${transformedSections}`,
 				aligned: true,
 				responsive: true,
 			},
@@ -109,7 +109,7 @@
 				title: "Find transitions and build intervals",
 				description:
 					"Each transition comes from a fixed breakpoint contacting a reflected moving breakpoint. Sorting them creates the time intervals.",
-				latex: `\\mathcal T=\\{${transitions}\\}\\\\\\mathcal R=\\{${problem.itsData.step4.intervalLabels.join(",\\;")}\\}`,
+				latex: String.raw`\mathcal T=\{${transitions}\}\\\mathcal R=\{${problem.itsData.step4.intervalLabels.join(String.raw`,\;`)}\}`,
 				aligned: true,
 				responsive: true,
 			},

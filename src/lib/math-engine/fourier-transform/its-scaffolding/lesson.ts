@@ -275,7 +275,7 @@ export function buildCtftLesson(
 	setup.mathChoices = true;
 	const derivation =
 		mode === "derivation" ? buildCtftDerivation(baseProblem) : null;
-	const phase = params.t0 === 0 ? "1" : `e^{${-params.t0}j\\omega}`;
+	const phase = params.t0 === 0 ? "1" : String.raw`e^{${-params.t0}j\omega}`;
 	const property = part(
 		"operation",
 		"Choose the operational property",
@@ -304,7 +304,7 @@ export function buildCtftLesson(
 					`weight-${row}`,
 					`Impulse ${row + 1} complex weight`,
 					"weight",
-					"\\pi",
+					String.raw`\pi`,
 					shift === 0
 						? String.raw`Each base cosine impulse has weight $\pi$, not $1/2$ or $2\pi$.`
 						: String.raw`Evaluate $\pi e^{-j\omega t_0}$ at this row's verified impulse location.`,

@@ -119,7 +119,7 @@
 							text={solver.task.kind === "roots"
 								? row.kind === "linear"
 									? "Root: $a$"
-									: "Roots: $a\\pm j b$, with $b>0$"
+									: String.raw`Roots: $a\pm j b$, with $b>0$`
 								: row.kind === "linear"
 									? "Factor: $(s+b)^m$"
 									: "Factor: $(s^2+bs+c)^m$"}

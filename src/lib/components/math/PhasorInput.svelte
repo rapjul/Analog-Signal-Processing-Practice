@@ -29,16 +29,16 @@
 
 	/** Time domain inputs state */
 	let amp = $state("10");
-	let omega = $state("100\\pi");
-	let phaseStr = $state("45^\\circ");
+	let omega = $state(String.raw`100\pi`);
+	let phaseStr = $state(String.raw`45^\circ`);
 
 	/** Rectangular inputs state */
 	let realPart = $state("7.07");
 	let imagPart = $state("7.07");
 
 	// MathText formula constants for UI labels
-	const polarMath = "|V| \\angle \\theta^\\circ";
-	const timeDomainMath = "A \\cos(\\omega t + \\phi)";
+	const polarMath = String.raw`|V| \angle \theta^\circ`;
+	const timeDomainMath = String.raw`A \cos(\omega t + \phi)`;
 	const rectangularMath = "X + jY";
 
 	/**
@@ -49,9 +49,9 @@
 		const m = mag || "1";
 		const a = angleDeg || "0";
 		if (polarNotation === "exp_j") {
-			return `${m} e^{j ${a}^\\circ}`;
+			return String.raw`${m} e^{j ${a}^\circ}`;
 		}
-		return `${m} \\angle ${a}^\\circ`;
+		return String.raw`${m} \angle ${a}^\circ`;
 	}
 
 	/**
@@ -60,11 +60,11 @@
 	 */
 	function getTimeDomainLatex(): string {
 		const a = amp || "1";
-		const w = omega || "\\omega";
+		const w = omega || String.raw`\omega`;
 		const p = phaseStr.trim();
 		const pFormatted =
 			p.startsWith("+") || p.startsWith("-") ? p : `+ ${p}`;
-		return `${a} \\cos(${w} t ${p ? pFormatted : ""})`;
+		return String.raw`${a} \cos(${w} t ${p ? pFormatted : ""})`;
 	}
 
 	/**

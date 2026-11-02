@@ -78,9 +78,9 @@
 			case "t_less":
 				return `t < ${row.upperBound || "0"}`;
 			case "between":
-				return `${row.lowerBound || "0"} \\le t \\le ${row.upperBound || "1"}`;
+				return String.raw`${row.lowerBound || "0"} \le t \le ${row.upperBound || "1"}`;
 			case "t_greater":
-				return `t \\ge ${row.lowerBound || "0"}`;
+				return String.raw`t \ge ${row.lowerBound || "0"}`;
 			default:
 				return "t";
 		}
@@ -96,7 +96,7 @@
 			const first = intervals[0];
 			const expr = first.expression.trim() || "0";
 			const cond = formatCondition(first);
-			return `${expr} \\quad \\text{for } ${cond}`;
+			return String.raw`${expr} \quad \text{for } ${cond}`;
 		}
 
 		const casesStr = intervals
@@ -105,9 +105,9 @@
 				const cond = formatCondition(row);
 				return `${expr}, & ${cond}`;
 			})
-			.join(" \\\\ ");
+			.join(String.raw` \\ `);
 
-		return `\\begin{cases} ${casesStr} \\end{cases}`;
+		return String.raw`\begin{cases} ${casesStr} \end{cases}`;
 	}
 
 	/**
@@ -227,7 +227,7 @@
 							aria-label="Lower boundary A"
 						/>
 						<span class="sep">
-							<MathInline math={"\\le t \\le"} />
+							<MathInline math={String.raw`\le t \le`} />
 						</span>
 						<input
 							id="upper-between-{row.id}"

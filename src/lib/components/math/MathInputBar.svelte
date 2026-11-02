@@ -46,7 +46,7 @@
 		r1 = $bindable(""),
 		r2 = $bindable(""),
 		label = "Enter Math Solution:",
-		placeholder = "e.g. 2 e^{-2t} \\cos(3t) u(t)",
+		placeholder = String.raw`e.g. 2 e^{-2t} \cos(3t) u(t)`,
 		inputType = "generic",
 		onChange,
 	}: Props = $props();
@@ -61,20 +61,40 @@
 
 	/** Common Symbol Shortcuts for freehand mode */
 	const symbols = [
-		{ label: "Fraction", math: "\\frac{a}{b}", latex: "\\frac{a}{b}" },
+		{
+			label: "Fraction",
+			math: String.raw`\frac{a}{b}`,
+			latex: String.raw`\frac{a}{b}`,
+		},
 		{ label: "e^x", math: "e^{-t}", latex: "e^{-t}" },
-		{ label: "cos", math: "\\cos(\\omega t)", latex: "\\cos(\\omega t)" },
-		{ label: "sin", math: "\\sin(\\omega t)", latex: "\\sin(\\omega t)" },
+		{
+			label: "cos",
+			math: String.raw`\cos(\omega t)`,
+			latex: String.raw`\cos(\omega t)`,
+		},
+		{
+			label: "sin",
+			math: String.raw`\sin(\omega t)`,
+			latex: String.raw`\sin(\omega t)`,
+		},
 		{ label: "u(t)", math: "u(t)", latex: "u(t)" },
-		{ label: "delta(t)", math: "\\delta(t)", latex: "\\delta(t)" },
-		{ label: "pi", math: "\\pi", latex: "\\pi" },
-		{ label: "omega", math: "\\omega", latex: "\\omega" },
+		{
+			label: "delta(t)",
+			math: String.raw`\delta(t)`,
+			latex: String.raw`\delta(t)`,
+		},
+		{ label: "pi", math: String.raw`\pi`, latex: String.raw`\pi` },
+		{ label: "omega", math: String.raw`\omega`, latex: String.raw`\omega` },
 		{
 			label: "angle theta",
-			math: "\\angle \\theta^\\circ",
-			latex: "\\angle \\theta^\\circ",
+			math: String.raw`\angle \theta^\circ`,
+			latex: String.raw`\angle \theta^\circ`,
 		},
-		{ label: "sqrt(x)", math: "\\sqrt{x}", latex: "\\sqrt{x}" },
+		{
+			label: "sqrt(x)",
+			math: String.raw`\sqrt{x}`,
+			latex: String.raw`\sqrt{x}`,
+		},
 	];
 
 	/**

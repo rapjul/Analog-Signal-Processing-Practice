@@ -41,7 +41,7 @@ function scalarLatex(value: number, absolute = false): string {
 	const numerator = absolute ? Math.abs(rawNumerator) : rawNumerator;
 	return denominator === 1
 		? String(numerator)
-		: `\\frac{${numerator}}{${denominator}}`;
+		: String.raw`\frac{${numerator}}{${denominator}}`;
 }
 
 function polynomialLatex(polynomial: Polynomial): string {
@@ -84,8 +84,8 @@ function uniqueSorted(values: number[]): number[] {
 
 function intervalLabel(min: number, max: number): string {
 	if (!Number.isFinite(min)) return `t < ${scalarLatex(max)}`;
-	if (!Number.isFinite(max)) return `t \\ge ${scalarLatex(min)}`;
-	return `${scalarLatex(min)} \\le t < ${scalarLatex(max)}`;
+	if (!Number.isFinite(max)) return String.raw`t \ge ${scalarLatex(min)}`;
+	return String.raw`${scalarLatex(min)} \le t < ${scalarLatex(max)}`;
 }
 
 function intervalRanges(boundaries: number[]): Array<[number, number]> {
@@ -338,7 +338,7 @@ function solveExponentials(
 	const equalRates = Math.abs(x.parameter - h.parameter) < EPSILON;
 	const activeExpression = equalRates
 		? `${scalarLatex(coefficient)}(${formatShiftedTime(onset)})e^{-${x.parameter}(${formatShiftedTime(onset)})}`
-		: `\\frac{${scalarLatex(coefficient)}}{${scalarLatex(h.parameter - x.parameter)}}\\left(e^{-${x.parameter}(${formatShiftedTime(onset)})}-e^{-${h.parameter}(${formatShiftedTime(onset)})}\\right)`;
+		: String.raw`\frac{${scalarLatex(coefficient)}}{${scalarLatex(h.parameter - x.parameter)}}\left(e^{-${x.parameter}(${formatShiftedTime(onset)})}-e^{-${h.parameter}(${formatShiftedTime(onset)})}\right)`;
 	const activeEval = (t: number): number => {
 		if (t < onset) return 0;
 		const elapsed = t - onset;

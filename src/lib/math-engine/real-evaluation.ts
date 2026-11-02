@@ -13,7 +13,7 @@ type Operation = (args: unknown[], vars: Bindings) => number | null;
  * @returns Assigned value, known constant, or null.
  */
 function resolveSymbol(symbol: string, vars: Bindings): number | null {
-	if (["Pi", "pi", "\\pi"].includes(symbol)) return Math.PI;
+	if (["Pi", "pi", String.raw`\pi`].includes(symbol)) return Math.PI;
 	if (["ExponentialE", "e"].includes(symbol)) return Math.E;
 	return symbol in vars ? (vars[symbol] ?? null) : null;
 }

@@ -104,8 +104,8 @@ export function exactCtftSolution(
 			task.kind === "location"
 				? String(location)
 				: shift === 0
-					? "\\pi"
-					: `\\pi e^{-j(${location})(${shift})}`;
+					? String.raw`\pi`
+					: String.raw`\pi e^{-j(${location})(${shift})}`;
 	}
 	return summarizeCtftInput(task, target);
 }
@@ -120,7 +120,7 @@ export function displayCtftInput(input: string): string {
 		return normalizeMathLatex(
 			normalizeTransformNotation(input, "omega"),
 			false,
-		).replace(/\\operatorname\{DiracDelta\}/g, "\\delta");
+		).replace(/\\operatorname\{DiracDelta\}/g, String.raw`\delta`);
 	} catch {
 		return input;
 	}

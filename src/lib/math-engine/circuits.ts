@@ -420,7 +420,7 @@ export function createCircuitProblem(
 		id: `circuit-${topology}-${Date.now()}`,
 		topology,
 		components: { ...components },
-		promptLatex: `\\text{Derive the transfer function } H(s) \\text{ for the } \\text{${name}} \\text{ with } R = ${R}\\Omega${circuitUsesInductor(topology) ? `, L = ${L}\\text{H}` : ""}${circuitUsesCapacitor(topology) ? `, C = ${C}\\text{F}` : ""}.`,
+		promptLatex: String.raw`\text{Derive the transfer function } H(s) \text{ for the } \text{${name}} \text{ with } R = ${R}\Omega${circuitUsesInductor(topology) ? String.raw`, L = ${L}\text{H}` : ""}${circuitUsesCapacitor(topology) ? String.raw`, C = ${C}\text{F}` : ""}.`,
 		referenceAnswerLatex: tf.hLatex,
 		solutionSteps: [
 			{
@@ -429,11 +429,11 @@ export function createCircuitProblem(
 			},
 			{
 				title: "Step 2: Apply Voltage Divider / Node Voltage Equations",
-				latex: `H(s) = \\frac{Z_{out}(s)}{Z_{in}(s)} = ${tf.hLatex}`,
+				latex: String.raw`H(s) = \frac{Z_{out}(s)}{Z_{in}(s)} = ${tf.hLatex}`,
 			},
 			{
 				title: "Step 3: Identify Characteristic Parameters",
-				latex: `\\text{Derived Transfer Function } H(s) = ${tf.hLatex}`,
+				latex: String.raw`\text{Derived Transfer Function } H(s) = ${tf.hLatex}`,
 			},
 		],
 	};

@@ -154,7 +154,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 					"ode-derivative-values",
 					"Apply the first-derivative rule",
 					"Substitute the supplied initial output into the verified rule, retaining its sign, including zero.",
-					"\\mathcal L_+\\{y'\\}=sY(s)-({{y0}})",
+					String.raw`\mathcal L_+\{y'\}=sY(s)-({{y0}})`,
 					[
 						{
 							id: "y0",
@@ -181,7 +181,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 								"ode-second-values",
 								"Apply the second-derivative rule",
 								"Substitute the supplied initial output and derivative into their matching slots, retaining their signs, including zeros.",
-								"\\mathcal L_+\\{y''\\}=s^2Y(s)-s({{y0}})-({{dy0}})",
+								String.raw`\mathcal L_+\{y''\}=s^2Y(s)-s({{y0}})-({{dy0}})`,
 								[
 									{
 										id: "y0",
@@ -309,7 +309,7 @@ export function createOdeExercise(input: OdeExercise): LaplaceExercise {
 	return {
 		spec,
 		prompt,
-		conditions: `Unilateral IVP for $t\\ge0$: $y(0^-)=${y0.toLatex()}${order === 2 ? `,\\ y'(0^-)=${dy0.toLatex()}` : ""}$.`,
+		conditions: String.raw`Unilateral IVP for $t\ge0$: $y(0^-)=${y0.toLatex()}${order === 2 ? String.raw`,\ y'(0^-)=${dy0.toLatex()}` : ""}$.`,
 		transform: solution.transform,
 		response: solution.response,
 		terms,

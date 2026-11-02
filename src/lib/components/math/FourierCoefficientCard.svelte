@@ -55,8 +55,8 @@
 		direct = $bindable(""),
 		coeffLatex,
 		numPlaceholder = "e.g. 4 or 2",
-		denPlaceholder = "e.g. n \\pi or n^2 \\pi^2",
-		directPlaceholder = "e.g. 2 / (n \\pi)",
+		denPlaceholder = String.raw`e.g. n \pi or n^2 \pi^2`,
+		directPlaceholder = String.raw`e.g. 2 / (n \pi)`,
 		onUpdate,
 	}: Props = $props();
 </script>

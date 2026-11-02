@@ -120,7 +120,7 @@ function buildPathSetup(
 			.slice(0, -1)
 			.map(
 				(lower, index) =>
-					`\\int_{${lower}}^{${boundaries[index + 1]}}${fixedName}(\\tau)${movingSignal}(t-\\tau)\\,d\\tau`,
+					String.raw`\int_{${lower}}^{${boundaries[index + 1]}}${fixedName}(\tau)${movingSignal}(t-\tau)\,d\tau`,
 			);
 	});
 	return {
@@ -167,10 +167,10 @@ export function buildSetupPart(
 			];
 		const lowerCandidates = setup.overlaps
 			.map(({ lowerCandidatesLatex }) => lowerCandidatesLatex.join(","))
-			.join(";\\;");
+			.join(String.raw`;\;`);
 		const upperCandidates = setup.overlaps
 			.map(({ upperCandidatesLatex }) => upperCandidatesLatex.join(","))
-			.join(";\\;");
+			.join(String.raw`;\;`);
 		const splitPoints = setup.overlaps.flatMap(
 			({ splitPointsLatex }) => splitPointsLatex,
 		);
@@ -178,7 +178,7 @@ export function buildSetupPart(
 			`Use the representative interior time $t=${formatConvolutionScalar(representativeTime(interval))}$ for $${interval.labelLatex}$.`,
 			`Compare lower candidates $${lowerCandidates}$ and upper candidates $${upperCandidates}$.`,
 			splitPoints.length > 0
-				? `Split at $${splitPoints.join(",\\;")}$.`
+				? String.raw`Split at $${splitPoints.join(String.raw`,\;`)}$.`
 				: `The verified setup is $${setup.integralLatex}$.`,
 		];
 	};
@@ -245,7 +245,7 @@ export function buildEvaluationPart(
 		id: `interval-${String(index + 1).padStart(2, "0")}`,
 		title: `Evaluate Region ${index + 1}`,
 		intervalLatex: interval.labelLatex,
-		resultLatex: `y(t)=${interval.exprLatex},\\quad ${interval.labelLatex}`,
+		resultLatex: String.raw`y(t)=${interval.exprLatex},\quad ${interval.labelLatex}`,
 		options: [],
 		carriedZero,
 		primitiveLatex: carriedZero ? "0" : primitiveBySignal.h,

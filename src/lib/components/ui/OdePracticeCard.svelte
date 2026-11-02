@@ -52,13 +52,13 @@
 		},
 		{
 			label: "Zero-Input Response",
-			math: "y_{\\text{ZI}}(t)",
+			math: String.raw`y_{\text{ZI}}(t)`,
 			color: "#10b981",
 			eval: problem.evalZI,
 		},
 		{
 			label: "Zero-State Response",
-			math: "y_{\\text{ZS}}(t)",
+			math: String.raw`y_{\text{ZS}}(t)`,
 			color: "#f59e0b",
 			eval: problem.evalZS,
 		},
@@ -127,7 +127,7 @@
 			<!-- Live Multi-Curve Response Plot Canvas -->
 			<div class="visualizer-wrapper">
 				<WaveformCanvas
-					title={"Verified System Response: Total $y(t)$, Zero-Input $y_{\\text{ZI}}(t)$, & Zero-State $y_{\\text{ZS}}(t)$"}
+					title={String.raw`Verified System Response: Total $y(t)$, Zero-Input $y_{\text{ZI}}(t)$, & Zero-State $y_{\text{ZS}}(t)$`}
 					tRange={[0, 5]}
 					curves={plotCurves}
 				/>

@@ -46,15 +46,13 @@ export function validateStep5Coefficients(
 		if (approximatelyEqual(vA, expB) && approximatelyEqual(vB, expA)) {
 			return {
 				kind: "misconception",
-				message:
-					"Swapped Coefficients: You inverted $A$ and $B$. Remember that $A$ is the coefficient for $\\cos(\\omega t)$ and $B$ is the coefficient for $\\sin(\\omega t)$.",
+				message: String.raw`Swapped Coefficients: You inverted $A$ and $B$. Remember that $A$ is the coefficient for $\cos(\omega t)$ and $B$ is the coefficient for $\sin(\omega t)$.`,
 			};
 		}
 
 		return {
 			kind: "incorrect",
-			message:
-				"Incorrect coefficients $A$ and $B$. Solve the $2\\times 2$ system by substitution or Cramer's Rule.",
+			message: String.raw`Incorrect coefficients $A$ and $B$. Solve the $2\times 2$ system by substitution or Cramer's Rule.`,
 		};
 	}
 

@@ -72,7 +72,7 @@
 	): string {
 		try {
 			const formattedExpr = useDisplayStyle
-				? `\\displaystyle ${expr || ""}`
+				? String.raw`\displaystyle ${expr || ""}`
 				: expr || "";
 			return katex.renderToString(formattedExpr, {
 				displayMode: false,

@@ -219,9 +219,9 @@
 										: activeState.stage === "geometry-width"
 											? String.raw`Enter the overlap width $U(t)-L(t)$:`
 											: activeState.stage === "upper"
-												? `Evaluate $F(\\tau,t)$ at the upper limit $${activeTerm.upperLatex}$:`
+												? String.raw`Evaluate $F(\tau,t)$ at the upper limit $${activeTerm.upperLatex}$:`
 												: activeState.stage === "lower"
-													? `Evaluate $F(\\tau,t)$ at the lower limit $${activeTerm.lowerLatex}$:`
+													? String.raw`Evaluate $F(\tau,t)$ at the lower limit $${activeTerm.lowerLatex}$:`
 													: String.raw`Enter $F(U(t),t)-F(L(t),t)$ with the subtraction sign preserved:`}
 								/>
 							</span>

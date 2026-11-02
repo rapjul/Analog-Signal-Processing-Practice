@@ -56,7 +56,7 @@ export function supportTasks(
 			min: min === null ? null : `${min.numerator}/${min.denominator}`,
 			max: max === null ? null : `${max.numerator}/${max.denominator}`,
 		};
-		const range = `${min?.toLatex() ?? "-\\infty"}<t<${max?.toLatex() ?? "\\infty"}`;
+		const range = String.raw`${min?.toLatex() ?? String.raw`-\infty`}<t<${max?.toLatex() ?? String.raw`\infty`}`;
 		intervals.push(`${target}&${range}`);
 		const fields: LaplaceAnswerField[] = [
 			...ordinary.map(({ index: termIndex, term }, i) => ({
@@ -105,7 +105,7 @@ export function supportTasks(
 				"Transform the original terms without checking a common ROC",
 			]),
 			prompt: "Your checked intervals assemble the ordinary signal below. The independently verified supported representation has a common ROC; carry it into the transform pairs.",
-			formula: `x_{\\mathrm{regular}}(t)=\\begin{cases}${intervals.join("\\\\")}\\end{cases}`,
+			formula: String.raw`x_{\mathrm{regular}}(t)=\begin{cases}${intervals.join(String.raw`\\`)}\end{cases}`,
 			...teaching(
 				"Linearity permits adding individual Laplace transforms where those transforms have a common region of convergence. Combining canceled tails first can expose that region.",
 				`Use your checked interval sums, preserving these separate impulse terms: $${responseLatex(original.filter((term) => term.kind === "impulse"))}$.`,

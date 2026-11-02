@@ -56,7 +56,7 @@ export function renderLaplaceFields(
 ): string {
 	return frame.replace(
 		/\{\{([a-z0-9-]+)\}\}/g,
-		(_match, id: string) => values[id]?.trim() || "\\square",
+		(_match, id: string) => values[id]?.trim() || String.raw`\square`,
 	);
 }
 
@@ -69,19 +69,21 @@ export function renderLaplaceFieldTask(
 		task.fields.map((field) => {
 			const value = values[field.id] ?? "";
 			if (field.entry?.kind === "degree" && value === ZERO_POLYNOMIAL)
-				return [field.id, "\\mathrm{undefined}"];
+				return [field.id, String.raw`\mathrm{undefined}`];
 			if (field.entry?.kind === "boolean")
 				return [
 					field.id,
-					value === "1" ? "\\text{Active}" : "\\text{Inactive}",
+					value === "1"
+						? String.raw`\text{Active}`
+						: String.raw`\text{Inactive}`,
 				];
 			try {
 				if (entryIssue(value, field.entry ?? { kind: "exact" }))
-					return [field.id, "\\square"];
+					return [field.id, String.raw`\square`];
 				parseStrictLatex(value);
 				return [field.id, value];
 			} catch {
-				return [field.id, "\\square"];
+				return [field.id, String.raw`\square`];
 			}
 		}),
 	);
@@ -94,12 +96,12 @@ export function laplaceAnswerLabel(id: string, kind: "s" | "t"): string {
 		"forward-final": "X(s)",
 		"factor-numerator": "N(s)",
 		"factor-denominator": "D(s)",
-		"ode-zi": "Y_{\\mathrm{ZI}}(s)",
-		"ode-zs": "Y_{\\mathrm{ZS}}(s)",
+		"ode-zi": String.raw`Y_{\mathrm{ZI}}(s)`,
+		"ode-zs": String.raw`Y_{\mathrm{ZS}}(s)`,
 		"ode-total": "Y(s)",
 		"ode-response": "y(t)",
-		"ode-check-zi": "y_{\\mathrm{ZI}}(t)",
-		"ode-check-zs": "y_{\\mathrm{ZS}}(t)",
+		"ode-check-zi": String.raw`y_{\mathrm{ZI}}(t)`,
+		"ode-check-zs": String.raw`y_{\mathrm{ZS}}(t)`,
 	};
 	return labels[id] ?? (kind === "t" ? "x(t)" : "F(s)");
 }

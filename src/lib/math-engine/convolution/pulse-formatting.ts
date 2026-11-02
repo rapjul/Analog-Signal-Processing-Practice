@@ -36,7 +36,7 @@ export function formatRectPulseLatex(
 	const argument = formatTranslatedArgument("t", shift);
 	const body =
 		width === 1
-			? `\\operatorname{rect}(${argument})`
-			: `\\operatorname{rect}\\left(\\frac{${argument}}{${width}}\\right)`;
+			? String.raw`\operatorname{rect}(${argument})`
+			: String.raw`\operatorname{rect}\left(\frac{${argument}}{${width}}\right)`;
 	return sanitizeLatexMath(formatPulseScale(amplitude, body));
 }

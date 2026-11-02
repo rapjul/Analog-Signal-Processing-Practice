@@ -101,7 +101,7 @@ function formatSignal(term: LaplaceSignalTerm, supported: boolean): string {
 		amplitude = fractionLatex(term.amplitude);
 	const time = shiftedTime(term.delay);
 	if (term.kind === "impulse")
-		return scaledLatex(amplitude, `\\delta(${time})`);
+		return scaledLatex(amplitude, String.raw`\delta(${time})`);
 	const rate = fraction(term.rate),
 		frequency = fraction(term.frequency);
 	const polynomial =
@@ -113,7 +113,9 @@ function formatSignal(term: LaplaceSignalTerm, supported: boolean): string {
 		: "";
 	const trig =
 		term.kind === "cosine" || term.kind === "sine"
-			? `\\${term.kind === "cosine" ? "cos" : "sin"}(${scaledLatex(frequency, time, !!delay.numerator)})`
+			? term.kind === "cosine"
+				? String.raw`\cos(${scaledLatex(frequency, time, !!delay.numerator)})`
+				: String.raw`\sin(${scaledLatex(frequency, time, !!delay.numerator)})`
 			: "";
 	const support =
 		term.side === "left"

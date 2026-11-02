@@ -90,7 +90,7 @@ export function derivePreviewQuadSetup(
 ): string {
 	const disc = a1 * a1 - 4 * a2 * a0;
 	const negB = -a1;
-	return `s = \\frac{-(${a1}) \\pm \\sqrt{(${a1})^2 - 4(${a2})(${a0})}}{2(${a2})} = \\frac{${negB} \\pm \\sqrt{${disc}}}{${2 * a2}}`;
+	return String.raw`s = \frac{-(${a1}) \pm \sqrt{(${a1})^2 - 4(${a2})(${a0})}}{2(${a2})} = \frac{${negB} \pm \sqrt{${disc}}}{${2 * a2}}`;
 }
 
 /**
@@ -104,9 +104,9 @@ export function derivePreviewComplexRoots(
 	sigma: string,
 	omegaD: string,
 ): string {
-	const sigStr = sigma.trim() !== "" ? sigma.trim() : "\\sigma";
-	const omStr = omegaD.trim() !== "" ? omegaD.trim() : "\\omega_d";
-	return `s = ${sigStr} \\pm j${omStr}`;
+	const sigStr = sigma.trim() !== "" ? sigma.trim() : String.raw`\sigma`;
+	const omStr = omegaD.trim() !== "" ? omegaD.trim() : String.raw`\omega_d`;
+	return String.raw`s = ${sigStr} \pm j${omStr}`;
 }
 
 /**

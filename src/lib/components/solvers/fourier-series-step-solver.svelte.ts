@@ -250,7 +250,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		if (pTrimmed === "" || fTrimmed === "") {
 			this.setValidation(
 				this.step1,
-				"Please enter numeric or symbolic values for both the period $T_0$ and fundamental frequency $\\omega_0$.",
+				String.raw`Please enter numeric or symbolic values for both the period $T_0$ and fundamental frequency $\omega_0$.`,
 			);
 			return;
 		}
@@ -279,7 +279,7 @@ export class FourierSeriesStepSolverState extends BaseStepSolverState {
 		if (!matchesFrequencyAnswer(fTrimmed, this.step1.freqUnit, s1Data)) {
 			this.setIncorrect(
 				this.step1,
-				"Incorrect Fundamental Frequency: use $\\omega_0 = \\frac{2\\pi}{T_0}$. (e.g. $\\pi$ or $\\pi/2$).",
+				String.raw`Incorrect Fundamental Frequency: use $\omega_0 = \frac{2\pi}{T_0}$. (e.g. $\pi$ or $\pi/2$).`,
 			);
 			return;
 		}

@@ -85,7 +85,7 @@
 			</figcaption>
 			<div class="axis-row fixed-row">
 				<span class="row-label">
-					<MathText text={`Fixed $${fixedSignal}(\\tau)$`} />
+					<MathText text={String.raw`Fixed $${fixedSignal}(\tau)$`} />
 				</span>
 				<span
 					class="axis"
@@ -99,7 +99,9 @@
 			</div>
 			<div class="axis-row moving-row">
 				<span class="row-label">
-					<MathText text={`Moving $${movingSignal}(t-\\tau)$`} />
+					<MathText
+						text={String.raw`Moving $${movingSignal}(t-\tau)$`}
+					/>
 				</span>
 				<span
 					class="axis"

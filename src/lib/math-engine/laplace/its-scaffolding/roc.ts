@@ -108,7 +108,7 @@ export function createRocExercise(input: RationalExercise): LaplaceExercise {
 				task(
 					"axis",
 					"Check the imaginary axis",
-					"The entire line $\\Re(s)=0$ must lie inside the ROC.",
+					String.raw`The entire line $\Re(s)=0$ must lie inside the ROC.`,
 					"choice",
 					problem.stable
 						? "Axis is inside the ROC"

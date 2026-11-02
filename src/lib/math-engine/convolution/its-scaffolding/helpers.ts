@@ -88,8 +88,8 @@ function buildTransitionGroups(
 									? `${moving}-${groupId}-contact-1`
 									: undefined,
 							formulationHints: [
-								`The fixed breakpoint is $\\tau=${formatConvolutionScalar(fixed)}$.`,
-								`After reflection and translation, moving breakpoint $${formatConvolutionScalar(movingPoint)}$ appears at $\\tau=${transformedLatex}$.`,
+								String.raw`The fixed breakpoint is $\tau=${formatConvolutionScalar(fixed)}$.`,
+								String.raw`After reflection and translation, moving breakpoint $${formatConvolutionScalar(movingPoint)}$ appears at $\tau=${transformedLatex}$.`,
 								`Set the breakpoint positions equal: $${equationLatex}$.`,
 							],
 							solutionHints: [
@@ -135,7 +135,7 @@ function timingPart(
 		start,
 		end,
 		width,
-		resultLatex: `${id}_{\\mathrm{${id === "y" ? "overlap,start" : "start"}}}=${formatConvolutionScalar(start)},\\quad ${id}_{\\mathrm{${id === "y" ? "overlap,end" : "end"}}}=${formatConvolutionScalar(end)},\\quad W_{${id}${id === "y" ? ",\\mathrm{overlap}" : ""}}=${formatConvolutionScalar(width)}`,
+		resultLatex: String.raw`${id}_{\mathrm{${id === "y" ? "overlap,start" : "start"}}}=${formatConvolutionScalar(start)},\quad ${id}_{\mathrm{${id === "y" ? "overlap,end" : "end"}}}=${formatConvolutionScalar(end)},\quad W_{${id}${id === "y" ? String.raw`,\mathrm{overlap}` : ""}}=${formatConvolutionScalar(width)}`,
 		hints:
 			id === "y"
 				? [
@@ -194,7 +194,7 @@ export function buildConvolutionItsData(
 	const definitionOptions = [
 		{
 			id: "convolution-integral",
-			latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+			latex: String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau`,
 			isCorrect: true,
 		},
 		{
@@ -206,14 +206,13 @@ export function buildConvolutionItsData(
 		},
 		{
 			id: "correlation-integral",
-			latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau",
+			latex: String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(\tau-t)\,d\tau`,
 			isCorrect: false,
-			feedback:
-				"The moving argument has the wrong orientation; reflection requires $t-\\tau$.",
+			feedback: String.raw`The moving argument has the wrong orientation; reflection requires $t-\tau$.`,
 		},
 		{
 			id: "outside-variable",
-			latex: "y(t)=x(t)\\int_{-\\infty}^{\\infty}h(t-\\tau)\\,d\\tau",
+			latex: String.raw`y(t)=x(t)\int_{-\infty}^{\infty}h(t-\tau)\,d\tau`,
 			isCorrect: false,
 			feedback:
 				"Both signals must depend on the integration variable inside the convolution integral.",
@@ -245,8 +244,8 @@ export function buildConvolutionItsData(
 			options: shuffledDefinitionOptions,
 			hints: [
 				"Convolution combines reflection, translation, multiplication, and integration.",
-				"Use $\\tau$ as the integration variable while $t$ remains a parameter.",
-				"One signal is fixed in $\\tau$ and the other uses $t-\\tau$.",
+				String.raw`Use $\tau$ as the integration variable while $t$ remains a parameter.`,
+				String.raw`One signal is fixed in $\tau$ and the other uses $t-\tau$.`,
 			],
 		},
 		step3: {
@@ -266,7 +265,7 @@ export function buildConvolutionItsData(
 			},
 			choiceHints: [
 				"Both choices produce the same convolution because convolution is commutative.",
-				"Keep one signal fixed in $\\tau$ and reflect and translate the other.",
+				String.raw`Keep one signal fixed in $\tau$ and reflect and translate the other.`,
 				"Choose the shape whose reflected edges are easiest for you to track.",
 			],
 			edgeHints: [
@@ -336,7 +335,7 @@ export function buildConvolutionItsData(
 			intervalBuilderHints: [
 				"Use the verified transition times from smallest to largest.",
 				"The first interval is left-unbounded and the final interval is right-unbounded.",
-				`The ordered boundaries are $${intervalBoundaries.map(formatConvolutionScalar).join(",\\;")}$.`,
+				String.raw`The ordered boundaries are $${intervalBoundaries.map(formatConvolutionScalar).join(String.raw`,\;`)}$.`,
 			],
 		},
 		step5: {

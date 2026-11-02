@@ -288,8 +288,8 @@ export function resolveConvolutionSignal(
 			latex: scaleLatex(
 				amplitude,
 				parameter === 2
-					? `\\Delta\\left(${argument}\\right)`
-					: `\\Delta\\left(\\frac{2(${argument})}{${parameter}}\\right)`,
+					? String.raw`\Delta\left(${argument}\right)`
+					: String.raw`\Delta\left(\frac{2(${argument})}{${parameter}}\right)`,
 			),
 			sections: [section(`${key}-1`, start, end)],
 			breakpoints: [start, shift, end],

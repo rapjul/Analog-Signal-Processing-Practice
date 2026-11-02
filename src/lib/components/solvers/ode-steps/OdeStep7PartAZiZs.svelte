@@ -54,7 +54,7 @@
 		</span>
 		<p class="callout-text">
 			<MathText
-				text={"The Zero-Input response represents the system's natural release of stored energy when no external forcing is applied ($x(t) = 0$). Because $x(t) = 0 \\implies y_p(t) = 0$, the initial condition targets match the full initial energy directly: $y_{ZI}(0) = y(0)$."}
+				text={String.raw`The Zero-Input response represents the system's natural release of stored energy when no external forcing is applied ($x(t) = 0$). Because $x(t) = 0 \implies y_p(t) = 0$, the initial condition targets match the full initial energy directly: $y_{ZI}(0) = y(0)$.`}
 			/>
 		</p>
 	</div>
@@ -134,7 +134,7 @@
 			<MathText
 				text={problem.params.order === 1
 					? `Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}$`
-					: `Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}, \\quad C_{2,ZS} = C_2 - C_{2,ZI} = ${solver.derivedZSC2}$`}
+					: String.raw`Superposition Identity: $C_{1,ZS} = C_1 - C_{1,ZI} = ${solver.derivedZSC1}, \quad C_{2,ZS} = C_2 - C_{2,ZI} = ${solver.derivedZSC2}$`}
 			/>
 		</div>
 		<MathBlock

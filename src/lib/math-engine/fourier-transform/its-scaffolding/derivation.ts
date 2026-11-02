@@ -60,7 +60,8 @@ export function buildCtftDerivation(
 	const { T, a, w0 } = problem.params;
 	const halfWidth = formatCtftHalfWidth(T);
 	/** Simplified half-width frequency used in endpoint and sine prompts. */
-	const halfFrequency = T === 2 ? String.raw`\omega` : `${halfWidth}\\omega`;
+	const halfFrequency =
+		T === 2 ? String.raw`\omega` : String.raw`${halfWidth}\omega`;
 	switch (problem.signalType) {
 		case "rect":
 			return {

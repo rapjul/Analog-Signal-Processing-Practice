@@ -100,7 +100,7 @@
 							for="ode-sigma-input"
 							class="field-label"
 						>
-							<MathText text={"Real Part $\\sigma$:"} />
+							<MathText text={String.raw`Real Part $\sigma$:`} />
 						</label>
 						<input
 							id="ode-sigma-input"
@@ -117,7 +117,9 @@
 							for="ode-omegad-input"
 							class="field-label"
 						>
-							<MathText text={"Damped Frequency $\\omega_d$:"} />
+							<MathText
+								text={String.raw`Damped Frequency $\omega_d$:`}
+							/>
 						</label>
 						<input
 							id="ode-omegad-input"

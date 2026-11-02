@@ -400,7 +400,7 @@
 			<div class="panel-header">
 				<span class="panel-title">
 					Harmonic Spectrum Magnitude <MathInline math={"|F_n|"} />
-					<MathInline math={`(n = 0 \\dots ${currentN})`} />
+					<MathInline math={String.raw`(n = 0 \dots ${currentN})`} />
 				</span>
 			</div>
 			<canvas
@@ -427,9 +427,9 @@
 		>
 			💡 Notice the Gibbs phenomenon overshoot near jump discontinuities
 			as
-			<MathInline math={"N \\to \\infty"} />. At a jump, the series
-			converges to the midpoint of the left and right limits. Overshoot
-			persists near the jump while its width shrinks.
+			<MathInline math={String.raw`N \to \infty`} />. At a jump, the
+			series converges to the midpoint of the left and right limits.
+			Overshoot persists near the jump while its width shrinks.
 		</div>
 	{:else}
 		<div
@@ -538,7 +538,7 @@
 
 		<div class="power-threshold-summary">
 			<MathText
-				text={`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => `$N_{${percent}\\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
+				text={String.raw`Minimum highest-harmonic limits: ${FOURIER_POWER_TARGETS.map(({ key, percent }) => `$N_{${percent}\%}=${powerThresholds[key]}$`).join("; ")}. Here $N$ is the highest included harmonic; zero-valued harmonics add no power.`}
 			/>
 		</div>
 	</section>

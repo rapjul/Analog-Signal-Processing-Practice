@@ -101,7 +101,7 @@ export function generateFourierSeriesProblem(
 			{
 				id: "compact",
 				title: "Convert to Compact Harmonic Form",
-				prompt: "Convert the harmonic coefficients to nonnegative amplitudes $c_n$ and phases $\\theta_n$.",
+				prompt: String.raw`Convert the harmonic coefficients to nonnegative amplitudes $c_n$ and phases $\theta_n$.`,
 				resultLatex: compactLatex,
 				options: shuffleWithRandom(
 					buildPrimarySeriesOptions(compactLatex, "trig"),
@@ -109,8 +109,8 @@ export function generateFourierSeriesProblem(
 				),
 				hints: [
 					"Use $c_0=a_0=2F_0$ for the constant coefficient.",
-					"For $n>0$, use $c_n=2|F_n|=\\sqrt{a_n^2+b_n^2}$.",
-					"Assign phase only to nonzero harmonics with $\\theta_n=\\operatorname{atan2}(-b_n,a_n)=\\angle F_n$.",
+					String.raw`For $n>0$, use $c_n=2|F_n|=\sqrt{a_n^2+b_n^2}$.`,
+					String.raw`Assign phase only to nonzero harmonics with $\theta_n=\operatorname{atan2}(-b_n,a_n)=\angle F_n$.`,
 				],
 			},
 		],
@@ -121,13 +121,13 @@ export function generateFourierSeriesProblem(
 			title: "Period and Fundamental Frequency",
 			description:
 				"Read one complete repetition from the waveform and convert its period to angular frequency.",
-			latex: `T_0=${periodLatex}\\text{ s},\\qquad \\omega_0=\\frac{2\\pi}{T_0}=\\frac{2\\pi}{${periodLatex}}=${w0Latex}\\text{ rad/s}`,
+			latex: String.raw`T_0=${periodLatex}\text{ s},\qquad \omega_0=\frac{2\pi}{T_0}=\frac{2\pi}{${periodLatex}}=${w0Latex}\text{ rad/s}`,
 		},
 		{
 			title: "Symmetry and Vanishing Terms",
 			description:
 				"Test origin parity and half-wave symmetry independently, then remove coefficient families that must vanish.",
-			latex: `\\begin{gathered}\\text{origin parity: }${coeffs.originParity},\\qquad \\text{half-wave symmetry: }${coeffs.hasHalfWaveSymmetry ? "\\text{yes}" : "\\text{no}"}\\\\${coeffs.originParity === "odd" ? "a_0=a_n=0" : coeffs.originParity === "even" ? "b_n=0" : "a_n\\text{ and }b_n\\text{ must both be evaluated}"}\\end{gathered}`,
+			latex: String.raw`\begin{gathered}\text{origin parity: }${coeffs.originParity},\qquad \text{half-wave symmetry: }${coeffs.hasHalfWaveSymmetry ? String.raw`\text{yes}` : String.raw`\text{no}`}\\${coeffs.originParity === "odd" ? String.raw`a_0=a_n=0` : coeffs.originParity === "even" ? String.raw`b_n=0` : String.raw`a_n\text{ and }b_n\text{ must both be evaluated`}\end{gathered}`,
 		},
 		{
 			title: "Representation Selection",
@@ -137,8 +137,8 @@ export function generateFourierSeriesProblem(
 					: "The assigned trigonometric path evaluates the real coefficient families remaining after symmetry shortcuts.",
 			latex:
 				itsData.step4.correctForm === "exp"
-					? "F_n=\\frac{1}{T_0}\\int_{T_0}x(t)e^{-jn\\omega_0t}\\,dt"
-					: "x(t)=\\frac{a_0}{2}+\\sum_{n=1}^{\\infty}[a_n\\cos(n\\omega_0t)+b_n\\sin(n\\omega_0t)]",
+					? String.raw`F_n=\frac{1}{T_0}\int_{T_0}x(t)e^{-jn\omega_0t}\,dt`
+					: String.raw`x(t)=\frac{a_0}{2}+\sum_{n=1}^{\infty}[a_n\cos(n\omega_0t)+b_n\sin(n\omega_0t)]`,
 		},
 		{
 			title: "Piecewise Integral Setup",
@@ -147,12 +147,11 @@ export function generateFourierSeriesProblem(
 			latex:
 				itsData.step4.correctForm === "exp"
 					? derivation.expIntegralLatex
-					: `\\begin{gathered}${itsData.step5.parts.map(({ resultLatex }) => resultLatex).join("\\\\")}\\end{gathered}`,
+					: String.raw`\begin{gathered}${itsData.step5.parts.map(({ resultLatex }) => resultLatex).join(String.raw`\\`)}\end{gathered}`,
 		},
 		{
 			title: "Definite Integral Evaluation",
-			description:
-				"Apply the bounds and simplify parity factors such as $(-1)^n$ and $\\sin(n\\pi/2)$.",
+			description: String.raw`Apply the bounds and simplify parity factors such as $(-1)^n$ and $\sin(n\pi/2)$.`,
 			latex:
 				itsData.step4.correctForm === "exp"
 					? getExponentialEvaluationLatex(derivation)
@@ -162,7 +161,7 @@ export function generateFourierSeriesProblem(
 			title: "DC Offset Derivation",
 			description:
 				"Evaluate the average separately; the constant appearing in the trigonometric series is $a_0/2$.",
-			latex: `a_0=\\frac{2}{T_0}\\int_{T_0}x(t)\\,dt=${derivation.a0Latex},\\qquad F_0=\\frac{a_0}{2}`,
+			latex: String.raw`a_0=\frac{2}{T_0}\int_{T_0}x(t)\,dt=${derivation.a0Latex},\qquad F_0=\frac{a_0}{2}`,
 		},
 		{
 			title: `${primaryName} Synthesis`,
@@ -182,8 +181,8 @@ export function generateFourierSeriesProblem(
 		seed,
 		waveformType,
 		title: "Practice Problem: Periodic Waveform",
-		periodLatex: `T_0 = ${periodLatex}\\text{ s}`,
-		omega0Latex: `\\omega_0 = \\frac{2\\pi}{${periodLatex}} = ${w0Latex}\\text{ rad/s}`,
+		periodLatex: String.raw`T_0 = ${periodLatex}\text{ s}`,
+		omega0Latex: String.raw`\omega_0 = \frac{2\pi}{${periodLatex}} = ${w0Latex}\text{ rad/s}`,
 		signalLatex,
 		a0Latex: derivation.a0Latex,
 		anLatex: derivation.anLatex,
