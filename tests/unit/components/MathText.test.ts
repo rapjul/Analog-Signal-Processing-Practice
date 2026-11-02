@@ -92,13 +92,13 @@ describe("MathText.svelte Component", () => {
 
 		const { container } = render(MathText, {
 			props: {
-				text: "Macro \\omega_0 symbol",
+				text: String.raw`Macro \omega_0 symbol`,
 			},
 		});
 
 		const errorSpan = container.querySelector(".katex-error");
 		expect(errorSpan).toBeTruthy();
-		expect(errorSpan?.textContent).toBe("\\omega_0");
+		expect(errorSpan?.textContent).toBe(String.raw`\omega_0`);
 	});
 
 	/** All delimited and standalone fallback paths share the same escaping contract. */
@@ -110,7 +110,8 @@ describe("MathText.svelte Component", () => {
 				throw new RangeError("Maximum call stack size exceeded");
 			});
 			const markup = '<img src=x onerror="alert(1)">&\'text';
-			const source = kind === "macro" ? `\\text{${markup}}` : markup;
+			const source =
+				kind === "macro" ? String.raw`\text{${markup}}` : markup;
 			const text =
 				kind === "inline"
 					? `$${source}$`
@@ -155,7 +156,7 @@ describe("MathText.svelte Component", () => {
 	it("defensively renders standalone un-enclosed LaTeX macros", () => {
 		const { container } = render(MathText, {
 			props: {
-				text: "The angular frequency is \\omega_0 rad/s.",
+				text: String.raw`The angular frequency is \omega_0 rad/s.`,
 			},
 		});
 
@@ -178,7 +179,7 @@ describe("MathText.svelte Component", () => {
 	it("applies optional custom class names to wrapper span", () => {
 		const { container } = render(MathText, {
 			props: {
-				text: "Sample text $t \\ge 0$",
+				text: String.raw`Sample text $t \ge 0$`,
 				class: "custom-text-wrapper",
 			},
 		});

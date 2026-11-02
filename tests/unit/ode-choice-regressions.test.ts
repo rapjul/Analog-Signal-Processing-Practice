@@ -269,7 +269,7 @@ describe("ODE teaching choice regressions", () => {
 					type: "sinusoid" as const,
 					K: 8,
 					omega: 2,
-					latex: "8\\cos(2t)",
+					latex: String.raw`8\cos(2t)`,
 				},
 			},
 		];

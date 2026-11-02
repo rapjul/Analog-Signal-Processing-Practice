@@ -34,17 +34,24 @@ describe("CTFT Math Engine (fourier-transform/index.ts)", () => {
 			}
 	});
 	describe("CTFT Transform Pairs & Custom Operator Formatting", () => {
-		it("should evaluate rectangular pulse transform to normalized sinc with \\operatorname{sinc}", () => {
-			const pair = getCtftPairLatex("rect", { T: 2 });
-			expect(pair.timeLatex).toContain("\\operatorname{rect}");
-			expect(pair.freqLatex).toContain("\\operatorname{sinc}");
-			expect(pair.freqLatex).not.toContain("\\text{sinc}");
-		});
+		it(
+			String.raw`should evaluate rectangular pulse transform to normalized sinc with \operatorname{sinc}`,
+			() => {
+				const pair = getCtftPairLatex("rect", { T: 2 });
+				expect(pair.timeLatex).toContain(
+					String.raw`\operatorname{rect}`,
+				);
+				expect(pair.freqLatex).toContain(
+					String.raw`\operatorname{sinc}`,
+				);
+				expect(pair.freqLatex).not.toContain(String.raw`\text{sinc}`);
+			},
+		);
 
 		it("should format exponential decay e^{-a t} u(t) correctly", () => {
 			const pair = getCtftPairLatex("exponential", { a: 3 });
 			expect(pair.timeLatex).toBe("e^{-3 t} u(t)");
-			expect(pair.freqLatex).toBe("\\frac{1}{3 + j\\omega}");
+			expect(pair.freqLatex).toBe(String.raw`\frac{1}{3 + j\omega}`);
 		});
 	});
 

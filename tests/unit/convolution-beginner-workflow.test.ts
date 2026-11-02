@@ -555,10 +555,10 @@ describe("convolution beginner workflow metadata", () => {
 		expect(parseConvolutionScalarInput("-inf")).toBe(
 			Number.NEGATIVE_INFINITY,
 		);
-		expect(parseConvolutionScalarInput("\\infty")).toBe(
+		expect(parseConvolutionScalarInput(String.raw`\infty`)).toBe(
 			Number.POSITIVE_INFINITY,
 		);
-		expect(parseConvolutionScalarInput("-\\infty")).toBe(
+		expect(parseConvolutionScalarInput(String.raw`-\infty`)).toBe(
 			Number.NEGATIVE_INFINITY,
 		);
 		expect(parseConvolutionScalarInput("∞")).toBe(Number.POSITIVE_INFINITY);

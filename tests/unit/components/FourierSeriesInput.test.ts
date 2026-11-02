@@ -27,7 +27,7 @@ describe("FourierSeriesInput", () => {
 		);
 		expect(onChange).toHaveBeenCalled();
 		const initialLatex = onChange.mock.calls[0]![0];
-		expect(initialLatex).toContain("\\sin(");
+		expect(initialLatex).toContain(String.raw`\sin(`);
 	});
 
 	/**
@@ -74,8 +74,8 @@ describe("FourierSeriesInput", () => {
 			await fireEvent.input(a0Input, { target: { value: "5/2" } });
 
 			const lastCall = onChange.mock.calls.at(-1)?.[0];
-			expect(lastCall).toContain("5/2 + \\sum_{n=1}^{\\infty}");
-			expect(lastCall).toContain("\\pi");
+			expect(lastCall).toContain(String.raw`5/2 + \sum_{n=1}^{\infty}`);
+			expect(lastCall).toContain(String.raw`\pi`);
 		}
 	});
 
@@ -118,7 +118,7 @@ describe("FourierSeriesInput", () => {
 			// Select none
 			await fireEvent.change(anSelect, { target: { value: "none" } });
 			latex = onChange.mock.calls.at(-1)?.[0];
-			expect(latex).toContain("\\frac{4}{n^2 \\pi^2}");
+			expect(latex).toContain(String.raw`\frac{4}{n^2 \pi^2}`);
 
 			// Select custom harmonic
 			await fireEvent.change(anSelect, { target: { value: "custom" } });
@@ -126,10 +126,10 @@ describe("FourierSeriesInput", () => {
 			expect(customInput).toBeTruthy();
 			if (customInput) {
 				await fireEvent.input(customInput, {
-					target: { value: "\\sin(n \\pi / 2)" },
+					target: { value: String.raw`\sin(n \pi / 2)` },
 				});
 				latex = onChange.mock.calls.at(-1)?.[0];
-				expect(latex).toContain("\\sin(n \\pi / 2)");
+				expect(latex).toContain(String.raw`\sin(n \pi / 2)`);
 			}
 		}
 
@@ -141,14 +141,18 @@ describe("FourierSeriesInput", () => {
 		expect(directInput).toBeTruthy();
 		if (directInput) {
 			await fireEvent.input(directInput, { target: { value: "3/n" } });
-			expect(onChange.mock.calls.at(-1)?.[0]).toContain("3/n \\cos(");
+			expect(onChange.mock.calls.at(-1)?.[0]).toContain(
+				String.raw`3/n \cos(`,
+			);
 		}
 
 		// Zero mode for an
 		const zeroBtn = anCard.querySelectorAll(".toggle-btn")[0];
 		if (!zeroBtn) throw new Error("Expected zeroBtn");
 		await fireEvent.click(zeroBtn);
-		expect(onChange.mock.calls.at(-1)?.[0]).not.toContain("\\cos(");
+		expect(onChange.mock.calls.at(-1)?.[0]).not.toContain(
+			String.raw`\cos(`,
+		);
 	});
 
 	/**
@@ -173,8 +177,8 @@ describe("FourierSeriesInput", () => {
 		await fireEvent.click(bnZeroBtn);
 
 		const latex = onChange.mock.calls.at(-1)?.[0];
-		expect(latex).toContain("\\cos(");
-		expect(latex).not.toContain("\\sin(");
+		expect(latex).toContain(String.raw`\cos(`);
+		expect(latex).not.toContain(String.raw`\sin(`);
 	});
 
 	/**
@@ -198,17 +202,17 @@ describe("FourierSeriesInput", () => {
 
 			await fireEvent.change(bnSelect, { target: { value: "none" } });
 			expect(onChange.mock.calls.at(-1)?.[0]).toContain(
-				"\\frac{2}{n \\pi}",
+				String.raw`\frac{2}{n \pi}`,
 			);
 
 			await fireEvent.change(bnSelect, { target: { value: "custom" } });
 			const customInput = bnCard.querySelector(".custom-mult-input");
 			if (customInput) {
 				await fireEvent.input(customInput, {
-					target: { value: "\\cos(n pi)" },
+					target: { value: String.raw`\cos(n pi)` },
 				});
 				expect(onChange.mock.calls.at(-1)?.[0]).toContain(
-					"\\cos(n \\pi)",
+					String.raw`\cos(n \pi)`,
 				);
 			}
 		}
@@ -220,10 +224,10 @@ describe("FourierSeriesInput", () => {
 		const bnDirectInput = view.container.querySelector("#bn-direct-input");
 		if (bnDirectInput) {
 			await fireEvent.input(bnDirectInput, {
-				target: { value: "\\frac{8}{n^3 \\pi^3}" },
+				target: { value: String.raw`\frac{8}{n^3 \pi^3}` },
 			});
 			expect(onChange.mock.calls.at(-1)?.[0]).toContain(
-				"\\frac{8}{n^3 \\pi^3}",
+				String.raw`\frac{8}{n^3 \pi^3}`,
 			);
 		}
 
@@ -238,7 +242,7 @@ describe("FourierSeriesInput", () => {
 		const fractionBtn = bnCard.querySelectorAll(".toggle-btn")[1];
 		if (!fractionBtn) throw new Error("Expected fractionBtn");
 		await fireEvent.click(fractionBtn);
-		expect(onChange.mock.calls.at(-1)?.[0]).toContain("\\sin(");
+		expect(onChange.mock.calls.at(-1)?.[0]).toContain(String.raw`\sin(`);
 	});
 
 	/**
@@ -298,10 +302,10 @@ describe("FourierSeriesInput", () => {
 		const fnDirect = view.container.querySelector("#Fn-direct-input");
 		if (fnDirect) {
 			await fireEvent.input(fnDirect, {
-				target: { value: "\\frac{2}{j n \\pi}" },
+				target: { value: String.raw`\frac{2}{j n \pi}` },
 			});
 			expect(onChange.mock.calls.at(-1)?.[0]).toContain(
-				"\\frac{2}{j n \\pi}",
+				String.raw`\frac{2}{j n \pi}`,
 			);
 		}
 
@@ -344,8 +348,8 @@ describe("FourierSeriesInput", () => {
 			await fireEvent.change(bnSelect, { target: { value: "none" } });
 
 			const latex = onChange.mock.calls.at(-1)?.[0];
-			expect(latex).toContain("3 \\sin(");
-			expect(latex).not.toContain("\\frac{3}{1}");
+			expect(latex).toContain(String.raw`3 \sin(`);
+			expect(latex).not.toContain(String.raw`\frac{3}{1}`);
 		}
 	});
 });

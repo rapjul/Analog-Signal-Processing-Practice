@@ -123,8 +123,9 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 							const witnesses = options.map((option) =>
 								[0.13, 0.37, 0.81].map((fraction) => {
 									const t = fraction * coeffs.T0;
-									const synthesis =
-										option.latex.split(",\\qquad")[0]!;
+									const synthesis = option.latex.split(
+										String.raw`,\qquad`,
+									)[0]!;
 									const rhs = synthesis.slice(
 										synthesis.indexOf("=") + 1,
 									);

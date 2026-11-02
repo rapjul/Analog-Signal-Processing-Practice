@@ -117,8 +117,8 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 		const correctAnsatz = problem.itsData.step4.options.find(
 			(o) => o.isCorrect,
 		);
-		expect(correctAnsatz?.latex).toContain("\\cos");
-		expect(correctAnsatz?.latex).toContain("\\sin");
+		expect(correctAnsatz?.latex).toContain(String.raw`\cos`);
+		expect(correctAnsatz?.latex).toContain(String.raw`\sin`);
 
 		// Step 5
 		expect(problem.itsData.step5.expectedA).toBeDefined();
@@ -417,13 +417,15 @@ describe("Linear ODE ITS Step Generator Engine", () => {
 				homogeneousComplete: { latex: "", C1: 2, eval: () => 0 },
 				homogeneousZI: { latex: "", C1: 2, eval: () => 0 },
 				homogeneousZS: { latex: "", C1: 0, eval: () => 0 },
-				ziLatex: "2 e^{-t} \\cos(t)",
+				ziLatex: String.raw`2 e^{-t} \cos(t)`,
 				zsLatex: "2",
-				y_tr_latex: "2 e^{-t} \\cos(t)",
+				y_tr_latex: String.raw`2 e^{-t} \cos(t)`,
 				y_ss_latex: "2",
 				random: () => 0.5,
 			});
-			expect(s7Complex.step7Data.expectedZI).toBe("2 e^{-t} \\cos(t)");
+			expect(s7Complex.step7Data.expectedZI).toBe(
+				String.raw`2 e^{-t} \cos(t)`,
+			);
 		});
 	});
 });

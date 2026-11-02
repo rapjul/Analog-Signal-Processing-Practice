@@ -198,7 +198,7 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			expect(shiftedVal).toBeCloseTo(3 * Math.exp(-2), 4);
 		});
 
-		it("evaluates fractions formatted with \\frac", () => {
+		it(String.raw`evaluates fractions formatted with \frac`, () => {
 			const val = evaluateLatexAt(
 				String.raw`\frac{3}{4} t + \frac{1}{2}`,
 				2,
@@ -300,12 +300,15 @@ describe("Math Engine Evaluator (evaluator.ts)", () => {
 			expect(evaluatePiecewiseLatexAt(piecewise, 3)).toBe(6);
 		});
 
-		it("evaluates piecewise interval expressions with \\text{for} syntax", () => {
-			const piecewise = String.raw`\begin{cases} 0 \quad \text{for} \quad t < 0 \\ 3t \quad \text{for} \quad 0 \le t < 2 \\ 6 \quad \text{for} \quad t \ge 2 \end{cases}`;
-			expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
-			expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(3);
-			expect(evaluatePiecewiseLatexAt(piecewise, 4)).toBe(6);
-		});
+		it(
+			String.raw`evaluates piecewise interval expressions with \text{for} syntax`,
+			() => {
+				const piecewise = String.raw`\begin{cases} 0 \quad \text{for} \quad t < 0 \\ 3t \quad \text{for} \quad 0 \le t < 2 \\ 6 \quad \text{for} \quad t \ge 2 \end{cases}`;
+				expect(evaluatePiecewiseLatexAt(piecewise, -1)).toBe(0);
+				expect(evaluatePiecewiseLatexAt(piecewise, 1)).toBe(3);
+				expect(evaluatePiecewiseLatexAt(piecewise, 4)).toBe(6);
+			},
+		);
 
 		it("returns 0 when sample point does not match any piecewise interval condition", () => {
 			const piecewise = String.raw`\begin{cases} 2t, & 1 \le t \le 2 \end{cases}`;

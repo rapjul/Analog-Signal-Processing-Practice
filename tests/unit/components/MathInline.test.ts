@@ -44,7 +44,7 @@ describe("MathInline.svelte Component", () => {
 	it("renders rendered KaTeX HTML for inline math expressions", () => {
 		const { container } = render(MathInline, {
 			props: {
-				math: "\\omega_0 t + \\phi",
+				math: String.raw`\omega_0 t + \phi`,
 			},
 		});
 
@@ -59,7 +59,7 @@ describe("MathInline.svelte Component", () => {
 	it("supports displayStyle formatting option", () => {
 		const { container } = render(MathInline, {
 			props: {
-				math: "\\frac{1}{2}",
+				math: String.raw`\frac{1}{2}`,
 				displayStyle: true,
 			},
 		});
@@ -169,7 +169,7 @@ describe("MathInline.svelte Component", () => {
 	it("applies optional custom class names and default copy accessibility attributes", () => {
 		const { container } = render(MathInline, {
 			props: {
-				math: "e^{-\\sigma t}",
+				math: String.raw`e^{-\sigma t}`,
 				class: "custom-math-class",
 			},
 		});

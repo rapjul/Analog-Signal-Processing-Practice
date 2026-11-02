@@ -116,7 +116,9 @@ describe("FourierSeriesCanvas", () => {
 			(node) => node.textContent ?? "",
 		);
 		expect(
-			annotations.some((latex) => latex.includes("\\times 10^{-300}")),
+			annotations.some((latex) =>
+				latex.includes(String.raw`\times 10^{-300}`),
+			),
 		).toBe(true);
 		for (const latex of annotations) expect(latex).not.toMatch(/\de[+-]\d/);
 	});

@@ -39,7 +39,7 @@ describe("precedence-aware Laplace notation", () => {
 		expect(signalLatex(term({ amplitude: "0" }))).toBe("0");
 		expect(
 			signalLatex(term({ kind: "impulse", amplitude: "-1", delay: "1" })),
-		).toBe("-\\delta(t-1)");
+		).toBe(String.raw`-\delta(t-1)`);
 		expect(signalLatex(term({ rate: "-1", delay: "1" }))).toBe(
 			"e^{-(t-1)}u(t-1)",
 		);
@@ -48,7 +48,7 @@ describe("precedence-aware Laplace notation", () => {
 			responseLatex([term(), term({ amplitude: "-1", delay: "1" })]),
 		).toBe("u(t)-u(t-1)");
 		expect(signalTransform(term({ amplitude: "-1", delay: "1" }))).toBe(
-			"-e^{-s}\\frac{1}{s}",
+			String.raw`-e^{-s}\frac{1}{s}`,
 		);
 		expect(
 			factorProductLatex([
@@ -63,7 +63,7 @@ describe("precedence-aware Laplace notation", () => {
 		).toBe("2(s+1)^{2}");
 		expect(
 			rationalLatex({ n: [fraction(-1)], d: [fraction(0), fraction(1)] }),
-		).toBe("-\\frac{1}{s}");
+		).toBe(String.raw`-\frac{1}{s}`);
 		expect(scaledLatex(fraction(-1), "t-1", true)).toBe("-(t-1)");
 	});
 	/** Independently authored time and transform answers catch sign/grouping regressions in both support directions. */

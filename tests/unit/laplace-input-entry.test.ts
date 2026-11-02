@@ -34,7 +34,14 @@ describe("declared Laplace input domains", () => {
 	it("accepts exact literals while keeping incomplete numbers invalid", () => {
 		for (const value of ["-3/2", "0.125", "-2", "1/.5"])
 			expect(entryIssue(value, { kind: "literal" }), value).toBeNull();
-		for (const value of ["-", ".", "1/", "1/0", "1+2", "\\frac{1}{2}"])
+		for (const value of [
+			"-",
+			".",
+			"1/",
+			"1/0",
+			"1+2",
+			String.raw`\frac{1}{2}`,
+		])
 			expect(entryIssue(value, { kind: "literal" })?.status, value).toBe(
 				"invalid",
 			);

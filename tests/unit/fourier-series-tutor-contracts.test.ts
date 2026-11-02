@@ -19,7 +19,7 @@ describe("Fourier tutor contracts", () => {
 		});
 		const derivation = buildFourierSeriesSymbolicDerivation(
 			problem.coeffs,
-			"\\pi",
+			String.raw`\pi`,
 		);
 		delete derivation.expEvaluationLatex;
 		const step = buildStep6Data("exp", "even", derivation, Math.random);

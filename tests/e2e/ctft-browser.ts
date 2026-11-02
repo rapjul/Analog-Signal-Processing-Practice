@@ -78,7 +78,7 @@ export function ctftBaseAnswer(
 	if (family === "rect") return `${params.T} sinc(${params.T} omega/(2 pi))`;
 	if (family === "exponential") return `1/(${params.a}+j omega)`;
 	if (family === "gaussian")
-		return `\\sqrt{\\pi/${params.a}} e^{-\\omega^2/${4 * params.a}}`;
+		return String.raw`\sqrt{\pi/${params.a}} e^{-\omega^2/${4 * params.a}}`;
 	return "1";
 }
 
@@ -102,7 +102,7 @@ async function enterImpulses(
 		await enterCtftAnswer(
 			page,
 			`Impulse ${row + 1} complex weight`,
-			`\\pi e^{-j(${location})(${shift})}`,
+			String.raw`\pi e^{-j(${location})(${shift})}`,
 		);
 	}
 }
@@ -168,7 +168,7 @@ export async function prepareCtftFinal(
 	await enterCtftAnswer(
 		page,
 		"Phase multiplier",
-		params.t0 === 0 ? "1" : `e^{-j(${params.t0})\\omega}`,
+		params.t0 === 0 ? "1" : String.raw`e^{-j(${params.t0})\omega}`,
 	);
 }
 
@@ -239,7 +239,7 @@ export async function finishCtft(
 		await enterCtftAnswer(
 			page,
 			"Final spectrum",
-			`(${ctftBaseAnswer(family, params)})e^{-j(${params.t0})\\omega}`,
+			String.raw`(${ctftBaseAnswer(family, params)})e^{-j(${params.t0})\omega}`,
 		);
 	await expect(
 		page.getByRole("heading", { name: "CTFT solution verified" }),

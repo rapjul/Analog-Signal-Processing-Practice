@@ -44,7 +44,7 @@ async function complete(
 					(task.id === "weight-0") !== approximateReversedRows
 						? -problem.params.w0
 						: problem.params.w0;
-				expected = `${approximateReversedRows ? "3.14159265" : "\\pi"} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
+				expected = String.raw`${approximateReversedRows ? "3.14159265" : "\pi"} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
 			}
 			if (approximateReversedRows && task.kind === "location")
 				expected = `X(omega)=${String(
@@ -85,7 +85,7 @@ describe("CTFT guided component", () => {
 		await fireEvent.submit(view.container.querySelector("form")!);
 		expect(
 			view.container.querySelector(".step-card.active")?.textContent,
-		).toContain("\\frac{1}{2}");
+		).toContain(String.raw`\frac{1}{2}`);
 		expect(
 			view.container.querySelector(".step-card.active")?.textContent,
 		).not.toContain("0.5");
@@ -110,7 +110,7 @@ describe("CTFT guided component", () => {
 				expect(
 					view.container.querySelector(".solution-breakdown")
 						?.textContent,
-				).toContain("\\pi");
+				).toContain(String.raw`\pi`);
 				expect(
 					[
 						...view.container.querySelectorAll(".verified-fields"),

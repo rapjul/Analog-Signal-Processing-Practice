@@ -37,9 +37,9 @@ describe("exact CTFT solutions", () => {
 	/** Odd generated widths retain reduced fractions in bounds, phases, identities, and hints. */
 	it("formats pulse half-widths exactly throughout the lesson", () => {
 		for (const [T, half] of [
-			[1, "\\frac{1}{2}"],
+			[1, String.raw`\frac{1}{2}`],
 			[2, "1"],
-			[3, "\\frac{3}{2}"],
+			[3, String.raw`\frac{3}{2}`],
 			[4, "2"],
 			[6, "3"],
 		] as const) {
@@ -100,10 +100,10 @@ describe("exact CTFT solutions", () => {
 						if (task.kind === "location")
 							expect(value).toBe(String(location));
 						else {
-							expect(value).toContain("\\pi");
+							expect(value).toContain(String.raw`\pi`);
 							if (stage.id === "final" && t0)
 								expect(value).toContain(`(${location})(${t0})`);
-							else expect(value).toBe("\\pi");
+							else expect(value).toBe(String.raw`\pi`);
 						}
 					}
 				}

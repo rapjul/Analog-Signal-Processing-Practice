@@ -127,9 +127,12 @@ export function normalizeMathLatex(
 	return (
 		normalized
 			// Convert bare 'pi' followed by a variable (e.g. 100pit -> 100\pi t, pit -> \pi t)
-			.replace(/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g, "$1\\pi $2")
+			.replace(
+				/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g,
+				String.raw`$1\pi $2`,
+			)
 			// Convert standalone bare 'pi' (e.g. 100pi t -> 100\pi t, 2*pi -> 2*\pi)
-			.replace(/(^|[^a-zA-Z\\])pi(?=[^a-zA-Z]|$)/g, "$1\\pi")
+			.replace(/(^|[^a-zA-Z\\])pi(?=[^a-zA-Z]|$)/g, String.raw`$1\pi`)
 			// Convert bare functions without leading backslash (e.g. cos, sin, tan, exp, sqrt, ln, log)
 			.replace(
 				/(^|[^a-zA-Z\\])(cos|sin|tan|exp|sqrt|ln|log)(?=[^a-zA-Z]|$)/g,

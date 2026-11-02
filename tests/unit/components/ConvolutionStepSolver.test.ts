@@ -51,7 +51,7 @@ describe("ConvolutionStepSolver", () => {
 		const recap = view.container.querySelector(".evaluated-summary-recap");
 		expect(recap).toBeTruthy();
 		expect(recap?.textContent).not.toContain("Infinity");
-		expect(recap?.textContent).toContain("\\infty");
+		expect(recap?.textContent).toContain(String.raw`\infty`);
 	});
 
 	it("renders seven parent cards and advances each typed timing substep", async () => {

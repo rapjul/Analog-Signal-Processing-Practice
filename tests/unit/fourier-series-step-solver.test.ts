@@ -79,14 +79,22 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			input: { period: "0.000104", periodUnit: "ms" },
 			accepted: true,
 		},
-		{ T0: 1e21, input: { freq: "6.5\\times10^{-21}" }, accepted: true },
 		{
 			T0: 1e21,
-			input: { freq: "1.04\\times10^{-21}", freqUnit: "Hz" },
+			input: { freq: String.raw`6.5\times10^{-21}` },
+			accepted: true,
+		},
+		{
+			T0: 1e21,
+			input: { freq: String.raw`1.04\times10^{-21}`, freqUnit: "Hz" },
 			accepted: true,
 		},
 		{ T0: 1e-7, input: { period: "0.000000106" }, accepted: false },
-		{ T0: 1e21, input: { freq: "6.7\\times10^{-21}" }, accepted: false },
+		{
+			T0: 1e21,
+			input: { freq: String.raw`6.7\times10^{-21}` },
+			accepted: false,
+		},
 		{ T0: 2, input: { period: "2.06" }, accepted: false },
 		{ T0: 2, input: { freq: String(Math.PI + 0.06) }, accepted: false },
 		{ T0: 2, input: { period: "2.04", freq: "3.18" }, accepted: true },
@@ -564,7 +572,7 @@ describe("FourierSeriesStepSolverState Reactive Controller", () => {
 			expect(opt.latex.length).toBeGreaterThan(0);
 			expect(
 				opt.latex.includes("=") ||
-					opt.latex.includes("\\int") ||
+					opt.latex.includes(String.raw`\int`) ||
 					opt.latex.includes("0"),
 			).toBe(true);
 		}

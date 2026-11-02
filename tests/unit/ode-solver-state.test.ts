@@ -65,25 +65,27 @@ describe("ODE Solver State Previews & Dev Helpers", () => {
 		it("formats quadratic formula substitutions", () => {
 			const setup = derivePreviewQuadSetup(1, 5, 6);
 			expect(setup).toContain(
-				"s = \\frac{-(5) \\pm \\sqrt{(5)^2 - 4(1)(6)}}{2(1)}",
+				String.raw`s = \frac{-(5) \pm \sqrt{(5)^2 - 4(1)(6)}}{2(1)}`,
 			);
-			expect(setup).toContain("\\frac{-5 \\pm \\sqrt{1}}{2}");
+			expect(setup).toContain(String.raw`\frac{-5 \pm \sqrt{1}}{2}`);
 		});
 
 		it("handles negative coefficients with correct discriminant", () => {
 			const setup = derivePreviewQuadSetup(1, -4, 13);
-			expect(setup).toContain("\\frac{4 \\pm \\sqrt{-36}}{2}");
+			expect(setup).toContain(String.raw`\frac{4 \pm \sqrt{-36}}{2}`);
 		});
 	});
 
 	describe("derivePreviewComplexRoots", () => {
 		it("formats complex roots preview with given sigma and omegaD", () => {
-			expect(derivePreviewComplexRoots("-2", "3")).toBe("s = -2 \\pm j3");
+			expect(derivePreviewComplexRoots("-2", "3")).toBe(
+				String.raw`s = -2 \pm j3`,
+			);
 		});
 
 		it("falls back to Greek symbols when empty", () => {
 			expect(derivePreviewComplexRoots("", "")).toBe(
-				"s = \\sigma \\pm j\\omega_d",
+				String.raw`s = \sigma \pm j\omega_d`,
 			);
 		});
 	});

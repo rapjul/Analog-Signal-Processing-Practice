@@ -42,7 +42,7 @@ describe("Laplace initial-value guidance", () => {
 			.flatMap((stage) => stage.tasks)
 			.filter((task) => task.id.startsWith("jump-"));
 		expect(jumps).toHaveLength(1);
-		expect(jumps[0]!.answer).toBe("\\frac{5}{2}");
+		expect(jumps[0]!.answer).toBe(String.raw`\frac{5}{2}`);
 		expect(
 			problem.stages
 				.flatMap((stage) => stage.tasks)

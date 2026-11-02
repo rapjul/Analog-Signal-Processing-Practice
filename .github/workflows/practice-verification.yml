@@ -79,6 +79,8 @@ jobs:
         run: npm run check
       - name: Check imports
         run: npm run lint:imports
+      - name: Check escaped LaTeX strings
+        run: npm run lint:escaped-latex
       - name: Check formatting
         run: npm run format:check
       - name: Check verification documentation

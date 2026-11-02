@@ -6,14 +6,21 @@ describe("CTFT Problem Bank (fourier-transform-bank.ts)", () => {
 		expect(CTFT_EXAM_BANK.length).toBeGreaterThan(0);
 	});
 
-	it("should enforce \\operatorname for all custom operators across all bank questions", () => {
-		for (const item of CTFT_EXAM_BANK) {
-			expect(item.promptLatex).not.toContain("\\text{sinc}");
-			expect(item.promptLatex).not.toContain("\\text{rect}");
-			expect(item.referenceAnswerLatex).not.toContain("\\text{sinc}");
-			expect(item.referenceAnswerLatex).not.toContain("\\text{rect}");
-		}
-	});
+	it(
+		String.raw`should enforce \operatorname for all custom operators across all bank questions`,
+		() => {
+			for (const item of CTFT_EXAM_BANK) {
+				expect(item.promptLatex).not.toContain(String.raw`\text{sinc}`);
+				expect(item.promptLatex).not.toContain(String.raw`\text{rect}`);
+				expect(item.referenceAnswerLatex).not.toContain(
+					String.raw`\text{sinc}`,
+				);
+				expect(item.referenceAnswerLatex).not.toContain(
+					String.raw`\text{rect}`,
+				);
+			}
+		},
+	);
 
 	it("should provide multi-step solution breakdowns for every bank problem", () => {
 		for (const item of CTFT_EXAM_BANK) {

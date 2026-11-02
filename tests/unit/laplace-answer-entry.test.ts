@@ -68,7 +68,7 @@ describe("guided Laplace answer entry", () => {
 			expect(fieldTasks).toHaveLength(2);
 			for (const task of fieldTasks) {
 				expect(renderLaplaceFields(task.frame, {})).toContain(
-					"\\square",
+					String.raw`\square`,
 				);
 				expect(
 					validateLaplaceTask(task, "", {}, problem.terms).result
@@ -125,7 +125,7 @@ describe("guided Laplace answer entry", () => {
 				verifyLaplaceTime(prefix + problem.response, problem.terms)
 					.status,
 			).toBe("correct");
-		const lhs = "y_{\\mathrm{ZI}}(t)";
+		const lhs = String.raw`y_{\mathrm{ZI}}(t)`;
 		expect(
 			verifyLaplaceTime(`${lhs}=${problem.response}`, problem.terms, lhs)
 				.status,

@@ -247,7 +247,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 		expect(parseConvolutionScalarInput("+inf")).toBe(
 			Number.POSITIVE_INFINITY,
 		);
-		expect(parseConvolutionScalarInput("-\\infty")).toBe(
+		expect(parseConvolutionScalarInput(String.raw`-\infty`)).toBe(
 			Number.NEGATIVE_INFINITY,
 		);
 	});
@@ -879,7 +879,7 @@ describe("ConvolutionStepSolverState lifecycle and regression tests", () => {
 				};
 			const section = sections[0];
 			if (!section) throw new Error("Expected exponential section.");
-			expect(section.leftLatex).toContain("\\infty");
+			expect(section.leftLatex).toContain(String.raw`\infty`);
 			const input = solver.step3.edgeInputs[section.id];
 			if (!input) throw new Error("Expected infinite edge input.");
 			for (const [answer, diagnostic] of [

@@ -207,8 +207,8 @@ export function sampleFourierExpression(
 	sample: Sample,
 ): Complex {
 	const normalized = latex
-		.replaceAll("\\left[", "\\left(")
-		.replaceAll("\\right]", "\\right)");
+		.replaceAll(String.raw`\left[`, String.raw`\left(`)
+		.replaceAll(String.raw`\right]`, String.raw`\right)`);
 	return evaluate(parseStrictLatex(normalized), sample);
 }
 
@@ -222,11 +222,11 @@ export function sampleFourierDefinition(
 	latex: string,
 	sample: Sample,
 ): Complex {
-	if (!latex.startsWith("\\begin{cases}"))
+	if (!latex.startsWith(String.raw`\begin{cases}`))
 		return sampleFourierExpression(latex, sample);
 	const rows = latex
-		.replace("\\begin{cases}", "")
-		.replace("\\end{cases}", "")
+		.replace(String.raw`\begin{cases}`, "")
+		.replace(String.raw`\end{cases}`, "")
 		.split("\\\\");
 	for (const row of rows) {
 		const [value, condition = ""] = row.split("&");

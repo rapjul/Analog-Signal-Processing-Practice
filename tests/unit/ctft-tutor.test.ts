@@ -78,7 +78,7 @@ function answerCurrent(solver: CtftStepSolverState, reverse = false): void {
 			solver.stages[stage.id]!.parts[
 				task.id.replace("weight", "location")
 			]!.input;
-		state.input = `\\pi e^{-j(${location})(${stage.id === "base" ? 0 : solver.problem.params.t0})}`;
+		state.input = String.raw`\pi e^{-j(${location})(${stage.id === "base" ? 0 : solver.problem.params.t0})}`;
 	}
 	solver.check(stage.id, task.id);
 	expect(
@@ -283,7 +283,9 @@ describe("CTFT tutor", () => {
 				expect(task.hints.join(" ")).not.toMatch(
 					/verified endpoint|verified exponent|your sine expression|upper minus lower/,
 				);
-				expect(task.identityLatex ?? "").not.toContain("\\int");
+				expect(task.identityLatex ?? "").not.toContain(
+					String.raw`\int`,
+				);
 			}
 		}
 		const derivation = buildCtftLesson(
@@ -384,12 +386,12 @@ describe("CTFT tutor", () => {
 		).toBe("unsupported");
 		for (const [answer, status] of [
 			["", "invalid"],
-			["\\frac{", "invalid"],
+			[String.raw`\frac{`, "invalid"],
 			["omega-omega+pi", "invalid"],
 			["0/0", "invalid"],
 			["tan(omega)", "unsupported"],
 			["delta(omega)", "unsupported"],
-			["\\delta(omega)", "invalid"],
+			[String.raw`\delta(omega)`, "invalid"],
 		] as const)
 			expect(
 				validateCtftImpulseRows(["-3", "3"], [answer, "pi"], problem)
@@ -463,7 +465,9 @@ describe("CTFT tutor", () => {
 			expect(validateCtftCalculation(answer, target).status).toBe(
 				"incorrect",
 			);
-		expect(validateCtftCalculation("\\frac{", "1").status).toBe("invalid");
+		expect(validateCtftCalculation(String.raw`\frac{`, "1").status).toBe(
+			"invalid",
+		);
 		expect(validateCtftCalculation("sin(omega^2)", "1").status).toBe(
 			"unsupported",
 		);
@@ -603,9 +607,11 @@ describe("CTFT tutor", () => {
 		expect(validateCtftConstant("2+omega-omega", "2", true).status).toBe(
 			"invalid",
 		);
-		expect(validateCtftConstant("\\pi", "\\pi").status).toBe("correct");
+		expect(
+			validateCtftConstant(String.raw`\pi`, String.raw`\pi`).status,
+		).toBe("correct");
 		expect(validateCtftConstant("1/0", "2").status).toBe("invalid");
-		expect(validateCtftConstant("\\tan(omega)", "2").status).toBe(
+		expect(validateCtftConstant(String.raw`\tan(omega)`, "2").status).toBe(
 			"unsupported",
 		);
 		expect(validateCtftConstant("x".repeat(16385), "2").status).toBe(
@@ -621,7 +627,7 @@ describe("CTFT tutor", () => {
 		advance(solver, "base");
 		for (const [input, expected] of [
 			["", "invalid"],
-			["\\tan(omega)", "unsupported"],
+			[String.raw`\tan(omega)`, "unsupported"],
 			["sinc(2omega/pi)", "incorrect"],
 		]) {
 			solver.currentStepState!.input = input!;

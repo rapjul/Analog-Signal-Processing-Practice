@@ -31,7 +31,9 @@ describe("Laplace Transform Math Engine (laplace.ts)", () => {
 		it("should identify causal system as BIBO stable if all poles are in LHP", () => {
 			const stability = determineStability([-2, -3], "right-sided");
 			expect(stability.isBiboStable).toBe(true);
-			expect(stability.rocLatex).toBe("\\operatorname{Re}(s) > -2");
+			expect(stability.rocLatex).toBe(
+				String.raw`\operatorname{Re}(s) > -2`,
+			);
 		});
 
 		it("should identify causal system as unstable if any pole is in RHP", () => {
