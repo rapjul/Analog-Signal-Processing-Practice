@@ -44,7 +44,7 @@ async function complete(
 					(task.id === "weight-0") !== approximateReversedRows
 						? -problem.params.w0
 						: problem.params.w0;
-				expected = String.raw`${approximateReversedRows ? "3.14159265" : "\pi"} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
+				expected = String.raw`${approximateReversedRows ? "3.14159265" : String.raw`\pi`} e^{-j(${location})(${stage.id === "base" ? 0 : problem.params.t0})}`;
 			}
 			if (approximateReversedRows && task.kind === "location")
 				expected = `X(omega)=${String(
