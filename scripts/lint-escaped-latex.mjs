@@ -157,75 +157,117 @@ function scanTypeScriptSource(source, filePath, violations) {
 	);
 
 	/**
-	 * Visits a TypeScript AST node and checks its string-bearing children.
+	 * Recursively visits a node in the parsed TypeScript source.
 	 *
 	 * @param {ts.Node} node AST node to inspect.
 	 * @returns {void}
 	 */
 	function visit(node) {
-		if (ts.isStringLiteral(node)) {
-			scanRawText(
-				node.getText(sourceFile),
-				node.getStart(sourceFile),
-				source,
-				violations,
-			);
-			return;
-		}
-
-		if (ts.isRegularExpressionLiteral(node)) return;
-
-		if (ts.isNoSubstitutionTemplateLiteral(node)) {
-			if (!isRawTaggedTemplate(node.parent, node)) {
-				scanRawText(
-					node.getText(sourceFile),
-					node.getStart(sourceFile),
-					source,
-					violations,
-				);
-			}
-			return;
-		}
-
-		if (ts.isTemplateExpression(node)) {
-			if (!isRawTaggedTemplate(node.parent, node)) {
-				scanRawText(
-					node.head.getText(sourceFile),
-					node.head.getStart(sourceFile),
-					source,
-					violations,
-				);
-				for (const span of node.templateSpans) {
-					scanRawText(
-						span.literal.getText(sourceFile),
-						span.literal.getStart(sourceFile),
-						source,
-						violations,
-					);
-					visit(span.expression);
-				}
-			} else {
-				for (const span of node.templateSpans) visit(span.expression);
-			}
-			return;
-		}
-
-		if (
-			ts.isTaggedTemplateExpression(node) &&
-			isTypeScriptStringRawTag(node.tag)
-		) {
-			if (ts.isTemplateExpression(node.template)) {
-				for (const span of node.template.templateSpans) {
-					visit(span.expression);
-				}
-			}
-			return;
-		}
-
-		ts.forEachChild(node, visit);
+		visitTypeScriptNode(node, sourceFile, source, violations, visit);
 	}
 
 	visit(sourceFile);
+}
+
+/**
+ * Visits a TypeScript AST node and checks its string-bearing children.
+ *
+ * @param {ts.Node} node AST node to inspect.
+ * @param {ts.SourceFile} sourceFile Parsed source file.
+ * @param {string} source Full file contents.
+ * @param {EscapedLatexViolation[]} violations Mutable output collection.
+ * @param {(node: ts.Node) => void} visit Recursive visitor callback.
+ * @returns {void}
+ */
+function visitTypeScriptNode(node, sourceFile, source, violations, visit) {
+	if (ts.isStringLiteral(node)) {
+		scanRawText(
+			node.getText(sourceFile),
+			node.getStart(sourceFile),
+			source,
+			violations,
+		);
+		return;
+	}
+
+	if (ts.isRegularExpressionLiteral(node)) return;
+
+	if (ts.isNoSubstitutionTemplateLiteral(node)) {
+		scanRawText(
+			node.getText(sourceFile),
+			node.getStart(sourceFile),
+			source,
+			violations,
+		);
+		return;
+	}
+
+	if (ts.isTemplateExpression(node)) {
+		scanTypeScriptTemplateExpression(
+			node,
+			sourceFile,
+			source,
+			violations,
+			visit,
+		);
+		return;
+	}
+
+	if (
+		ts.isTaggedTemplateExpression(node) &&
+		isTypeScriptStringRawTag(node.tag)
+	) {
+		visitTypeScriptRawTemplate(node.template, visit);
+		return;
+	}
+
+	ts.forEachChild(node, visit);
+}
+
+/**
+ * Scans an untagged TypeScript template and visits its interpolations.
+ *
+ * @param {ts.TemplateExpression} node Template expression AST node.
+ * @param {ts.SourceFile} sourceFile Parsed source file.
+ * @param {string} source Full file contents.
+ * @param {EscapedLatexViolation[]} violations Mutable output collection.
+ * @param {(node: ts.Node) => void} visit Recursive visitor callback.
+ * @returns {void}
+ */
+function scanTypeScriptTemplateExpression(
+	node,
+	sourceFile,
+	source,
+	violations,
+	visit,
+) {
+	scanRawText(
+		node.head.getText(sourceFile),
+		node.head.getStart(sourceFile),
+		source,
+		violations,
+	);
+	for (const span of node.templateSpans) {
+		scanRawText(
+			span.literal.getText(sourceFile),
+			span.literal.getStart(sourceFile),
+			source,
+			violations,
+		);
+		visit(span.expression);
+	}
+}
+
+/**
+ * Visits interpolations without scanning the raw template portions.
+ *
+ * @param {ts.TemplateLiteral} template Tagged template AST node.
+ * @param {(node: ts.Node) => void} visit Recursive visitor callback.
+ * @returns {void}
+ */
+function visitTypeScriptRawTemplate(template, visit) {
+	if (!ts.isTemplateExpression(template)) return;
+	for (const span of template.templateSpans) visit(span.expression);
 }
 
 /**
@@ -241,74 +283,119 @@ function scanSvelteSource(source, filePath, violations) {
 	/** @type {WeakSet<object>} */
 	const visited = new WeakSet();
 
-	/**
-	 * Visits Svelte and embedded JavaScript AST nodes without scanning comments or CSS.
-	 *
-	 * @param {unknown} value AST value to inspect.
-	 * @param {Record<string, any> | null} parent Parent AST node when available.
-	 * @returns {void}
-	 */
-	function visit(value, parent = null) {
-		if (!value || typeof value !== "object") return;
-		if (visited.has(value)) return;
-		visited.add(value);
+	visitSvelteAst(
+		root.instance?.content ?? null,
+		null,
+		source,
+		violations,
+		visited,
+	);
+	visitSvelteAst(
+		root.module?.content ?? null,
+		null,
+		source,
+		violations,
+		visited,
+	);
+	visitSvelteAst(root.fragment, null, source, violations, visited);
+}
 
-		if (Array.isArray(value)) {
-			for (const child of value) visit(child, parent);
-			return;
+/**
+ * Visits Svelte and embedded JavaScript AST nodes without scanning comments or CSS.
+ *
+ * @param {unknown} value AST value to inspect.
+ * @param {Record<string, any> | null} parent Parent AST node when available.
+ * @param {string} source Full file contents.
+ * @param {EscapedLatexViolation[]} violations Mutable output collection.
+ * @param {WeakSet<object>} visited Previously visited AST objects.
+ * @returns {void}
+ */
+function visitSvelteAst(value, parent, source, violations, visited) {
+	if (!value || typeof value !== "object" || visited.has(value)) return;
+	visited.add(value);
+
+	if (Array.isArray(value)) {
+		for (const child of value) {
+			visitSvelteAst(child, parent, source, violations, visited);
 		}
+		return;
+	}
 
-		const node = /** @type {Record<string, any>} */ (value);
+	const node = /** @type {Record<string, any>} */ (value);
 
-		if (node.type === "Literal") {
-			if (typeof node.raw === "string" && !node.regex) {
-				scanRawText(node.raw, node.start, source, violations);
-			}
-			return;
+	if (node.type === "Literal") {
+		if (typeof node.raw === "string" && !node.regex) {
+			scanRawText(node.raw, node.start, source, violations);
 		}
+		return;
+	}
 
-		if (node.type === "TemplateLiteral") {
-			const isRaw =
-				parent?.type === "TaggedTemplateExpression" &&
-				isSvelteStringRawTag(parent.tag);
+	if (node.type === "TemplateLiteral") {
+		scanSvelteTemplateLiteral(node, parent, source, violations, visited);
+		return;
+	}
 
-			if (!isRaw) {
-				for (const quasi of node.quasis ?? []) {
-					scanRawText(
-						quasi.value?.raw ?? "",
-						quasi.start ?? node.start,
-						source,
-						violations,
-					);
-				}
-			}
+	if (node.type === "TaggedTemplateExpression") {
+		visitSvelteTaggedTemplate(node, source, violations, visited);
+		return;
+	}
 
-			for (const expression of node.expressions ?? []) {
-				visit(expression, node);
-			}
-			return;
+	for (const [key, child] of Object.entries(node)) {
+		if (key !== "loc" && key !== "parent") {
+			visitSvelteAst(child, node, source, violations, visited);
 		}
+	}
+}
 
-		if (node.type === "TaggedTemplateExpression") {
-			visit(node.tag, node);
-			if (isSvelteStringRawTag(node.tag)) {
-				for (const expression of node.quasi?.expressions ?? []) {
-					visit(expression, node.quasi);
-				}
-			} else {
-				visit(node.quasi, node);
-			}
-			return;
-		}
+/**
+ * Scans a Svelte template literal unless it is tagged with String.raw.
+ *
+ * @param {Record<string, any>} node Template literal AST node.
+ * @param {Record<string, any> | null} parent Parent AST node when available.
+ * @param {string} source Full file contents.
+ * @param {EscapedLatexViolation[]} violations Mutable output collection.
+ * @param {WeakSet<object>} visited Previously visited AST objects.
+ * @returns {void}
+ */
+function scanSvelteTemplateLiteral(node, parent, source, violations, visited) {
+	const isRaw =
+		parent?.type === "TaggedTemplateExpression" &&
+		isSvelteStringRawTag(parent.tag);
 
-		for (const [key, child] of Object.entries(node)) {
-			if (key !== "loc" && key !== "parent") visit(child, node);
+	if (!isRaw) {
+		for (const quasi of node.quasis ?? []) {
+			scanRawText(
+				quasi.value?.raw ?? "",
+				quasi.start ?? node.start,
+				source,
+				violations,
+			);
 		}
 	}
 
-	visit(root.instance?.content ?? null);
-	visit(root.module?.content ?? null);
-	visit(root.fragment);
+	for (const expression of node.expressions ?? []) {
+		visitSvelteAst(expression, node, source, violations, visited);
+	}
+}
+
+/**
+ * Visits a Svelte tagged template while honoring String.raw template content.
+ *
+ * @param {Record<string, any>} node Tagged template AST node.
+ * @param {string} source Full file contents.
+ * @param {EscapedLatexViolation[]} violations Mutable output collection.
+ * @param {WeakSet<object>} visited Previously visited AST objects.
+ * @returns {void}
+ */
+function visitSvelteTaggedTemplate(node, source, violations, visited) {
+	visitSvelteAst(node.tag, node, source, violations, visited);
+	if (isSvelteStringRawTag(node.tag)) {
+		for (const expression of node.quasi?.expressions ?? []) {
+			visitSvelteAst(expression, node.quasi, source, violations, visited);
+		}
+	} else {
+		visitSvelteAst(node.quasi, node, source, violations, visited);
+	}
 }
 
 /**
@@ -350,21 +437,6 @@ function lineAt(source, offset) {
 		if (source[index] === "\n") line += 1;
 	}
 	return line;
-}
-
-/**
- * Checks whether a TypeScript template is tagged with the built-in String.raw.
- *
- * @param {ts.Node} parent Parent AST node.
- * @param {ts.Node} template Template AST node.
- * @returns {boolean} Whether String.raw owns the template.
- */
-function isRawTaggedTemplate(parent, template) {
-	return (
-		ts.isTaggedTemplateExpression(parent) &&
-		parent.template === template &&
-		isTypeScriptStringRawTag(parent.tag)
-	);
 }
 
 /**
