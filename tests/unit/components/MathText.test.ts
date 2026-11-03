@@ -30,7 +30,7 @@ describe("MathText.svelte Component", () => {
 	it("parses and renders inline $...$ LaTeX math with KaTeX", () => {
 		const { container } = render(MathText, {
 			props: {
-				text: "Given the differential equation with roots $\\lambda_1 = -1$ and $\\lambda_2 = -3$.",
+				text: String.raw`Given the differential equation with roots $\lambda_1 = -1$ and $\lambda_2 = -3$.`,
 			},
 		});
 

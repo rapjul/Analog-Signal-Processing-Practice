@@ -38,6 +38,8 @@ const LATEX_COMMANDS = new Set([
 	"approx",
 	"arg",
 	"begin",
+	"beta",
+	"mathbf",
 	"cdot",
 	"circ",
 	"cos",
@@ -49,10 +51,13 @@ const LATEX_COMMANDS = new Set([
 	"dots",
 	"end",
 	"equiv",
+	"epsilon",
 	"eta",
 	"exp",
 	"F",
 	"frac",
+	"Gamma",
+	"gamma",
 	"ge",
 	"iff",
 	"implies",
@@ -66,6 +71,8 @@ const LATEX_COMMANDS = new Set([
 	"lim",
 	"ln",
 	"log",
+	"Lambda",
+	"lambda",
 	"longleftrightarrow",
 	"Longrightarrow",
 	"mathbb",
@@ -84,15 +91,19 @@ const LATEX_COMMANDS = new Set([
 	"pi",
 	"pm",
 	"pmod",
+	"Phi",
+	"Psi",
 	"qquad",
 	"quad",
 	"Re",
 	"right",
 	"rm",
 	"sigma",
+	"Sigma",
 	"sin",
 	"sqrt",
 	"square",
+	"prod",
 	"sum",
 	"tan",
 	"tau",
@@ -100,6 +111,7 @@ const LATEX_COMMANDS = new Set([
 	"textasciicircum",
 	"texttt",
 	"tfrac",
+	"Theta",
 	"theta",
 	"tilde",
 	"times",
@@ -411,7 +423,10 @@ function scanRawText(rawText, baseOffset, source, violations) {
 	ESCAPED_CONTROL_SEQUENCE.lastIndex = 0;
 	let match;
 
-	while ((match = ESCAPED_CONTROL_SEQUENCE.exec(rawText)) !== null) {
+	while (true) {
+		match = ESCAPED_CONTROL_SEQUENCE.exec(rawText);
+		if (match === null) break;
+
 		const command = match[1];
 		if (command === undefined || !LATEX_COMMANDS.has(command)) continue;
 

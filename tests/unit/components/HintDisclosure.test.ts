@@ -11,8 +11,8 @@ describe("HintDisclosure.svelte Component", () => {
 		cleanup();
 	});
 	const sampleHints = [
-		"First find the characteristic roots $\\lambda_1, \\lambda_2$.",
-		"Set up the homogeneous solution form $y_h(t) = c_1 e^{\\lambda_1 t} + c_2 e^{\\lambda_2 t}$.",
+		String.raw`First find the characteristic roots $\lambda_1, \lambda_2$.`,
+		String.raw`Set up the homogeneous solution form $y_h(t) = c_1 e^{\lambda_1 t} + c_2 e^{\lambda_2 t}$.`,
 		"Substitute initial conditions $y(0)$ and $y'(0)$ to solve for $c_1$ and $c_2$.",
 	];
 

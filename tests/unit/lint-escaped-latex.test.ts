@@ -39,6 +39,27 @@ it("detects escaped commands in quoted strings and untagged templates", function
 });
 
 /**
+ * Detects escaped Greek LaTeX commands used in project math expressions.
+ */
+it("detects escaped Greek LaTeX commands", function detectsEscapedGreekCommands() {
+	const source =
+		'const formula = "' +
+		escapedBackslash +
+		"beta " +
+		escapedBackslash +
+		"gamma " +
+		escapedBackslash +
+		'lambda";';
+	const violations = findEscapedLatexViolations(source, "fixture.ts");
+
+	expect(violations).toEqual([
+		{ line: 1, command: backslash + "beta", offset: expect.any(Number) },
+		{ line: 1, command: backslash + "gamma", offset: expect.any(Number) },
+		{ line: 1, command: backslash + "lambda", offset: expect.any(Number) },
+	]);
+});
+
+/**
  * Detects escaped LaTeX in Svelte script and markup expressions.
  */
 it("detects escaped commands in Svelte expressions", function detectsSvelteExpressions() {
