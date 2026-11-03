@@ -17,7 +17,7 @@ describe("MathBlock.svelte Component", () => {
 	it("renders display-mode KaTeX math expression inside a region container", () => {
 		const { container } = render(MathBlock, {
 			props: {
-				math: "y(t) = e^{-2t} \\cos(3t) u(t)",
+				math: String.raw`y(t) = e^{-2t} \cos(3t) u(t)`,
 			},
 		});
 
@@ -49,7 +49,8 @@ describe("MathBlock.svelte Component", () => {
 	it("wraps piecewise expressions in cases environment when cases prop is true", () => {
 		const { container } = render(MathBlock, {
 			props: {
-				math: "t & 0 \\le t < 1 \\\\\n2 - t & 1 \\le t \\le 2",
+				math: String.raw`t & 0 \le t < 1 \\
+2 - t & 1 \le t \le 2`,
 				cases: true,
 			},
 		});
@@ -61,7 +62,9 @@ describe("MathBlock.svelte Component", () => {
 	it("does not doubly wrap environments if already wrapped", () => {
 		const { container } = render(MathBlock, {
 			props: {
-				math: "\\begin{aligned}\nx &= 1\n\\end{aligned}",
+				math: String.raw`\begin{aligned}
+x &= 1
+\end{aligned}`,
 				aligned: true,
 			},
 		});
@@ -143,7 +146,7 @@ describe("MathBlock.svelte Component", () => {
 	it("hides header bar when hideHeader is true", () => {
 		const { container } = render(MathBlock, {
 			props: {
-				math: "X(s) = \\frac{1}{s+2}",
+				math: String.raw`X(s) = \frac{1}{s+2}`,
 				hideHeader: true,
 			},
 		});
@@ -157,7 +160,7 @@ describe("MathBlock.svelte Component", () => {
 	it("applies compact and custom class modifiers", () => {
 		const { container } = render(MathBlock, {
 			props: {
-				math: "H(s) = \\frac{s+1}{s^2+4}",
+				math: String.raw`H(s) = \frac{s+1}{s^2+4}`,
 				compact: true,
 				class: "custom-formula-class",
 			},

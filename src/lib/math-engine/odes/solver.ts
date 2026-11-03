@@ -393,13 +393,12 @@ function computeSinusoidalParticular(
 	);
 	if (multiplicity === 1) {
 		return {
-			formDescription:
-				"y_p(t) = t[A \\cos(\\omega t) + B \\sin(\\omega t)]",
+			formDescription: String.raw`y_p(t) = t[A \cos(\omega t) + B \sin(\omega t)]`,
 			latex:
 				sanitizeLatexMath(
 					formatSignedLinearTerm(
 						formatHarmonicScalar(B),
-						`t \\sin(${frequencyLatex}t)`,
+						String.raw`t \sin(${frequencyLatex}t)`,
 						true,
 					),
 				) || "0",
@@ -416,15 +415,15 @@ function computeSinusoidalParticular(
 	const latexB = formatHarmonicScalar(B);
 
 	let latexStr = "";
-	if (A !== 0) latexStr += `${latexA} \\cos(${frequencyLatex}t)`;
+	if (A !== 0) latexStr += String.raw`${latexA} \cos(${frequencyLatex}t)`;
 	if (B > 0)
-		latexStr += `${latexStr ? " + " : ""}${latexB} \\sin(${frequencyLatex}t)`;
+		latexStr += String.raw`${latexStr ? " + " : ""}${latexB} \sin(${frequencyLatex}t)`;
 	else if (B < 0)
-		latexStr += `${latexStr ? " - " : "-"}${formatHarmonicScalar(Math.abs(B))} \\sin(${frequencyLatex}t)`;
+		latexStr += String.raw`${latexStr ? " - " : "-"}${formatHarmonicScalar(Math.abs(B))} \sin(${frequencyLatex}t)`;
 	if (!latexStr) latexStr = "0";
 
 	return {
-		formDescription: "y_p(t) = A \\cos(\\omega t) + B \\sin(\\omega t)",
+		formDescription: String.raw`y_p(t) = A \cos(\omega t) + B \sin(\omega t)`,
 		latex: latexStr,
 		/** @param t - Evaluation time. @returns Harmonic particular response. */
 		eval: (t: number) => evaluateHarmonic(A, B, w, t),
@@ -544,12 +543,12 @@ export function solveHomogeneousConstants(
 
 			const cosTerm = formatSignedLinearTerm(
 				c1Str,
-				`\\cos(${toFractionLatex(omega_d)}t)`,
+				String.raw`\cos(${toFractionLatex(omega_d)}t)`,
 				true,
 			);
 			const sinTerm = formatSignedLinearTerm(
 				c2Str,
-				`\\sin(${toFractionLatex(omega_d)}t)`,
+				String.raw`\sin(${toFractionLatex(omega_d)}t)`,
 				false,
 			);
 			const inner = `${cosTerm} ${sinTerm}`.trim();

@@ -24,13 +24,17 @@ describe("convolution pulse formatting", () => {
 	});
 
 	it("simplifies unit and shifted-unit pulses while preserving general scaling", () => {
-		expect(formatRectPulseLatex(1)).toBe("\\operatorname{rect}(t)");
-		expect(formatRectPulseLatex(1, 2)).toBe("\\operatorname{rect}(t - 2)");
+		expect(formatRectPulseLatex(1)).toBe(
+			String.raw`\operatorname{rect}(t)`,
+		);
+		expect(formatRectPulseLatex(1, 2)).toBe(
+			String.raw`\operatorname{rect}(t - 2)`,
+		);
 		expect(formatRectPulseLatex(1, -2, -1)).toBe(
-			"-\\operatorname{rect}(t + 2)",
+			String.raw`-\operatorname{rect}(t + 2)`,
 		);
 		expect(formatRectPulseLatex(3, 1, 2)).toBe(
-			"2\\operatorname{rect}\\left(\\frac{t - 1}{3}\\right)",
+			String.raw`2\operatorname{rect}\left(\frac{t - 1}{3}\right)`,
 		);
 	});
 

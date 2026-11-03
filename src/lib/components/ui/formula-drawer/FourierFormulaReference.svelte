@@ -14,17 +14,17 @@
 	<h3 class="section-heading">Fourier Series Representations</h3>
 	<p class="ref-label">Trigonometric Form:</p>
 	<MathBlock
-		math={"x(t) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} [a_n \\cos(n \\omega_0 t) + b_n \\sin(n \\omega_0 t)]"}
+		math={String.raw`x(t) = \frac{a_0}{2} + \sum_{n=1}^{\infty} [a_n \cos(n \omega_0 t) + b_n \sin(n \omega_0 t)]`}
 		compact={true}
 	/>
 	<p class="ref-label">Exponential Form:</p>
 	<MathBlock
-		math={"x(t) = \\sum_{n=-\\infty}^{\\infty} F_n e^{j n \\omega_0 t}"}
+		math={String.raw`x(t) = \sum_{n=-\infty}^{\infty} F_n e^{j n \omega_0 t}`}
 		compact={true}
 	/>
 	<p class="ref-label">Coefficient Relations:</p>
 	<MathBlock
-		math={"F_n = \\frac{a_n - j b_n}{2}, \\quad F_{-n} = F_n^*, \\quad F_0 = \\frac{a_0}{2}"}
+		math={String.raw`F_n = \frac{a_n - j b_n}{2}, \quad F_{-n} = F_n^*, \quad F_0 = \frac{a_0}{2}`}
 		compact={true}
 	/>
 </div>
@@ -37,7 +37,7 @@
 				text={String.raw`<strong>Trigonometric Coefficients:</strong> Requires factor of $\frac{2}{T_0}$:`}
 			/>
 			<MathBlock
-				math={"a_n = \\frac{2}{T_0} \\int_{T_0} x(t) \\cos(n \\omega_0 t) dt, \\quad b_n = \\frac{2}{T_0} \\int_{T_0} x(t) \\sin(n \\omega_0 t) dt"}
+				math={String.raw`a_n = \frac{2}{T_0} \int_{T_0} x(t) \cos(n \omega_0 t) dt, \quad b_n = \frac{2}{T_0} \int_{T_0} x(t) \sin(n \omega_0 t) dt`}
 				compact={true}
 			/>
 		</li>
@@ -46,7 +46,7 @@
 				text={String.raw`<strong>Exponential Coefficients:</strong> Requires factor of $\frac{1}{T_0}$:`}
 			/>
 			<MathBlock
-				math={"F_n = \\frac{1}{T_0} \\int_{T_0} x(t) e^{-j n \\omega_0 t} dt"}
+				math={String.raw`F_n = \frac{1}{T_0} \int_{T_0} x(t) e^{-j n \omega_0 t} dt`}
 				compact={true}
 			/>
 		</li>
@@ -77,7 +77,7 @@
 <div class="ref-section">
 	<h3 class="section-heading">Parseval's Power & Gibbs Phenomenon</h3>
 	<MathBlock
-		math={"P_x = \\frac{1}{T_0} \\int_{T_0} |x(t)|^2 dt = \\frac{a_0^2}{4} + \\frac{1}{2} \\sum_{n=1}^{\\infty} (a_n^2 + b_n^2) = \\sum_{n=-\\infty}^{\\infty} |F_n|^2"}
+		math={String.raw`P_x = \frac{1}{T_0} \int_{T_0} |x(t)|^2 dt = \frac{a_0^2}{4} + \frac{1}{2} \sum_{n=1}^{\infty} (a_n^2 + b_n^2) = \sum_{n=-\infty}^{\infty} |F_n|^2`}
 		compact={true}
 	/>
 	<p class="ref-text">
@@ -91,7 +91,7 @@
 	<h3 class="section-heading">Dirichlet Conditions & Convergence</h3>
 	<p class="ref-label">Weak Dirichlet Condition:</p>
 	<MathBlock
-		math={"\\int_{t_0}^{t_0+T_0}|x(t)|\\,dt < \\infty"}
+		math={String.raw`\int_{t_0}^{t_0+T_0}|x(t)|\,dt < \infty`}
 		compact={true}
 	/>
 	<p class="ref-text">
@@ -105,7 +105,7 @@
 	<div class="callout callout-warning">
 		<p class="ref-label">Discontinuity Midpoint Convergence:</p>
 		<MathBlock
-			math={"\\lim_{N\\to\\infty}S_N(t_0)=\\frac{x(t_0^+)+x(t_0^-)}{2}"}
+			math={String.raw`\lim_{N\to\infty}S_N(t_0)=\frac{x(t_0^+)+x(t_0^-)}{2}`}
 			compact={true}
 		/>
 		<p class="ref-text">

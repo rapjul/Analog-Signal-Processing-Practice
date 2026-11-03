@@ -334,7 +334,7 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		const shift = stageId === "base" ? 0 : this.problem.params.t0;
 		return validateCtftConstant(
 			input,
-			`\\pi e^{-j(${location})(${shift})}`,
+			String.raw`\pi e^{-j(${location})(${shift})}`,
 		);
 	}
 
@@ -494,6 +494,6 @@ export class CtftStepSolverState extends BaseStepSolverState {
 		const location =
 			this.stages[stageId]!.parts[task.id.replace("weight", "location")]!
 				.input;
-		return `\\pi e^{-j(${location})(${stageId === "base" ? 0 : this.problem.params.t0})}`;
+		return String.raw`\pi e^{-j(${location})(${stageId === "base" ? 0 : this.problem.params.t0})}`;
 	}
 }

@@ -58,7 +58,7 @@ describe("Fourier Series review UI regressions", () => {
 		expect(solver.currentStep).toBe(1);
 		const displayed = problem.periodLatex
 			.split(" = ")[1]!
-			.split("\\text")[0]!;
+			.split(String.raw`\text`)[0]!;
 		await fireEvent.input(period, { target: { value: displayed } });
 		await fireEvent.keyDown(period, { key: "Enter" });
 		expect(solver.currentStep).toBe(2);

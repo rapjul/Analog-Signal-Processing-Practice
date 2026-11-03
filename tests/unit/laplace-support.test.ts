@@ -98,7 +98,7 @@ describe("checked support interval evidence", () => {
 				validateLaplaceTask(task, "", values, []).result.status,
 			).toBe("invalid");
 		}
-		expect(tasks.at(-1)!.formula).toContain("\\begin{cases}");
+		expect(tasks.at(-1)!.formula).toContain(String.raw`\begin{cases}`);
 	});
 	/** Equivalent rational delays create one boundary and impulses stay separate. */
 	it("deduplicates exact boundaries and retains separate impulse metadata", () => {
@@ -109,8 +109,8 @@ describe("checked support interval evidence", () => {
 		];
 		const tasks = supportTasks(original, original);
 		expect(tasks.filter((task) => task.kind === "fields")).toHaveLength(2);
-		expect(tasks[0]!.formula).toContain("\\delta");
-		expect(tasks.at(-1)!.hints[1]).toContain("\\delta");
+		expect(tasks[0]!.formula).toContain(String.raw`\delta`);
+		expect(tasks.at(-1)!.hints[1]).toContain(String.raw`\delta`);
 	});
 	/** Tests symbolic identities over the complete interval, not one numerical sample. */
 	it("accepts equivalent ordinary expressions and rejects support functions, impulses, and wrong sums", () => {
@@ -121,7 +121,7 @@ describe("checked support interval evidence", () => {
 		expect(verifyLaplaceInterval("2t", "2t-1", interval).status).toBe(
 			"incorrect",
 		);
-		for (const expression of ["u(t)", "\\delta(t-1)"])
+		for (const expression of ["u(t)", String.raw`\delta(t-1)`])
 			expect(
 				verifyLaplaceInterval(expression, "1", interval).status,
 			).toBe("invalid");

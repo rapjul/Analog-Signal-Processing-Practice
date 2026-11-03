@@ -77,12 +77,12 @@ function normalizeGroups(source: string): string {
 	let previous = "";
 	for (let index = 0; index < tokens.length; index++) {
 		const token = tokens[index]!;
-		if (token === "\\left" || token === "\\right") {
+		if (token === String.raw`\left` || token === String.raw`\right`) {
 			index = sizedDelimiter(tokens, index + 1);
 			output.push(
 				groupToken(
 					tokens[index]!,
-					token === "\\right",
+					token === String.raw`\right`,
 					true,
 					false,
 					stack,
@@ -94,7 +94,7 @@ function normalizeGroups(source: string): string {
 					token,
 					")]}".includes(token),
 					false,
-					token === "[" && previous === "\\sqrt",
+					token === "[" && previous === String.raw`\sqrt`,
 					stack,
 				),
 			);
@@ -163,11 +163,14 @@ export function normalizeTransformNotation(
 			"Enter one expression or use the problem's supported equation prefix.",
 		);
 	return expression
-		.replace(/π/g, "\\pi ")
-		.replace(/\\delta\b/g, "\\operatorname{DiracDelta}")
-		.replace(/(^|[^a-zA-Z\\])sinc(?=\s*\()/g, "$1\\operatorname{sinc}")
-		.replace(/(^|[^a-zA-Z\\])([ij])(?:omega|w)\b/g, "$1$2\\omega")
-		.replace(/(^|[^a-zA-Z\\])omega\b/g, "$1\\omega")
-		.replace(/(^|[^a-zA-Z\\])w\b/g, "$1\\omega")
+		.replace(/π/g, String.raw`\pi `)
+		.replace(/\\delta\b/g, String.raw`\operatorname{DiracDelta}`)
+		.replace(
+			/(^|[^a-zA-Z\\])sinc(?=\s*\()/g,
+			String.raw`$1\operatorname{sinc}`,
+		)
+		.replace(/(^|[^a-zA-Z\\])([ij])(?:omega|w)\b/g, String.raw`$1$2\omega`)
+		.replace(/(^|[^a-zA-Z\\])omega\b/g, String.raw`$1\omega`)
+		.replace(/(^|[^a-zA-Z\\])w\b/g, String.raw`$1\omega`)
 		.trim();
 }

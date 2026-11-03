@@ -43,23 +43,47 @@ export function buildIntegralOptions(
 					}),
 		}));
 	}
-	const scalingDistractor = correct.includes("\\frac{4}{T_0}")
-		? correct.replace("\\frac{4}{T_0}", "\\frac{2}{T_0}")
-		: correct.includes("\\frac{2j}{T_0}")
-			? correct.replace("\\frac{2j}{T_0}", "\\frac{j}{T_0}")
-			: correct.includes("\\frac{2}{T_0}")
-				? correct.replace("\\frac{2}{T_0}", "\\frac{1}{T_0}")
-				: correct.replace("\\frac{1}{T_0}", "\\frac{2}{T_0}");
-	const kernelDistractor = correct.includes("e^{-jn\\omega_0t}")
-		? correct.replace("e^{-jn\\omega_0t}", "e^{+jn\\omega_0t}")
-		: correct.includes("\\cos(n\\omega_0t)")
-			? correct.replaceAll("\\cos(n\\omega_0t)", "\\sin(n\\omega_0t)")
-			: correct.includes("\\sin(n\\omega_0t)")
-				? correct.replaceAll("\\sin(n\\omega_0t)", "\\cos(n\\omega_0t)")
-				: correct.replace("\\,dt", "\\cos(n\\omega_0t)\\,dt");
-	const fullIntervalDistractor = correct.includes("\\int_0^{T_0/2}")
-		? correct.replace("\\int_0^{T_0/2}", "\\int_0^{T_0}")
-		: correct.replace("\\int_0^{T_0/4}", "\\int_0^{T_0/2}");
+	const scalingDistractor = correct.includes(String.raw`\frac{4}{T_0}`)
+		? correct.replace(String.raw`\frac{4}{T_0}`, String.raw`\frac{2}{T_0}`)
+		: correct.includes(String.raw`\frac{2j}{T_0}`)
+			? correct.replace(
+					String.raw`\frac{2j}{T_0}`,
+					String.raw`\frac{j}{T_0}`,
+				)
+			: correct.includes(String.raw`\frac{2}{T_0}`)
+				? correct.replace(
+						String.raw`\frac{2}{T_0}`,
+						String.raw`\frac{1}{T_0}`,
+					)
+				: correct.replace(
+						String.raw`\frac{1}{T_0}`,
+						String.raw`\frac{2}{T_0}`,
+					);
+	const kernelDistractor = correct.includes(String.raw`e^{-jn\omega_0t}`)
+		? correct.replace(
+				String.raw`e^{-jn\omega_0t}`,
+				String.raw`e^{+jn\omega_0t}`,
+			)
+		: correct.includes(String.raw`\cos(n\omega_0t)`)
+			? correct.replaceAll(
+					String.raw`\cos(n\omega_0t)`,
+					String.raw`\sin(n\omega_0t)`,
+				)
+			: correct.includes(String.raw`\sin(n\omega_0t)`)
+				? correct.replaceAll(
+						String.raw`\sin(n\omega_0t)`,
+						String.raw`\cos(n\omega_0t)`,
+					)
+				: correct.replace(
+						String.raw`\,dt`,
+						String.raw`\cos(n\omega_0t)\,dt`,
+					);
+	const fullIntervalDistractor = correct.includes(String.raw`\int_0^{T_0/2}`)
+		? correct.replace(String.raw`\int_0^{T_0/2}`, String.raw`\int_0^{T_0}`)
+		: correct.replace(
+				String.raw`\int_0^{T_0/4}`,
+				String.raw`\int_0^{T_0/2}`,
+			);
 
 	return [
 		{ id: "c1", latex: correct, isCorrect: true },
@@ -74,8 +98,8 @@ export function buildIntegralOptions(
 			id: "d2",
 			latex: kernelDistractor,
 			isCorrect: false,
-			feedback: correct.includes("e^{-jn\\omega_0t}")
-				? "Sign Error: Exponential Fourier coefficients require the kernel $e^{-j n \\omega_0 t}$."
+			feedback: correct.includes(String.raw`e^{-jn\omega_0t}`)
+				? String.raw`Sign Error: Exponential Fourier coefficients require the kernel $e^{-j n \omega_0 t}$.`
 				: "Kernel Error: The selected sine or cosine kernel does not match the non-zero coefficient family.",
 		},
 		{
@@ -224,7 +248,7 @@ export function buildStep5Data(
 		carriedCoefficients,
 		hints: [
 			"Use symmetry to choose the non-zero coefficient family before writing an integral.",
-			"Trigonometric coefficients use $2/T_0$; exponential coefficients use $1/T_0$ and $e^{-jn\\omega_0t}$.",
+			String.raw`Trigonometric coefficients use $2/T_0$; exponential coefficients use $1/T_0$ and $e^{-jn\omega_0t}$.`,
 			"Split the integral exactly where the waveform definition changes and omit intervals where the signal is zero.",
 		],
 	};

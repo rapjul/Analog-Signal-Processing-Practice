@@ -105,7 +105,7 @@ describe("Circuit Analysis & Transfer Functions Math Engine (circuits.ts)", () =
 			});
 			expect(tf.numCoeffs).toEqual([-1000]);
 			expect(tf.denCoeffs).toEqual([1, 0]);
-			expect(tf.hLatex).toContain("-\\frac{1000}{s}");
+			expect(tf.hLatex).toContain(String.raw`-\frac{1000}{s}`);
 		});
 	});
 

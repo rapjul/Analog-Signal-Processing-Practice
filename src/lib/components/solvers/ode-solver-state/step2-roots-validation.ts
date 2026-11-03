@@ -69,8 +69,8 @@ export function validateStep1CharEq(
 	return {
 		kind: "incorrect",
 		message: isFirstOrder
-			? "Incorrect coefficients. Substitute $\\frac{dy}{dt} \\to s$ and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$."
-			: "Incorrect coefficients. Substitute $\\frac{d^2 y}{dt^2} \\to s^2$, $\\frac{dy}{dt} \\to s$, and $y(t) \\to 1$, setting the homogeneous right-hand side to $0$.",
+			? String.raw`Incorrect coefficients. Substitute $\frac{dy}{dt} \to s$ and $y(t) \to 1$, setting the homogeneous right-hand side to $0$.`
+			: String.raw`Incorrect coefficients. Substitute $\frac{d^2 y}{dt^2} \to s^2$, $\frac{dy}{dt} \to s$, and $y(t) \to 1$, setting the homogeneous right-hand side to $0$.`,
 	};
 }
 
@@ -217,8 +217,7 @@ export function validateQuadClassChoice(
 	}
 	return {
 		kind: "misconception",
-		message:
-			"Incorrect classification. Calculate the discriminant $\\Delta = b^2 - 4ac$ to confirm whether $\\Delta > 0$, $\\Delta = 0$, or $\\Delta < 0$.",
+		message: String.raw`Incorrect classification. Calculate the discriminant $\Delta = b^2 - 4ac$ to confirm whether $\Delta > 0$, $\Delta = 0$, or $\Delta < 0$.`,
 	};
 }
 
@@ -246,7 +245,7 @@ export function validateDiscriminantInput(
 	if (Number.isNaN(vDisc)) {
 		return {
 			kind: "validation",
-			message: "Please enter a numeric value for $\\Delta = b^2 - 4ac$.",
+			message: String.raw`Please enter a numeric value for $\Delta = b^2 - 4ac$.`,
 		};
 	}
 
@@ -257,7 +256,7 @@ export function validateDiscriminantInput(
 
 	return {
 		kind: "incorrect",
-		message: `Incorrect discriminant. $\\Delta = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${expDisc}$.`,
+		message: String.raw`Incorrect discriminant. $\Delta = (${problem.params.a1})^2 - 4(${problem.params.a2})(${problem.params.a0}) = ${expDisc}$.`,
 	};
 }
 
@@ -290,8 +289,7 @@ export function validateQuadRoots(
 			if (Number.isNaN(vSig) || Number.isNaN(vOm)) {
 				return {
 					kind: "validation",
-					message:
-						"Please enter numeric values for both real part $\\sigma$ and damped frequency $\\omega_d$.",
+					message: String.raw`Please enter numeric values for both real part $\sigma$ and damped frequency $\omega_d$.`,
 				};
 			}
 
@@ -308,13 +306,12 @@ export function validateQuadRoots(
 			if (approximatelyEqual(vSig, -expSig) && isOmMatch) {
 				return {
 					kind: "misconception",
-					message:
-						"Check the sign of $\\sigma$. In the quadratic formula, $\\sigma = \\frac{-b}{2a}$.",
+					message: String.raw`Check the sign of $\sigma$. In the quadratic formula, $\sigma = \frac{-b}{2a}$.`,
 				};
 			}
 			return {
 				kind: "incorrect",
-				message: `Incorrect roots. $\\sigma = \\frac{-(${problem.params.a1})}{${2 * problem.params.a2}} = ${expSig}$ and $\\omega_d = \\frac{\\sqrt{${Math.abs(s2Data.discriminant)}}}{${2 * Math.abs(problem.params.a2)}} = ${expOm}$.`,
+				message: String.raw`Incorrect roots. $\sigma = \frac{-(${problem.params.a1})}{${2 * problem.params.a2}} = ${expSig}$ and $\omega_d = \frac{\sqrt{${Math.abs(s2Data.discriminant)}}}{${2 * Math.abs(problem.params.a2)}} = ${expOm}$.`,
 			};
 		}
 
@@ -353,7 +350,7 @@ export function validateQuadRoots(
 			}
 			return {
 				kind: "incorrect",
-				message: `Incorrect roots. $s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${s2Data.discriminant}}}{${2 * problem.params.a2}}$, yielding $r_1 = ${r1}, r_2 = ${r2}$.`,
+				message: String.raw`Incorrect roots. $s = \frac{-(${problem.params.a1}) \pm \sqrt{${s2Data.discriminant}}}{${2 * problem.params.a2}}$, yielding $r_1 = ${r1}, r_2 = ${r2}$.`,
 			};
 		}
 
@@ -375,13 +372,12 @@ export function validateQuadRoots(
 			if (approximatelyEqual(v1, -r1) && Math.abs(r1) > 0.01) {
 				return {
 					kind: "misconception",
-					message:
-						"Check your sign. For a repeated root with $\\Delta = 0$, $r = \\frac{-b}{2a}$.",
+					message: String.raw`Check your sign. For a repeated root with $\Delta = 0$, $r = \frac{-b}{2a}$.`,
 				};
 			}
 			return {
 				kind: "incorrect",
-				message: `Incorrect repeated root. With $\\Delta = 0$, $r = \\frac{-b}{2a} = \\frac{${-problem.params.a1}}{${2 * problem.params.a2}}$.`,
+				message: String.raw`Incorrect repeated root. With $\Delta = 0$, $r = \frac{-b}{2a} = \frac{${-problem.params.a1}}{${2 * problem.params.a2}}$.`,
 			};
 		}
 

@@ -50,7 +50,7 @@ describe("CTFT answer validation", () => {
 				validateCtftAnswer(`1+${product}`, problem).status,
 				product,
 			).toBe("unsupported");
-		for (const term of [`0${d}`, `${d}-${d}`, `0${d}\\omega`])
+		for (const term of [`0${d}`, `${d}-${d}`, String.raw`0${d}\omega`])
 			expect(
 				validateCtftAnswer(`1+(${term})`, problem).status,
 				term,

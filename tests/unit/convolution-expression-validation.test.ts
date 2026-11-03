@@ -77,7 +77,10 @@ describe("convolution expression equivalence", () => {
 	/** Ambiguous exact constant proofs retain their more specific explanation. */
 	it("preserves a constant-verification diagnostic", () => {
 		expect(
-			verifyConvolutionExpression("u((3.141592653589793-\\pi)t)", "0"),
+			verifyConvolutionExpression(
+				String.raw`u((3.141592653589793-\pi)t)`,
+				"0",
+			),
 		).toEqual({
 			status: "unsupported",
 			message:
@@ -142,7 +145,9 @@ describe("convolution expression equivalence", () => {
 		expect(convolutionExpressionsMatch("t", "t", { min: 1, max: 1 })).toBe(
 			false,
 		);
-		expect(convolutionExpressionsMatch("inf", "\\infty")).toBe(true);
+		expect(convolutionExpressionsMatch("inf", String.raw`\infty`)).toBe(
+			true,
+		);
 	});
 	/** Equivalent finite constants must use the same expression evaluator. */
 	it.each(["2+2", "(4)", "8/2", "4+t-t"])(
@@ -217,7 +222,9 @@ describe("convolution expression equivalence", () => {
 	});
 	/** Infinity is a scalar boundary sentinel rather than a finite expression. */
 	it("preserves infinity boundary matching and rejects invalid expressions", () => {
-		expect(convolutionExpressionsMatch("inf", "\\infty")).toBe(true);
+		expect(convolutionExpressionsMatch("inf", String.raw`\infty`)).toBe(
+			true,
+		);
 		expect(convolutionExpressionsMatch("-inf", "inf")).toBe(false);
 		expect(convolutionExpressionsMatch("4", "5")).toBe(false);
 		expect(convolutionExpressionsMatch("1/0", "0")).toBe(false);

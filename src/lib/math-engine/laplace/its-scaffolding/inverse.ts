@@ -138,9 +138,9 @@ export function pairingStage(terms: LaplaceResponseTerm[]): LaplaceStage {
 									fields
 										.map(
 											(field) =>
-												`\\text{${field.label}}={{${field.id}}}`,
+												String.raw`\text{${field.label}}={{${field.id}}}`,
 										)
-										.join(",\\quad "),
+										.join(String.raw`,\quad `),
 									fields,
 								),
 								...teaching(

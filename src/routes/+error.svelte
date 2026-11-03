@@ -70,15 +70,15 @@
 	 */
 	function getMathFormula(pathname: string): string {
 		if (pathname.includes("fourier-transform")) {
-			return "X(\\omega) = \\int_{-\\infty}^{\\infty} x(t) e^{-j\\omega t} dt";
+			return String.raw`X(\omega) = \int_{-\infty}^{\infty} x(t) e^{-j\omega t} dt`;
 		}
 		if (pathname.includes("laplace")) {
-			return "X(s) = \\int_{0^{-}}^{\\infty} x(t) e^{-st} dt";
+			return String.raw`X(s) = \int_{0^{-}}^{\infty} x(t) e^{-st} dt`;
 		}
 		if (pathname.includes("circuits")) {
-			return "H(s) = \\frac{V_{\\text{out}}(s)}{V_{\\text{in}}(s)}";
+			return String.raw`H(s) = \frac{V_{\text{out}}(s)}{V_{\text{in}}(s)}`;
 		}
-		return "H(s) \\to 0 \\quad \\text{for } t \\to \\infty";
+		return String.raw`H(s) \to 0 \quad \text{for } t \to \infty`;
 	}
 </script>
 

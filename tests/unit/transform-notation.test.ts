@@ -47,7 +47,7 @@ function prefix(
 	const name = variable === "t" ? "x" : "X";
 	const left = square ? "[" : "(",
 		right = square ? "]" : ")";
-	return `${name}${space}${sized ? "\\left" : ""}${left}${space}${variable}${space}${sized ? "\\right" : ""}${right}${space}=${space}`;
+	return String.raw`${name}${space}${sized ? String.raw`\left` : ""}${left}${space}${variable}${space}${sized ? String.raw`\right` : ""}${right}${space}=${space}`;
 }
 
 /**
@@ -212,13 +212,13 @@ describe("transform notation properties", () => {
 			fc.property(
 				fc.constantFrom("t" as const, "omega" as const),
 				fc.constantFrom(
-					"X\\left(omega)=1",
-					"X\\left(omega\\right]=1",
+					String.raw`X\left(omega)=1`,
+					String.raw`X\left(omega\right]=1`,
 					"x(t)=1=1",
 					"1+(2]",
-					"\\frac{1}{",
+					String.raw`\frac{1}{`,
 					"X\\leftarrow(omega)=1",
-					"\\left.1\\right)",
+					String.raw`\left.1\right)`,
 					"(1,1)",
 					"X(garbage)=1",
 					String.raw`\leftpi/pi`,

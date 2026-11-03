@@ -326,7 +326,9 @@ for (const mode of ["derivation", "pairs-properties"] as const) {
 		await expect(page.locator(".solution-breakdown")).not.toContainText(
 			"3.14159265",
 		);
-		await expect(page.locator(".solution-breakdown")).toContainText("\\pi");
+		await expect(page.locator(".solution-breakdown")).toContainText(
+			String.raw`\pi`,
+		);
 		const review = page.locator(".verified-fields").last();
 		await expect(review).toBeVisible();
 		await expect(review).toContainText("3.14159265");

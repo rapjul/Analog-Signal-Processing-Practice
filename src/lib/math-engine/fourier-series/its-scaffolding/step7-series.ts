@@ -22,14 +22,14 @@ export function buildPrimarySeriesOptions(
 	form: FourierPrimaryForm,
 ): FourierItsOption[] {
 	// Coefficient definitions follow the synthesis expression and must stay intact.
-	const definitionIndex = correct.indexOf(",\\qquad");
+	const definitionIndex = correct.indexOf(String.raw`,\qquad`);
 	const synthesis =
 		definitionIndex < 0 ? correct : correct.slice(0, definitionIndex);
 	const definitions =
 		definitionIndex < 0 ? "" : correct.slice(definitionIndex);
 	const rhs = synthesis.slice(synthesis.indexOf("=") + 1).trim();
-	const signDistractor = `x(t)=-\\left(${rhs}\\right)${definitions}`;
-	const scaleDistractor = `x(t)=\\frac{1}{2}\\left(${rhs}\\right)${definitions}`;
+	const signDistractor = String.raw`x(t)=-\left(${rhs}\right)${definitions}`;
+	const scaleDistractor = String.raw`x(t)=\frac{1}{2}\left(${rhs}\right)${definitions}`;
 	// Double only the independent time symbol; preserve phase and coefficient symbols.
 	const doubledTime = rhs.replace(/(?<![a-zA-Z\\])t(?![a-zA-Z])/g, "(2t)");
 	const kernelDistractor = `x(t)=${doubledTime}${definitions}`;
@@ -86,8 +86,8 @@ export function buildStep7Data(
 				: "Insert the evaluated DC, cosine, and sine coefficients into the standard trigonometric series.",
 			"Keep only harmonic indices whose evaluated coefficients are non-zero.",
 			correctForm === "exp"
-				? "Synthesize with $x(t)=\\sum_{n=-\\infty}^{\\infty}F_ne^{j n \\omega_0 t}$."
-				: "Synthesize with $x(t)=a_0/2+\\sum_{n=1}^{\\infty}[a_n\\cos(n\\omega_0t)+b_n\\sin(n\\omega_0t)]$.",
+				? String.raw`Synthesize with $x(t)=\sum_{n=-\infty}^{\infty}F_ne^{j n \omega_0 t}$.`
+				: String.raw`Synthesize with $x(t)=a_0/2+\sum_{n=1}^{\infty}[a_n\cos(n\omega_0t)+b_n\sin(n\omega_0t)]$.`,
 		],
 	};
 }

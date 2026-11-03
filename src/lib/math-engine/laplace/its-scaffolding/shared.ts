@@ -110,7 +110,7 @@ export function rootList(factors: LaplaceFactor[]): string {
 		? factors
 				.map(
 					(factor) =>
-						`$${factor.real}${fraction(factor.frequency).numerator !== 0n ? `\\pm j(${factor.frequency})` : ""}$ (multiplicity ${factor.multiplicity})`,
+						String.raw`$${factor.real}${fraction(factor.frequency).numerator !== 0n ? String.raw`\pm j(${factor.frequency})` : ""}$ (multiplicity ${factor.multiplicity})`,
 				)
 				.join("; ")
 		: "No finite roots";
@@ -146,7 +146,7 @@ export function rootTask(
 			"A root is a value that makes a polynomial zero. Multiplicity counts factor copies. The imaginary unit satisfies $j^2=-1$; conjugate roots $a+jb$ and $a-jb$ share real part $a$ and opposite imaginary parts.",
 			setup,
 			first
-				? `For the factor $${polynomialLatex(factorPoly(first))}$, ${fraction(first.frequency).numerator ? `complete the square to obtain $(s-(${first.real}))^2+(${first.frequency})^2=0$, giving the pair $${first.real}\\pm j(${first.frequency})$` : `subtract its constant from both sides to obtain $s=${first.real}$`}. Count its copies separately from solving its location.`
+				? String.raw`For the factor $${polynomialLatex(factorPoly(first))}$, ${fraction(first.frequency).numerator ? String.raw`complete the square to obtain $(s-(${first.real}))^2+(${first.frequency})^2=0$, giving the pair $${first.real}\pm j(${first.frequency})$` : `subtract its constant from both sides to obtain $s=${first.real}$`}. Count its copies separately from solving its location.`
 				: "A nonzero constant cannot equal zero, so it has no finite roots. This differs from the zero polynomial, which vanishes at every value.",
 			"Check Roots",
 		),
@@ -314,7 +314,7 @@ export function analysisStage(
 			"degrees-values",
 			"Compare the reduced polynomial degrees",
 			"Enter the highest nonzero power in each reduced polynomial. For a zero numerator, choose Zero polynomial—degree undefined.",
-			"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
+			String.raw`\deg N={{numerator}},\quad\deg D={{denominator}}`,
 			[
 				{
 					id: "numerator",
@@ -382,7 +382,7 @@ function divisionTeaching(data: LaplaceDecomposition) {
 		`Compare $N(s)=${polynomialLatex(data.numerator)}$ and $D(s)=${polynomialLatex(data.denominator)}$ after cancellation.`,
 		zero(data.numerator)
 			? "The numerator is zero, so the complete expression is zero. No polynomial division is needed."
-			: `Here $\\deg N=${n}$ and $\\deg D=${d}$. Since $${n}${n < d ? "<" : "\\ge"}${d}$, ${n < d ? "the fraction is proper and no division is needed" : `divide the leading coefficients first to obtain constant quotient $${data.quotient}$`}.`,
+			: String.raw`Here $\deg N=${n}$ and $\deg D=${d}$. Since $${n}${n < d ? "<" : String.raw`\ge`}${d}$, ${n < d ? "the fraction is proper and no division is needed" : `divide the leading coefficients first to obtain constant quotient $${data.quotient}$`}.`,
 		"Check Division Decision",
 	);
 }
@@ -477,7 +477,7 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 						slot.factor.real,
 					).toLatex(),
 				),
-				formula: `N(s)=${polynomialLatex(data.numerator)},\\quad s=${slot.factor.real}`,
+				formula: String.raw`N(s)=${polynomialLatex(data.numerator)},\quad s=${slot.factor.real}`,
 				...teaching(
 					"For a simple pole, cover-up evaluates the numerator at the pole location after removing its factor.",
 					`In $N(s)=${polynomialLatex(data.numerator)}$, replace every $s$ by $${slot.factor.real}$, including inside powers.`,
@@ -496,7 +496,7 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 						slot.factor.real,
 					).toLatex(),
 				),
-				formula: `D_{\\mathrm{remaining}}(s)=${polynomialLatex(divide(data.denominator, slot.denominator)[0])},\\quad s=${slot.factor.real}`,
+				formula: String.raw`D_{\mathrm{remaining}}(s)=${polynomialLatex(divide(data.denominator, slot.denominator)[0])},\quad s=${slot.factor.real}`,
 				...teaching(
 					"The remaining denominator is the original reduced denominator divided by the selected simple-pole factor.",
 					`Remove $${polynomialLatex(slot.denominator)}$, then evaluate $${polynomialLatex(divide(data.denominator, slot.denominator)[0])}$ at $s=${slot.factor.real}$.`,
@@ -509,7 +509,7 @@ function coefficientTasks(data: LaplaceDecomposition): LaplaceTask[] {
 			...task(
 				`coefficient-${slot.label}`,
 				`Calculate $${slot.label}$`,
-				`Solve the verified identity for the coefficient of $\\frac{${polynomialLatex(slot.basis)}}{${polynomialLatex(slot.denominator)}}$.`,
+				String.raw`Solve the verified identity for the coefficient of $\frac{${polynomialLatex(slot.basis)}}{${polynomialLatex(slot.denominator)}}$.`,
 				"scalar",
 				slot.value,
 			),
@@ -603,7 +603,7 @@ export function decompositionStages(
 						"factor-counts-values",
 						"Classify the denominator factors",
 						"Count linear and irreducible quadratic factor copies in the verified reduced denominator.",
-						"\\text{Linear copies}={{linear}},\\quad\\text{Quadratic copies}={{quadratic}}",
+						String.raw`\text{Linear copies}={{linear}},\quad\text{Quadratic copies}={{quadratic}}`,
 						[
 							{
 								id: "linear",
@@ -762,7 +762,7 @@ function methodDegreeTasks(data: LaplaceDecomposition): LaplaceTask[] {
 				"method-degrees-values",
 				"Compare reduced degrees",
 				"Enter each reduced polynomial's highest nonzero power before choosing whether to divide.",
-				"\\deg N={{numerator}},\\quad\\deg D={{denominator}}",
+				String.raw`\deg N={{numerator}},\quad\deg D={{denominator}}`,
 				[
 					{
 						id: "numerator",
@@ -852,7 +852,7 @@ function methodCoefficientTasks(
 					...teaching(
 						"A simple-pole residue is the evaluated numerator divided by the evaluated remaining denominator.",
 						`Use the numerator value $${numerator}$ and remaining-denominator value $${denominator}$ checked at $s=${slot.factor.real}$. The removed pole factor must not appear in the divisor.`,
-						`$${slot.label}=\\frac{${numerator}}{${denominator}}=${slot.value}$. Dividing the signed values preserves the residue's sign.`,
+						String.raw`$${slot.label}=\frac{${numerator}}{${denominator}}=${slot.value}$. Dividing the signed values preserves the residue's sign.`,
 						"Check Coefficient",
 					),
 				},

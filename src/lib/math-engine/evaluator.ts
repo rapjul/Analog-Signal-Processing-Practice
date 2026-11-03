@@ -94,7 +94,10 @@ export function parseStrictLatex(latex: string): unknown {
 			(token: string): string =>
 				token.startsWith("\\")
 					? token
-					: token.replace(/u\s*$/, "\\operatorname{Heaviside}"),
+					: token.replace(
+							/u\s*$/,
+							String.raw`\operatorname{Heaviside}`,
+						),
 		);
 	return parse(normalizeMathLatex(expression, false));
 }
@@ -124,13 +127,16 @@ export function normalizeMathLatex(
 	return (
 		normalized
 			// Convert bare 'pi' followed by a variable (e.g. 100pit -> 100\pi t, pit -> \pi t)
-			.replace(/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g, "$1\\pi $2")
+			.replace(
+				/(^|[^a-zA-Z\\])pi([a-zA-Z])(?=[^a-zA-Z]|$)/g,
+				String.raw`$1\pi $2`,
+			)
 			// Convert standalone bare 'pi' (e.g. 100pi t -> 100\pi t, 2*pi -> 2*\pi)
-			.replace(/(^|[^a-zA-Z\\])pi(?=[^a-zA-Z]|$)/g, "$1\\pi")
+			.replace(/(^|[^a-zA-Z\\])pi(?=[^a-zA-Z]|$)/g, String.raw`$1\pi`)
 			// Convert bare functions without leading backslash (e.g. cos, sin, tan, exp, sqrt, ln, log)
 			.replace(
 				/(^|[^a-zA-Z\\])(cos|sin|tan|exp|sqrt|ln|log)(?=[^a-zA-Z]|$)/g,
-				"$1\\$2",
+				String.raw`$1\$2`,
 			)
 	);
 }
@@ -303,7 +309,7 @@ export function evaluatePiecewiseLatexAt(latex: string, t: number): number {
 
 	const body = match[1];
 	const rows = body
-		.split("\\\\")
+		.split(String.raw`\\`)
 		.map((r) => r.trim())
 		.filter(Boolean);
 
@@ -315,8 +321,8 @@ export function evaluatePiecewiseLatexAt(latex: string, t: number): number {
 			const parts = row.split("&");
 			exprPart = (parts[0] ?? "").trim().replace(/[,;]$/, "").trim();
 			condPart = parts.slice(1).join("&").trim();
-		} else if (row.includes("\\text{for}")) {
-			const parts = row.split("\\text{for}");
+		} else if (row.includes(String.raw`\text{for}`)) {
+			const parts = row.split(String.raw`\text{for}`);
 			exprPart = (parts[0] ?? "")
 				.trim()
 				.replace(/\\quad$/, "")

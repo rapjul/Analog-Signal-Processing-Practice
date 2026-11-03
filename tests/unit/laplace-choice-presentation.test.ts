@@ -14,7 +14,7 @@ describe("Laplace choice presentation", () => {
 				expect(choices[kind]!.math).toContain(
 					side === "left" ? "u(d-t)" : "u(t-d)",
 				);
-			expect(choices.impulse!.math).toBe("A\\delta(t-d)");
+			expect(choices.impulse!.math).toBe(String.raw`A\delta(t-d)`);
 		}
 	});
 	/** Method descriptions explain the operation without disclosing applicability. */

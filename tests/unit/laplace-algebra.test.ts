@@ -34,7 +34,9 @@ describe("expanded exact Laplace mathematics", () => {
 		expect(verifyLaplaceTime("1", [])).toMatchObject({
 			status: "incorrect",
 		});
-		expect(verifyLaplaceTime("\\delta(t)", []).status).toBe("incorrect");
+		expect(verifyLaplaceTime(String.raw`\delta(t)`, []).status).toBe(
+			"incorrect",
+		);
 	});
 	it("preserves exact fractional support boundaries and ROC labels", () => {
 		const input = spec({ poles: [f("-1/3")], delay: "1/3" });
@@ -43,7 +45,7 @@ describe("expanded exact Laplace mathematics", () => {
 			"correct",
 		);
 		expect(formatRoc(rocBounds(input.poles, -1), input.poles)).toBe(
-			"\\operatorname{Re}(s)>-\\frac{1}{3}",
+			String.raw`\operatorname{Re}(s)>-\frac{1}{3}`,
 		);
 		expect(() => rocBounds([f("1"), f("1.00000000000000001")], 1)).toThrow(
 			"too close",
@@ -65,14 +67,17 @@ describe("expanded exact Laplace mathematics", () => {
 	it("inverts repeated, conjugate, delayed, and constant-quotient terms", () => {
 		for (const [input, expected] of [
 			[spec({ gain: "6", poles: [f("-4", 4)] }), "t^3e^{-4t}u(t)"],
-			[spec({ poles: [f("-3", 1, "5")] }), "e^{-3t}\\sin(5t)u(t)/5"],
+			[
+				spec({ poles: [f("-3", 1, "5")] }),
+				String.raw`e^{-3t}\sin(5t)u(t)/5`,
+			],
 			[
 				spec({ gain: "4", poles: [f("-5")], delay: "2" }),
 				"4e^{-5(t-2)}u(t-2)",
 			],
 			[
 				spec({ zeros: [f("-6")], poles: [f("-2")] }),
-				"\\delta(t)+4e^{-2t}u(t)",
+				String.raw`\delta(t)+4e^{-2t}u(t)`,
 			],
 		] as [RationalSpec, string][]) {
 			const data = decompose(input),
@@ -106,8 +111,8 @@ describe("expanded exact Laplace mathematics", () => {
 		for (const answer of [
 			"e^{-(t-2)}u(t)",
 			"e^{-(t-2)}u(t-2)+u(t-100)",
-			"e^{-(t-2)}u(t-2)+\\delta(t-100)",
-			"e^{-(t-2)}u(t-2)+\\delta'(t)",
+			String.raw`e^{-(t-2)}u(t-2)+\delta(t-100)`,
+			String.raw`e^{-(t-2)}u(t-2)+\delta'(t)`,
 		])
 			expect(verifyLaplaceTime(answer, terms).status).not.toBe("correct");
 		expect(verifyLaplaceS("1/(s+1)+1/(s+100)", "1/(s+1)").status).toBe(

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import katex from "katex";
+import { describe, expect, it, vi } from "vitest";
 import {
 	determineStability,
 	evaluatePfdResidues,
@@ -31,7 +32,9 @@ describe("Laplace Transform Math Engine (laplace.ts)", () => {
 		it("should identify causal system as BIBO stable if all poles are in LHP", () => {
 			const stability = determineStability([-2, -3], "right-sided");
 			expect(stability.isBiboStable).toBe(true);
-			expect(stability.rocLatex).toBe("\\operatorname{Re}(s) > -2");
+			expect(stability.rocLatex).toBe(
+				String.raw`\operatorname{Re}(s) > -2`,
+			);
 		});
 
 		it("should identify causal system as unstable if any pole is in RHP", () => {
@@ -54,6 +57,24 @@ describe("Laplace Transform Math Engine (laplace.ts)", () => {
 			expect(problem.id).toBeDefined();
 			expect(problem.problemType).toBe("inverse_direct");
 			expect(problem.solutionSteps.length).toBeGreaterThanOrEqual(2);
+		});
+
+		/** Confirms the trigonometric inverse pairs render with complete fraction groups. */
+		it("renders the direct inverse trigonometric transform pairs", () => {
+			const random = vi.spyOn(Math, "random").mockReturnValue(0);
+
+			try {
+				const problem = generateLaplaceProblem("inverse_direct");
+				const latex = problem.solutionSteps[1]!.latex;
+
+				expect(latex).toContain(String.raw`\frac{s}{s^2 + 2^2}`);
+				expect(latex).toContain(String.raw`\frac{2}{s^2 + 2^2}`);
+				expect(() =>
+					katex.renderToString(latex, { throwOnError: true }),
+				).not.toThrow();
+			} finally {
+				random.mockRestore();
+			}
 		});
 
 		it("should generate valid forward Laplace transform practice problem", () => {

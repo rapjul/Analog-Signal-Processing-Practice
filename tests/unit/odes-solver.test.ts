@@ -249,14 +249,14 @@ describe("LCC ODE Analytical Math Engine", () => {
 				type: "sinusoid",
 				K: 10,
 				omega: 2,
-				latex: "10 \\cos(2t)",
+				latex: String.raw`10 \cos(2t)`,
 			});
 			expect(particular.coeffs.A).toBe(-0.5);
 			expect(particular.coeffs.B).toBe(1.5);
 			expect(particular.eval(0)).toBe(-0.5);
 			expect(particular.evalDeriv(0)).toBe(1.5 * 2);
 			expect(particular.latex).toBe(
-				"-\\frac{1}{2} \\cos(2t) + \\frac{3}{2} \\sin(2t)",
+				String.raw`-\frac{1}{2} \cos(2t) + \frac{3}{2} \sin(2t)`,
 			);
 		});
 
@@ -282,10 +282,12 @@ describe("LCC ODE Analytical Math Engine", () => {
 				type: "sinusoid",
 				K: 10,
 				omega: 2,
-				latex: "10 \\cos(2t)",
+				latex: String.raw`10 \cos(2t)`,
 			});
 			expect(particular.coeffs.B).toBe(-1.5);
-			expect(particular.latex).toContain("- \\frac{3}{2} \\sin(2t)");
+			expect(particular.latex).toContain(
+				String.raw`- \frac{3}{2} \sin(2t)`,
+			);
 		});
 
 		/**
@@ -306,13 +308,13 @@ describe("LCC ODE Analytical Math Engine", () => {
 				type: "sinusoid",
 				K: 8,
 				omega: 2,
-				latex: "8 \\cos(2t)",
+				latex: String.raw`8 \cos(2t)`,
 			});
 			expect(particular.resonanceMultiplicity).toBe(1);
 			expect(particular.coeffs.B).toBe(2);
 			expect(particular.eval(0)).toBe(0);
 			expect(particular.evalDeriv(0)).toBe(0);
-			expect(particular.latex).toBe("2 t \\sin(2t)");
+			expect(particular.latex).toBe(String.raw`2 t \sin(2t)`);
 		});
 
 		/**
@@ -332,7 +334,7 @@ describe("LCC ODE Analytical Math Engine", () => {
 					type: "sinusoid",
 					K: 5,
 					omega: 1,
-					latex: "5 \\cos(t)",
+					latex: String.raw`5 \cos(t)`,
 				}),
 			).toThrow("First-order leading coefficient a1 must be non-zero");
 		});
@@ -447,7 +449,9 @@ describe("LCC ODE Analytical Math Engine", () => {
 			expect(sol.eval(1)).toBeCloseTo(
 				Math.exp(-1) * (2 * Math.cos(2) + 3 * Math.sin(2)),
 			);
-			expect(sol.latex).toBe("e^{-t} [2 \\cos(2t) + 3 \\sin(2t)]");
+			expect(sol.latex).toBe(
+				String.raw`e^{-t} [2 \cos(2t) + 3 \sin(2t)]`,
+			);
 		});
 	});
 });

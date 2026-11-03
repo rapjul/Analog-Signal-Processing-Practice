@@ -15,20 +15,31 @@ function getFormattedMath(
 	const trimmed = (rawMath || "").trim();
 	if (!trimmed) return "";
 
-	if (opts.matrix && !trimmed.startsWith(`\\begin{${opts.matrix}}`)) {
-		return `\\begin{${opts.matrix}}\n${trimmed}\n\\end{${opts.matrix}}`;
+	if (
+		opts.matrix &&
+		!trimmed.startsWith(String.raw`\begin{${opts.matrix}}`)
+	) {
+		return String.raw`\begin{${opts.matrix}}
+${trimmed}
+\end{${opts.matrix}}`;
 	}
 
-	if (opts.cases && !trimmed.startsWith("\\begin{cases}")) {
-		return `\\begin{cases}\n${trimmed}\n\\end{cases}`;
+	if (opts.cases && !trimmed.startsWith(String.raw`\begin{cases}`)) {
+		return String.raw`\begin{cases}
+${trimmed}
+\end{cases}`;
 	}
 
-	if (opts.aligned && !trimmed.startsWith("\\begin{aligned}")) {
-		return `\\begin{aligned}\n${trimmed}\n\\end{aligned}`;
+	if (opts.aligned && !trimmed.startsWith(String.raw`\begin{aligned}`)) {
+		return String.raw`\begin{aligned}
+${trimmed}
+\end{aligned}`;
 	}
 
-	if (opts.gathered && !trimmed.startsWith("\\begin{gathered}")) {
-		return `\\begin{gathered}\n${trimmed}\n\\end{gathered}`;
+	if (opts.gathered && !trimmed.startsWith(String.raw`\begin{gathered}`)) {
+		return String.raw`\begin{gathered}
+${trimmed}
+\end{gathered}`;
 	}
 
 	return trimmed;
@@ -36,29 +47,44 @@ function getFormattedMath(
 
 describe("MathBlock LaTeX Environment Wrappers", () => {
 	it("wraps multi-line expression in aligned environment", () => {
-		const raw = "y_{ZI}(t) &= e^{-2t} \\\\\ny_{ZS}(t) &= e^{-3t}";
+		const raw = String.raw`y_{ZI}(t) &= e^{-2t} \\
+y_{ZS}(t) &= e^{-3t}`;
 		const res = getFormattedMath(raw, { aligned: true });
 		expect(res).toBe(
-			"\\begin{aligned}\ny_{ZI}(t) &= e^{-2t} \\\\\ny_{ZS}(t) &= e^{-3t}\n\\end{aligned}",
+			String.raw`\begin{aligned}
+y_{ZI}(t) &= e^{-2t} \\
+y_{ZS}(t) &= e^{-3t}
+\end{aligned}`,
 		);
 	});
 
 	it("wraps piecewise expressions in cases environment", () => {
-		const raw = "e^{-at} & t \\ge 0 \\\\\n0 & t < 0";
+		const raw = String.raw`e^{-at} & t \ge 0 \\
+0 & t < 0`;
 		const res = getFormattedMath(raw, { cases: true });
 		expect(res).toBe(
-			"\\begin{cases}\ne^{-at} & t \\ge 0 \\\\\n0 & t < 0\n\\end{cases}",
+			String.raw`\begin{cases}
+e^{-at} & t \ge 0 \\
+0 & t < 0
+\end{cases}`,
 		);
 	});
 
 	it("wraps matrix expressions in bmatrix environment", () => {
-		const raw = "1 & 0 \\\\\n0 & 1";
+		const raw = String.raw`1 & 0 \\
+0 & 1`;
 		const res = getFormattedMath(raw, { matrix: "bmatrix" });
-		expect(res).toBe("\\begin{bmatrix}\n1 & 0 \\\\\n0 & 1\n\\end{bmatrix}");
+		expect(res).toBe(String.raw`\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix}`);
 	});
 
 	it("prevents duplicate environment wrapping if already wrapped", () => {
-		const raw = "\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}";
+		const raw = String.raw`\begin{aligned}
+a &= b \\
+c &= d
+\end{aligned}`;
 		const res = getFormattedMath(raw, { aligned: true });
 		expect(res).toBe(raw);
 	});

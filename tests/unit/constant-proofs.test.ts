@@ -163,13 +163,13 @@ describe("constant proof boundaries", () => {
 	/** Domain failures survive rewrites and boxed AST wrappers. */
 	it("refuses canceled or masked uncertain divisors and invalid domains", () => {
 		for (const [decimal, multiple] of roundedPi) {
-			const c = `${decimal}-${multiple}\\pi`;
+			const c = String.raw`${decimal}-${multiple}\pi`;
 			for (const expression of [
 				`0/(${c})`,
 				`(${c})/(${c})`,
 				`1/(1/(${c}))`,
-				`0\\ln(${c})`,
-				`0\\sqrt{${c}}`,
+				String.raw`0\ln(${c})`,
+				String.raw`0\sqrt{${c}}`,
 				`|${c}|`,
 				`(${c})^t`,
 			])
@@ -198,10 +198,10 @@ describe("constant proof boundaries", () => {
 		}
 		for (const expression of [
 			"0(1/0)",
-			"0\\ln(-1)",
+			String.raw`0\ln(-1)`,
 			"0^0",
 			"0^{-1}",
-			"\\sqrt[0]{2}",
+			String.raw`\sqrt[0]{2}`,
 		])
 			expect(
 				() =>
@@ -234,7 +234,7 @@ describe("constant proof boundaries", () => {
 		for (const [decimal, multiple] of roundedPi)
 			expect(
 				validateLaplacePfdAnswer(
-					`e^{-4t}u((${decimal}-${multiple}\\pi)t)`,
+					String.raw`e^{-4t}u((${decimal}-${multiple}\pi)t)`,
 					problem,
 				).status,
 			).toBe("unsupported");

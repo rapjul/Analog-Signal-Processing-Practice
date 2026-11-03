@@ -237,7 +237,7 @@ describe("independently configured convolution signals", () => {
 		);
 		expect(triangle.parameter).toBe(2);
 		expect(triangle.breakpoints).toEqual([-1, 0, 1]);
-		expect(triangle.latex).toBe("\\Delta\\left(t\\right)");
+		expect(triangle.latex).toBe(String.raw`\Delta\left(t\right)`);
 		expect(triangle.eval(-1)).toBe(0);
 		expect(triangle.eval(0)).toBe(1);
 		expect(triangle.eval(0.5)).toBe(0.5);

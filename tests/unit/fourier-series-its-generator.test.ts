@@ -20,15 +20,15 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 	] as const;
 
 	it.each([
-		["square", "4(1)", "\\sin"],
-		["square_odd", "4(1)", "\\sin"],
-		["square_even", "\\sin\\left(\\frac{n\\pi}{2}", "\\cos"],
-		["triangle", "8(1)", "n^2\\pi^2"],
-		["triangle_odd", "8(1)", "\\sin\\left(\\frac{n\\pi}{2}"],
-		["triangle_even", "8(1)", "n^2\\pi^2"],
+		["square", "4(1)", String.raw`\sin`],
+		["square_odd", "4(1)", String.raw`\sin`],
+		["square_even", String.raw`\sin\left(\frac{n\pi}{2}`, String.raw`\cos`],
+		["triangle", "8(1)", String.raw`n^2\pi^2`],
+		["triangle_odd", "8(1)", String.raw`\sin\left(\frac{n\pi}{2}`],
+		["triangle_even", "8(1)", String.raw`n^2\pi^2`],
 		["sawtooth", "(-1)^{n+1}", "2(1)"],
 		["half_wave_sine", "F_n", "n=-1"],
-		["full_wave_sine", "4n^2-1", "\\frac{2(1)}{\\pi}"],
+		["full_wave_sine", "4n^2-1", String.raw`\frac{2(1)}{\pi}`],
 	] as const)(
 		"builds the exact final series for %s",
 		(waveform, expectedA, expectedB) => {
@@ -197,7 +197,7 @@ describe("Fourier Series ITS Step Generator Engine", () => {
 			}
 			const compact = problem.conversionChallenge.parts[1].resultLatex;
 			expect(compact).toContain("c_n");
-			expect(compact).toContain("\\theta_n");
+			expect(compact).toContain(String.raw`\theta_n`);
 			expect(compact).not.toContain("A_n");
 		},
 	);

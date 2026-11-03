@@ -280,7 +280,7 @@ describe("HintDisclosure — disabled/allRevealed state derivation", () => {
 describe("HintDisclosure — hints slice derivation", () => {
 	const hints = [
 		"Identify the symmetry of $x(t)$.",
-		"Apply the Fourier integral formula $a_n = \\frac{2}{T_0}\\int$.",
+		String.raw`Apply the Fourier integral formula $a_n = \frac{2}{T_0}\int$.`,
 		"Substitute and evaluate at boundary values.",
 	];
 

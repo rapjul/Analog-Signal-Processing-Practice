@@ -39,7 +39,7 @@
 	const summaryLatex = $derived(
 		problem.params.order === 1
 			? `Constant: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}$`
-			: `Constants: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}$`,
+			: String.raw`Constants: $C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \; C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}$`,
 	);
 </script>
 
@@ -114,7 +114,7 @@
 				{#snippet summarySnippet()}
 					<div class="substep-verified-line">
 						<MathText
-							text={`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \\quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
+							text={String.raw`Target Values: $y_h(0^+) = ${toFractionLatex(problem.itsData.step6.targetYh0)}, \quad y_h'(0^+) = ${toFractionLatex(problem.itsData.step6.targetDYh0 ?? 0)}$`}
 						/>
 					</div>
 				{/snippet}

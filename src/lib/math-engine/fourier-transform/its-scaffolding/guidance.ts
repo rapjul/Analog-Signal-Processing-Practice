@@ -293,7 +293,7 @@ function inputMetadata(
 	const labels: Record<string, string> = {
 		T: "$T =$",
 		a: "$a =$",
-		w0: "$\\omega_0 =$",
+		w0: String.raw`$\omega_0 =$`,
 		t0: "$t_0 =$",
 		limit: "$X_0(0) =$",
 	};
@@ -308,7 +308,7 @@ function inputMetadata(
 		inputSize: compact ? "scalar" : "expression",
 		inputLabel:
 			labels[task.id] ??
-			(task.kind === "location" ? "$\\omega =$" : "Value"),
+			(task.kind === "location" ? String.raw`$\omega =$` : "Value"),
 		answerForm,
 	};
 }

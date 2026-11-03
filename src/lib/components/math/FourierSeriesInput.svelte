@@ -51,7 +51,7 @@
 	let bnDen = $state("n pi");
 	let bnHarmonic = $state<HarmonicOption>("odd");
 	let bnCustomHarmonic = $state("");
-	let bnDirect = $state("\\frac{2}{n \\pi} (1 - (-1)^n)");
+	let bnDirect = $state(String.raw`\frac{2}{n \pi} (1 - (-1)^n)`);
 
 	// Complex exponential coefficient F_n
 	let FnMode = $state<CoeffInputMode>("fraction");
@@ -59,7 +59,7 @@
 	let FnDen = $state("j n pi");
 	let FnHarmonic = $state<HarmonicOption>("none");
 	let FnCustomHarmonic = $state("");
-	let FnDirect = $state("\\frac{1}{j n \\pi}");
+	let FnDirect = $state(String.raw`\frac{1}{j n \pi}`);
 
 	/**
 	 * Converts simple math symbols and normalizes backslashes in user input into valid LaTeX syntax.
@@ -73,10 +73,10 @@
 			.trim()
 			.replace(/\*/g, " ")
 			.replace(/\\{2,}/g, "\\")
-			.replace(/\\?\bpi\b/g, "\\pi")
-			.replace(/\\?\bomega_0\b/g, "\\omega_0")
-			.replace(/\\?\bomega\b/g, "\\omega")
-			.replace(/\bw0\b/g, "\\omega_0");
+			.replace(/\\?\bpi\b/g, String.raw`\pi`)
+			.replace(/\\?\bomega_0\b/g, String.raw`\omega_0`)
+			.replace(/\\?\bomega\b/g, String.raw`\omega`)
+			.replace(/\bw0\b/g, String.raw`\omega_0`);
 	}
 
 	/**
@@ -107,7 +107,7 @@
 		if (cleanDen === "1") {
 			fractionPart = cleanNum;
 		} else {
-			fractionPart = `\\frac{${cleanNum}}{${cleanDen}}`;
+			fractionPart = String.raw`\frac{${cleanNum}}{${cleanDen}}`;
 		}
 
 		let multiplierPart = "";
@@ -178,16 +178,16 @@
 		const cleanA0 = a0.trim();
 		const cleanAn = anLatex.trim();
 		const cleanBn = bnLatex.trim();
-		const w0 = formatMathLatex(omega0) || "\\omega_0";
+		const w0 = formatMathLatex(omega0) || String.raw`\omega_0`;
 
 		let cosTerm = "";
 		if (cleanAn && cleanAn !== "0") {
-			cosTerm = `${cleanAn} \\cos(${w0} n t)`;
+			cosTerm = String.raw`${cleanAn} \cos(${w0} n t)`;
 		}
 
 		let sinTerm = "";
 		if (cleanBn && cleanBn !== "0") {
-			sinTerm = `${cleanBn} \\sin(${w0} n t)`;
+			sinTerm = String.raw`${cleanBn} \sin(${w0} n t)`;
 		}
 
 		let sumContent = "";
@@ -200,7 +200,7 @@
 		}
 
 		const sumPart = sumContent
-			? `\\sum_{n=1}^{\\infty} \\left[ ${sumContent} \\right]`
+			? String.raw`\sum_{n=1}^{\infty} \left[ ${sumContent} \right]`
 			: "";
 
 		if (cleanA0 && cleanA0 !== "0") {
@@ -217,11 +217,11 @@
 	function synthesizeExp(): string {
 		const cleanF0 = F0.trim();
 		const cleanFn = FnLatex.trim();
-		const w0 = formatMathLatex(omega0) || "\\omega_0";
+		const w0 = formatMathLatex(omega0) || String.raw`\omega_0`;
 
 		const sumPart =
 			cleanFn && cleanFn !== "0"
-				? `\\sum_{n=-\\infty, n \\neq 0}^{\\infty} \\left( ${cleanFn} \\right) e^{j n ${w0} t}`
+				? String.raw`\sum_{n=-\infty, n \neq 0}^{\infty} \left( ${cleanFn} \right) e^{j n ${w0} t}`
 				: "";
 
 		if (cleanF0 && cleanF0 !== "0") {

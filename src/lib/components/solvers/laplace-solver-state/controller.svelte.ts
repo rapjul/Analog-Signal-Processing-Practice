@@ -115,17 +115,20 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 		try {
 			if (task.kind === "scalar") {
 				if (entryIssue(this.input, task.entry ?? { kind: "exact" }))
-					return "\\square";
+					return String.raw`\square`;
 				parseStrictLatex(this.input);
 				return this.input;
 			}
 			const expression =
 				laplaceExpression(this.input, task.kind, task.lhs).trim() ||
-				"\\square";
-			if (expression !== "\\square") parseStrictLatex(expression);
+				String.raw`\square`;
+			if (expression !== String.raw`\square`)
+				parseStrictLatex(expression);
 			return task.lhs ? `${task.lhs}=${expression}` : expression;
 		} catch {
-			return task.lhs ? `${task.lhs}=\\square` : "\\square";
+			return task.lhs
+				? String.raw`${task.lhs}=\square`
+				: String.raw`\square`;
 		}
 	}
 	/** @returns Progress within the active stage. */
@@ -198,7 +201,7 @@ export class LaplaceStepSolverState extends BaseStepSolverState {
 										)
 										.map(
 											(field) =>
-												`\\quad\\text{Term ${Number(field.id.slice("active-".length)) + 1}: ${this.fieldInputs[field.id] === "1" ? "Active" : "Inactive"}}`,
+												String.raw`\quad\text{Term ${Number(field.id.slice("active-".length)) + 1}: ${this.fieldInputs[field.id] === "1" ? "Active" : "Inactive"}}`,
 										)
 										.join("")
 								: ""),

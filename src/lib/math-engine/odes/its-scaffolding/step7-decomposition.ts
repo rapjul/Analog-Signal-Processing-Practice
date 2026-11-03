@@ -84,7 +84,7 @@ export const CONCEPT_QUESTIONS_POOL: OdeItsConceptQuestion[] = [
 			"By definition, the Zero-Input response $y_{ZI}(t)$ depends linearly on the initial state. When $y(0^-)=0$ and $y'(0^-)=0$, $y_{ZI}(t) = 0$, so $y(t) = y_{ZI}(t) + y_{ZS}(t) = y_{ZS}(t)$.",
 	},
 	{
-		prompt: "For a stable system with characteristic roots $\\operatorname{Re}(r_i) < 0$, what happens to the transient response $y_{tr}(t)$ as $t \\to \\infty$?",
+		prompt: String.raw`For a stable system with characteristic roots $\operatorname{Re}(r_i) < 0$, what happens to the transient response $y_{tr}(t)$ as $t \to \infty$?`,
 		options: [
 			{
 				id: "cq3_opt1",
@@ -272,7 +272,7 @@ function buildResponseChoices(params: BuildStep7Params) {
 		A: particularScale * (particular.coeffs.A ?? 0),
 		B: particularScale * (particular.coeffs.B ?? 0),
 	});
-	const firstBasis = `${formatExpTerm(roots.r1)}${resolvedOrder === 2 && resolvedRootType === "complex_conjugate" ? ` \\cos(${roots.im ?? 1}t)` : ""}`;
+	const firstBasis = `${formatExpTerm(roots.r1)}${resolvedOrder === 2 && resolvedRootType === "complex_conjugate" ? String.raw` \cos(${roots.im ?? 1}t)` : ""}`;
 	// The legacy array names retain compatibility; the mode defines their meaning.
 	const transientOptions: OdeItsOption[] = [
 		{

@@ -102,8 +102,16 @@
 			}
 			case "underdamped": {
 				// e^{\sigma t} (C1 \cos(\omega_d t) + C2 \sin(\omega_d t)) + yp
-				const cosTerm = formatTerm(c1, `\\cos(${omegaD}t)`, true);
-				const sinTerm = formatTerm(c2, `\\sin(${omegaD}t)`, !cosTerm);
+				const cosTerm = formatTerm(
+					c1,
+					String.raw`\cos(${omegaD}t)`,
+					true,
+				);
+				const sinTerm = formatTerm(
+					c2,
+					String.raw`\sin(${omegaD}t)`,
+					!cosTerm,
+				);
 				const trigSum = [cosTerm, sinTerm].filter(Boolean).join(" ");
 
 				let expPrefix = "";

@@ -115,7 +115,7 @@
 							><td>{impulse.location}</td>
 							<td
 								><MathBlock
-									math={`\\pi e^{-j(${impulse.location})(${problem.params.t0})}`}
+									math={String.raw`\pi e^{-j(${impulse.location})(${problem.params.t0})}`}
 									compact
 									hideHeader
 								/></td

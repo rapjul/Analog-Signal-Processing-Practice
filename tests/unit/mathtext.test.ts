@@ -188,16 +188,19 @@ describe("MathText Parser and KaTeX Compilation", () => {
 		expect(rendered).toContain('class="katex"');
 	});
 
-	it("defensively compiles standalone un-enclosed LaTeX macros like \\text{s} or \\text{rad/s}", () => {
-		const text = "Ensure units are \\text{s} and \\text{rad/s}.";
-		const rendered = renderFormattedMathText(text);
-		const matches = rendered.match(/class="katex"/g);
-		expect(matches?.length).toBe(2);
-		expect(rendered).toContain(
-			'<span class="mord text"><span class="mord">s</span></span>',
-		);
-		expect(rendered).toContain(
-			'<span class="mord text"><span class="mord">rad/s</span></span>',
-		);
-	});
+	it(
+		String.raw`defensively compiles standalone un-enclosed LaTeX macros like \text{s} or \text{rad/s}`,
+		() => {
+			const text = String.raw`Ensure units are \text{s} and \text{rad/s}.`;
+			const rendered = renderFormattedMathText(text);
+			const matches = rendered.match(/class="katex"/g);
+			expect(matches?.length).toBe(2);
+			expect(rendered).toContain(
+				'<span class="mord text"><span class="mord">s</span></span>',
+			);
+			expect(rendered).toContain(
+				'<span class="mord text"><span class="mord">rad/s</span></span>',
+			);
+		},
+	);
 });

@@ -99,9 +99,11 @@ describe("Fourier Series adversarial regressions", () => {
 				).toBeCloseTo(expected, 2);
 			}
 			if (T0 !== 2 && T0 !== 4) {
-				expect(problem.omega0Latex).toContain(`\\frac{2\\pi}{${T0}}`);
+				expect(problem.omega0Latex).toContain(
+					String.raw`\frac{2\pi}{${T0}}`,
+				);
 				expect(problem.itsData.step1.hints[2]).toContain(
-					`\\frac{2\\pi}{${T0}}`,
+					String.raw`\frac{2\pi}{${T0}}`,
 				);
 			}
 		},

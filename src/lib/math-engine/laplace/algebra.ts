@@ -157,7 +157,7 @@ export function rationalLatex(value: Rational): string {
 	)
 		return polynomialLatex(value.n);
 	const negative = value.n.at(-1)!.numerator < 0n;
-	return `${negative ? "-" : ""}\\frac{${polynomialLatex(negative ? scale(value.n, fraction(-1)) : value.n)}}{${polynomialLatex(value.d)}}`;
+	return String.raw`${negative ? "-" : ""}\frac{${polynomialLatex(negative ? scale(value.n, fraction(-1)) : value.n)}}{${polynomialLatex(value.d)}}`;
 }
 
 /** @param rows - Square augmented matrix. @returns Exact unique solution. */

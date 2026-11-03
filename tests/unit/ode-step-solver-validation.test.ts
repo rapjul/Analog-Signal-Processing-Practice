@@ -743,8 +743,8 @@ describe("OdeStepSolverState Input Validation & Misconceptions", () => {
 			const ccSolver = new OdeStepSolverState(() => ccProblem);
 			ccSolver.step7.ziC1 = "1";
 			ccSolver.step7.ziC2 = "2";
-			expect(ccSolver.previewZI).toContain("\\cos");
-			expect(ccSolver.previewZI).toContain("\\sin");
+			expect(ccSolver.previewZI).toContain(String.raw`\cos`);
+			expect(ccSolver.previewZI).toContain(String.raw`\sin`);
 			expect(ccSolver.previewZS).toBeDefined();
 
 			const distinctProblem = generateSecondOrderProblem(

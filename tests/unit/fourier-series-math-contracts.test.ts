@@ -36,7 +36,7 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 				});
 				const d = buildFourierSeriesSymbolicDerivation(
 					coeffs,
-					"\\pi/2",
+					String.raw`\pi/2`,
 				);
 				const latex = d.expEvaluationLatex!;
 				/** Confirms scientific parameters also remain valid in the rendered worked evaluation. */
@@ -54,7 +54,9 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 											`${n === 1 ? "F_1" : "F_{-1}"}=`,
 										)[1]!
 										.split("\\\\")[0]!
-								: latex.split("F_n=")[1]!.split("\\quad")[0]!;
+								: latex
+										.split("F_n=")[1]!
+										.split(String.raw`\quad`)[0]!;
 					const displayed = sampleFourierBoundaryExpression(
 						row.split("=")[0]!,
 						sample,
@@ -79,7 +81,10 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 				A: 3,
 				T0: 4,
 			});
-			const d = buildFourierSeriesSymbolicDerivation(coeffs, "\\pi/2");
+			const d = buildFourierSeriesSymbolicDerivation(
+				coeffs,
+				String.raw`\pi/2`,
+			);
 			for (const n of [1, 2, 3]) {
 				for (const [label, integral, expected] of [
 					["a_0", d.a0IntegralLatex, coeffs.a0],
@@ -103,7 +108,10 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 				A: 2,
 				T0: 4,
 			});
-			const d = buildFourierSeriesSymbolicDerivation(coeffs, "\\pi/2");
+			const d = buildFourierSeriesSymbolicDerivation(
+				coeffs,
+				String.raw`\pi/2`,
+			);
 			for (const n of [-5, -2, -1, 0, 1, 2, 5]) {
 				let re = 0;
 				let im = 0;
@@ -141,7 +149,7 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 				A: 3,
 				T0: 4,
 			});
-			const compact = buildCompactSeriesLatex(coeffs, "\\pi/2");
+			const compact = buildCompactSeriesLatex(coeffs, String.raw`\pi/2`);
 			for (const n of [1, 2, 3, 4, 5, 7]) {
 				let amplitude: string;
 				let phase: string;
@@ -162,7 +170,7 @@ describe.each(FOURIER_SERIES_WAVEFORM_TYPES)(
 						/c_n=(.*?),\\quad \\theta_n=/,
 					)![1]!;
 					phase = compact
-						.split("\\theta_n=")[1]!
+						.split(String.raw`\theta_n=`)[1]!
 						.replace(/\\ \(n\\text\{ odd\}\)$/, "");
 				}
 				const sample = { coeffs, n, t: 0 };

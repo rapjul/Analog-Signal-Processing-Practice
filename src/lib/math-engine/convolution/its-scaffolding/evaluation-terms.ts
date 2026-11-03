@@ -53,20 +53,20 @@ function polynomialEvaluationTerm(
 		String.raw`\tau`,
 	);
 	const movingPieceLatex = sanitizeLatexMath(
-		`${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}(t-\\tau)`,
+		String.raw`${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}(t-\tau)`,
 	);
 	const p0 = `(${formatConvolutionScalar(a0)})(${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}t)`;
 	const p1 = `(${formatConvolutionScalar(a1)})(${formatConvolutionScalar(b0)}+${formatConvolutionScalar(b1)}t)-${formatConvolutionScalar(a0 * b1)}`;
 	const p2 = formatConvolutionScalar(-a1 * b1);
 	const integrandLatex = sanitizeLatexMath(
-		`${p0}+(${p1})\\tau+(${p2})\\tau^2`,
+		String.raw`${p0}+(${p1})\tau+(${p2})\tau^2`,
 	);
 	const primitiveLatex = sanitizeLatexMath(
-		`F(\\tau,t)=(${p0})\\tau+\\frac{(${p1})\\tau^2}{2}+\\frac{(${p2})\\tau^3}{3}`,
+		String.raw`F(\tau,t)=(${p0})\tau+\frac{(${p1})\tau^2}{2}+\frac{(${p2})\tau^3}{3}`,
 	);
 	const substitute = (bound: string): string =>
 		sanitizeLatexMath(
-			`(${p0})(${bound})+\\frac{(${p1})(${bound})^2}{2}+\\frac{(${p2})(${bound})^3}{3}`,
+			String.raw`(${p0})(${bound})+\frac{(${p1})(${bound})^2}{2}+\frac{(${p2})(${bound})^3}{3}`,
 		);
 	const upperSubstitutionLatex = substitute(upperLatex);
 	const lowerSubstitutionLatex = substitute(lowerLatex);
@@ -166,13 +166,13 @@ function exponentialPrimitive(
 	rate: number,
 ): string {
 	if (Math.abs(rate) < 1e-12)
-		return `${prefactor}((${timeFactor(coefficients)})\\tau${slope === 0 ? "" : `+(${toFractionLatex(slope / 2)})\\tau^2`})`;
+		return String.raw`${prefactor}((${timeFactor(coefficients)})\tau${slope === 0 ? "" : String.raw`+(${toFractionLatex(slope / 2)})\tau^2`})`;
 	const q0 = timeFactor([
 		coefficients[0] / rate - slope / (rate * rate),
 		coefficients[1] / rate,
 	]);
 	const q1 = slope / rate;
-	return `${prefactor}e^{${formatConvolutionScalar(rate)}\\tau}((${q0})${q1 === 0 ? "" : `+(${toFractionLatex(q1)})\\tau`})`;
+	return String.raw`${prefactor}e^{${formatConvolutionScalar(rate)}\tau}((${q0})${q1 === 0 ? "" : String.raw`+(${toFractionLatex(q1)})\tau`})`;
 }
 
 /**
@@ -226,9 +226,9 @@ function exponentialEvaluationTerm(
 	const exponential =
 		Math.abs(exponentRate) < 1e-12
 			? ""
-			: `e^{${formatConvolutionScalar(exponentRate)}\\tau}`;
+			: String.raw`e^{${formatConvolutionScalar(exponentRate)}\tau}`;
 	const integrandLatex = sanitizeLatexMath(
-		`${prefactor}((${constant})${slope === 0 ? "" : `+(${toFractionLatex(slope)})\\tau`})${exponential}`,
+		String.raw`${prefactor}((${constant})${slope === 0 ? "" : String.raw`+(${toFractionLatex(slope)})\tau`})${exponential}`,
 	);
 	const primitiveBody = exponentialPrimitive(
 		prefactor,
@@ -236,7 +236,9 @@ function exponentialEvaluationTerm(
 		slope,
 		exponentRate,
 	);
-	const primitiveLatex = sanitizeLatexMath(`F(\\tau,t)=${primitiveBody}`);
+	const primitiveLatex = sanitizeLatexMath(
+		String.raw`F(\tau,t)=${primitiveBody}`,
+	);
 	/** @param bound - Verified limit. @returns Primitive evaluated at that limit. */
 	const substitute = (bound: string): string =>
 		sanitizeLatexMath(

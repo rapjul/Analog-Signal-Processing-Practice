@@ -124,7 +124,7 @@
 			return numPart;
 		}
 
-		return `\\frac{${numPart}}{${denPart}}`;
+		return String.raw`\frac{${numPart}}{${denPart}}`;
 	}
 
 	/**
@@ -140,18 +140,18 @@
 
 				if (term.type === "simple") {
 					const den = formatFactor(term.poleOrDenom);
-					termLatex = `\\frac{${term.numA || "1"}}{${den}}`;
+					termLatex = String.raw`\frac{${term.numA || "1"}}{${den}}`;
 				} else if (term.type === "repeated") {
 					const baseDen = formatFactor(term.poleOrDenom);
 					const pow = term.power.trim() || "2";
-					termLatex = `\\frac{${term.numA || "1"}}{${baseDen}^{${pow}}}`;
+					termLatex = String.raw`\frac{${term.numA || "1"}}{${baseDen}^{${pow}}}`;
 				} else if (term.type === "quadratic") {
 					const num =
 						term.numC && term.numC !== "0"
 							? `${term.numA || "1"}s + ${term.numC}`
 							: `${term.numA || "1"}s`;
 					const den = term.poleOrDenom || "s^2 + 2s + 5";
-					termLatex = `\\frac{${num}}{${den}}`;
+					termLatex = String.raw`\frac{${num}}{${den}}`;
 				}
 
 				if (index === 0) {
@@ -245,7 +245,7 @@
 			}}
 		>
 			Partial Fractions Form <MathInline
-				math={"\\sum \\frac{A_i}{s - p_i}"}
+				math={String.raw`\sum \frac{A_i}{s - p_i}`}
 			/>
 		</button>
 	</div>

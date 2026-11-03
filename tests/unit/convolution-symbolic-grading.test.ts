@@ -25,7 +25,9 @@ import {
  * @returns Equivalent expression preserving infinity notation.
  */
 function withZero(expression: string): string {
-	return expression.includes("\\infty") ? expression : `(${expression})+0`;
+	return expression.includes(String.raw`\infty`)
+		? expression
+		: `(${expression})+0`;
 }
 
 /**
@@ -170,7 +172,7 @@ function verifyBounds(
 			).toBe("valid");
 		}
 		const first = field.boundInputs[0];
-		if (first && !first.lower.includes("\\infty")) {
+		if (first && !first.lower.includes(String.raw`\infty`)) {
 			field.stage = "bounds";
 			const original = first.lower;
 			first.lower = `(${original})+1`;

@@ -135,7 +135,9 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	}
 	await page
 		.locator("#laplace-input")
-		.fill(`(${problem.response})u((3.14159265358979323843-\\pi)t)`);
+		.fill(
+			String.raw`(${problem.response})u((3.14159265358979323843-\pi)t)`,
+		);
 	await checkResponse.click();
 	await expect(responseFeedback).toHaveAttribute(
 		"data-validation",
@@ -145,7 +147,7 @@ test("Laplace poles, causal grading, and explicit assistance follow the active p
 	await answerLaplaceTask(
 		page,
 		responseTask,
-		`x\\left(t\\right)=${problem.response}`,
+		String.raw`x\left(t\right)=${problem.response}`,
 	);
 	await expect(page.locator('[data-task-id="roc"]')).toBeVisible();
 	await page.getByRole("button", { name: "Next Problem" }).click();

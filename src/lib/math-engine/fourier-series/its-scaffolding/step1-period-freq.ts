@@ -24,9 +24,16 @@ export function buildStep1Data(
 	const periodLatex = formatFourierNumber(T0);
 	const w0Aliases =
 		T0 === 2
-			? ["pi", "\\pi", "1pi", "3.14", "3.1415", "3.1416"]
+			? ["pi", String.raw`\pi`, "1pi", "3.14", "3.1415", "3.1416"]
 			: T0 === 4
-				? ["pi/2", "\\pi/2", "0.5pi", "0.5\\pi", "1.57", "1.5708"]
+				? [
+						"pi/2",
+						String.raw`\pi/2`,
+						"0.5pi",
+						String.raw`0.5\pi`,
+						"1.57",
+						"1.5708",
+					]
 				: [w0Latex, formatFourierNumber(w0)];
 
 	return {
@@ -38,8 +45,8 @@ export function buildStep1Data(
 		w0Aliases,
 		hints: [
 			"Look at the bounds of the definition. Over what duration does the signal repeat itself entirely?",
-			`The signal repeats every period $T_0 = ${periodLatex}\\text{ s}$. The fundamental frequency is $\\omega_0 = \\frac{2\\pi}{T_0}$.`,
-			`Substitute $T_0 = ${periodLatex}$: $\\omega_0 = \\frac{2\\pi}{${periodLatex}} = ${w0Latex}\\text{ rad/s}$. Ensure units are $\\text{s}$ and $\\text{rad/s}$.`,
+			String.raw`The signal repeats every period $T_0 = ${periodLatex}\text{ s}$. The fundamental frequency is $\omega_0 = \frac{2\pi}{T_0}$.`,
+			String.raw`Substitute $T_0 = ${periodLatex}$: $\omega_0 = \frac{2\pi}{${periodLatex}} = ${w0Latex}\text{ rad/s}$. Ensure units are $\text{s}$ and $\text{rad/s}$.`,
 		],
 	};
 }

@@ -102,7 +102,7 @@ function initialStateTeaching(
 			"Differentiation in time becomes multiplication by $s$, with subtracted initial-state terms in the unilateral transform.",
 			id.includes("second")
 				? "Apply the first-derivative rule twice: the second application also subtracts $y'(0^-)$, while the initial output acquires a factor of $s$."
-				: "Use $\\mathcal L_+\\{y'\\}=sY(s)-y(0^-)$. Substitute a signed initial value inside the subtraction; enter zero explicitly.",
+				: String.raw`Use $\mathcal L_+\{y'\}=sY(s)-y(0^-)$. Substitute a signed initial value inside the subtraction; enter zero explicitly.`,
 			"For example, if $y(0^-)=-2$, the first-derivative transform is $sY(s)-(-2)=sY(s)+2$. The rule subtracts the value, not its magnitude.",
 			"Check Initial-Condition Substitution",
 		);
@@ -256,14 +256,14 @@ function regionTeaching(id: string): Teaching | undefined {
 		return teaching(
 			"The ROC is the open set of complex values where the transform converges. Poles are excluded; zeros do not set its boundaries.",
 			"Sort the distinct real parts of surviving poles. Right-sided modes require a region to their right; left-sided modes require one to their left. Intersect these requirements.",
-			"For poles at $-5$ and $-3$, candidate regions are $\\Re(s)<-5$, $-5<\\Re(s)<-3$, and $\\Re(s)>-3$. Finite-duration sums require checking cancellation of their infinite tails.",
+			String.raw`For poles at $-5$ and $-3$, candidate regions are $\Re(s)<-5$, $-5<\Re(s)<-3$, and $\Re(s)>-3$. Finite-duration sums require checking cancellation of their infinite tails.`,
 			"Check Region of Convergence",
 		);
 	if (["axis", "bibo", "stability"].includes(id))
 		return teaching(
 			"BIBO stability concerns bounded inputs producing bounded outputs. For this system-analysis family, check whether the entire imaginary axis lies in the ROC.",
 			"The imaginary axis has real part zero. Substitute zero into the strict ROC inequalities; a boundary at zero does not count as inside.",
-			"For example, $\\Re(s)>-3$ contains the imaginary axis, but $\\Re(s)>0$ excludes it. This establishes input-output stability, not hidden internal stability.",
+			String.raw`For example, $\Re(s)>-3$ contains the imaginary axis, but $\Re(s)>0$ excludes it. This establishes input-output stability, not hidden internal stability.`,
 			"Check System Stability",
 		);
 	if (id === "side" || id === "causality")
@@ -341,18 +341,18 @@ export function signalFamilyChoices(
 ): NonNullable<LaplaceSingleTask["choicePresentation"]> {
 	const support = side === "left" ? "u(d-t)" : "u(t-d)";
 	return {
-		impulse: { label: "Impulse", math: "A\\delta(t-d)" },
+		impulse: { label: "Impulse", math: String.raw`A\delta(t-d)` },
 		exponential: {
 			label: "Step / polynomial exponential",
 			math: `A(t-d)^n e^{a(t-d)}${support}`,
 		},
 		cosine: {
 			label: "Damped cosine",
-			math: `Ae^{a(t-d)}\\cos(\\omega(t-d))${support}`,
+			math: String.raw`Ae^{a(t-d)}\cos(\omega(t-d))${support}`,
 		},
 		sine: {
 			label: "Damped sine",
-			math: `Ae^{a(t-d)}\\sin(\\omega(t-d))${support}`,
+			math: String.raw`Ae^{a(t-d)}\sin(\omega(t-d))${support}`,
 		},
 	};
 }
@@ -381,7 +381,7 @@ export function teachRoc<T extends LaplaceTask>(
 		? poles
 				.map(
 					(pole) =>
-						`$${pole.real}${fraction(pole.frequency).numerator ? `\\pm j(${pole.frequency})` : ""}$`,
+						String.raw`$${pole.real}${fraction(pole.frequency).numerator ? String.raw`\pm j(${pole.frequency})` : ""}$`,
 				)
 				.join(", ")
 		: "none";
@@ -404,7 +404,7 @@ export function teachRoc<T extends LaplaceTask>(
 				: support
 					? `Here the selected region has ${bounds[0] === -Infinity && bounds[1] === Infinity ? "no pole boundary, so ordinary left/right exponential classification alone is insufficient" : bounds[0] === -Infinity ? "an upper boundary, requiring left-sided ordinary modes" : bounds[1] === Infinity ? "a lower boundary, requiring right-sided ordinary modes" : "two boundaries, requiring a mixture of left- and right-sided modes"}. A causal response must additionally vanish at every negative time.`
 					: boundary
-						? `One boundary is $\\Re(s)=${boundary.real}$. The leftmost candidate region lies strictly to its left. Adjacent distinct real parts create interior strips; repeated poles or equal real parts do not create extra strips.`
+						? String.raw`One boundary is $\Re(s)=${boundary.real}$. The leftmost candidate region lies strictly to its left. Adjacent distinct real parts create interior strips; repeated poles or equal real parts do not create extra strips.`
 						: "There are no surviving poles. For a zero or impulse-only response, the entire finite complex plane is available; do not introduce boundaries from canceled factors.",
 		],
 		explanation: `${stability ? "The imaginary-axis check establishes the input-output stability conclusion." : support ? "The supplied region and time support establish this classification." : "The selected region is open, excludes poles, and respects the supplied support."} ${task.answer}`,

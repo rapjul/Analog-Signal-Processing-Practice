@@ -127,8 +127,8 @@ describe("OdeResponseInput.svelte Component", () => {
 		expect(handleChange).toHaveBeenCalled();
 		const lastCall = handleChange.mock.calls.at(-1)?.[0];
 		expect(lastCall).toContain("e^{-2t}");
-		expect(lastCall).toContain("\\cos(5t)");
-		expect(lastCall).toContain("\\sin(5t)");
+		expect(lastCall).toContain(String.raw`\cos(5t)`);
+		expect(lastCall).toContain(String.raw`\sin(5t)`);
 	});
 
 	it("switches to first order mode and synthesizes single exponential response", async () => {

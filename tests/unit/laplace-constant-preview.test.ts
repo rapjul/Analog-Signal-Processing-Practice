@@ -50,7 +50,7 @@ describe("Laplace constant preview eligibility", () => {
 					gain: value,
 				}),
 				value,
-			).not.toContain("\\square");
+			).not.toContain(String.raw`\square`);
 		}
 	});
 	/** Invalid, nonfinite, unsupported and canceled-variable drafts never become completed mathematical previews. */
@@ -76,7 +76,7 @@ describe("Laplace constant preview eligibility", () => {
 					gain: value,
 				}),
 				value,
-			).toContain("\\square");
+			).toContain(String.raw`\square`);
 		}
 	});
 	/** Preview validity never validates a wrong quotient or weakens exact comparisons. */

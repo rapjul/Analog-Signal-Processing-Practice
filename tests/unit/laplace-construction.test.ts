@@ -75,7 +75,7 @@ describe("exact learner-built Laplace mathematics", () => {
 		);
 		expect(
 			tasks.find((task) => task.id === "division")!.hints[2],
-		).toContain("\\deg D=3");
+		).toContain(String.raw`\deg D=3`);
 		expect(tasks.find((task) => task.id === "method")!.hints[2]).toContain(
 			"s^{3}+21s^{2}+147s+343",
 		);

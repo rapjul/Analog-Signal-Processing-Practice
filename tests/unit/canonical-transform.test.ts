@@ -16,7 +16,10 @@ import { parseStrictLatex } from "$lib/math-engine/evaluator";
 function form(expression: string, variable: "t" | "omega" = "omega") {
 	return normalizeCanonicalTransform(
 		parseStrictLatex(
-			expression.replace(/\\delta\b/g, "\\operatorname{DiracDelta}"),
+			expression.replace(
+				/\\delta\b/g,
+				String.raw`\operatorname{DiracDelta}`,
+			),
 		),
 		variable,
 	);
@@ -107,7 +110,10 @@ describe("canonical transform contract", () => {
 			true,
 		);
 		expect(
-			canonicalTransformsMatch(form("1+10^{-400}\\omega"), form("1")),
+			canonicalTransformsMatch(
+				form(String.raw`1+10^{-400}\omega`),
+				form("1"),
+			),
 		).toBe(false);
 		expect(
 			canonicalTransformsMatch(

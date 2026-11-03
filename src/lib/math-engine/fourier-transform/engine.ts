@@ -96,15 +96,15 @@ export function getCtftPairLatex(
 		case "rect": {
 			const T = params.T ?? 1;
 			return {
-				timeLatex: `\\operatorname{rect}\\left(\\frac{t}{${T}}\\right)`,
-				freqLatex: `${T} \\operatorname{sinc}\\left(\\frac{${T} \\omega}{2 \\pi}\\right)`,
+				timeLatex: String.raw`\operatorname{rect}\left(\frac{t}{${T}}\right)`,
+				freqLatex: String.raw`${T} \operatorname{sinc}\left(\frac{${T} \omega}{2 \pi}\right)`,
 			};
 		}
 		case "exponential": {
 			const a = params.a ?? 1;
 			return {
 				timeLatex: `e^{-${a} t} u(t)`,
-				freqLatex: `\\frac{1}{${a} + j\\omega}`,
+				freqLatex: String.raw`\frac{1}{${a} + j\omega}`,
 			};
 		}
 		case "gaussian": {
@@ -116,15 +116,15 @@ export function getCtftPairLatex(
 		}
 		case "delta": {
 			return {
-				timeLatex: "\\delta(t)",
+				timeLatex: String.raw`\delta(t)`,
 				freqLatex: "1",
 			};
 		}
 		case "cos": {
 			const w0 = params.w0 ?? 1;
 			return {
-				timeLatex: `\\cos(${w0} t)`,
-				freqLatex: `\\pi \\delta(\\omega - ${w0}) + \\pi \\delta(\\omega + ${w0})`,
+				timeLatex: String.raw`\cos(${w0} t)`,
+				freqLatex: String.raw`\pi \delta(\omega - ${w0}) + \pi \delta(\omega + ${w0})`,
 			};
 		}
 		default: {
@@ -292,15 +292,15 @@ export function createCtftProblem(
 			solutionSteps: [
 				{
 					title: "Step 1: Identify Base Transform Pair",
-					latex: `x_0(t) \\iff X_0(\\omega) = ${pair.freqLatex}`,
+					latex: String.raw`x_0(t) \iff X_0(\omega) = ${pair.freqLatex}`,
 				},
 				{
 					title: "Step 2: Apply Time-Shift Property",
-					latex: `x(t - t_0) \\iff X_0(\\omega) e^{-j \\omega t_0} \\quad \\text{with } t_0 = ${t0}`,
+					latex: String.raw`x(t - t_0) \iff X_0(\omega) e^{-j \omega t_0} \quad \text{with } t_0 = ${t0}`,
 				},
 				{
 					title: "Step 3: Combine Terms for Final CTFT",
-					latex: `X(\\omega) = ${shiftedFreqLatex}`,
+					latex: String.raw`X(\omega) = ${shiftedFreqLatex}`,
 				},
 			],
 		};
@@ -316,11 +316,11 @@ export function createCtftProblem(
 		solutionSteps: [
 			{
 				title: "Step 1: Identify Base Signal Pair",
-				latex: `\\text{Recall standard CTFT transform pair: } x(t) \\iff X(\\omega)`,
+				latex: String.raw`\text{Recall standard CTFT transform pair: } x(t) \iff X(\omega)`,
 			},
 			{
 				title: "Step 2: Substitute Parameter Values",
-				latex: `X(\\omega) = \\int_{-\\infty}^{\\infty} x(t) e^{-j\\omega t} dt = ${pair.freqLatex}`,
+				latex: String.raw`X(\omega) = \int_{-\infty}^{\infty} x(t) e^{-j\omega t} dt = ${pair.freqLatex}`,
 			},
 		],
 	};

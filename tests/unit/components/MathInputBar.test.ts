@@ -16,7 +16,7 @@ describe("MathInputBar.svelte Component", () => {
 			props: {
 				value: "",
 				label: "Enter Particular Solution:",
-				placeholder: "e.g. 5\\cos(2t)",
+				placeholder: String.raw`e.g. 5\cos(2t)`,
 				inputType: "generic",
 			},
 		});
@@ -100,7 +100,7 @@ describe("MathInputBar.svelte Component", () => {
 		expect(container.querySelector(".preview-empty")).toBeDefined();
 
 		// When value is provided, MathBlock is rendered
-		await rerender({ value: "5\\cos(2t)" });
+		await rerender({ value: String.raw`5\cos(2t)` });
 		expect(container.querySelector(".math-block")).toBeTruthy();
 	});
 
@@ -140,10 +140,10 @@ describe("MathInputBar.svelte Component", () => {
 		expect(textarea).toBeTruthy();
 
 		await fireEvent.input(textarea, {
-			target: { value: "\\cos(3t)" },
+			target: { value: String.raw`\cos(3t)` },
 		});
 
-		expect(handleChange).toHaveBeenCalledWith("\\cos(3t)");
+		expect(handleChange).toHaveBeenCalledWith(String.raw`\cos(3t)`);
 	});
 
 	it("appends math symbols when symbol shortcut buttons are clicked in freehand mode", async () => {

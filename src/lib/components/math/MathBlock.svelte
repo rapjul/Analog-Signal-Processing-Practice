@@ -53,23 +53,23 @@
 		if (!trimmed) return "";
 
 		// If user explicitly requests matrix environment and expression is not already wrapped
-		if (matrix && !trimmed.startsWith(`\\begin{${matrix}}`)) {
-			return `\\begin{${matrix}}\n${trimmed}\n\\end{${matrix}}`;
+		if (matrix && !trimmed.startsWith(String.raw`\begin{${matrix}}`)) {
+			return String.raw`\begin{${matrix}}${"\n"}${trimmed}${"\n"}\end{${matrix}}`;
 		}
 
 		// If user explicitly requests cases environment and expression is not already wrapped
-		if (cases && !trimmed.startsWith("\\begin{cases}")) {
-			return `\\begin{cases}\n${trimmed}\n\\end{cases}`;
+		if (cases && !trimmed.startsWith(String.raw`\begin{cases}`)) {
+			return String.raw`\begin{cases}${"\n"}${trimmed}${"\n"}\end{cases}`;
 		}
 
 		// If user explicitly requests aligned environment and expression is not already wrapped
-		if (aligned && !trimmed.startsWith("\\begin{aligned}")) {
-			return `\\begin{aligned}\n${trimmed}\n\\end{aligned}`;
+		if (aligned && !trimmed.startsWith(String.raw`\begin{aligned}`)) {
+			return String.raw`\begin{aligned}${"\n"}${trimmed}${"\n"}\end{aligned}`;
 		}
 
 		// If user explicitly requests gathered environment and expression is not already wrapped
-		if (gathered && !trimmed.startsWith("\\begin{gathered}")) {
-			return `\\begin{gathered}\n${trimmed}\n\\end{gathered}`;
+		if (gathered && !trimmed.startsWith(String.raw`\begin{gathered}`)) {
+			return String.raw`\begin{gathered}${"\n"}${trimmed}${"\n"}\end{gathered}`;
 		}
 
 		return trimmed;

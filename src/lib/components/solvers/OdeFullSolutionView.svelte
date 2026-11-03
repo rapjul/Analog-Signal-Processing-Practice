@@ -72,7 +72,7 @@
 					/>
 				</p>
 				<MathBlock
-					math={`s = \\frac{-(${problem.params.a1}) \\pm \\sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+					math={String.raw`s = \frac{-(${problem.params.a1}) \pm \sqrt{${problem.itsData.step2.discriminant}}}{2(${problem.params.a2})} \implies ${problem.itsData.step2.symbolicRootsLatex}`}
 					compact={true}
 					hideHeader={true}
 				/>
@@ -83,7 +83,7 @@
 					/>
 				</p>
 				<MathBlock
-					math={`${problem.params.a1}s + ${problem.params.a0} = 0 \\implies ${problem.itsData.step2.symbolicRootsLatex}`}
+					math={String.raw`${problem.params.a1}s + ${problem.params.a0} = 0 \implies ${problem.itsData.step2.symbolicRootsLatex}`}
 					compact={true}
 					hideHeader={true}
 				/>
@@ -170,13 +170,13 @@
 			/>
 			{#if problem.forcing.type === "sinusoid"}
 				<MathBlock
-					math={`A = ${toFractionLatex(problem.itsData.step5.expectedA ?? 0)}, \\quad B = ${toFractionLatex(problem.itsData.step5.expectedB ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
+					math={String.raw`A = ${toFractionLatex(problem.itsData.step5.expectedA ?? 0)}, \quad B = ${toFractionLatex(problem.itsData.step5.expectedB ?? 0)} \implies y_p(t) = ${problem.solutions.y_p_latex}`}
 					compact={true}
 					hideHeader={true}
 				/>
 			{:else}
 				<MathBlock
-					math={`K_p = ${toFractionLatex(problem.itsData.step5.expectedKp ?? 0)} \\implies y_p(t) = ${problem.solutions.y_p_latex}`}
+					math={String.raw`K_p = ${toFractionLatex(problem.itsData.step5.expectedKp ?? 0)} \implies y_p(t) = ${problem.solutions.y_p_latex}`}
 					compact={true}
 					hideHeader={true}
 				/>
@@ -224,7 +224,7 @@
 			<MathBlock
 				math={problem.params.order === 1
 					? `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}`
-					: `C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \\quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
+					: String.raw`C_1 = ${toFractionLatex(problem.itsData.step6.expectedC1)}, \quad C_2 = ${toFractionLatex(problem.itsData.step6.expectedC2 ?? 0)}`}
 				compact={true}
 				hideHeader={true}
 			/>

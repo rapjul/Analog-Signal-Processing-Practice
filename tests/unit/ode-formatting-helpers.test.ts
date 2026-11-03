@@ -67,7 +67,7 @@ describe("ODE Response Formatting & Root Matching Helpers", () => {
 				roots: { r1: -2, im: 4 },
 			};
 			expect(formatHomogeneousResponse("C_1", "C_2", params)).toBe(
-				"e^{-2t} [C_1 \\cos(4t) + C_2 \\sin(4t)]",
+				String.raw`e^{-2t} [C_1 \cos(4t) + C_2 \sin(4t)]`,
 			);
 		});
 
@@ -81,7 +81,7 @@ describe("ODE Response Formatting & Root Matching Helpers", () => {
 				roots: { r1: 0, im: 3 },
 			};
 			expect(formatHomogeneousResponse("C_1", "C_2", params)).toBe(
-				"C_1 \\cos(3t) + C_2 \\sin(3t)",
+				String.raw`C_1 \cos(3t) + C_2 \sin(3t)`,
 			);
 		});
 

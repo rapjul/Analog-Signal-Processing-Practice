@@ -18,8 +18,8 @@ import { createSeededPrng, shuffleWithRandom } from "$lib/math-engine/random";
 
 /** Formats one finite or infinite scalar as exact LaTeX. */
 export function formatConvolutionScalar(value: number): string {
-	if (value === Number.POSITIVE_INFINITY) return "\\infty";
-	if (value === Number.NEGATIVE_INFINITY) return "-\\infty";
+	if (value === Number.POSITIVE_INFINITY) return String.raw`\infty`;
+	if (value === Number.NEGATIVE_INFINITY) return String.raw`-\infty`;
 	return String(value);
 }
 
@@ -33,7 +33,7 @@ export function formatConvolutionPiecewiseLatex(
 			`${expressions[index] ?? interval.exprLatex} & ${interval.labelLatex}`,
 	);
 	return sanitizeLatexMath(
-		`y(t) = \\begin{cases} ${rows.join(" \\\\ ")} \\end{cases}`,
+		String.raw`y(t) = \begin{cases} ${rows.join(String.raw` \\ `)} \end{cases}`,
 	);
 }
 
@@ -52,8 +52,8 @@ export function getFiniteConvolutionTransitionTimes(
 
 /** Formats one transformed moving edge. */
 export function formatTranslatedEdge(value: number): string {
-	if (value === Number.POSITIVE_INFINITY) return "-\\infty";
-	if (value === Number.NEGATIVE_INFINITY) return "\\infty";
+	if (value === Number.POSITIVE_INFINITY) return String.raw`-\infty`;
+	if (value === Number.NEGATIVE_INFINITY) return String.raw`\infty`;
 	return formatTranslatedArgument("t", value);
 }
 
@@ -94,28 +94,27 @@ export function buildFormulaStep(
 ): ConvolutionItsChoiceStep {
 	const matching =
 		moving === "h"
-			? "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau"
-			: "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(t-\\tau)\\,d\\tau";
+			? String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau`
+			: String.raw`y(t)=\int_{-\infty}^{\infty}h(\tau)x(t-\tau)\,d\tau`;
 	const selectedWithoutFlip =
 		moving === "h"
-			? "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau"
-			: "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(\\tau-t)\\,d\\tau";
+			? String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(\tau-t)\,d\tau`
+			: String.raw`y(t)=\int_{-\infty}^{\infty}h(\tau)x(\tau-t)\,d\tau`;
 	const otherCorrect =
 		moving === "h"
-			? "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(t-\\tau)\\,d\\tau"
-			: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau";
+			? String.raw`y(t)=\int_{-\infty}^{\infty}h(\tau)x(t-\tau)\,d\tau`
+			: String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau`;
 	const otherWithoutFlip =
 		moving === "h"
-			? "y(t)=\\int_{-\\infty}^{\\infty}h(\\tau)x(\\tau-t)\\,d\\tau"
-			: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(\\tau-t)\\,d\\tau";
+			? String.raw`y(t)=\int_{-\infty}^{\infty}h(\tau)x(\tau-t)\,d\tau`
+			: String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(\tau-t)\,d\tau`;
 	const options: ConvolutionItsOption[] = [
 		{ id: `formula-${moving}-correct`, latex: matching, isCorrect: true },
 		{
 			id: `formula-${moving}-no-flip`,
 			latex: selectedWithoutFlip,
 			isCorrect: false,
-			feedback:
-				"This shifts the selected signal without reflecting it. The moving argument must be $t-\\tau$.",
+			feedback: String.raw`This shifts the selected signal without reflecting it. The moving argument must be $t-\tau$.`,
 		},
 		{
 			id: `formula-${moving}-other-path`,
@@ -135,11 +134,11 @@ export function buildFormulaStep(
 	const optionSeed =
 		(seed ^ (moving === "x" ? 0x58_33_ba_11 : 0x48_33_ba_11)) >>> 0;
 	return {
-		prompt: `Which integral keeps $${moving === "h" ? "x" : "h"}(\\tau)$ fixed and moves $${moving}(t)$?`,
+		prompt: String.raw`Which integral keeps $${moving === "h" ? "x" : "h"}(\tau)$ fixed and moves $${moving}(t)$?`,
 		options: shuffleWithRandom(options, createSeededPrng(optionSeed)),
 		hints: [
-			"The fixed signal keeps the argument $\\tau$.",
-			"The selected moving signal receives the argument $t-\\tau$.",
+			String.raw`The fixed signal keeps the argument $\tau$.`,
+			String.raw`The selected moving signal receives the argument $t-\tau$.`,
 			`The matching path is $${matching}$.`,
 		],
 	};

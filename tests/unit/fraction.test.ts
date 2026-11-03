@@ -9,23 +9,23 @@ describe("toFractionLatex", () => {
 	});
 
 	it("formats standard repeating fractions correctly", () => {
-		expect(toFractionLatex(1 / 3)).toBe("\\frac{1}{3}");
-		expect(toFractionLatex(-1 / 3)).toBe("-\\frac{1}{3}");
-		expect(toFractionLatex(1 / 6)).toBe("\\frac{1}{6}");
-		expect(toFractionLatex(-7 / 6)).toBe("-\\frac{7}{6}");
+		expect(toFractionLatex(1 / 3)).toBe(String.raw`\frac{1}{3}`);
+		expect(toFractionLatex(-1 / 3)).toBe(String.raw`-\frac{1}{3}`);
+		expect(toFractionLatex(1 / 6)).toBe(String.raw`\frac{1}{6}`);
+		expect(toFractionLatex(-7 / 6)).toBe(String.raw`-\frac{7}{6}`);
 	});
 
 	it("formats ninths fractions correctly (1/9, 3/9, 10/9)", () => {
-		expect(toFractionLatex(1 / 9)).toBe("\\frac{1}{9}");
-		expect(toFractionLatex(3 / 9)).toBe("\\frac{1}{3}");
-		expect(toFractionLatex(10 / 9)).toBe("\\frac{10}{9}");
-		expect(toFractionLatex(-10 / 9)).toBe("-\\frac{10}{9}");
+		expect(toFractionLatex(1 / 9)).toBe(String.raw`\frac{1}{9}`);
+		expect(toFractionLatex(3 / 9)).toBe(String.raw`\frac{1}{3}`);
+		expect(toFractionLatex(10 / 9)).toBe(String.raw`\frac{10}{9}`);
+		expect(toFractionLatex(-10 / 9)).toBe(String.raw`-\frac{10}{9}`);
 	});
 
 	it("formats decimal fractions like 0.25, 0.75, -1.5", () => {
-		expect(toFractionLatex(0.25)).toBe("\\frac{1}{4}");
-		expect(toFractionLatex(0.75)).toBe("\\frac{3}{4}");
-		expect(toFractionLatex(-1.5)).toBe("-\\frac{3}{2}");
+		expect(toFractionLatex(0.25)).toBe(String.raw`\frac{1}{4}`);
+		expect(toFractionLatex(0.75)).toBe(String.raw`\frac{3}{4}`);
+		expect(toFractionLatex(-1.5)).toBe(String.raw`-\frac{3}{2}`);
 	});
 });
 
@@ -68,11 +68,17 @@ describe("parseNumericInput", () => {
 	});
 
 	it("parses LaTeX fraction notation", () => {
-		expect(parseNumericInput("\\frac{5}{3}")).toBeCloseTo(5 / 3);
-		expect(parseNumericInput("-\\frac{11}{3}")).toBeCloseTo(-11 / 3);
-		expect(parseNumericInput("\\frac{-11}{3}")).toBeCloseTo(-11 / 3);
-		expect(parseNumericInput("\\frac{11}{-3}")).toBeCloseTo(-11 / 3);
-		expect(parseNumericInput("\\frac{-5}{-9}")).toBeCloseTo(5 / 9);
+		expect(parseNumericInput(String.raw`\frac{5}{3}`)).toBeCloseTo(5 / 3);
+		expect(parseNumericInput(String.raw`-\frac{11}{3}`)).toBeCloseTo(
+			-11 / 3,
+		);
+		expect(parseNumericInput(String.raw`\frac{-11}{3}`)).toBeCloseTo(
+			-11 / 3,
+		);
+		expect(parseNumericInput(String.raw`\frac{11}{-3}`)).toBeCloseTo(
+			-11 / 3,
+		);
+		expect(parseNumericInput(String.raw`\frac{-5}{-9}`)).toBeCloseTo(5 / 9);
 	});
 
 	it("returns NaN for invalid or empty inputs", () => {

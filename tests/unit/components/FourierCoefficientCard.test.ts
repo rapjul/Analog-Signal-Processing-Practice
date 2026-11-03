@@ -22,7 +22,7 @@ describe("FourierCoefficientCard.svelte Component", () => {
 				num: "2",
 				den: "n pi",
 				harmonic: "odd",
-				coeffLatex: "\\frac{2}{n \\pi} (1 - (-1)^n)",
+				coeffLatex: String.raw`\frac{2}{n \pi} (1 - (-1)^n)`,
 				onUpdate,
 			},
 		});
@@ -61,7 +61,7 @@ describe("FourierCoefficientCard.svelte Component", () => {
 		expect(directInput).toBeTruthy();
 
 		await fireEvent.input(directInput, {
-			target: { value: "\\frac{4}{n}" },
+			target: { value: String.raw`\frac{4}{n}` },
 		});
 		expect(onUpdate).toHaveBeenCalled();
 	});
@@ -75,8 +75,8 @@ describe("FourierCoefficientCard.svelte Component", () => {
 				idPrefix: "bn",
 				mode: "fraction",
 				harmonic: "custom",
-				customHarmonic: "\\sin(n \\pi / 2)",
-				coeffLatex: "\\sin(n \\pi / 2)",
+				customHarmonic: String.raw`\sin(n \pi / 2)`,
+				coeffLatex: String.raw`\sin(n \pi / 2)`,
 				onUpdate,
 			},
 		});
@@ -85,10 +85,10 @@ describe("FourierCoefficientCard.svelte Component", () => {
 			".custom-mult-input",
 		) as HTMLInputElement;
 		expect(customInput).toBeTruthy();
-		expect(customInput.value).toBe("\\sin(n \\pi / 2)");
+		expect(customInput.value).toBe(String.raw`\sin(n \pi / 2)`);
 
 		await fireEvent.input(customInput, {
-			target: { value: "\\cos(n \\pi / 2)" },
+			target: { value: String.raw`\cos(n \pi / 2)` },
 		});
 		expect(onUpdate).toHaveBeenCalled();
 	});

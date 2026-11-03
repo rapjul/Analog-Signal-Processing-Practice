@@ -221,13 +221,13 @@ export function generateConfiguredConvolutionProblem(
 				title: "Identify the Two Configured Signals",
 				description:
 					"Record each signal's exact support, breakpoints, amplitude, and translation.",
-				latex: `x(t)=${resolvedSignals.x.latex},\\quad h(t)=${resolvedSignals.h.latex}`,
+				latex: String.raw`x(t)=${resolvedSignals.x.latex},\quad h(t)=${resolvedSignals.h.latex}`,
 			},
 			{
 				title: "Build Every Geometric Overlap Region",
 				description:
 					"Add fixed and moving breakpoints, then integrate every connected overlap component.",
-				latex: "y(t)=\\int_{-\\infty}^{\\infty}x(\\tau)h(t-\\tau)\\,d\\tau",
+				latex: String.raw`y(t)=\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau`,
 			},
 			{
 				title: "Combine Signed Contributions",
@@ -236,9 +236,9 @@ export function generateConfiguredConvolutionProblem(
 				latex: result.intervals
 					.map(
 						(interval) =>
-							`y(t)=${interval.exprLatex}\\quad(${interval.labelLatex})`,
+							String.raw`y(t)=${interval.exprLatex}\quad(${interval.labelLatex})`,
 					)
-					.join(",\\quad "),
+					.join(String.raw`,\quad `),
 			},
 		],
 		intervals: result.intervals,

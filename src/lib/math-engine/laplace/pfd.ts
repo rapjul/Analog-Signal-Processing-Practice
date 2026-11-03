@@ -226,7 +226,7 @@ export function decompose(
 							n: scale(slot.basis, fractionLatex(slot.value)),
 							d: slot.denominator,
 						})
-					: `\\frac{${slot.label}${slot.basis.length === 1 && slot.basis[0]!.numerator === slot.basis[0]!.denominator ? "" : `(${polynomialLatex(slot.basis)})`}}{${polynomialLatex(slot.denominator)}}`,
+					: String.raw`\frac{${slot.label}${slot.basis.length === 1 && slot.basis[0]!.numerator === slot.basis[0]!.denominator ? "" : `(${polynomialLatex(slot.basis)})`}}{${polynomialLatex(slot.denominator)}}`,
 			),
 		]);
 	return {
@@ -284,11 +284,11 @@ export function formatRoc(
 	};
 	return lower === -Infinity
 		? upper === Infinity
-			? "s\\in\\mathbb C"
-			: `\\operatorname{Re}(s)<${label(upper)}`
+			? String.raw`s\in\mathbb C`
+			: String.raw`\operatorname{Re}(s)<${label(upper)}`
 		: upper === Infinity
-			? `\\operatorname{Re}(s)>${label(lower)}`
-			: `${label(lower)}<\\operatorname{Re}(s)<${label(upper)}`;
+			? String.raw`\operatorname{Re}(s)>${label(lower)}`
+			: String.raw`${label(lower)}<\operatorname{Re}(s)<${label(upper)}`;
 }
 
 /** @param value - Nonnegative integer. @returns Exact small factorial. */

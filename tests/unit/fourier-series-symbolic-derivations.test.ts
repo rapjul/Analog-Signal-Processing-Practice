@@ -36,9 +36,12 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 					A: 3,
 					T0: 4,
 				});
-				const latex = buildFinalSeriesLatex(coeffs, "\\frac{\\pi}{2}");
+				const latex = buildFinalSeriesLatex(
+					coeffs,
+					String.raw`\frac{\pi}{2}`,
+				);
 				expect(latex).toContain("x(t) =");
-				expect(latex).toContain("\\frac{\\pi}{2}");
+				expect(latex).toContain(String.raw`\frac{\pi}{2}`);
 			},
 		);
 
@@ -49,7 +52,7 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 				T0: 2,
 			} as FourierSeriesCoefficients;
 			expect(() =>
-				buildFinalSeriesLatex(invalidCoeffs, "\\pi"),
+				buildFinalSeriesLatex(invalidCoeffs, String.raw`\pi`),
 			).toThrowError(/Unsupported waveform type/);
 		});
 	});
@@ -62,8 +65,13 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 					A: 2,
 					T0: 2,
 				});
-				const compactLatex = buildCompactSeriesLatex(coeffs, "\\pi");
-				expect(compactLatex).toContain("x(t)=\\frac{c_0}{2}+\\sum");
+				const compactLatex = buildCompactSeriesLatex(
+					coeffs,
+					String.raw`\pi`,
+				);
+				expect(compactLatex).toContain(
+					String.raw`x(t)=\frac{c_0}{2}+\sum`,
+				);
 				expect(compactLatex).toContain("c_n=");
 			},
 		);
@@ -75,7 +83,7 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 				T0: 2,
 			} as FourierSeriesCoefficients;
 			expect(() =>
-				buildCompactSeriesLatex(invalidCoeffs, "\\pi"),
+				buildCompactSeriesLatex(invalidCoeffs, String.raw`\pi`),
 			).toThrowError(/Unsupported waveform type/);
 		});
 	});
@@ -106,7 +114,7 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 				});
 				const derivation = buildFourierSeriesSymbolicDerivation(
 					coeffs,
-					"\\pi",
+					String.raw`\pi`,
 				);
 
 				expect(derivation.a0Latex).toBeDefined();
@@ -114,7 +122,9 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 				expect(derivation.bnLatex).toBeDefined();
 				expect(derivation.FnLatex).toBeDefined();
 				expect(derivation.finalTrigLatex).toContain("x(t) =");
-				expect(derivation.finalExpLatex).toContain("x(t)=\\sum");
+				expect(derivation.finalExpLatex).toContain(
+					String.raw`x(t)=\sum`,
+				);
 				expect(derivation.a0IntegralLatex).toContain("a_0=");
 				expect(derivation.evaluationLatex).toBeDefined();
 			},
@@ -127,7 +137,10 @@ describe("Fourier Series Symbolic Derivations & LaTeX Templates", () => {
 				T0: 2,
 			} as FourierSeriesCoefficients;
 			expect(() =>
-				buildFourierSeriesSymbolicDerivation(invalidCoeffs, "\\pi"),
+				buildFourierSeriesSymbolicDerivation(
+					invalidCoeffs,
+					String.raw`\pi`,
+				),
 			).toThrowError(/Unsupported waveform type/);
 		});
 	});

@@ -72,7 +72,7 @@
 						text={"Ideal when symmetries eliminate $a_n$ or $b_n$"}
 					/>
 					<MathBlock
-						math={"a_n \\cos(n \\omega_0 t) + b_n \\sin(n \\omega_0 t)"}
+						math={String.raw`a_n \cos(n \omega_0 t) + b_n \sin(n \omega_0 t)`}
 						compact={true}
 						hideHeader={true}
 					/>
@@ -88,7 +88,7 @@
 				<div class="choice-sub representation-content">
 					<MathText text={"Single integral for $F_n$"} />
 					<MathBlock
-						math={"F_n e^{j n \\omega_0 t}"}
+						math={String.raw`F_n e^{j n \omega_0 t}`}
 						compact={true}
 						hideHeader={true}
 					/>
@@ -104,7 +104,7 @@
 				<div class="choice-sub representation-content">
 					<span>Amplitude-Phase</span>
 					<MathBlock
-						math={"c_n \\cos(n \\omega_0 t + \\theta_n)"}
+						math={String.raw`c_n \cos(n \omega_0 t + \theta_n)`}
 						compact={true}
 						hideHeader={true}
 					/>

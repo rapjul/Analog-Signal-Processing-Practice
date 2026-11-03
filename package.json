@@ -12,6 +12,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint:imports": "biome check --only=organizeImports .",
+    "lint:escaped-latex": "node scripts/lint-escaped-latex.mjs",
     "lint:verification-docs": "node scripts/lint-verification-docs.mjs",
     "format:imports": "biome check --write --only=organizeImports .",
     "format": "prettier --write .",
@@ -79,9 +80,10 @@
     }
   },
   "lint-staged": {
-    "*.{js,ts,svelte}": [
+    "*.{js,mjs,cjs,mts,cts,jsx,ts,tsx,svelte}": [
       "biome check --write --no-errors-on-unmatched",
-      "prettier --write"
+      "prettier --write",
+      "node scripts/lint-escaped-latex.mjs"
     ],
     "*.{json,json5,jsonc,css,md,yaml,yml,html,svg}": [
       "prettier --write"

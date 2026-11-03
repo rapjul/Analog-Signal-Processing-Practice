@@ -258,7 +258,7 @@ function formatCoefficientSystem(equation: TrialTerm[]): string {
 	}
 	return equations.length === 1
 		? equations.join("")
-		: `\\begin{cases} ${equations.join(" \\\\ ")} \\end{cases}`;
+		: String.raw`\begin{cases} ${equations.join(String.raw` \\ `)} \end{cases}`;
 }
 
 /**
@@ -361,7 +361,7 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 	} = context;
 	const systemLatex = formatCoefficientSystem(equation);
 	const firstDerivLatex = `y_p'(t) = ${formatTrial(first, rate, frequency)}`;
-	const substitutionLatex = `${resolvedOrder === 2 ? `${toFractionLatex(a2)}\\left(${formatTrial(second, rate, frequency)}\\right) + ` : ""}${toFractionLatex(a1)}\\left(${formatTrial(first, rate, frequency)}\\right) + ${toFractionLatex(a0)}\\left(${formatTrial(trial, rate, frequency)}\\right) = ${forcing.latex}`;
+	const substitutionLatex = String.raw`${resolvedOrder === 2 ? String.raw`${toFractionLatex(a2)}\left(${formatTrial(second, rate, frequency)}\right) + ` : ""}${toFractionLatex(a1)}\left(${formatTrial(first, rate, frequency)}\right) + ${toFractionLatex(a0)}\left(${formatTrial(trial, rate, frequency)}\right) = ${forcing.latex}`;
 	const secondDerivLatex = `y_p''(t) = ${formatTrial(second, rate, frequency)}`;
 	const firstDerivativeOptions = shuffleWithRandom(
 		derivativeChoices(first, rate, frequency, 1, trial),
@@ -374,7 +374,7 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 	const systemOptions = buildSystemChoices(context);
 	const solved =
 		forcing.type === "sinusoid"
-			? `$A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \\quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
+			? String.raw`$A = ${toFractionLatex(particular.coeffs.A ?? 0)}, \quad B = ${toFractionLatex(particular.coeffs.B ?? 0)}$.`
 			: `$K_p = ${toFractionLatex(particular.coeffs.Kp ?? 0)}$.`;
 	const derivativeHint =
 		power > 0
@@ -393,7 +393,7 @@ export function buildStep5Data(params: BuildStep5Params): OdeItsStep5 {
 		derivativesLatex:
 			resolvedOrder === 1
 				? firstDerivLatex
-				: `${firstDerivLatex}, \\quad ${secondDerivLatex}`,
+				: String.raw`${firstDerivLatex}, \quad ${secondDerivLatex}`,
 		systemLatex,
 		substitutionLatex,
 		hints: [

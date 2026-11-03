@@ -201,21 +201,21 @@ export function determineStability(
 			const isBiboStable = maxPole < 0;
 			return {
 				isBiboStable,
-				rocLatex: `\\operatorname{Re}(s) > ${maxPole}`,
+				rocLatex: String.raw`\operatorname{Re}(s) > ${maxPole}`,
 			};
 		}
 		case "left-sided": {
 			const isBiboStable = minPole > 0;
 			return {
 				isBiboStable,
-				rocLatex: `\\operatorname{Re}(s) < ${minPole}`,
+				rocLatex: String.raw`\operatorname{Re}(s) < ${minPole}`,
 			};
 		}
 		case "two-sided": {
 			const isBiboStable = minPole < 0 && maxPole > 0;
 			return {
 				isBiboStable,
-				rocLatex: `${minPole} < \\operatorname{Re}(s) < ${maxPole}`,
+				rocLatex: String.raw`${minPole} < \operatorname{Re}(s) < ${maxPole}`,
 			};
 		}
 		default: {
@@ -241,12 +241,12 @@ export function getLaplacePairLatex(type: string): {
 		case "exp":
 			return {
 				timeLatex: "e^{-a t} u(t)",
-				laplaceLatex: "\\frac{1}{s + a}",
+				laplaceLatex: String.raw`\frac{1}{s + a}`,
 			};
 		case "step":
-			return { timeLatex: "u(t)", laplaceLatex: "\\frac{1}{s}" };
+			return { timeLatex: "u(t)", laplaceLatex: String.raw`\frac{1}{s}` };
 		case "delta":
-			return { timeLatex: "\\delta(t)", laplaceLatex: "1" };
+			return { timeLatex: String.raw`\delta(t)`, laplaceLatex: "1" };
 		default:
 			throw new Error(`Unknown Laplace pair: ${type}`);
 	}
@@ -346,20 +346,20 @@ function createTrigonometricInverse(id: string): LaplaceProblem {
 	return {
 		id,
 		problemType: "inverse_direct",
-		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\\right\\}`,
-		referenceAnswerLatex: `(${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+		promptLatex: String.raw`\text{Find } x(t) = \mathcal{L}^{-1}\left\{\frac{${A}s + ${bOmega}}{s^2 + ${wSq}}\right\}`,
+		referenceAnswerLatex: String.raw`(${A} \cos(${omega}t) + ${B} \sin(${omega}t)) u(t)`,
 		solutionSteps: [
 			{
 				title: "Step 1: Separate into Cosine and Sine Terms",
-				latex: `X(s) = ${A} \\cdot \\frac{s}{s^2 + ${omega}^2} + ${B} \\cdot \\frac{${omega}}{s^2 + ${omega}^2}`,
+				latex: String.raw`X(s) = ${A} \cdot \frac{s}{s^2 + ${omega}^2} + ${B} \cdot \frac{${omega}}{s^2 + ${omega}^2}`,
 			},
 			{
 				title: "Step 2: Recall Standard Trigonometric Pairs",
-				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{s}{s^2 + ${omega}^2}\\right\\} = \\cos(${omega}t) u(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{${omega}}{s^2 + ${omega}^2}\\right\\} = \\sin(${omega}t) u(t)`,
+				latex: String.raw`\mathcal{L}^{-1}\left\{\frac{s}{s^2 + ${omega}^2}\right\} = \cos(${omega}t) u(t), \quad \mathcal{L}^{-1}\left\{\frac{${omega}}{s^2 + ${omega}^2}\right\} = \sin(${omega}t) u(t)`,
 			},
 			{
 				title: "Step 3: Combine Terms by Linearity",
-				latex: `x(t) = (${A} \\cos(${omega}t) + ${B} \\sin(${omega}t)) u(t)`,
+				latex: String.raw`x(t) = (${A} \cos(${omega}t) + ${B} \sin(${omega}t)) u(t)`,
 			},
 		],
 	};
@@ -378,20 +378,20 @@ function createDelayedInverse(id: string): LaplaceProblem {
 	return {
 		id,
 		problemType: "inverse_direct",
-		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{\\frac{${A} e^{-${t0}s}}{s + ${a}}\\right\\}`,
+		promptLatex: String.raw`\text{Find } x(t) = \mathcal{L}^{-1}\left\{\frac{${A} e^{-${t0}s}}{s + ${a}}\right\}`,
 		referenceAnswerLatex: `${A} e^{-${a}(t-${t0})} u(t-${t0})`,
 		solutionSteps: [
 			{
 				title: "Step 1: Identify Time-Shift Property",
-				latex: `\\mathcal{L}^{-1}\\{e^{-${t0}s} F(s)\\} = f(t - ${t0}) u(t - ${t0})`,
+				latex: String.raw`\mathcal{L}^{-1}\{e^{-${t0}s} F(s)\} = f(t - ${t0}) u(t - ${t0})`,
 			},
 			{
 				title: "Step 2: Inverse Transform of Unshifted Term",
-				latex: `\\mathcal{L}^{-1}\\left\\{\\frac{${A}}{s + ${a}}\\right\\} = ${A} e^{-${a}t} u(t)`,
+				latex: String.raw`\mathcal{L}^{-1}\left\{\frac{${A}}{s + ${a}}\right\} = ${A} e^{-${a}t} u(t)`,
 			},
 			{
 				title: "Step 3: Apply Time Shift",
-				latex: `x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
+				latex: String.raw`x(t) = ${A} e^{-${a}(t-${t0})} u(t-${t0})`,
 			},
 		],
 	};
@@ -410,16 +410,16 @@ function createImpulseInverse(id: string): LaplaceProblem {
 	return {
 		id,
 		problemType: "inverse_direct",
-		promptLatex: `\\text{Find } x(t) = \\mathcal{L}^{-1}\\left\\{${A} + \\frac{${B}}{s + ${a}}\\right\\}`,
-		referenceAnswerLatex: `${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+		promptLatex: String.raw`\text{Find } x(t) = \mathcal{L}^{-1}\left\{${A} + \frac{${B}}{s + ${a}}\right\}`,
+		referenceAnswerLatex: String.raw`${A} \delta(t) + ${B} e^{-${a}t} u(t)`,
 		solutionSteps: [
 			{
 				title: "Step 1: Identify Impulse & Exponential Pairs",
-				latex: `\\mathcal{L}^{-1}\\{1\\} = \\delta(t), \\quad \\mathcal{L}^{-1}\\left\\{\\frac{1}{s + ${a}}\\right\\} = e^{-${a}t} u(t)`,
+				latex: String.raw`\mathcal{L}^{-1}\{1\} = \delta(t), \quad \mathcal{L}^{-1}\left\{\frac{1}{s + ${a}}\right\} = e^{-${a}t} u(t)`,
 			},
 			{
 				title: "Step 2: Combine Terms",
-				latex: `x(t) = ${A} \\delta(t) + ${B} e^{-${a}t} u(t)`,
+				latex: String.raw`x(t) = ${A} \delta(t) + ${B} e^{-${a}t} u(t)`,
 			},
 		],
 	};
@@ -445,16 +445,16 @@ function generateForwardTransform(id: string): LaplaceProblem {
 	return {
 		id,
 		problemType: "forward",
-		promptLatex: `\\text{Find } X(s) = \\mathcal{L}\\{x(t)\\} \\text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
-		referenceAnswerLatex: `\\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+		promptLatex: String.raw`\text{Find } X(s) = \mathcal{L}\{x(t)\} \text{ for } x(t) = (${c1} e^{-${a1}t} + ${c2} e^{-${a2}t}) u(t)`,
+		referenceAnswerLatex: String.raw`\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
 		solutionSteps: [
 			{
 				title: "Step 1: Apply Exponential Transform Pair",
-				latex: `\\mathcal{L}\\{e^{-at} u(t)\\} = \\frac{1}{s + a} \\implies X(s) = \\frac{${c1}}{s+${a1}} + \\frac{${c2}}{s+${a2}}`,
+				latex: String.raw`\mathcal{L}\{e^{-at} u(t)\} = \frac{1}{s + a} \implies X(s) = \frac{${c1}}{s+${a1}} + \frac{${c2}}{s+${a2}}`,
 			},
 			{
 				title: "Step 2: Combine Terms Over Common Denominator",
-				latex: `X(s) = \\frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \\frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
+				latex: String.raw`X(s) = \frac{${c1}(s+${a2}) + ${c2}(s+${a1})}{(s+${a1})(s+${a2})} = \frac{${b1}s + ${b0}}{s^2 + ${d1}s + ${d0}}`,
 			},
 		],
 	};
@@ -486,20 +486,20 @@ function generateRocProblem(id: string): LaplaceProblem {
 	return {
 		id,
 		problemType: "roc_stability",
-		promptLatex: `\\text{Determine ROC and BIBO stability for } ${direction} \\text{ system } X(s) = \\frac{1}{(s - (${p1}))(s - (${p2}))}`,
-		referenceAnswerLatex: `${stability.rocLatex}, \\quad \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+		promptLatex: String.raw`\text{Determine ROC and BIBO stability for } ${direction} \text{ system } X(s) = \frac{1}{(s - (${p1}))(s - (${p2}))}`,
+		referenceAnswerLatex: String.raw`${stability.rocLatex}, \quad \text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
 		solutionSteps: [
 			{
 				title: "Step 1: Identify System Poles",
-				latex: `D(s) = 0 \\implies p_1 = ${p1}, \\quad p_2 = ${p2}`,
+				latex: String.raw`D(s) = 0 \implies p_1 = ${p1}, \quad p_2 = ${p2}`,
 			},
 			{
 				title: "Step 2: Determine ROC Region",
-				latex: `\\text{ROC for } ${direction} \\text{ system is } ${stability.rocLatex}`,
+				latex: String.raw`\text{ROC for } ${direction} \text{ system is } ${stability.rocLatex}`,
 			},
 			{
 				title: "Step 3: Check Stability Criteria",
-				latex: `\\operatorname{Re}(s) = 0 \\text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \\implies \\text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
+				latex: String.raw`\operatorname{Re}(s) = 0 \text{ ${stability.isBiboStable ? "is contained in" : "is NOT contained in"} ROC } \implies \text{${stability.isBiboStable ? "BIBO Stable" : "Unstable"}}`,
 			},
 		],
 	};

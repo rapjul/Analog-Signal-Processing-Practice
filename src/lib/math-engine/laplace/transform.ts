@@ -138,7 +138,7 @@ export function zeroDescription(numerator: Poly): string {
 		const discriminant = b!
 			.multiply(b!)
 			.add(a!.multiply(c!).multiply(fraction(-4)));
-		return `$s=\\frac{-(${b!.toLatex()})\\pm\\sqrt{${discriminant.toLatex()}}}{${a!.multiply(fraction(2)).toLatex()}}$`;
+		return String.raw`$s=\frac{-(${b!.toLatex()})\pm\sqrt{${discriminant.toLatex()}}}{${a!.multiply(fraction(2)).toLatex()}}$`;
 	}
 	return `The finite solutions of $${polynomialLatex(numerator)}=0$`;
 }

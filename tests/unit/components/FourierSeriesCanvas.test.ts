@@ -116,7 +116,9 @@ describe("FourierSeriesCanvas", () => {
 			(node) => node.textContent ?? "",
 		);
 		expect(
-			annotations.some((latex) => latex.includes("\\times 10^{-300}")),
+			annotations.some((latex) =>
+				latex.includes(String.raw`\times 10^{-300}`),
+			),
 		).toBe(true);
 		for (const latex of annotations) expect(latex).not.toMatch(/\de[+-]\d/);
 	});
@@ -199,6 +201,9 @@ describe("FourierSeriesCanvas", () => {
 		expect(
 			thresholdSummary?.querySelector(":scope > .math-text"),
 		).toBeTruthy();
+		expect(thresholdSummary?.querySelectorAll(".katex-error")).toHaveLength(
+			0,
+		);
 
 		await fireEvent.input(view.getByLabelText("Harmonic Limit:"), {
 			target: { value: "41" },

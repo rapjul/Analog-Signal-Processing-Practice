@@ -436,7 +436,7 @@ export class ConvolutionStepSolverState extends BaseStepSolverState {
 		this.checkOptionCardStep(
 			this.step2,
 			option,
-			"Use one fixed signal in $\\tau$ and one reflected signal in $t-\\tau$.",
+			String.raw`Use one fixed signal in $\tau$ and one reflected signal in $t-\tau$.`,
 			"Select the convolution definition.",
 			3,
 		);
