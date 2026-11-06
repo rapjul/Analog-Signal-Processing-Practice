@@ -8,6 +8,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import MathInline from "$lib/components/math/MathInline.svelte";
 
 describe("MathInline.svelte Component", () => {
+	/** Clipboard rejection remains recoverable and is announced. */
+	it("announces clipboard failures without hiding mathematics", async () => {
+		Object.assign(navigator, {
+			clipboard: {
+				writeText: vi.fn().mockRejectedValue(new Error("Denied")),
+			},
+		});
+		const view = render(MathInline, { math: "x", copyText: "x" });
+		await fireEvent.click(view.getByRole("button"));
+		expect(view.getByRole("status").textContent).toContain(
+			"Copy unavailable",
+		);
+		expect(view.container.querySelector("math")).toBeTruthy();
+	});
 	for (const [copyText, math] of [
 		["e^(-j*omega)", String.raw`\texttt{e\textasciicircum(-j*omega)}`],
 		["e^{-j*omega}", String.raw`\texttt{e\textasciicircum\{-j*omega\}}`],
@@ -31,7 +45,9 @@ describe("MathInline.svelte Component", () => {
 			);
 			expect(writeText).toHaveBeenCalledWith(copyText);
 			expect(
-				view.getByRole("button", { name: "Copied input notation" }),
+				view.getByRole("button", {
+					name: `Copy input notation: ${copyText}`,
+				}),
 			).toBeTruthy();
 		});
 	}
@@ -48,8 +64,10 @@ describe("MathInline.svelte Component", () => {
 			},
 		});
 
-		const btn = container.querySelector("button.math-inline");
+		const btn = container.querySelector("span.math-inline");
 		expect(btn).toBeTruthy();
+		expect(container.querySelector("button")).toBeNull();
+		expect(container.querySelector("math")).toBeTruthy();
 
 		// KaTeX outputs math in a .katex element
 		const katexElement = container.querySelector(".katex");
@@ -109,6 +127,7 @@ describe("MathInline.svelte Component", () => {
 		const { container } = render(MathInline, {
 			props: {
 				math: "e^{-2t}",
+				copyText: "e^{-2t}",
 			},
 		});
 
@@ -120,7 +139,9 @@ describe("MathInline.svelte Component", () => {
 		// Trigger click to copy
 		await fireEvent.click(btn);
 		expect(writeTextMock).toHaveBeenCalledWith("e^{-2t}");
-		expect(btn.getAttribute("aria-label")).toBe("Copied LaTeX code");
+		expect(btn.getAttribute("aria-label")).toBe(
+			"Copy input notation: e^{-2t}",
+		);
 
 		const badge = container.querySelector(".copy-badge");
 		expect(badge?.classList.contains("copied-state")).toBe(true);
@@ -128,19 +149,32 @@ describe("MathInline.svelte Component", () => {
 		// Advance timer to trigger copyDismissed state
 		vi.advanceTimersByTime(1500);
 
-		// Trigger transitionend to reset copied state
-		if (badge) {
-			fireEvent(
-				badge,
-				new TransitionEvent("transitionend", {
-					propertyName: "opacity",
-				}),
-			);
-		}
+		// Feedback resets even when reduced motion suppresses transition events.
+		await vi.advanceTimersByTimeAsync(0);
+		expect(
+			container.querySelector('[role="status"]')?.textContent.trim(),
+		).toBe("");
+		await fireEvent.click(btn);
+		expect(
+			container.querySelector('[role="status"]')?.textContent,
+		).toContain("Copied input notation");
 
 		// Trigger mouseleave to reset copyDismissed state
 		await fireEvent.mouseLeave(btn);
 		expect(btn.classList.contains("dismissed")).toBe(false);
+	});
+
+	/** Unmounting cancels a pending copy feedback reset. */
+	it("clears its feedback timer on unmount", async () => {
+		vi.useFakeTimers();
+		Object.assign(navigator, {
+			clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+		});
+		const view = render(MathInline, { math: "x", copyText: "x" });
+		await fireEvent.click(view.getByRole("button"));
+		expect(vi.getTimerCount()).toBe(1);
+		view.unmount();
+		expect(vi.getTimerCount()).toBe(0);
 	});
 
 	it("does not invoke clipboard copy when math prop is empty", async () => {
@@ -154,6 +188,7 @@ describe("MathInline.svelte Component", () => {
 		const { container } = render(MathInline, {
 			props: {
 				math: "",
+				copyText: "",
 			},
 		});
 
@@ -174,10 +209,9 @@ describe("MathInline.svelte Component", () => {
 			},
 		});
 
-		const btn = container.querySelector("button.math-inline");
+		const btn = container.querySelector("span.math-inline");
 		expect(btn?.classList.contains("custom-math-class")).toBe(true);
-		expect(btn?.getAttribute("aria-label")).toBe(
-			"Click to copy LaTeX code",
-		);
+		expect(btn?.getAttribute("aria-label")).toBeNull();
+		expect(container.querySelector("button")).toBeNull();
 	});
 });

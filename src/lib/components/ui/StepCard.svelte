@@ -133,6 +133,9 @@
 	}
 
 	/* Completed — green tint, compact padding */
+	.completed .step-badge {
+		color: var(--text-primary);
+	}
 	.step-card.completed {
 		border-color: var(--color-success);
 		background: var(--color-success-bg);

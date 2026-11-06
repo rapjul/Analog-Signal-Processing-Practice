@@ -14,6 +14,7 @@
 	 * - Step 7: Dual Response Decomposition & Conceptual Mastery (OdeStep7Decomposition)
 	 */
 
+	import { tick } from "svelte";
 	import OdeStep1CharEq from "$lib/components/solvers/ode-steps/OdeStep1CharEq.svelte";
 	import OdeStep2Roots from "$lib/components/solvers/ode-steps/OdeStep2Roots.svelte";
 	import OdeStep3Homogeneous from "$lib/components/solvers/ode-steps/OdeStep3Homogeneous.svelte";
@@ -40,6 +41,47 @@
 		() => onComplete,
 	);
 
+	let root = $state<HTMLDivElement>();
+	let previousProblem: OdeProblem | undefined;
+	let previousKey = "";
+	const progressKey = $derived(
+		`${solver.currentStep}:${solver.step2.activeSubStepId}:${solver.step5.activeSubStepId}:${solver.step6.activeSubStepId}:${solver.step7.activeSubStepId}`,
+	);
+	$effect(() => {
+		const key = progressKey;
+		const follow =
+			previousProblem === problem &&
+			previousKey !== "" &&
+			previousKey !== key;
+		previousProblem = problem;
+		previousKey = key;
+		if (!follow) return;
+		let cancelled = false;
+		void tick().then(() => {
+			if (cancelled) return;
+			const heading =
+				root?.querySelector<HTMLElement>(
+					".step-card.active .subpart-block:not(.subpart-done) [data-progress-heading]",
+				) ??
+				root?.querySelector<HTMLElement>(
+					".step-card.active [data-progress-heading]",
+				) ??
+				root
+					?.closest(".practice-card")
+					?.querySelector<HTMLElement>(".completion-heading");
+			heading?.focus({ preventScroll: true });
+			if (
+				heading &&
+				(heading.getBoundingClientRect().top < 0 ||
+					heading.getBoundingClientRect().bottom > window.innerHeight)
+			)
+				heading.scrollIntoView({ block: "nearest", behavior: "auto" });
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
+
 	// Reset state when problem instance changes
 	let lastProblem: OdeProblem | undefined;
 	$effect(() => {
@@ -50,7 +92,19 @@
 	});
 </script>
 
-<div class="ode-step-solver">
+<div
+	class="ode-step-solver"
+	bind:this={root}
+>
+	<p
+		class="sr-only"
+		role="status"
+		aria-live="polite"
+	>
+		{solver.isCompleted
+			? "ODE derivation completed."
+			: `Step ${solver.currentStep} of ${solver.totalSteps}.`}
+	</p>
 	<Progress
 		currentStep={solver.currentStep}
 		totalSteps={solver.totalSteps}

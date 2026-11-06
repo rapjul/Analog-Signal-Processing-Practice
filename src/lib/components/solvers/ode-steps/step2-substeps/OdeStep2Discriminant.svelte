@@ -67,13 +67,13 @@
 		flex-direction: column;
 		gap: 0.4rem;
 		padding: 0.75rem;
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border-radius: 6px;
-		border: 1px solid var(--border-subtle, #1e1e24);
+		border: 1px solid var(--border-color);
 	}
 
 	.disc-remediation-required {
-		border-color: var(--amber, #f59e0b);
+		border-color: var(--color-warning);
 		background: rgba(245, 158, 11, 0.05);
 	}
 
@@ -91,7 +91,7 @@
 	}
 
 	.text-input {
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-primary, #f4f4f5);
 		border-radius: 6px;
@@ -101,7 +101,7 @@
 	}
 
 	.text-input:focus {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 		outline: none;
 	}
 
@@ -111,7 +111,7 @@
 
 	.btn-verify-disc {
 		padding: 0.45rem 0.85rem;
-		background: var(--bg-elevated, #18181b);
+		background: var(--bg-card-hover);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-primary, #f4f4f5);
 		border-radius: 6px;
@@ -122,11 +122,11 @@
 	}
 
 	.btn-verify-disc:hover {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 	}
 
 	.btn-verify-disc:focus-visible {
-		outline: 2px solid var(--primary, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
@@ -134,7 +134,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		color: var(--success, #10b981);
+		color: var(--color-success);
 		font-size: 0.85rem;
 		font-weight: 600;
 	}

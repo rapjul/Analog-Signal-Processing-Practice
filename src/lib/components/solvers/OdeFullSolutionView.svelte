@@ -332,10 +332,10 @@
 		justify-content: space-between;
 		gap: var(--space-3, 0.75rem);
 		padding: var(--space-4, 1rem) var(--space-5, 1.25rem);
-		background: var(--surface-2, #182234);
+		background: var(--bg-card);
 		border: 1px solid var(--border-color, #2a3a52);
 		border-radius: var(--radius-md, 8px);
-		color: var(--text-1, #f8fafc);
+		color: var(--text-primary);
 		font-family: inherit;
 		font-size: var(--font-size-base, 1rem);
 		font-weight: 600;
@@ -350,17 +350,17 @@
 	}
 
 	.full-solution-summary:hover {
-		background: var(--surface-3, #223048);
-		border-color: var(--accent-cyan, #06b6d4);
+		background: var(--bg-card-hover);
+		border-color: var(--accent-primary);
 	}
 
 	.full-solution-summary:focus-visible {
-		outline: 2px solid var(--accent-cyan, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
 	.toggle-icon {
-		color: var(--accent-cyan, #06b6d4);
+		color: var(--accent-primary);
 		font-size: var(--font-size-sm, 0.875rem);
 	}
 
@@ -373,7 +373,7 @@
 		font-weight: 500;
 		padding: 0.2rem 0.5rem;
 		background: rgba(6, 182, 212, 0.15);
-		color: var(--accent-cyan, #06b6d4);
+		color: var(--accent-primary);
 		border: 1px solid rgba(6, 182, 212, 0.3);
 		border-radius: var(--radius-sm, 4px);
 		white-space: nowrap;
@@ -394,7 +394,7 @@
 		flex-direction: column;
 		gap: var(--space-3, 0.75rem);
 		padding: var(--space-4, 1rem);
-		background: var(--surface-1, #0f172a);
+		background: var(--bg-card);
 		border: 1px solid var(--border-color, #2a3a52);
 		border-radius: var(--radius-md, 8px);
 	}
@@ -409,27 +409,27 @@
 		font-size: var(--font-size-xs, 0.75rem);
 		font-weight: 700;
 		padding: 0.2rem 0.5rem;
-		background: var(--surface-3, #223048);
-		color: var(--accent-cyan, #06b6d4);
+		background: var(--bg-card-hover);
+		color: var(--accent-primary);
 		border-radius: var(--radius-sm, 4px);
 	}
 
 	.step-title {
 		margin: 0;
 		font-size: var(--font-size-md, 1.05rem);
-		color: var(--text-1, #f8fafc);
+		color: var(--text-primary);
 	}
 
 	.step-prose {
 		margin: 0;
 		font-size: var(--font-size-sm, 0.9rem);
-		color: var(--text-2, #94a3b8);
+		color: var(--text-secondary);
 	}
 
 	.step-sub-prose {
 		margin: 0;
 		font-size: var(--font-size-sm, 0.875rem);
-		color: var(--accent-cyan, #06b6d4);
+		color: var(--accent-primary);
 	}
 
 	/* ── Decomposition grid ──────────────────────────────────── */
@@ -445,7 +445,7 @@
 		flex-direction: column;
 		gap: var(--space-2, 0.5rem);
 		padding: var(--space-3, 0.75rem);
-		background: var(--surface-2, #182234);
+		background: var(--bg-card-hover);
 		border-radius: var(--radius-sm, 4px);
 		border: 1px solid var(--border-color, #2a3a52);
 	}
@@ -453,7 +453,7 @@
 	.decomp-label {
 		font-size: var(--font-size-xs, 0.8rem);
 		font-weight: 600;
-		color: var(--text-2, #94a3b8);
+		color: var(--text-secondary);
 	}
 
 	/* ── Superposition identity highlight box ────────────────── */
@@ -472,7 +472,7 @@
 	.identity-badge {
 		font-size: var(--font-size-xs, 0.75rem);
 		font-weight: 700;
-		color: var(--accent-cyan, #06b6d4);
+		color: var(--accent-primary);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}

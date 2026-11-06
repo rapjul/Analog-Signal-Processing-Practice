@@ -14,6 +14,7 @@
 	 */
 
 	import type { Snippet } from "svelte";
+	import { onMount } from "svelte";
 	import MathText from "$lib/components/math/MathText.svelte";
 
 	/** A single statistic row displayed in the banner footer. */
@@ -60,6 +61,10 @@
 		stats = [],
 		actionsSnippet,
 	}: Props = $props();
+	let heading: HTMLHeadingElement | undefined;
+	onMount(() => {
+		heading?.focus({ preventScroll: true });
+	});
 </script>
 
 <div
@@ -75,7 +80,11 @@
 
 	<!-- ── Text content ── -->
 	<div class="banner-body">
-		<h3 class="banner-title">
+		<h3
+			class="banner-title completion-heading"
+			bind:this={heading}
+			tabindex="-1"
+		>
 			<MathText text={title} />
 		</h3>
 

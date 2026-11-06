@@ -23,10 +23,9 @@ describe("MathBlock.svelte Component", () => {
 
 		const block = container.querySelector(".math-block");
 		expect(block).toBeTruthy();
-		expect(block?.getAttribute("role")).toBe("region");
-		expect(block?.getAttribute("aria-label")).toBe(
-			"Mathematical formula block",
-		);
+		expect(block?.getAttribute("role")).toBeNull();
+		expect(block?.getAttribute("aria-label")).toBeNull();
+		expect(block?.querySelector("math")).toBeTruthy();
 
 		const katexDisplay = container.querySelector(".katex-display");
 		expect(katexDisplay).toBeTruthy();

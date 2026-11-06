@@ -78,7 +78,11 @@
 
 <Navigation activeRoute="/" />
 
-<main class="dashboard-container">
+<main
+	class="dashboard-container"
+	id="main-content"
+	tabindex="-1"
+>
 	<div class="hero-section">
 		<span class="hero-tag">Analog Signal Processing Practice Suite</span>
 		<h1 class="hero-title">Master Analog Signal Processing Math</h1>

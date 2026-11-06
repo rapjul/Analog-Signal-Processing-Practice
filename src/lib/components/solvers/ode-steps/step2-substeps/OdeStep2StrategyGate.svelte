@@ -61,7 +61,7 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		padding: 0.75rem;
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border: 1px solid var(--border-color, #27272a);
 		border-radius: 8px;
 	}
@@ -84,7 +84,7 @@
 		justify-content: center;
 		gap: 0.5rem;
 		padding: 0.6rem 0.85rem;
-		background: var(--bg-elevated, #18181b);
+		background: var(--bg-card-hover);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-secondary, #a1a1aa);
 		border-radius: 6px;
@@ -95,19 +95,19 @@
 	}
 
 	.strategy-pill-btn:hover {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 		color: var(--text-primary, #f4f4f5);
 	}
 
 	.strategy-pill-btn.active {
-		background: var(--primary, #06b6d4);
-		border-color: var(--primary, #06b6d4);
-		color: #000;
+		background: var(--accent-primary);
+		border-color: var(--accent-primary);
+		color: var(--accent-contrast);
 		font-weight: 600;
 	}
 
 	.strategy-pill-btn:focus-visible {
-		outline: 2px solid var(--primary, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
@@ -117,13 +117,13 @@
 
 	.strategy-unselected-prompt {
 		padding: 1rem;
-		background: var(--bg-elevated, #18181b);
+		background: var(--bg-card-hover);
 		border-radius: 6px;
 		text-align: center;
 	}
 
 	.strategy-helper-text {
-		color: var(--text-tertiary, #71717a);
+		color: var(--text-secondary);
 		font-size: 0.875rem;
 		margin: 0;
 	}
