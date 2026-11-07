@@ -13,6 +13,8 @@
 	import HintDisclosure from "$lib/components/ui/HintDisclosure.svelte";
 	import StepCard from "$lib/components/ui/StepCard.svelte";
 	import StepFeedback from "$lib/components/ui/StepFeedback.svelte";
+	import { parseNumericInput } from "$lib/math-engine/fraction";
+	import { approximatelyEqual } from "$lib/math-engine/numeric";
 	import type { OdeProblem } from "$lib/math-engine/odes/index";
 
 	interface Props {
@@ -23,6 +25,34 @@
 	}
 
 	let { problem, solver }: Props = $props();
+	const feedbackId = $props.id();
+	/** Coefficient input names used for submitted diagnostics. */
+	type Coefficient = "a2" | "a1" | "a0";
+	let invalidInputs = $state<Partial<Record<Coefficient, string>>>({});
+	/** Checks the response and associates only the diagnosed coefficients with feedback. */
+	function checkAnswer(): void {
+		solver.checkStep1();
+		invalidInputs = {};
+		if (!solver.step1.feedback) return;
+		for (const field of ["a2", "a1", "a0"] as const) {
+			if (field === "a2" && problem.params.order === 1) continue;
+			const value = parseNumericInput(solver.step1[field]);
+			if (
+				Number.isNaN(value) ||
+				(solver.step1.feedbackType !== "validation" &&
+					!approximatelyEqual(value, problem.params[field]))
+			)
+				invalidInputs[field] = solver.step1[field];
+		}
+	}
+	/** @param field Coefficient name. @returns Whether its unchanged submitted value is invalid. */
+	function isInvalid(field: Coefficient): boolean {
+		return (
+			!!solver.step1.feedback &&
+			invalidInputs[field] !== undefined &&
+			invalidInputs[field] === solver.step1[field]
+		);
+	}
 
 	const status = $derived(
 		solver.currentStep === 1
@@ -58,12 +88,16 @@
 						</label>
 						<input
 							id="ode-a2-input"
+							aria-invalid={isInvalid("a2") || undefined}
+							aria-describedby={isInvalid("a2")
+								? feedbackId
+								: undefined}
 							type="text"
 							class="text-input coeff-input"
 							placeholder="1"
 							bind:value={solver.step1.a2}
 							onkeydown={(e) =>
-								e.key === "Enter" && solver.checkStep1()}
+								e.key === "Enter" && checkAnswer()}
 						/>
 					</div>
 					<span class="plus-symbol">+</span>
@@ -77,12 +111,15 @@
 					</label>
 					<input
 						id="ode-a1-input"
+						aria-invalid={isInvalid("a1") || undefined}
+						aria-describedby={isInvalid("a1")
+							? feedbackId
+							: undefined}
 						type="text"
 						class="text-input coeff-input"
 						placeholder="e.g. 8"
 						bind:value={solver.step1.a1}
-						onkeydown={(e) =>
-							e.key === "Enter" && solver.checkStep1()}
+						onkeydown={(e) => e.key === "Enter" && checkAnswer()}
 					/>
 				</div>
 				<span class="plus-symbol">+</span>
@@ -95,12 +132,15 @@
 					</label>
 					<input
 						id="ode-a0-input"
+						aria-invalid={isInvalid("a0") || undefined}
+						aria-describedby={isInvalid("a0")
+							? feedbackId
+							: undefined}
 						type="text"
 						class="text-input coeff-input"
 						placeholder="e.g. 12"
 						bind:value={solver.step1.a0}
-						onkeydown={(e) =>
-							e.key === "Enter" && solver.checkStep1()}
+						onkeydown={(e) => e.key === "Enter" && checkAnswer()}
 					/>
 				</div>
 			</div>
@@ -119,14 +159,17 @@
 			<button
 				type="button"
 				class="btn btn-primary"
-				onclick={() => solver.checkStep1()}
+				onclick={checkAnswer}
 			>
 				Check Characteristic Equation →
 			</button>
 		</div>
 
 		<!-- Feedback & Progressive Hints -->
-		<StepFeedback {solver} />
+		<StepFeedback
+			{solver}
+			id={feedbackId}
+		/>
 		<HintDisclosure
 			hints={solver.activeHints}
 			hintTier={solver.hintTier}

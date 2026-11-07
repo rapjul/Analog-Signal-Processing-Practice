@@ -5,7 +5,7 @@
 	 * Displays SignalLab brand, module selector links, and theme toggle.
 	 */
 
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
 	import { resolve } from "$app/paths";
 
 	interface Props {
@@ -73,6 +73,12 @@
 			isFormulaDrawerOpen = false;
 		}
 		isMenuOpen = !isMenuOpen;
+		if (isMenuOpen)
+			void tick().then(() =>
+				document
+					.querySelector<HTMLElement>("#module-navigation a")
+					?.focus(),
+			);
 	}
 
 	/**
@@ -115,6 +121,11 @@
 				event.stopImmediatePropagation();
 			} else if (isMenuOpen) {
 				isMenuOpen = false;
+				void tick().then(() =>
+					document
+						.querySelector<HTMLElement>(".menu-toggle")
+						?.focus(),
+				);
 				event.stopImmediatePropagation();
 			}
 		}
@@ -123,6 +134,10 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<a
+	class="skip-link"
+	href="#main-content">Skip to main content</a
+>
 <header class="navbar">
 	<div class="nav-brand">
 		<a
@@ -136,6 +151,7 @@
 	</div>
 
 	<nav
+		id="module-navigation"
 		class="nav-links"
 		class:open={isMenuOpen}
 	>
@@ -143,6 +159,7 @@
 			href={resolve("/odes")}
 			class="nav-link"
 			class:active={activeRoute === "/odes"}
+			aria-current={activeRoute === "/odes" ? "page" : undefined}
 			onclick={closeMenu}
 		>
 			LCC ODEs
@@ -151,6 +168,9 @@
 			href={resolve("/fourier-series")}
 			class="nav-link"
 			class:active={activeRoute === "/fourier-series"}
+			aria-current={activeRoute === "/fourier-series"
+				? "page"
+				: undefined}
 			onclick={closeMenu}
 		>
 			Fourier Series
@@ -159,6 +179,9 @@
 			href={resolve("/fourier-transform")}
 			class="nav-link"
 			class:active={activeRoute === "/fourier-transform"}
+			aria-current={activeRoute === "/fourier-transform"
+				? "page"
+				: undefined}
 			onclick={closeMenu}
 		>
 			CTFT
@@ -167,6 +190,7 @@
 			href={resolve("/convolution")}
 			class="nav-link"
 			class:active={activeRoute === "/convolution"}
+			aria-current={activeRoute === "/convolution" ? "page" : undefined}
 			onclick={closeMenu}
 		>
 			Convolution
@@ -175,6 +199,7 @@
 			href={resolve("/laplace")}
 			class="nav-link"
 			class:active={activeRoute === "/laplace"}
+			aria-current={activeRoute === "/laplace" ? "page" : undefined}
 			onclick={closeMenu}
 		>
 			Laplace
@@ -183,6 +208,7 @@
 			href={resolve("/circuits")}
 			class="nav-link"
 			class:active={activeRoute === "/circuits"}
+			aria-current={activeRoute === "/circuits" ? "page" : undefined}
 			onclick={closeMenu}
 		>
 			Circuits
@@ -204,6 +230,7 @@
 		<button
 			type="button"
 			class="menu-toggle"
+			aria-controls="module-navigation"
 			onclick={toggleMenu}
 			aria-label="Toggle navigation menu"
 			aria-expanded={isMenuOpen}

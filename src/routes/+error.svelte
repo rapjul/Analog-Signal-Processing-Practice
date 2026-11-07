@@ -92,7 +92,11 @@
 
 <Navigation activeRoute="" />
 
-<main class="error-container">
+<main
+	class="error-container"
+	id="main-content"
+	tabindex="-1"
+>
 	<div class="error-card">
 		<div
 			class="error-badge"

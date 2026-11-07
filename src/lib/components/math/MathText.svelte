@@ -7,6 +7,7 @@
 
 	import katex from "katex";
 	import { renderMathError } from "./math-error";
+	import { overflowMath } from "./overflow-math";
 
 	interface Props {
 		/** Text content containing optional LaTeX math delimiters ($...$ or $$...$$) */
@@ -134,7 +135,10 @@
 	}
 </script>
 
-<span class="math-text {className}">
+<span
+	class="math-text {className}"
+	use:overflowMath
+>
 	{@html renderFormattedMathText(text)}
 </span>
 

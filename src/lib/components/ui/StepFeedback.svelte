@@ -10,15 +10,18 @@
 	import type { BaseStepSolverState } from "$lib/components/solvers/base-step-solver.svelte";
 
 	interface Props {
+		/** Optional ID connecting invalid fields to their diagnostic explanation. */
+		id?: string;
 		/** Reactive BaseStepSolverState controller instance */
 		solver: BaseStepSolverState;
 	}
 
-	let { solver }: Props = $props();
+	let { solver, id }: Props = $props();
 </script>
 
 {#if solver.currentFeedback}
 	<div
+		{id}
 		class="feedback-alert error-box"
 		class:feedback-validation={solver.currentFeedbackType === "validation"}
 		class:feedback-misconception={solver.currentFeedbackType ===

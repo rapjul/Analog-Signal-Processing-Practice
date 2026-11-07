@@ -127,7 +127,7 @@
 	}
 
 	.text-input {
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-primary, #f4f4f5);
 		border-radius: 6px;
@@ -137,7 +137,7 @@
 	}
 
 	.text-input:focus {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 		outline: none;
 	}
 
@@ -158,8 +158,8 @@
 	}
 
 	.btn-primary {
-		background: var(--primary, #06b6d4);
-		color: #000;
+		background: var(--accent-primary);
+		color: var(--accent-contrast);
 	}
 
 	.btn-primary:hover {
@@ -167,7 +167,7 @@
 	}
 
 	.btn:focus-visible {
-		outline: 2px solid var(--primary, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

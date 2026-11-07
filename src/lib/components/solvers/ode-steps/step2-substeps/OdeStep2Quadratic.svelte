@@ -229,14 +229,14 @@
 
 	.preview-equation-box {
 		padding: 0.75rem;
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border-radius: 6px;
-		border: 1px solid var(--border-subtle, #1e1e24);
+		border: 1px solid var(--border-color);
 	}
 
 	.preview-label {
 		font-size: 0.8rem;
-		color: var(--text-tertiary, #71717a);
+		color: var(--text-muted);
 		margin-bottom: 0.35rem;
 		display: block;
 	}
@@ -246,7 +246,7 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		padding: 0.85rem;
-		background: var(--bg-elevated, #18181b);
+		background: var(--bg-card-hover);
 		border-radius: 6px;
 		border: 1px solid var(--border-color, #27272a);
 	}
@@ -265,7 +265,7 @@
 
 	.quad-class-btn {
 		padding: 0.6rem 0.75rem;
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-secondary, #a1a1aa);
 		border-radius: 6px;
@@ -276,19 +276,19 @@
 	}
 
 	.quad-class-btn:hover:not(:disabled) {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 		color: var(--text-primary, #f4f4f5);
 	}
 
 	.quad-class-btn.active {
-		background: var(--primary, #06b6d4);
-		border-color: var(--primary, #06b6d4);
-		color: #000;
+		background: var(--accent-primary);
+		border-color: var(--accent-primary);
+		color: var(--accent-contrast);
 		font-weight: 600;
 	}
 
 	.quad-class-btn:focus-visible {
-		outline: 2px solid var(--primary, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
@@ -302,7 +302,7 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		padding: 0.85rem;
-		background: var(--bg-elevated, #18181b);
+		background: var(--bg-card-hover);
 		border-radius: 6px;
 		border: 1px solid var(--border-color, #27272a);
 	}
@@ -328,7 +328,7 @@
 
 	.text-input,
 	.solver-input {
-		background: var(--bg-surface, #09090b);
+		background: var(--bg-input);
 		border: 1px solid var(--border-color, #27272a);
 		color: var(--text-primary, #f4f4f5);
 		border-radius: 6px;
@@ -339,7 +339,7 @@
 
 	.text-input:focus,
 	.solver-input:focus {
-		border-color: var(--primary, #06b6d4);
+		border-color: var(--border-focus);
 		outline: none;
 	}
 
@@ -360,8 +360,8 @@
 	}
 
 	.btn-primary {
-		background: var(--primary, #06b6d4);
-		color: #000;
+		background: var(--accent-primary);
+		color: var(--accent-contrast);
 	}
 
 	.btn-primary:hover {
@@ -369,7 +369,7 @@
 	}
 
 	.btn:focus-visible {
-		outline: 2px solid var(--primary, #06b6d4);
+		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 

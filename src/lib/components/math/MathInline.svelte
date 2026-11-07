@@ -4,6 +4,7 @@
 	 * Renders inline-mode LaTeX math using KaTeX.
 	 */
 	import katex from "katex";
+	import { onDestroy } from "svelte";
 	import { renderMathError } from "./math-error";
 
 	interface Props {
@@ -25,31 +26,31 @@
 	}: Props = $props();
 
 	let copied = $state(false);
+	let copyError = $state(false);
 	let copyDismissed = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	onDestroy(() => {
+		if (timeoutId) clearTimeout(timeoutId);
+	});
 
 	/**
 	 * Copies literal input notation or the default LaTeX source and shows feedback.
 	 */
-	function handleCopy(): void {
+	async function handleCopy(): Promise<void> {
 		if (!math) return;
-		navigator.clipboard.writeText(copyText ?? math).then(() => {
+		try {
+			await navigator.clipboard.writeText(copyText ?? math);
+			copyError = false;
 			copied = true;
 			copyDismissed = false;
 			if (timeoutId) clearTimeout(timeoutId);
 
 			timeoutId = setTimeout(() => {
 				copyDismissed = true;
+				copied = false;
 			}, 1500);
-		});
-	}
-
-	/**
-	 * Resets copied state when fade-out opacity transition completes.
-	 */
-	function handleTransitionEnd(event: TransitionEvent): void {
-		if (event.propertyName === "opacity" && copyDismissed) {
-			copied = false;
+		} catch {
+			copyError = true;
 		}
 	}
 
@@ -84,33 +85,39 @@
 	}
 </script>
 
-<button
-	type="button"
-	class="math-inline {className} {copied ? 'copied' : ''} {copyDismissed
-		? 'dismissed'
-		: ''}"
-	onclick={handleCopy}
-	onmouseleave={handleMouseLeave}
-	aria-label={copyText !== undefined
-		? copied
-			? "Copied input notation"
-			: `Copy input notation: ${copyText}`
-		: copied
-			? "Copied LaTeX code"
-			: "Click to copy LaTeX code"}
->
+<span class="math-inline {className}">
 	{@html renderInlineMath(math, displayStyle)}
-	<span
-		class="copy-badge {copied ? 'copied-state' : ''}"
-		ontransitionend={handleTransitionEnd}
+</span>
+{#if copyText !== undefined}
+	<button
+		type="button"
+		class="math-inline {className} {copied ? 'copied' : ''} {copyDismissed
+			? 'dismissed'
+			: ''}"
+		onclick={handleCopy}
+		onmouseleave={handleMouseLeave}
+		aria-label={`Copy input notation: ${copyText}`}
 	>
-		{copied
-			? "Copied!"
-			: copyText !== undefined
-				? "Copy input"
-				: "Copy LaTeX"}
+		Copy input
+		<span class="copy-badge {copied ? 'copied-state' : ''}">
+			{copied
+				? "Copied!"
+				: copyText !== undefined
+					? "Copy input"
+					: "Copy LaTeX"}
+		</span>
+	</button>
+	<span
+		class="sr-only"
+		role="status"
+	>
+		{copyError
+			? "Copy unavailable. Select the input notation manually."
+			: copied
+				? "Copied input notation"
+				: ""}
 	</span>
-</button>
+{/if}
 
 <style>
 	/* ── Inline math trigger button ────────────────────────── */
@@ -146,6 +153,12 @@
 	}
 
 	/* ── Copy tooltip badge ────────────────────────────────── */
+	span.math-inline {
+		cursor: text;
+	}
+	span.math-inline:hover {
+		background: transparent;
+	}
 
 	.copy-badge {
 		display: none;
@@ -182,7 +195,7 @@
 		display: block;
 		transform: translateX(-50%) scale(1);
 		background-color: var(--accent-primary, #6366f1);
-		color: #111111;
+		color: var(--accent-contrast);
 		border-color: var(--accent-primary, #6366f1);
 		padding: 0.1rem 0.55rem;
 	}
