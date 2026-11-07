@@ -162,7 +162,9 @@ test("reference drawer keyboard cycle and restoration", async ({ page }) => {
 		.getByRole("button", { name: "Close formula reference drawer" })
 		.focus();
 	await page.keyboard.press("Shift+Tab");
-	await expect(dialog.locator(":focus")).toHaveCount(1);
+	await expect(
+		dialog.getByRole("button", { name: "Copy LaTeX string to clipboard" }),
+	).toBeFocused();
 	await page.keyboard.press("Tab");
 	await expect(
 		dialog.getByRole("button", { name: "Close formula reference drawer" }),

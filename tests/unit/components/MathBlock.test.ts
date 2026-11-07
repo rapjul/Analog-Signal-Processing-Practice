@@ -201,6 +201,27 @@ x &= 1
 		}
 	});
 
+	/** Each rejected write updates the existing live region, including a retry. */
+	it("updates the status on consecutive clipboard failures", async () => {
+		Object.assign(navigator, {
+			clipboard: {
+				writeText: vi.fn().mockRejectedValue(new Error("Denied")),
+			},
+		});
+		const view = render(MathBlock, { math: "x" });
+		const status = view.getByRole("status");
+		const button = view.getByRole("button", {
+			name: "Copy LaTeX string to clipboard",
+		});
+		await fireEvent.click(button);
+		const firstMessage = status.firstElementChild;
+		expect(firstMessage?.textContent).toContain("Copy unavailable");
+		await fireEvent.click(button);
+		expect(view.getByRole("status")).toBe(status);
+		expect(status.firstElementChild).not.toBe(firstMessage);
+		expect(status.textContent).toContain("Copy unavailable");
+	});
+
 	it("renders nothing when math string is empty", () => {
 		const { container } = render(MathBlock, {
 			props: {

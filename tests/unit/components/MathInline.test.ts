@@ -16,11 +16,29 @@ describe("MathInline.svelte Component", () => {
 			},
 		});
 		const view = render(MathInline, { math: "x", copyText: "x" });
-		await fireEvent.click(view.getByRole("button"));
-		expect(view.getByRole("status").textContent).toContain(
-			"Copy unavailable",
-		);
+		const button = view.getByRole("button");
+		const status = view.getByRole("status");
+		await fireEvent.click(button);
+		const firstMessage = status.firstElementChild;
+		expect(firstMessage?.textContent).toContain("Copy unavailable");
+		await fireEvent.click(button);
+		expect(view.getByRole("status")).toBe(status);
+		expect(status.firstElementChild).not.toBe(firstMessage);
+		expect(status.textContent).toContain("Copy unavailable");
 		expect(view.container.querySelector("math")).toBeTruthy();
+	});
+
+	/** The standalone copy control copies raw LaTeX and reports success. */
+	it("copies raw LaTeX when explicitly enabled", async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.assign(navigator, { clipboard: { writeText } });
+		const math = String.raw`\frac{1}{2}`;
+		const view = render(MathInline, { math, copyLatex: true });
+		await fireEvent.click(view.getByRole("button", { name: "Copy LaTeX" }));
+		expect(writeText).toHaveBeenCalledWith(math);
+		expect(view.getByRole("status").textContent).toContain(
+			"Copied LaTeX code",
+		);
 	});
 	for (const [copyText, math] of [
 		["e^(-j*omega)", String.raw`\texttt{e\textasciicircum(-j*omega)}`],

@@ -43,7 +43,7 @@
 	}: Props = $props();
 
 	let copied = $state(false);
-	let copyError = $state(false);
+	let copyFailures = $state(0);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 	onDestroy(() => {
 		if (timeoutId) clearTimeout(timeoutId);
@@ -91,14 +91,15 @@
 		if (!formattedMath) return;
 		try {
 			await navigator.clipboard.writeText(formattedMath);
-			copyError = false;
+			copyFailures = 0;
 			copied = true;
 			if (timeoutId) clearTimeout(timeoutId);
 			timeoutId = setTimeout(() => {
 				copied = false;
 			}, 1500);
 		} catch {
-			copyError = true;
+			copied = false;
+			copyFailures += 1;
 		}
 	}
 
@@ -129,12 +130,17 @@
 			<span
 				class="sr-only"
 				role="status"
-				>{copyError
-					? "Copy unavailable. Select the formula manually."
-					: copied
-						? "Copied LaTeX code"
-						: ""}</span
 			>
+				{#if copyFailures}
+					{#key copyFailures}
+						<span
+							>Copy unavailable. Select the formula manually.</span
+						>
+					{/key}
+				{:else if copied}
+					Copied LaTeX code
+				{/if}
+			</span>
 			<div class="math-block-header">
 				<button
 					type="button"

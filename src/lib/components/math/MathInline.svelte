@@ -12,6 +12,8 @@
 		math: string;
 		/** Optional literal input notation to copy instead of its display LaTeX. */
 		copyText?: string | undefined;
+		/** Whether to offer a separate copy button for the LaTeX source. */
+		copyLatex?: boolean | undefined;
 		/** Optional additional CSS class */
 		class?: string | undefined;
 		/** Optional flag to force KaTeX display style sizing for inline math */
@@ -21,12 +23,16 @@
 	let {
 		math = "",
 		copyText,
+		copyLatex = false,
 		class: className = "",
 		displayStyle = false,
 	}: Props = $props();
 
 	let copied = $state(false);
-	let copyError = $state(false);
+	let copyFailures = $state(0);
+	let copyButtonText = $derived(
+		copyText === undefined ? "Copy LaTeX" : "Copy input",
+	);
 	let copyDismissed = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 	onDestroy(() => {
@@ -40,7 +46,7 @@
 		if (!math) return;
 		try {
 			await navigator.clipboard.writeText(copyText ?? math);
-			copyError = false;
+			copyFailures = 0;
 			copied = true;
 			copyDismissed = false;
 			if (timeoutId) clearTimeout(timeoutId);
@@ -50,7 +56,8 @@
 				copied = false;
 			}, 1500);
 		} catch {
-			copyError = true;
+			copied = false;
+			copyFailures += 1;
 		}
 	}
 
@@ -88,7 +95,7 @@
 <span class="math-inline {className}">
 	{@html renderInlineMath(math, displayStyle)}
 </span>
-{#if copyText !== undefined}
+{#if copyText !== undefined || (copyLatex && math)}
 	<button
 		type="button"
 		class="math-inline {className} {copied ? 'copied' : ''} {copyDismissed
@@ -96,26 +103,32 @@
 			: ''}"
 		onclick={handleCopy}
 		onmouseleave={handleMouseLeave}
-		aria-label={`Copy input notation: ${copyText}`}
+		aria-label={copyText === undefined
+			? "Copy LaTeX"
+			: `Copy input notation: ${copyText}`}
 	>
-		Copy input
+		{copyButtonText}
 		<span class="copy-badge {copied ? 'copied-state' : ''}">
-			{copied
-				? "Copied!"
-				: copyText !== undefined
-					? "Copy input"
-					: "Copy LaTeX"}
+			{copied ? "Copied!" : copyButtonText}
 		</span>
 	</button>
 	<span
 		class="sr-only"
 		role="status"
 	>
-		{copyError
-			? "Copy unavailable. Select the input notation manually."
-			: copied
-				? "Copied input notation"
-				: ""}
+		{#if copyFailures}
+			{#key copyFailures}
+				<span
+					>Copy unavailable. Select the {copyText === undefined
+						? "formula"
+						: "input notation"} manually.</span
+				>
+			{/key}
+		{:else if copied}
+			{copyText === undefined
+				? "Copied LaTeX code"
+				: "Copied input notation"}
+		{/if}
 	</span>
 {/if}
 

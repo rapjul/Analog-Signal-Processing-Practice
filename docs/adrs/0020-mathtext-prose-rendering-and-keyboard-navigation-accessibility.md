@@ -46,7 +46,7 @@ flowchart TD
     subgraph Components["Component Rendering Strategy"]
         MathTextComp["<MathText text={String.raw`...`} />\n• Non-interactive <span class='math-text'>\n• Zero tab-stops (tabindex omitted)\n• Delimiters: $ ... $ and $$ ... $$"]
         MathBlockComp["<MathBlock math={...} />\n• Display-mode KaTeX block\n• Centered equation container"]
-        MathInlineComp["<MathInline math={...} />\n• Interactive <button>\n• Full keyboard focusable (:focus-visible)\n• Click-to-copy clipboard action"]
+        MathInlineComp["<MathInline math={...} copyLatex />\n• Readable KaTeX span\n• Separate keyboard-focusable copy button"]
     end
 
     Prose --> MathTextComp
@@ -59,7 +59,7 @@ flowchart TD
 1. **Component Selection**:
     - Use `<MathText>` for all user-facing prose, step prompts, card subtitles, button descriptive labels, table cells, and parameter inputs.
     - Use `<MathBlock>` for multi-line or display-style centered derivations and equations.
-    - Reserve `<MathInline>` exclusively for standalone formula tokens that explicitly require click-to-copy behavior.
+    - Use `copyLatex` on `<MathInline>` to add a separate copy button for standalone formulas, or `copyText` to copy a literal input alias. The rendered math remains readable separately from its copy control.
 
 2. **Template Attribute Escaping with `String.raw`**:
     - Any string containing LaTeX macros or backslashes (`\`) MUST be passed using `String.raw` template literals:
