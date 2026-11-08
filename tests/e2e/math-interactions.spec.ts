@@ -28,7 +28,7 @@ test.describe("Math Interactions & Zero-Unicode Audit", () => {
 		await page.waitForLoadState("networkidle");
 
 		const formula = page
-			.getByRole("region", { name: "Mathematical formula block" })
+			.locator(".ode-practice-card .problem-statement .math-block")
 			.first();
 		const copyButton = formula.getByRole("button", {
 			name: "Copy LaTeX string to clipboard",

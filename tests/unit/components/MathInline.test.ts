@@ -151,7 +151,7 @@ describe("MathInline.svelte Component", () => {
 		});
 
 		const btn = container.querySelector(
-			"button.math-inline",
+			"button.math-inline-copy",
 		) as HTMLButtonElement;
 		expect(btn).toBeTruthy();
 		expect(btn.querySelector(".copy-badge")).toBeNull();
@@ -207,7 +207,7 @@ describe("MathInline.svelte Component", () => {
 		});
 
 		const btn = container.querySelector(
-			"button.math-inline",
+			"button.math-inline-copy",
 		) as HTMLButtonElement;
 		expect(btn).toBeTruthy();
 

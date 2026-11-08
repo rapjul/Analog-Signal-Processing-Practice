@@ -295,6 +295,7 @@
 		<span class="title">{title}</span>
 		<div
 			class="legend"
+			role="group"
 			aria-label="Plot legend"
 		>
 			<div class="legend-item">

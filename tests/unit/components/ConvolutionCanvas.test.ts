@@ -253,6 +253,7 @@ describe("ConvolutionCanvas", () => {
 		);
 		const first = render(ConvolutionCanvas);
 		expect(first.container.querySelector("canvas")).toBeTruthy();
+		expect(first.getByRole("group", { name: "Plot legend" })).toBeTruthy();
 		first.unmount();
 
 		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(

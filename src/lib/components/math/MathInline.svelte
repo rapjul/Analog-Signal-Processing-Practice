@@ -88,7 +88,7 @@
 {#if copyText !== undefined || (copyLatex && math)}
 	<button
 		type="button"
-		class="math-inline {className}"
+		class="math-inline-copy {className}"
 		onclick={handleCopy}
 		aria-label={copyText === undefined
 			? "Copy LaTeX"
@@ -123,16 +123,25 @@
 {/if}
 
 <style>
-	/* ── Inline math trigger button ────────────────────────── */
+	/* ── Inline math and copy control alignment ───────────── */
 
-	.math-inline {
+	.math-inline,
+	.math-inline-copy {
 		display: inline-block;
 		vertical-align: var(--math-inline-valign, 0.04em);
 		font-size: inherit;
-		background: transparent;
-		border: none;
 		padding: 0 0.15rem;
 		margin: 0;
+	}
+
+	.math-inline {
+		cursor: text;
+	}
+
+	/* ── Inline math copy button ──────────────────────────── */
+	.math-inline-copy {
+		background: transparent;
+		border: none;
 		font-family: inherit;
 		color: inherit;
 		cursor: pointer;
@@ -144,25 +153,18 @@
 		z-index: 1;
 	}
 
-	.math-inline:hover,
-	.math-inline:focus-within {
+	.math-inline-copy:hover,
+	.math-inline-copy:focus-within {
 		background-color: var(--bg-tertiary, rgba(255, 255, 255, 0.08));
 		z-index: 50;
 	}
 
-	.math-inline:focus-visible {
+	.math-inline-copy:focus-visible {
 		outline: 2px solid var(--accent-primary, #6366f1);
 		outline-offset: 1px;
 	}
 
 	/* ── Copy tooltip badge ────────────────────────────────── */
-	span.math-inline {
-		cursor: text;
-	}
-	span.math-inline:hover {
-		background: transparent;
-	}
-
 	.copy-badge {
 		position: absolute;
 		top: -2.2em;

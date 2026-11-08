@@ -267,9 +267,9 @@ describe("ConvolutionStepSolver", () => {
 			).toBeTruthy(),
 		);
 		const activeCard = view.container.querySelector(".step-card.active");
-		expect(activeCard?.querySelectorAll("button.math-inline")).toHaveLength(
-			0,
-		);
+		expect(
+			activeCard?.querySelectorAll("button.math-inline-copy"),
+		).toHaveLength(0);
 		expect(activeCard?.textContent).toContain("Supplied primitive");
 		expect(
 			activeCard?.querySelector(".evaluation-form button[type='submit']"),

@@ -14,7 +14,7 @@ describe("MathBlock.svelte Component", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("renders display-mode KaTeX math expression inside a region container", () => {
+	it("renders display-mode KaTeX without a redundant region landmark", () => {
 		const { container } = render(MathBlock, {
 			props: {
 				math: String.raw`y(t) = e^{-2t} \cos(3t) u(t)`,
