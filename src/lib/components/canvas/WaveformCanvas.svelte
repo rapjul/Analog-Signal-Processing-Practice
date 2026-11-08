@@ -43,14 +43,23 @@
 	const inspectionId = `${instanceId}-inspection`;
 	const plotPadding = 40;
 	const numSamples = 200;
-	const plottedSamples = $derived.by(() => {
+	/** Samples curves and computes the fixed amplitude bounds for the current time range. */
+	const plotData = $derived.by(() => {
 		const [start, end] = tRange;
-		return curves.map((curve) =>
+		let min = -1;
+		let max = 1;
+		const samples = curves.map((curve) =>
 			Array.from({ length: numSamples + 1 }, (_, index) => {
 				const time = start + (index / numSamples) * (end - start);
-				return curve.eval(time);
+				const value = curve.eval(time);
+				if (Number.isFinite(value)) {
+					min = Math.min(min, value);
+					max = Math.max(max, value);
+				}
+				return value;
 			}),
 		);
+		return { samples, yMin: min * 1.2, yMax: max * 1.2 };
 	});
 	let selectedTime = $state<number | null>(null);
 	const inspectedTime = $derived(
@@ -173,26 +182,7 @@
 		const [tMin, tMax] = tRange;
 		const cursorTime = inspectedTime;
 
-		// Find yMin and yMax across all curves
-		let yMin = -1;
-		let yMax = 1;
-
-		for (const samples of plottedSamples) {
-			for (const val of samples) {
-				if (Number.isFinite(val)) {
-					if (val < yMin) yMin = val;
-					if (val > yMax) yMax = val;
-				}
-			}
-		}
-
-		// Pad y-range
-		yMin = yMin < 0 ? yMin * 1.2 : yMin * 0.8;
-		yMax = yMax > 0 ? yMax * 1.2 : yMax * 0.8;
-		if (Math.abs(yMax - yMin) < 1e-3) {
-			yMin -= 1;
-			yMax += 1;
-		}
+		const { samples, yMin, yMax } = plotData;
 
 		// Coordinate transformation helpers
 		const toX = (t: number) =>
@@ -239,7 +229,7 @@
 
 			for (let i = 0; i <= numSamples; i++) {
 				const t = tMin + (i / numSamples) * (tMax - tMin);
-				const val = plottedSamples[curveIndex]![i]!;
+				const val = samples[curveIndex]![i]!;
 				const x = toX(t);
 				const y = toY(val);
 
