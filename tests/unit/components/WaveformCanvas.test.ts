@@ -10,16 +10,27 @@ afterEach(() => {
 
 /** All curves use the same sampled time for mouse, touch, and keyboard inspection. */
 it("samples every curve through pointer and keyboard input and clamps plot edges", async () => {
-	vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+	vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+		scale: vi.fn(),
+		fillRect: vi.fn(),
+		beginPath: vi.fn(),
+		moveTo: vi.fn(),
+		lineTo: vi.fn(),
+		stroke: vi.fn(),
+		fillText: vi.fn(),
+		setLineDash: vi.fn(),
+		arc: vi.fn(),
+		fill: vi.fn(),
+	} as unknown as CanvasRenderingContext2D);
+	/** @param time Sample time. @returns Total response. */
+	const total = vi.fn((time: number): number => time * 2);
 	const view = render(WaveformCanvas, {
 		tRange: [0, 10],
 		curves: [
 			{
 				label: "Total",
 				color: "red",
-				/** @param time Sample time. @returns Total response. */ eval: (
-					time: number,
-				): number => time * 2,
+				eval: total,
 			},
 			{
 				label: "Zero-Input",
@@ -44,11 +55,15 @@ it("samples every curve through pointer and keyboard input and clamps plot edges
 	} as DOMRect);
 	const capture = vi.fn();
 	Object.defineProperty(canvas, "setPointerCapture", { value: capture });
+	expect(canvas.dataset.visualReady).toBe("true");
+	total.mockClear();
 	await fireEvent.pointerMove(canvas, {
 		clientX: 150,
 		pointerId: 1,
 		pointerType: "mouse",
 	});
+	// Only the selected readout and marker need fresh evaluations.
+	expect(total.mock.calls).toEqual([[5], [5]]);
 	const readout = view.container.querySelector(".waveform-readout")!;
 	expect(readout.textContent).toContain("5.0000 s");
 	expect(

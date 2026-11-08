@@ -42,6 +42,16 @@
 	const valuesTitleId = `${instanceId}-values-title`;
 	const inspectionId = `${instanceId}-inspection`;
 	const plotPadding = 40;
+	const numSamples = 200;
+	const plottedSamples = $derived.by(() => {
+		const [start, end] = tRange;
+		return curves.map((curve) =>
+			Array.from({ length: numSamples + 1 }, (_, index) => {
+				const time = start + (index / numSamples) * (end - start);
+				return curve.eval(time);
+			}),
+		);
+	});
 	let selectedTime = $state<number | null>(null);
 	const inspectedTime = $derived(
 		Math.max(tRange[0], Math.min(tRange[1], selectedTime ?? tRange[0])),
@@ -166,18 +176,15 @@
 		// Find yMin and yMax across all curves
 		let yMin = -1;
 		let yMax = 1;
-		const numSamples = 200;
 
-		curves.forEach((c) => {
-			for (let i = 0; i <= numSamples; i++) {
-				const t = tMin + (i / numSamples) * (tMax - tMin);
-				const val = c.eval(t);
-				if (!Number.isNaN(val) && Number.isFinite(val)) {
+		for (const samples of plottedSamples) {
+			for (const val of samples) {
+				if (Number.isFinite(val)) {
 					if (val < yMin) yMin = val;
 					if (val > yMax) yMax = val;
 				}
 			}
-		});
+		}
 
 		// Pad y-range
 		yMin = yMin < 0 ? yMin * 1.2 : yMin * 0.8;
@@ -225,14 +232,14 @@
 		}
 
 		// Draw Curves
-		curves.forEach((c) => {
+		curves.forEach((c, curveIndex) => {
 			ctx.strokeStyle = c.color;
 			ctx.lineWidth = 2;
 			ctx.beginPath();
 
 			for (let i = 0; i <= numSamples; i++) {
 				const t = tMin + (i / numSamples) * (tMax - tMin);
-				const val = c.eval(t);
+				const val = plottedSamples[curveIndex]![i]!;
 				const x = toX(t);
 				const y = toY(val);
 
