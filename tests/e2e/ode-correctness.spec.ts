@@ -237,6 +237,29 @@ async function verifyWorkedSolutionAndReset(
 		.poll(async () => Number(await slider.inputValue()))
 		.toBeCloseTo(1.25, 1);
 	await expect(page.locator(".waveform-readout dd")).toHaveCount(3);
+	if (test.info().project.name === "Desktop-Chrome") {
+		// Chromium's input protocol supplies a real touch drag in addition to the mouse check.
+		const touch = await page.context().newCDPSession(page);
+		try {
+			await touch.send("Input.dispatchTouchEvent", {
+				type: "touchStart",
+				touchPoints: [{ x, y }],
+			});
+			await touch.send("Input.dispatchTouchEvent", {
+				type: "touchMove",
+				touchPoints: [{ x: x + (visibleBounds.width - 80) / 2, y }],
+			});
+			await expect
+				.poll(async () => Number(await slider.inputValue()))
+				.toBeCloseTo(3.75, 1);
+		} finally {
+			await touch.send("Input.dispatchTouchEvent", {
+				type: "touchEnd",
+				touchPoints: [],
+			});
+			await touch.detach();
+		}
+	}
 	await slider.press("Home");
 	await expect(slider).toHaveValue("0");
 	await slider.press("ArrowRight");

@@ -25,7 +25,7 @@
 		title?: string;
 		/** Optional LaTeX math expression for graph title */
 		mathTitle?: string;
-		/** Time range [tMin, tMax] */
+		/** Finite time endpoints, ordered for display. Equal endpoints show one instant. */
 		tRange?: [number, number];
 	}
 
@@ -42,15 +42,17 @@
 	const valuesTitleId = `${instanceId}-values-title`;
 	const inspectionId = `${instanceId}-inspection`;
 	const plotPadding = 40;
+	const tMin = $derived(Math.min(...tRange));
+	const tMax = $derived(Math.max(...tRange));
+	const timeSpan = $derived(tMax - tMin);
 	const numSamples = 200;
 	/** Samples curves and computes the fixed amplitude bounds for the current time range. */
 	const plotData = $derived.by(() => {
-		const [start, end] = tRange;
 		let min = -1;
 		let max = 1;
 		const samples = curves.map((curve) =>
 			Array.from({ length: numSamples + 1 }, (_, index) => {
-				const time = start + (index / numSamples) * (end - start);
+				const time = tMin + (index / numSamples) * timeSpan;
 				const value = curve.eval(time);
 				if (Number.isFinite(value)) {
 					min = Math.min(min, value);
@@ -63,7 +65,7 @@
 	});
 	let selectedTime = $state<number | null>(null);
 	const inspectedTime = $derived(
-		Math.max(tRange[0], Math.min(tRange[1], selectedTime ?? tRange[0])),
+		Math.max(tMin, Math.min(tMax, selectedTime ?? tMin)),
 	);
 	const inspectedValues = $derived(
 		curves.map((curve) => ({
@@ -86,7 +88,7 @@
 					Math.max(1, rect.width - 2 * plotPadding),
 			),
 		);
-		selectedTime = tRange[0] + fraction * (tRange[1] - tRange[0]);
+		selectedTime = tMin + fraction * timeSpan;
 	}
 	/** Keeps horizontal touch or pen inspection connected while dragging. @param event Initial pointer contact. */
 	function startInspection(event: PointerEvent): void {
@@ -94,10 +96,12 @@
 		inspectPointer(event);
 	}
 	const sampleTimes = $derived(
-		Array.from(
-			{ length: 11 },
-			(_, index) => tRange[0] + (index * (tRange[1] - tRange[0])) / 10,
-		),
+		timeSpan === 0
+			? [tMin]
+			: Array.from(
+					{ length: 11 },
+					(_, index) => tMin + (index * timeSpan) / 10,
+				),
 	);
 	/** Formats an approximate sampled amplitude. @param value Sampled amplitude. @returns Readable value or range explanation. */
 	function sampleLabel(value: number): string {
@@ -179,14 +183,14 @@
 		const graphW = width - padding * 2;
 		const graphH = height - padding * 2;
 
-		const [tMin, tMax] = tRange;
 		const cursorTime = inspectedTime;
 
 		const { samples, yMin, yMax } = plotData;
 
 		// Coordinate transformation helpers
+		/** @param t Sample time. @returns Horizontal plot coordinate in CSS pixels. */
 		const toX = (t: number) =>
-			padding + ((t - tMin) / (tMax - tMin)) * graphW;
+			padding + (timeSpan === 0 ? 0.5 : (t - tMin) / timeSpan) * graphW;
 		const toY = (v: number) =>
 			padding + graphH - ((v - yMin) / (yMax - yMin)) * graphH;
 
@@ -215,8 +219,9 @@
 
 		// Time ticks
 		const tickIntervals = Math.max(1, Math.min(5, Math.floor(graphW / 60)));
-		for (let i = 0; i <= tickIntervals; i++) {
-			const tVal = tMin + (i / tickIntervals) * (tMax - tMin);
+		const tickCount = timeSpan === 0 ? 1 : tickIntervals + 1;
+		for (let i = 0; i < tickCount; i++) {
+			const tVal = tMin + (i / tickIntervals) * timeSpan;
 			const xPos = toX(tVal);
 			ctx.fillText(`${tVal.toFixed(1)}s`, xPos, height - padding + 16);
 		}
@@ -228,7 +233,7 @@
 			ctx.beginPath();
 
 			for (let i = 0; i <= numSamples; i++) {
-				const t = tMin + (i / numSamples) * (tMax - tMin);
+				const t = tMin + (i / numSamples) * timeSpan;
 				const val = samples[curveIndex]![i]!;
 				const x = toX(t);
 				const y = toY(val);
@@ -301,9 +306,10 @@
 		<input
 			id={inspectionId}
 			type="range"
-			min={tRange[0]}
-			max={tRange[1]}
-			step={(tRange[1] - tRange[0]) / 500 || 1}
+			min={tMin}
+			max={tMax}
+			step={timeSpan / 500 || 1}
+			disabled={timeSpan === 0}
 			value={inspectedTime}
 			aria-valuetext={inspectionText}
 			oninput={(event) => {

@@ -8,9 +8,9 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-/** All curves use the same sampled time for mouse, touch, and keyboard inspection. */
-it("samples every curve through pointer and keyboard input and clamps plot edges", async () => {
-	vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+/** @returns A canvas context spy for inspecting drawn coordinates. */
+function mockCanvas() {
+	const context = {
 		scale: vi.fn(),
 		fillRect: vi.fn(),
 		beginPath: vi.fn(),
@@ -21,11 +21,20 @@ it("samples every curve through pointer and keyboard input and clamps plot edges
 		setLineDash: vi.fn(),
 		arc: vi.fn(),
 		fill: vi.fn(),
-	} as unknown as CanvasRenderingContext2D);
+	};
+	vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+		context as unknown as CanvasRenderingContext2D,
+	);
+	return context;
+}
+
+/** All curves use the same sampled time for mouse, touch, and keyboard inspection. */
+it("samples every curve and clamps pointer input with reversed endpoints", async () => {
+	mockCanvas();
 	/** @param time Sample time. @returns Total response. */
 	const total = vi.fn((time: number): number => time * 2);
 	const view = render(WaveformCanvas, {
-		tRange: [0, 10],
+		tRange: [10, 0],
 		curves: [
 			{
 				label: "Total",
@@ -62,8 +71,8 @@ it("samples every curve through pointer and keyboard input and clamps plot edges
 		pointerId: 1,
 		pointerType: "mouse",
 	});
-	// Only the selected readout and marker need fresh evaluations.
-	expect(total.mock.calls).toEqual([[5], [5]]);
+	// Pointer movement must only evaluate the selected time, regardless of reuse.
+	expect(new Set(total.mock.calls.flat())).toEqual(new Set([5]));
 	const readout = view.container.querySelector(".waveform-readout")!;
 	expect(readout.textContent).toContain("5.0000 s");
 	expect(
@@ -89,6 +98,30 @@ it("samples every curve through pointer and keyboard input and clamps plot edges
 	expect(canvas.nextElementSibling).toBe(
 		view.getByRole("group", { name: "Plot legend" }),
 	);
+});
+
+/** A single instant stays readable and draws a marker at a finite coordinate. */
+it("plots one centered sample and disables the slider for equal endpoints", () => {
+	const context = mockCanvas();
+	vi.spyOn(
+		HTMLCanvasElement.prototype,
+		"getBoundingClientRect",
+	).mockReturnValue({
+		width: 280,
+		height: 200,
+	} as DOMRect);
+	const view = render(WaveformCanvas, {
+		tRange: [2, 2],
+		curves: [{ label: "Response", color: "red", eval: Math.abs }],
+	});
+	const slider = view.getByRole("slider");
+	expect(slider).toHaveProperty("disabled", true);
+	expect(slider).toHaveProperty("value", "2");
+	expect(view.container.querySelectorAll("tbody tr")).toHaveLength(1);
+	expect(context.fillText.mock.calls).toEqual([["2.0s", 140, 176]]);
+	const [x, y] = context.arc.mock.calls[0] ?? [];
+	expect(x).toBe(140);
+	expect(Number.isFinite(y)).toBe(true);
 });
 
 /** Numerical samples share plot parameters and IDs remain unique across instances. */
