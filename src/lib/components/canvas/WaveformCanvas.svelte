@@ -281,6 +281,7 @@
 	></canvas>
 	<div
 		class="legend"
+		role="group"
 		aria-label="Plot legend"
 	>
 		{#each curves as c}

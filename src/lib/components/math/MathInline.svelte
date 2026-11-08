@@ -33,7 +33,6 @@
 	let copyButtonText = $derived(
 		copyText === undefined ? "Copy LaTeX" : "Copy input",
 	);
-	let copyDismissed = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 	onDestroy(() => {
 		if (timeoutId) clearTimeout(timeoutId);
@@ -48,24 +47,15 @@
 			await navigator.clipboard.writeText(copyText ?? math);
 			copyFailures = 0;
 			copied = true;
-			copyDismissed = false;
 			if (timeoutId) clearTimeout(timeoutId);
 
 			timeoutId = setTimeout(() => {
-				copyDismissed = true;
 				copied = false;
 			}, 1500);
 		} catch {
 			copied = false;
 			copyFailures += 1;
 		}
-	}
-
-	/**
-	 * Resets copyDismissed state when mouse leaves component.
-	 */
-	function handleMouseLeave(): void {
-		copyDismissed = false;
 	}
 
 	/**
@@ -98,19 +88,19 @@
 {#if copyText !== undefined || (copyLatex && math)}
 	<button
 		type="button"
-		class="math-inline {className} {copied ? 'copied' : ''} {copyDismissed
-			? 'dismissed'
-			: ''}"
+		class="math-inline {className}"
 		onclick={handleCopy}
-		onmouseleave={handleMouseLeave}
 		aria-label={copyText === undefined
 			? "Copy LaTeX"
 			: `Copy input notation: ${copyText}`}
 	>
 		{copyButtonText}
-		<span class="copy-badge {copied ? 'copied-state' : ''}">
-			{copied ? "Copied!" : copyButtonText}
-		</span>
+		{#if copied}
+			<span
+				class="copy-badge"
+				aria-hidden="true">Copied!</span
+			>
+		{/if}
 	</button>
 	<span
 		class="sr-only"
@@ -174,42 +164,19 @@
 	}
 
 	.copy-badge {
-		display: none;
 		position: absolute;
 		top: -2.2em;
 		left: 50%;
-		transform: translateX(-50%) scale(0.92);
+		transform: translateX(-50%);
 		font-size: 0.72rem;
-		padding: 0.1rem 0.45rem;
+		padding: 0.1rem 0.55rem;
 		border-radius: 4px;
 		white-space: nowrap;
 		pointer-events: none;
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 		z-index: 100;
-		background-color: var(--bg-card, #1e293b);
-		color: var(--text-primary, #f8fafc);
-		border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
-		transition:
-			transform 0.15s ease,
-			background-color 0.15s ease,
-			color 0.15s ease,
-			border-color 0.15s ease,
-			padding 0.15s ease;
-	}
-
-	.math-inline:hover:not(.dismissed) .copy-badge,
-	.math-inline:focus-visible:not(.dismissed) .copy-badge {
-		display: block;
-		transform: translateX(-50%) scale(1);
-	}
-
-	/* Copied state — active primary accent badge */
-	.math-inline:not(.dismissed) .copy-badge.copied-state {
-		display: block;
-		transform: translateX(-50%) scale(1);
 		background-color: var(--accent-primary, #6366f1);
 		color: var(--accent-contrast);
-		border-color: var(--accent-primary, #6366f1);
-		padding: 0.1rem 0.55rem;
+		border: 1px solid var(--accent-primary, #6366f1);
 	}
 </style>

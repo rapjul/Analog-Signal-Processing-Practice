@@ -71,7 +71,9 @@ it("samples every curve through pointer and keyboard input and clamps plot edges
 	await fireEvent.input(slider, { target: { value: "2.5" } });
 	expect(slider.getAttribute("aria-valuetext")).toContain("Total: 5.0000");
 	expect(readout.textContent).toContain("2.5000 s");
-	expect(canvas.nextElementSibling?.classList.contains("legend")).toBe(true);
+	expect(canvas.nextElementSibling).toBe(
+		view.getByRole("group", { name: "Plot legend" }),
+	);
 });
 
 /** Numerical samples share plot parameters and IDs remain unique across instances. */

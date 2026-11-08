@@ -133,7 +133,8 @@ describe("MathInline.svelte Component", () => {
 		expect(container.querySelector("img, script, svg")).toBeNull();
 	});
 
-	it("handles clipboard copying, dismiss timers, and mouse leave transitions", async () => {
+	/** The badge appears only after copying and clears with the status. */
+	it("shows copy confirmation only until its feedback timer expires", async () => {
 		vi.useFakeTimers();
 		const writeTextMock = vi.fn().mockResolvedValue(undefined);
 		Object.assign(navigator, {
@@ -153,6 +154,7 @@ describe("MathInline.svelte Component", () => {
 			"button.math-inline",
 		) as HTMLButtonElement;
 		expect(btn).toBeTruthy();
+		expect(btn.querySelector(".copy-badge")).toBeNull();
 
 		// Trigger click to copy
 		await fireEvent.click(btn);
@@ -162,13 +164,11 @@ describe("MathInline.svelte Component", () => {
 		);
 
 		const badge = container.querySelector(".copy-badge");
-		expect(badge?.classList.contains("copied-state")).toBe(true);
-
-		// Advance timer to trigger copyDismissed state
-		vi.advanceTimersByTime(1500);
+		expect(badge?.textContent?.trim()).toBe("Copied!");
 
 		// Feedback resets even when reduced motion suppresses transition events.
-		await vi.advanceTimersByTimeAsync(0);
+		await vi.advanceTimersByTimeAsync(1500);
+		expect(btn.querySelector(".copy-badge")).toBeNull();
 		expect(
 			container.querySelector('[role="status"]')?.textContent.trim(),
 		).toBe("");
@@ -176,10 +176,6 @@ describe("MathInline.svelte Component", () => {
 		expect(
 			container.querySelector('[role="status"]')?.textContent,
 		).toContain("Copied input notation");
-
-		// Trigger mouseleave to reset copyDismissed state
-		await fireEvent.mouseLeave(btn);
-		expect(btn.classList.contains("dismissed")).toBe(false);
 	});
 
 	/** Unmounting cancels a pending copy feedback reset. */
