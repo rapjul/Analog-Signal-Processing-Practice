@@ -141,6 +141,14 @@ describe("MathText.svelte Component", () => {
 		expect(strongs.length).toBe(2);
 	});
 
+	/** Allowed tag names do not allow caller-supplied event handlers. */
+	it("escapes formatting tags that carry attributes", () => {
+		const markup = '<strong onclick="alert(1)">unsafe</strong>';
+		const { container } = render(MathText, { text: markup });
+		expect(container.querySelector("[onclick]")).toBeNull();
+		expect(container.textContent).toContain('<strong onclick="alert(1)">');
+	});
+
 	it("escapes unsafe HTML characters to prevent XSS", () => {
 		const { container } = render(MathText, {
 			props: {
