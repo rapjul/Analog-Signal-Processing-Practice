@@ -122,9 +122,9 @@
 			and <MathInline
 				math={String.raw`\texttt{e\textasciicircum\{-j*omega\}}`}
 				copyText={"e^{-j*omega}"}
-			/>. Select an example to copy its input text. All intermediate
-			answers must be verified before the worked solution and plots
-			unlock.
+			/>. Use the Copy input button next to an example to copy its text.
+			All intermediate answers must be verified before the worked solution
+			and plots unlock.
 		</p>
 		<CtftStepSolver
 			problem={currentProblem}

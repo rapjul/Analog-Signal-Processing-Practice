@@ -7,6 +7,7 @@
 
 	import katex from "katex";
 	import { renderMathError } from "./math-error";
+	import { overflowMath } from "./overflow-math";
 
 	interface Props {
 		/** Text content containing optional LaTeX math delimiters ($...$ or $$...$$) */
@@ -18,10 +19,10 @@
 	let { text = "", class: className = "" }: Props = $props();
 
 	/**
-	 * Safe HTML tags permitted in MathText prose segments.
+	 * Attribute-free formatting tags permitted in MathText prose segments.
 	 */
 	const SAFE_TAGS_PATTERN =
-		/<\/?(?:strong|em|b|i|code|br|hr|mark|u|kbd|del|s)(?:\s+[^>]*)?\/?>/gi;
+		/<\/?(?:strong|em|b|i|code|br|hr|mark|u|kbd|del|s)\s*\/?>/gi;
 
 	/**
 	 * Formats non-math text segments by escaping unsafe HTML characters while preserving
@@ -134,7 +135,10 @@
 	}
 </script>
 
-<span class="math-text {className}">
+<span
+	class="math-text {className}"
+	use:overflowMath
+>
 	{@html renderFormattedMathText(text)}
 </span>
 

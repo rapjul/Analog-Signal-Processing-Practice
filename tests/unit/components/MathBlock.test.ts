@@ -14,7 +14,7 @@ describe("MathBlock.svelte Component", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("renders display-mode KaTeX math expression inside a region container", () => {
+	it("renders display-mode KaTeX without a redundant region landmark", () => {
 		const { container } = render(MathBlock, {
 			props: {
 				math: String.raw`y(t) = e^{-2t} \cos(3t) u(t)`,
@@ -23,10 +23,9 @@ describe("MathBlock.svelte Component", () => {
 
 		const block = container.querySelector(".math-block");
 		expect(block).toBeTruthy();
-		expect(block?.getAttribute("role")).toBe("region");
-		expect(block?.getAttribute("aria-label")).toBe(
-			"Mathematical formula block",
-		);
+		expect(block?.getAttribute("role")).toBeNull();
+		expect(block?.getAttribute("aria-label")).toBeNull();
+		expect(block?.querySelector("math")).toBeTruthy();
 
 		const katexDisplay = container.querySelector(".katex-display");
 		expect(katexDisplay).toBeTruthy();
@@ -200,6 +199,27 @@ x &= 1
 			await vi.advanceTimersByTimeAsync(1500);
 			expect(copyBtn.textContent).toContain("LaTeX");
 		}
+	});
+
+	/** Each rejected write updates the existing live region, including a retry. */
+	it("updates the status on consecutive clipboard failures", async () => {
+		Object.assign(navigator, {
+			clipboard: {
+				writeText: vi.fn().mockRejectedValue(new Error("Denied")),
+			},
+		});
+		const view = render(MathBlock, { math: "x" });
+		const status = view.getByRole("status");
+		const button = view.getByRole("button", {
+			name: "Copy LaTeX string to clipboard",
+		});
+		await fireEvent.click(button);
+		const firstMessage = status.firstElementChild;
+		expect(firstMessage?.textContent).toContain("Copy unavailable");
+		await fireEvent.click(button);
+		expect(view.getByRole("status")).toBe(status);
+		expect(status.firstElementChild).not.toBe(firstMessage);
+		expect(status.textContent).toContain("Copy unavailable");
 	});
 
 	it("renders nothing when math string is empty", () => {

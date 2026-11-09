@@ -62,6 +62,27 @@
 			void tick().then(() => priorFocus?.focus());
 		}
 	});
+	$effect(() => {
+		if (!isOpen || !drawerElement) return;
+		const preserved = new Map<HTMLElement, boolean>();
+		let current: HTMLElement = drawerElement;
+		while (current.parentElement) {
+			for (const sibling of current.parentElement.children) {
+				if (
+					sibling instanceof HTMLElement &&
+					sibling !== current &&
+					!sibling.classList.contains("drawer-backdrop")
+				) {
+					preserved.set(sibling, sibling.inert);
+					sibling.inert = true;
+				}
+			}
+			current = current.parentElement;
+		}
+		return () => {
+			for (const [element, inert] of preserved) element.inert = inert;
+		};
+	});
 
 	/**
 	 * Handles keydown events to close drawer on Esc key and stop propagation to underlying listeners.
@@ -79,6 +100,11 @@
 			drawerElement.querySelectorAll<HTMLElement>(
 				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
 			),
+		).filter(
+			(element) =>
+				element.tabIndex >= 0 &&
+				!element.closest("[hidden], [inert]") &&
+				element.getClientRects().length > 0,
 		);
 		const first = focusable[0];
 		const last = focusable.at(-1);
@@ -158,6 +184,7 @@
 		<div
 			class="drawer-tabs"
 			role="tablist"
+			aria-label="Formula topics"
 		>
 			{#each tabs as tab, index}
 				<button
@@ -188,6 +215,7 @@
 		<div
 			class="drawer-content"
 			role="tabpanel"
+			tabindex="0"
 			id={`formula-panel-${activeTab}`}
 			aria-labelledby={`formula-tab-${activeTab}`}
 		>

@@ -5,7 +5,9 @@
 	 * Renders display-mode LaTeX math using KaTeX.
 	 */
 	import katex from "katex";
+	import { onDestroy } from "svelte";
 	import { renderMathError } from "./math-error";
+	import { overflowMath } from "./overflow-math";
 
 	interface Props {
 		/** LaTeX expression to render */
@@ -41,7 +43,11 @@
 	}: Props = $props();
 
 	let copied = $state(false);
+	let copyFailures = $state(0);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	onDestroy(() => {
+		if (timeoutId) clearTimeout(timeoutId);
+	});
 
 	/**
 	 * Formats raw math input by wrapping it in requested environment if not already present.
@@ -81,15 +87,20 @@
 	/**
 	 * Copies processed LaTeX code to clipboard and shows brief success indication.
 	 */
-	function handleCopy(): void {
+	async function handleCopy(): Promise<void> {
 		if (!formattedMath) return;
-		navigator.clipboard.writeText(formattedMath).then(() => {
+		try {
+			await navigator.clipboard.writeText(formattedMath);
+			copyFailures = 0;
 			copied = true;
 			if (timeoutId) clearTimeout(timeoutId);
 			timeoutId = setTimeout(() => {
 				copied = false;
 			}, 1500);
-		});
+		} catch {
+			copied = false;
+			copyFailures += 1;
+		}
 	}
 
 	/**
@@ -113,10 +124,23 @@
 	<div
 		class="math-block {className} {compact ? 'is-compact' : ''}"
 		class:math-block-responsive={responsive}
-		role="region"
-		aria-label="Mathematical formula block"
+		use:overflowMath
 	>
 		{#if !hideHeader}
+			<span
+				class="sr-only"
+				role="status"
+			>
+				{#if copyFailures}
+					{#key copyFailures}
+						<span
+							>Copy unavailable. Select the formula manually.</span
+						>
+					{/key}
+				{:else if copied}
+					Copied LaTeX code
+				{/if}
+			</span>
 			<div class="math-block-header">
 				<button
 					type="button"

@@ -174,6 +174,7 @@
 		<MathInline
 			math={`${symbol} = ${coeffLatex}`}
 			displayStyle
+			copyLatex
 		/>
 	</div>
 </div>

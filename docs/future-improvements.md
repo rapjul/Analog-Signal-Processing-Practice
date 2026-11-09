@@ -2,6 +2,14 @@
 
 A running backlog of prospective UX, visual, and architectural improvements to consider for future development sprints.
 
+## Accessibility milestone and next priority
+
+- Implemented readable inline mathematics with optional separate input-copy controls, clipboard failure feedback, skip navigation, active-route semantics, and improved light-theme contrast.
+- Added ODE progression focus, completion focus, reduced-motion styling, formula-dialog focus containment, and approximate waveform data tables.
+- Added rendered accessibility scans and keyboard regression checks to the production verification workflow. VoiceOver verification remains a release check; automated scans do not establish full conformance.
+- Next priority: local recovery for the five guided tutors, with one unfinished draft per module and an explicit Resume or Start fresh choice on every entry, including reload. Preserve answers, hints, verified progress, and assisted status; explicit different exercise links take precedence.
+- Compact steppers, sticky actions, and shared progress components already exist; review their current behavior before treating the older proposals below as new work.
+
 ---
 
 ## Solver & Practice Interface Enhancements

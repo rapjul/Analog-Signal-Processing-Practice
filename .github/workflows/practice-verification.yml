@@ -59,7 +59,8 @@ jobs:
   verify:
     name: Tests, properties, and production workflows
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Setup, coverage, and the four-profile browser suite can exceed 30 minutes.
+    timeout-minutes: 40
     env:
       SIGNALLAB_TEST_OFFLINE: "1"
       PLAYWRIGHT_HTML_OPEN: never
@@ -95,6 +96,7 @@ jobs:
         run: >-
           npm run test:e2e:production --
           tests/e2e/practice-correctness.spec.ts
+          tests/e2e/accessibility.spec.ts
           tests/e2e/fourier-series-correctness.spec.ts
           tests/e2e/ctft-module.spec.ts
           tests/e2e/laplace-module.spec.ts

@@ -83,6 +83,7 @@
 <main
 	class="page-container"
 	id="main-content"
+	tabindex="-1"
 	style:max-width={getComputedMaxWidth(maxWidth)}
 >
 	<!-- Header Section -->

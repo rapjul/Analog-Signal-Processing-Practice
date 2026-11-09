@@ -44,9 +44,9 @@ flowchart TD
     end
 
     subgraph Components["Component Rendering Strategy"]
-        MathTextComp["<MathText text={String.raw`...`} />\n• Non-interactive <span class='math-text'>\n• Zero tab-stops (tabindex omitted)\n• Delimiters: $ ... $ and $$ ... $$"]
+        MathTextComp["<MathText text={String.raw`...`} />\n• Inline math stays out of the Tab order\n• Overflowing display equations can receive focus\n• Delimiters: $ ... $ and $$ ... $$"]
         MathBlockComp["<MathBlock math={...} />\n• Display-mode KaTeX block\n• Centered equation container"]
-        MathInlineComp["<MathInline math={...} />\n• Interactive <button>\n• Full keyboard focusable (:focus-visible)\n• Click-to-copy clipboard action"]
+        MathInlineComp["<MathInline math={...} copyLatex />\n• Readable KaTeX span\n• Separate keyboard-focusable copy button"]
     end
 
     Prose --> MathTextComp
@@ -59,10 +59,12 @@ flowchart TD
 1. **Component Selection**:
     - Use `<MathText>` for all user-facing prose, step prompts, card subtitles, button descriptive labels, table cells, and parameter inputs.
     - Use `<MathBlock>` for multi-line or display-style centered derivations and equations.
-    - Reserve `<MathInline>` exclusively for standalone formula tokens that explicitly require click-to-copy behavior.
+    - Use `copyLatex` on `<MathInline>` to add a separate copy button for standalone formulas, or `copyText` to copy a literal input alias. The rendered math remains readable separately from its copy control.
+    - `<MathText>` accepts basic formatting tags without attributes. Other HTML is rendered as text.
 
 2. **Template Attribute Escaping with `String.raw`**:
     - Any string containing LaTeX macros or backslashes (`\`) MUST be passed using `String.raw` template literals:
+
         ```svelte
         <MathText
         	text={String.raw`$y_h(t) = e^{\sigma t}[C_1 \cos(\omega_d t) + C_2 \sin(\omega_d t)]$`}
@@ -71,11 +73,14 @@ flowchart TD
         	text={String.raw`Fundamental Frequency $\omega_0 = \frac{2\pi}{T_0}$:`}
         />
         ```
+
     - For strings containing math without backslashes, wrap with JavaScript expression braces:
+
         ```svelte
         <MathText text={"Input Signal $x(t)$:"} />
         <MathText text={"Constant ($a_0$):"} />
         ```
+
     - Never use raw double-quoted attributes `text="..."` with LaTeX containing curly braces `{...}`, as Svelte interprets them as template JavaScript expressions.
 
 ## Consequences

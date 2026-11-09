@@ -107,12 +107,16 @@ test("formulas and notation have accessible keyboard controls", async ({
 	).toBeVisible();
 	await page.keyboard.press("Escape");
 	await expect(formulas).toBeFocused();
+	await expect(
+		page.locator("#ctft-notation > span.math-inline .katex-html"),
+	).toHaveText(["pi", "j", "omega", "w", "e^(-j*omega)", "e^{-j*omega}"]);
 	for (const literal of ["omega", "w", "e^(-j*omega)", "e^{-j*omega}"]) {
 		const example = page.getByRole("button", {
 			name: `Copy input notation: ${literal}`,
 			exact: true,
 		});
-		await expect(example.locator(".katex-html")).toHaveText(literal);
+		await expect(example).toContainText("Copy input");
+		await expect(example.locator(".katex")).toHaveCount(0);
 		await example.focus();
 		await expect(example).toBeFocused();
 	}
